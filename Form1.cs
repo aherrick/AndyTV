@@ -1,4 +1,4 @@
-using AndyTV.Helpers;
+﻿using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
 using LibVLCSharp.Shared;
@@ -189,12 +189,18 @@ public partial class Form1 : Form
     #region VideoView Events
 
     private DateTime? _mouseDownLeftPrevChannel;
+    private DateTime? _mouseDownRightExit;
 
     private void VideoView_MouseDown(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left)
         {
             _mouseDownLeftPrevChannel = DateTime.Now;
+        }
+
+        if (e.Button == MouseButtons.Right)
+        {
+            _mouseDownRightExit = DateTime.Now;
         }
     }
 
@@ -217,6 +223,15 @@ public partial class Form1 : Form
         if (e.Button == MouseButtons.Middle)
         {
             _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        }
+
+        if (
+            e.Button == MouseButtons.Right
+            && _mouseDownRightExit != null
+            && _mouseDownRightExit.Value.AddSeconds(5) < DateTime.Now
+        )
+        {
+            Close(); // exit app if right held ≥ 5 seconds
         }
     }
 

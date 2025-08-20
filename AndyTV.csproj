@@ -25,4 +25,8 @@
 		</Content>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Helpers\UI\" />
+	</ItemGroup>
+
 </Project>

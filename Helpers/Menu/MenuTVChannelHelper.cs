@@ -1,94 +1,38 @@
-﻿namespace AndyTV.Helpers.Menu;
+﻿using AndyTV.Models;
+
+namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
+    public List<Channel> Channels { get; private set; } = [];
+
     public async Task LoadChannels(EventHandler channelClick, string m3uURL)
     {
         MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-        var channels = await M3UParser.Parse(m3uURL);
+        Channels =
+        [
+            .. (await M3UParser.Parse(m3uURL)).OrderBy(
+                c => c.Name,
+                StringComparer.OrdinalIgnoreCase
+            ),
+        ];
 
         var topUsCategories = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Locals"] =
+            ["24/7"] =
             [
-                "ABC",
-                "CBS",
-                "CW",
-                "FOX",
-                "NBC",
-                "PBS",
-                "MeTV",
-                "Cozi TV",
-                "Antenna TV",
-                "MyNetworkTV",
-                "Ion Mystery",
-            ],
-            ["Sports"] =
-            [
-                "ACC Network",
-                "Big Ten Network",
-                "BTN",
-                "CBS Sports Network",
-                "ESPN",
-                "ESPN 2",
-                "ESPN News",
-                "ESPNU",
-                "Fox Sports 1",
-                "Fox Sports 2",
-                "Golf Channel",
-                "MLB Network",
-                "NBA TV",
-                "NFL Network",
-                "NHL Network",
-                "SEC Network",
-            ],
-            ["News"] =
-            [
-                "ABC News",
-                "Bloomberg",
-                "CBS News",
-                "CNN",
-                "CNBC",
-                "Fox News",
-                "HLN",
-                "MSNBC",
-                "NBC News",
-                "Newsmax",
-                "OANN",
-                "The Weather Channel",
-                "Weather Channel",
-            ],
-
-            ["Movies"] =
-            [
-                "HBO",
-                "HBO 2",
-                "HBO Family",
-                "HBO Signature",
-                "HBO Comedy",
-                "HBO Zone",
-                "Cinemax",
-                "MoreMax",
-                "ActionMax",
-                "ThrillerMax",
-                "5StarMax",
-                "Showtime",
-                "Showtime 2",
-                "Showtime Showcase",
-                "Showtime Extreme",
-                "Starz",
-                "Starz Edge",
-                "Starz Cinema",
-                "Starz Comedy",
-                "Starz Kids & Family",
-                "Epix",
-                "Epix 2",
-                "Epix Hits",
-                "Epix Drive-In",
-                "The Movie Channel",
-                "The Movie Channel Xtra",
-                "Flix",
+                "Breaking Bad",
+                "Frasier",
+                "Friends",
+                "Game of Thrones",
+                "I Love Lucy",
+                "Saturday Night Live",
+                "Seinfeld",
+                "The Office",
+                "The Simpsons",
+                "The Sopranos",
+                "The Wire",
             ],
             ["Entertainment"] =
             [
@@ -113,13 +57,13 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 "Smithsonian Channel",
                 "Syfy",
                 "TBS",
+                "TCM",
                 "TNT",
                 "Travel Channel",
                 "TruTV",
                 "USA Network",
                 "VH1",
                 "WE TV",
-                "TCM",
             ],
             ["Kids"] =
             [
@@ -132,119 +76,193 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 "Nicktoons",
                 "Universal Kids",
             ],
-
-            ["Music"] = ["BET", "CMT", "MTV", "MTV2", "Music Choice", "AXS TV"],
+            ["Locals"] =
+            [
+                "ABC",
+                "Antenna TV",
+                "CBS",
+                "Cozi TV",
+                "CW",
+                "FOX",
+                "Ion Mystery",
+                "MeTV",
+                "MyNetworkTV",
+                "NBC",
+                "PBS",
+            ],
+            ["Movies"] =
+            [
+                "5StarMax",
+                "ActionMax",
+                "Cinemax",
+                "Epix",
+                "Epix 2",
+                "Epix Drive-In",
+                "Epix Hits",
+                "Flix",
+                "HBO",
+                "HBO 2",
+                "HBO Comedy",
+                "HBO Family",
+                "HBO Signature",
+                "HBO Zone",
+                "MoreMax",
+                "Showtime",
+                "Showtime 2",
+                "Showtime Extreme",
+                "Showtime Showcase",
+                "Starz",
+                "Starz Cinema",
+                "Starz Comedy",
+                "Starz Edge",
+                "Starz Kids & Family",
+                "The Movie Channel",
+                "The Movie Channel Xtra",
+            ],
+            ["Music"] = ["AXS TV", "BET", "CMT", "MTV", "MTV2", "Music Choice"],
+            ["News"] =
+            [
+                "ABC News",
+                "Bloomberg",
+                "CBS News",
+                "CNBC",
+                "CNN",
+                "Fox News",
+                "HLN",
+                "MSNBC",
+                "NBC News",
+                "Newsmax",
+                "OANN",
+                "The Weather Channel",
+                "Weather Channel",
+            ],
             ["Other"] =
             [
+                "BBC America",
+                "Court TV",
+                "GSN",
                 "ION",
                 "ION Plus",
-                "Trinity Broadcasting",
-                "BBC America",
-                "GSN",
-                "Court TV",
                 "Reelz",
+                "Trinity Broadcasting",
+            ],
+            ["Sports"] =
+            [
+                "ACC Network",
+                "Big Ten Network",
+                "BTN",
+                "CBS Sports Network",
+                "ESPN",
+                "ESPN 2",
+                "ESPN News",
+                "ESPNU",
+                "Fox Sports 1",
+                "Fox Sports 2",
+                "Golf Channel",
+                "MLB Network",
+                "NBA TV",
+                "NFL Network",
+                "NHL Network",
+                "SEC Network",
             ],
         };
 
         var topUkCategories = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
+            ["Documentary"] =
+            [
+                "Crime+Investigation",
+                "Discovery History",
+                "Discovery Science",
+                "Sky History",
+            ],
+            ["Entertainment"] =
+            [
+                "Alibi",
+                "BBC Alba",
+                "Dave",
+                "Drama",
+                "Eden",
+                "Gold",
+                "Pick",
+                "Quest",
+                "Really",
+                "Sky Atlantic",
+                "Sky Max",
+                "Sky Mix",
+                "Sky Showcase",
+                "Sky Witness",
+                "W",
+                "Yesterday",
+            ],
+            ["Kids"] = ["CBBC", "CBeebies", "Cartoonito", "POP", "Tiny Pop"],
             ["Main"] =
             [
-                "BBC One",
-                "BBC Two",
-                "BBC Three",
+                "4seven",
+                "5Action",
+                "5Select",
+                "5Star",
+                "5USA",
                 "BBC Four",
+                "BBC One",
+                "BBC Scotland",
+                "BBC Three",
+                "BBC Two",
+                "Channel 4",
+                "Channel 5",
+                "E4",
                 "ITV1",
                 "ITV2",
                 "ITV3",
                 "ITV4",
                 "ITVBe",
-                "Channel 4",
-                "E4",
-                "More4",
-                "4seven",
-                "Channel 5",
-                "5USA",
-                "5Star",
-                "5Action",
-                "5Select",
                 "S4C",
                 "STV",
                 "UTV",
-                "BBC Scotland",
+            ],
+            ["Movies"] =
+            [
+                "Film4",
+                "Sky Cinema Action",
+                "Sky Cinema Animation",
+                "Sky Cinema Comedy",
+                "Sky Cinema Drama",
+                "Sky Cinema Family",
+                "Sky Cinema Greats",
+                "Sky Cinema Premiere",
+                "Sky Cinema Sci-Fi & Horror",
+                "Sky Cinema Thriller",
+            ],
+            ["Music"] = ["4Music", "Kerrang!", "Kiss TV", "The Box"],
+            ["News"] =
+            [
+                "Al Jazeera English",
+                "BBC News",
+                "Euronews",
+                "France 24 English",
+                "GB News",
+                "Sky News",
+                "TalkTV",
             ],
             ["Sports"] =
             [
-                "Sky Sports Main Event",
-                "Sky Sports Premier League",
-                "Sky Sports Football",
+                "Eurosport 1",
+                "Eurosport 2",
+                "Premier Sports",
                 "Sky Sports Cricket",
                 "Sky Sports F1",
+                "Sky Sports Football",
                 "Sky Sports Golf",
+                "Sky Sports Main Event",
                 "Sky Sports News",
                 "TNT Sports 1",
                 "TNT Sports 2",
                 "TNT Sports 3",
                 "TNT Sports 4",
-                "Eurosport 1",
-                "Eurosport 2",
-                "Premier Sports",
             ],
-            ["News"] =
-            [
-                "BBC News",
-                "Sky News",
-                "GB News",
-                "TalkTV",
-                "Euronews",
-                "Al Jazeera English",
-                "France 24 English",
-            ],
-            ["Entertainment"] =
-            [
-                "Sky Atlantic",
-                "Sky Max",
-                "Sky Showcase",
-                "Sky Witness",
-                "Dave",
-                "W",
-                "Gold",
-                "Alibi",
-                "Drama",
-                "Yesterday",
-                "Eden",
-                "Quest",
-                "Really",
-                "Challenge",
-                "Pick",
-                "Sky Mix",
-                "BBC Alba",
-            ],
-            ["Documentary"] =
-            [
-                "Discovery History",
-                "Discovery Science",
-                "Sky History",
-                "Crime+Investigation",
-            ],
-            ["Movies"] =
-            [
-                "Sky Cinema Premiere",
-                "Sky Cinema Greats",
-                "Sky Cinema Action",
-                "Sky Cinema Comedy",
-                "Sky Cinema Family",
-                "Sky Cinema Thriller",
-                "Sky Cinema Drama",
-                "Sky Cinema Sci-Fi & Horror",
-                "Sky Cinema Animation",
-                "Film4",
-            ],
-            ["Kids"] = ["CBBC", "CBeebies", "Cartoonito", "POP", "Tiny Pop"],
-            ["Music"] = ["Kiss TV", "Kerrang!", "The Box", "4Music"],
         };
 
-        // ===== Inline reusable function =====
+        // ===== Local helper (inside LoadChannels) =====
         void AddTopChannelsMenu(string rootTitle, Dictionary<string, string[]> categories)
         {
             bool MatchesWordLike(string text, string term)
@@ -275,11 +293,14 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
             var rootItem = new ToolStripMenuItem { Text = rootTitle };
 
-            foreach (var category in categories)
+            // order categories by name
+            foreach (
+                var category in categories.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+            )
             {
                 var categoryItem = new ToolStripMenuItem(category.Key);
 
-                // sort networks within category
+                // order network/proper names by name
                 foreach (
                     var properName in category.Value.OrderBy(
                         n => n,
@@ -287,8 +308,8 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                     )
                 )
                 {
-                    // find all channels whose Name matches the network name with boundary-like spacing
-                    var matches = channels
+                    // find matching channels, order by channel name
+                    var matches = Channels
                         .Where(c => MatchesWordLike(c.Name, properName))
                         .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                         .ToList();
@@ -301,7 +322,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                     foreach (var ch in matches)
                     {
                         var chItem = new ToolStripMenuItem(ch.Name) { Tag = ch.Url };
-                        chItem.Click += channelClick; // uses item.Text for display, item.Tag for URL
+                        chItem.Click += channelClick;
                         networkItem.DropDownItems.Add(chItem);
                     }
 
@@ -309,13 +330,15 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (categoryItem.DropDownItems.Count > 0)
+                {
                     rootItem.DropDownItems.Add(categoryItem);
+                }
             }
 
             menu.Items.Add(rootItem);
         }
 
-        // Build both menus using the same function
+        // Build both menus (roots are manual: US then UK)
         AddTopChannelsMenu("US", topUsCategories);
         AddTopChannelsMenu("UK", topUkCategories);
 
