@@ -15,7 +15,7 @@ public static class M3USourceStore
             return [];
 
         var json = File.ReadAllText(FileName);
-        return JsonSerializer.Deserialize<List<M3USource>>(json);
+        return JsonSerializer.Deserialize<List<M3USource>>(json) ?? [];
     }
 
     public static void Save(List<M3USource> sources)
@@ -24,37 +24,41 @@ public static class M3USourceStore
         File.WriteAllText(FileName, json);
     }
 
-    public static M3USource GetOrPromptFirst()
+    public static M3USource TryGetFirst()
     {
-        var sources = Load();
+        return Load().FirstOrDefault();
+    }
 
-        // support just one source for now, but down the road we can support multiple
-        if (sources.Count == 0)
+    public static M3USource PromptNewSource()
+    {
+        string url;
+        while (true)
         {
-            string url;
-            while (true)
+            url = Interaction.InputBox("Enter M3U URL:", "M3U URL", "");
+            if (string.IsNullOrWhiteSpace(url))
+                return null; // user cancelled
+
+            if (
+                Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            )
             {
-                url = Interaction.InputBox("Enter M3U URL:", "M3U URL", "");
-                if (string.IsNullOrWhiteSpace(url))
-                    return null; // user cancelled
-
-                if (
-                    Uri.TryCreate(url, UriKind.Absolute, out var uri)
-                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                )
-                {
-                    break; // valid input
-                }
-
-                MessageBox.Show("Please enter a valid HTTP/HTTPS URL or Cancel to quit.");
+                break; // valid input
             }
 
-            var name = Interaction.InputBox("Optional name:", "M3U Name", "Default");
-            var src = new M3USource(string.IsNullOrWhiteSpace(name) ? "Default" : name, url.Trim());
-            sources.Add(src);
-            Save(sources);
+            MessageBox.Show("Please enter a valid HTTP/HTTPS URL or Cancel to quit.");
         }
 
-        return sources[0];
+        var name = Interaction.InputBox("Optional name:", "M3U Name", "Default");
+        var src = new M3USource(
+            string.IsNullOrWhiteSpace(name) ? "Default" : name.Trim(),
+            url.Trim()
+        );
+
+        var sources = Load();
+        sources.Add(src);
+        Save(sources);
+
+        return src;
     }
 }

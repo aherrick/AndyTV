@@ -114,11 +114,17 @@ public partial class Form1 : Form
 
         _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
 
-        var source = M3USourceStore.GetOrPromptFirst();
+        var source = M3USourceStore.TryGetFirst();
         if (source is null)
         {
-            Close(); // exits the form/app gracefully if cancelled
-            return;
+            RestoreWindow();
+            // Prompt user for M3U source if none found
+            source = M3USourceStore.PromptNewSource();
+            if (source is null)
+            {
+                Close(); // exits the form/app gracefully if cancelled
+                return;
+            }
         }
 
         _cursorHelper.ShowWaiting();
