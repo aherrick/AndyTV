@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<LangVersion>preview</LangVersion>
+		<ApplicationIcon>AndyTV.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="LibVLCSharp.WinForms" Version="3.9.4" />
+		<PackageReference Include="Velopack" Version="0.0.1298" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Copy the .ico file to the output directory -->
+		<Content Include="AndyTV.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+</Project>

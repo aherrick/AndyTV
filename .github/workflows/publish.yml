@@ -1,0 +1,67 @@
+name: publish
+
+on:
+  workflow_dispatch: 
+
+permissions:
+  contents: write  # <-- needed for releases
+
+jobs:
+  build-pack-publish:
+    runs-on: windows-latest
+
+    env:
+      VERSION: 1.0.${{ github.run_number }}   
+      PACK_ID: com.ajh.AndyTV 
+      PUBLISH_DIR: publish
+      CHANNEL: win                     
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish (self-contained)
+        run: >
+          dotnet publish ./AndyTV.csproj
+          --self-contained true
+          -p:Version=$env:VERSION
+          -o $env:PUBLISH_DIR
+
+      - name: Install vpk (Velopack CLI)
+        run: dotnet tool install -g vpk
+
+      # Download latest release so vpk can create deltas & update releases.json
+      - name: Download latest from GitHub Releases (for deltas)
+        run: >
+          vpk download github
+          --repoUrl https://github.com/${{ github.repository }}
+          --channel $env:CHANNEL
+
+      - name: Pack Velopack release
+        run: >
+          vpk pack
+          --packId $env:PACK_ID
+          --packVersion $env:VERSION
+          --packDir $env:PUBLISH_DIR
+          --mainExe AndyTV.exe
+          --packTitle "AndyTV"
+          --icon ./AndyTV.ico
+          --channel $env:CHANNEL
+
+      - name: Upload to GitHub Releases (Velopack)
+        run: >
+          vpk upload github
+          --outputDir Releases
+          --channel $env:CHANNEL
+          --repoUrl https://github.com/${{ github.repository }}
+          --publish
+          --tag v$env:VERSION
+          --releaseName "AndyTV $env:VERSION"
+          --token ${{ github.token }}  
