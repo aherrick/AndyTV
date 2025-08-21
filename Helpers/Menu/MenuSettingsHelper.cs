@@ -85,20 +85,25 @@ public class MenuSettingsHelper
     {
         try
         {
-            _cursorHelper.ShowDefault();
+            _cursorHelper.ShowWaiting(); // busy while checking
 
             var info = await _updater.CheckForUpdatesAsync();
+
             if (info == null)
             {
+                _cursorHelper.ShowDefault(); // show normal cursor before dialog
                 MessageBox.Show(
                     "You’re already up to date.",
                     "Update",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
                 );
+                _cursorHelper.Hide();
+
                 return;
             }
 
+            _cursorHelper.ShowDefault(); // show normal cursor before prompt
             var result = MessageBox.Show(
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
                 "Update Available",
@@ -108,12 +113,17 @@ public class MenuSettingsHelper
 
             if (result == DialogResult.Yes)
             {
+                _cursorHelper.ShowWaiting(); // busy while downloading
                 await _updater.DownloadUpdatesAsync(info);
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
+
+            _cursorHelper.Hide();
         }
         catch (Exception ex)
         {
+            _cursorHelper.ShowDefault(); // ensure normal cursor before error dialog
+
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
                 "An error occurred while checking for updates. Please try again.",
@@ -121,6 +131,8 @@ public class MenuSettingsHelper
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
             );
+
+            _cursorHelper.Hide();
         }
     }
 }
