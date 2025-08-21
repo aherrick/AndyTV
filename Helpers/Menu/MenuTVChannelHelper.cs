@@ -23,6 +23,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             ["24/7"] =
             [
                 "Breaking Bad",
+                "Forensic Files",
                 "Frasier",
                 "Friends",
                 "Game of Thrones",
@@ -33,7 +34,9 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 "The Simpsons",
                 "The Sopranos",
                 "The Wire",
+                "Unsolved Mysteries",
             ],
+
             ["Entertainment"] =
             [
                 "A&E",

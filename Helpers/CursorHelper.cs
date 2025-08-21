@@ -24,10 +24,6 @@ public class CursorHelper(Form form)
 
     public void ShowWaiting()
     {
-        var center = new Point(form.ClientSize.Width / 2, form.ClientSize.Height / 2);
-
-        Cursor.Position = form.PointToScreen(center);
-
         ShowCursor(Cursors.WaitCursor);
     }
 

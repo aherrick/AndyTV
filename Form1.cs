@@ -106,7 +106,8 @@ public partial class Form1 : Form
         _menuSettingsHelper = new MenuSettingsHelper(
             menu: _contextMenuStrip,
             appVersionName: appVersionName,
-            mediaPlayer: _mediaPlayer
+            mediaPlayer: _mediaPlayer,
+            cursorHelper: _cursorHelper
         );
 
         _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);

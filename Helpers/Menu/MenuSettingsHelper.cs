@@ -8,18 +8,26 @@ namespace AndyTV.Helpers.Menu;
 public class MenuSettingsHelper
 {
     private readonly ContextMenuStrip _menu;
+    private readonly string _appVersionName;
     private readonly MediaPlayer _mediaPlayer;
+    private readonly CursorHelper _cursorHelper;
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripMenuItem _muteItem;
     private readonly ToolStripMenuItem _checkUpdatesItem;
 
     private readonly UpdateManager _updater;
 
-    public MenuSettingsHelper(ContextMenuStrip menu, string appVersionName, MediaPlayer mediaPlayer)
+    public MenuSettingsHelper(
+        ContextMenuStrip menu,
+        string appVersionName,
+        MediaPlayer mediaPlayer,
+        CursorHelper cursorHelper
+    )
     {
         _menu = menu;
+        _appVersionName = appVersionName;
         _mediaPlayer = mediaPlayer;
-
+        _cursorHelper = cursorHelper;
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
@@ -77,6 +85,8 @@ public class MenuSettingsHelper
     {
         try
         {
+            _cursorHelper.ShowDefault();
+
             var info = await _updater.CheckForUpdatesAsync();
             if (info == null)
             {
