@@ -8,6 +8,7 @@
 ## ✨ Features
 - 📡 Plays IPTV streams from an M3U playlist  
 - 🖥️ Simple and clean Windows UI  
+- ⭐ Create and manage **Favorites** for one-click channel switching  
 - 🕑 Remembers your most recently watched channels  
 - 🔄 Auto-update support via GitHub Releases  
 
