@@ -35,6 +35,7 @@ public class FavoriteChannelForm : Form
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        MinimizeBox = false;
 
         // Channel search - extended to use available width
         var lblChannels = new Label
