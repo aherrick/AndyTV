@@ -11,7 +11,7 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
     private readonly int MaxRecent = 5;
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT");
 
-    private static readonly string FileName = PathHelper.GetPath("recents.json");
+    public static readonly string FileName = PathHelper.GetPath("recents.json");
 
     public void AddOrPromote(Channel ch)
     {

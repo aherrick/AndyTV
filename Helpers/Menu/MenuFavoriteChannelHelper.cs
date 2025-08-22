@@ -11,13 +11,9 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
 
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
 
-    private static readonly string FileName = PathHelper.GetPath(
-        FavoriteChannelForm.FAVORITES_FILE
-    );
-
     public void RebuildFavoritesMenu()
     {
-        if (!File.Exists(FileName))
+        if (!File.Exists(FavoriteChannelForm.FileName))
         {
             return; // no favorites file, nothing to do
         }
@@ -25,7 +21,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
         List<Channel> favorites = [];
         try
         {
-            var json = File.ReadAllText(FileName);
+            var json = File.ReadAllText(FavoriteChannelForm.FileName);
             favorites = JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
         }
         catch { }

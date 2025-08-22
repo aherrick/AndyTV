@@ -14,7 +14,7 @@ public class FavoriteChannelForm : Form
     private Button _upButton;
     private Button _downButton;
     private Button _removeButton;
-    public const string FAVORITES_FILE = "favorite_channels.json";
+    public static readonly string FileName = PathHelper.GetPath("favorite_channels.json");
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -269,10 +269,9 @@ public class FavoriteChannelForm : Form
 
     private void LoadFavorites()
     {
-        string filePath = PathHelper.GetPath(FAVORITES_FILE);
-        if (File.Exists(filePath))
+        if (File.Exists(FileName))
         {
-            string json = File.ReadAllText(filePath);
+            string json = File.ReadAllText(FileName);
             var savedChannels = JsonSerializer.Deserialize<List<Channel>>(json);
 
             foreach (var channel in savedChannels)
@@ -284,7 +283,7 @@ public class FavoriteChannelForm : Form
 
     private void SaveFavorites()
     {
-        string filePath = PathHelper.GetPath(FAVORITES_FILE);
+        string filePath = PathHelper.GetPath(FileName);
         string json = JsonSerializer.Serialize(_selectedChannels.ToList());
         File.WriteAllText(filePath, json);
     }
