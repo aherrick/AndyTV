@@ -15,22 +15,31 @@ public class MenuSettingsHelper
     private readonly ToolStripMenuItem _muteItem;
     private readonly ToolStripMenuItem _checkUpdatesItem;
 
+    private readonly Func<Form> _createFavoritesForm;
+    private readonly Action _rebuildFavoritesMenu;
+
     private readonly UpdateManager _updater;
 
     public MenuSettingsHelper(
         ContextMenuStrip menu,
         string appVersionName,
         MediaPlayer mediaPlayer,
-        CursorHelper cursorHelper
+        CursorHelper cursorHelper,
+        Func<Form> createFavoritesForm,
+        Action rebuildFavoritesMenu
     )
     {
         _menu = menu;
         _appVersionName = appVersionName;
         _mediaPlayer = mediaPlayer;
         _cursorHelper = cursorHelper;
+        _createFavoritesForm = createFavoritesForm;
+        _rebuildFavoritesMenu = rebuildFavoritesMenu;
+
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
+        // Check for Update (bold)
         _checkUpdatesItem = new ToolStripMenuItem("Check for Update")
         {
             Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
@@ -38,13 +47,14 @@ public class MenuSettingsHelper
         _checkUpdatesItem.Click += async (_, __) => await CheckForUpdates();
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
+        // Mute
         _muteItem = new ToolStripMenuItem("Mute");
-        _muteItem.Click += (_, __) => _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        _muteItem.Click += (_, _) => _mediaPlayer.Mute = !_mediaPlayer.Mute;
         _menu.Items.Insert(headerIndex + 3, _muteItem);
 
-        // Logs (between Mute and Exit)
+        // Logs
         var logsItem = new ToolStripMenuItem("Logs");
-        logsItem.Click += (_, __) =>
+        logsItem.Click += (_, _) =>
         {
             try
             {
@@ -63,11 +73,30 @@ public class MenuSettingsHelper
         };
         _menu.Items.Insert(headerIndex + 4, logsItem);
 
-        var exitItem = new ToolStripMenuItem("Exit");
-        exitItem.Click += (_, __) => Application.Exit();
-        _menu.Items.Insert(headerIndex + 5, exitItem);
+        var favoritesItem = new ToolStripMenuItem("FAVORITES");
+        favoritesItem.Click += (_, _) =>
+        {
+            // Always restore cursor before showing dialog
+            _cursorHelper.ShowDefault();
 
-        _menu.Opening += (_, __) =>
+            using var form = _createFavoritesForm();
+
+            form.FormClosed += (_, _) =>
+            {
+                _cursorHelper.Hide();
+                _rebuildFavoritesMenu();
+            };
+
+            form.ShowDialog(_menu.SourceControl.FindForm());
+        };
+        _menu.Items.Insert(headerIndex + 5, favoritesItem);
+
+        // Exit
+        var exitItem = new ToolStripMenuItem("Exit");
+        exitItem.Click += (_, _) => Application.Exit();
+        _menu.Items.Insert(headerIndex + 6, exitItem);
+
+        _menu.Opening += (_, _) =>
         {
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
         };
@@ -85,13 +114,13 @@ public class MenuSettingsHelper
     {
         try
         {
-            _cursorHelper.ShowWaiting(); // busy while checking
+            _cursorHelper.ShowWaiting();
 
             var info = await _updater.CheckForUpdatesAsync();
 
             if (info == null)
             {
-                _cursorHelper.ShowDefault(); // show normal cursor before dialog
+                _cursorHelper.ShowDefault();
                 MessageBox.Show(
                     "You’re already up to date.",
                     "Update",
@@ -99,11 +128,10 @@ public class MenuSettingsHelper
                     MessageBoxIcon.Information
                 );
                 _cursorHelper.Hide();
-
                 return;
             }
 
-            _cursorHelper.ShowDefault(); // show normal cursor before prompt
+            _cursorHelper.ShowDefault();
             var result = MessageBox.Show(
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
                 "Update Available",
@@ -113,7 +141,7 @@ public class MenuSettingsHelper
 
             if (result == DialogResult.Yes)
             {
-                _cursorHelper.ShowWaiting(); // busy while downloading
+                _cursorHelper.ShowWaiting();
                 await _updater.DownloadUpdatesAsync(info);
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
@@ -122,8 +150,7 @@ public class MenuSettingsHelper
         }
         catch (Exception ex)
         {
-            _cursorHelper.ShowDefault(); // ensure normal cursor before error dialog
-
+            _cursorHelper.ShowDefault();
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
                 "An error occurred while checking for updates. Please try again.",
@@ -131,7 +158,6 @@ public class MenuSettingsHelper
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
             );
-
             _cursorHelper.Hide();
         }
     }

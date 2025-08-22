@@ -1,5 +1,6 @@
 ﻿using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
+using AndyTV.Helpers.UI;
 using AndyTV.Models;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
@@ -19,6 +20,7 @@ public partial class Form1 : Form
     private MenuRecentChannelHelper _menuRecentChannelHelper;
     private MenuSettingsHelper _menuSettingsHelper;
     private MenuTVChannelHelper _menuTVChannelHelper;
+    private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
 
     private string _currentChannelName = "";
 
@@ -107,11 +109,16 @@ public partial class Form1 : Form
             menu: _contextMenuStrip,
             appVersionName: appVersionName,
             mediaPlayer: _mediaPlayer,
-            cursorHelper: _cursorHelper
+            cursorHelper: _cursorHelper,
+            createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
+            rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu()
         );
 
         _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
         _menuRecentChannelHelper.RebuildRecentMenu();
+
+        _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(_contextMenuStrip, ChItem_Click);
+        _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
         _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
 
@@ -131,8 +138,6 @@ public partial class Form1 : Form
         _cursorHelper.ShowWaiting();
 
         await _menuTVChannelHelper.LoadChannels(channelClick: ChItem_Click, m3uURL: source.Url);
-
-        _cursorHelper.ShowDefault();
     }
 
     private async void ChItem_Click(object sender, EventArgs e)
