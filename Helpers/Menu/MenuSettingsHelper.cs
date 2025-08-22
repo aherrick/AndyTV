@@ -73,7 +73,7 @@ public class MenuSettingsHelper
         };
         _menu.Items.Insert(headerIndex + 4, logsItem);
 
-        var favoritesItem = new ToolStripMenuItem("FAVORITES");
+        var favoritesItem = new ToolStripMenuItem("Favorites");
         favoritesItem.Click += (_, _) =>
         {
             // Always restore cursor before showing dialog

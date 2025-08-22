@@ -48,6 +48,7 @@ public class FavoriteChannelForm : Form
             Location = new Point(12, 32),
             Size = new Size(260, 23), // Extended to fill width minus margins
         };
+
         _suggestionListBox = new ListBox
         {
             Location = new Point(12, 58),

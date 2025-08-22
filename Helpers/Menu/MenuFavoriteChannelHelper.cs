@@ -9,7 +9,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
-    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "Favorites");
+    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
 
     private static readonly string FileName = PathHelper.GetPath(
         FavoriteChannelForm.FAVORITES_FILE
