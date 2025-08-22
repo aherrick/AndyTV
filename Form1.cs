@@ -1,7 +1,7 @@
 ﻿using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
-using AndyTV.Helpers.UI;
 using AndyTV.Models;
+using AndyTV.UI;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 

@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using AndyTV.Helpers;
 using AndyTV.Models;
 
-namespace AndyTV.Helpers.UI;
+namespace AndyTV.UI;
 
 public class FavoriteChannelForm : Form
 {
@@ -102,7 +103,7 @@ public class FavoriteChannelForm : Form
             Text = "↑",
             Location = new Point(240, 150),
             Size = new Size(32, 32),
-            Font = new Font(Font.FontFamily, 12, FontStyle.Bold),
+            Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
         };
 
@@ -111,7 +112,7 @@ public class FavoriteChannelForm : Form
             Text = "↓",
             Location = new Point(240, 190),
             Size = new Size(32, 32),
-            Font = new Font(Font.FontFamily, 12, FontStyle.Bold),
+            Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
         };
 
@@ -120,7 +121,7 @@ public class FavoriteChannelForm : Form
             Text = "✕",
             Location = new Point(240, 230),
             Size = new Size(32, 32),
-            Font = new Font(Font.FontFamily, 12, FontStyle.Bold),
+            Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
         };
 
