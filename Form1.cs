@@ -134,11 +134,11 @@ public partial class Form1 : Form
         await _menuTVChannelHelper.LoadChannels(channelClick: ChItem_Click, m3uURL: source.Url);
     }
 
-    private async void ChItem_Click(object sender, EventArgs e)
+    private void ChItem_Click(object sender, EventArgs e)
     {
         var item = (ToolStripMenuItem)sender;
 
-        await Play(item.Text, item.Tag.ToString());
+        _ = Play(item.Text, item.Tag.ToString());
     }
 
     private async Task Play(string channel, string url)
