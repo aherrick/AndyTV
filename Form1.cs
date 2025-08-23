@@ -145,15 +145,28 @@ public partial class Form1 : Form
 
     private async Task Play(string channel, string url)
     {
-        await Task.Yield(); // keep UI responsive
+        try
+        {
+            // Ensure we're on UI thread and yield to prevent blocking
+            // await Task.Yield();
 
-        _mediaPlayer.Stop();
+            _mediaPlayer.Stop();
+            _currentChannelName = channel;
+            CursorHelper.ShowWaiting();
 
-        _currentChannelName = channel;
-        CursorHelper.ShowWaiting();
+            // Create media on background thread to avoid UI blocking
+            var media = await Task.Run(() => new Media(_libVLC, url, FromType.FromLocation));
 
-        using var media = new Media(_libVLC, url, FromType.FromLocation);
-        _mediaPlayer.Play(media);
+            // Play on UI thread
+            _mediaPlayer.Play(media);
+
+            // Don't dispose here - let MediaPlayer manage the media lifecycle
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to play channel {channel}: {ex.Message}");
+            CursorHelper.ShowDefault();
+        }
     }
 
     private void AndyTV_ResizeEnd(object sender, EventArgs e)
