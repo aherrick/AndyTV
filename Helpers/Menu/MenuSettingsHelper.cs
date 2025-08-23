@@ -10,7 +10,6 @@ public class MenuSettingsHelper
     private readonly ContextMenuStrip _menu;
     private readonly string _appVersionName;
     private readonly MediaPlayer _mediaPlayer;
-    private readonly CursorHelper _cursorHelper;
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripMenuItem _muteItem;
     private readonly ToolStripMenuItem _checkUpdatesItem;
@@ -24,7 +23,6 @@ public class MenuSettingsHelper
         ContextMenuStrip menu,
         string appVersionName,
         MediaPlayer mediaPlayer,
-        CursorHelper cursorHelper,
         Func<Form> createFavoritesForm,
         Action rebuildFavoritesMenu
     )
@@ -32,7 +30,6 @@ public class MenuSettingsHelper
         _menu = menu;
         _appVersionName = appVersionName;
         _mediaPlayer = mediaPlayer;
-        _cursorHelper = cursorHelper;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
 
@@ -77,13 +74,13 @@ public class MenuSettingsHelper
         favoritesItem.Click += (_, _) =>
         {
             // Always restore cursor before showing dialog
-            _cursorHelper.ShowDefault();
+            CursorHelper.ShowDefault();
 
             using var form = _createFavoritesForm();
 
             form.FormClosed += (_, _) =>
             {
-                _cursorHelper.Hide();
+                CursorHelper.Hide();
                 _rebuildFavoritesMenu();
             };
 
@@ -114,24 +111,24 @@ public class MenuSettingsHelper
     {
         try
         {
-            _cursorHelper.ShowWaiting();
+            CursorHelper.ShowWaiting();
 
             var info = await _updater.CheckForUpdatesAsync();
 
             if (info == null)
             {
-                _cursorHelper.ShowDefault();
+                CursorHelper.ShowDefault();
                 MessageBox.Show(
                     "You’re already up to date.",
                     "Update",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
                 );
-                _cursorHelper.Hide();
+                CursorHelper.Hide();
                 return;
             }
 
-            _cursorHelper.ShowDefault();
+            CursorHelper.ShowDefault();
             var result = MessageBox.Show(
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
                 "Update Available",
@@ -141,16 +138,16 @@ public class MenuSettingsHelper
 
             if (result == DialogResult.Yes)
             {
-                _cursorHelper.ShowWaiting();
+                CursorHelper.ShowWaiting();
                 await _updater.DownloadUpdatesAsync(info);
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
 
-            _cursorHelper.Hide();
+            CursorHelper.Hide();
         }
         catch (Exception ex)
         {
-            _cursorHelper.ShowDefault();
+            CursorHelper.ShowDefault();
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
                 "An error occurred while checking for updates. Please try again.",
@@ -158,7 +155,7 @@ public class MenuSettingsHelper
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
             );
-            _cursorHelper.Hide();
+            CursorHelper.Hide();
         }
     }
 }

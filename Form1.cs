@@ -11,7 +11,6 @@ public partial class Form1 : Form
 {
     private readonly LibVLC _libVLC = new();
     private readonly MediaPlayer _mediaPlayer;
-    private readonly CursorHelper _cursorHelper;
     private readonly ToastHelper _toastHelper;
 
     // menu
@@ -36,8 +35,6 @@ public partial class Form1 : Form
         Icon = new Icon("AndyTV.ico");
 
         BackColor = Color.Black;
-
-        _cursorHelper = new CursorHelper(this);
 
         _toastHelper = new ToastHelper(this);
 
@@ -74,12 +71,12 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Opening += (s, e) =>
         {
-            _cursorHelper.ShowDefault();
+            CursorHelper.ShowDefault();
         };
 
         _contextMenuStrip.Closing += (s, e) =>
         {
-            _cursorHelper.Hide();
+            CursorHelper.Hide();
         };
     }
 
@@ -109,7 +106,6 @@ public partial class Form1 : Form
             menu: _contextMenuStrip,
             appVersionName: appVersionName,
             mediaPlayer: _mediaPlayer,
-            cursorHelper: _cursorHelper,
             createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
             rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu()
         );
@@ -135,7 +131,7 @@ public partial class Form1 : Form
             }
         }
 
-        _cursorHelper.ShowWaiting();
+        CursorHelper.ShowWaiting();
 
         await _menuTVChannelHelper.LoadChannels(channelClick: ChItem_Click, m3uURL: source.Url);
     }
@@ -154,7 +150,7 @@ public partial class Form1 : Form
         _mediaPlayer.Stop();
 
         _currentChannelName = channel;
-        _cursorHelper.ShowWaiting();
+        CursorHelper.ShowWaiting();
 
         using var media = new Media(_libVLC, url, FromType.FromLocation);
         _mediaPlayer.Play(media);
@@ -175,7 +171,7 @@ public partial class Form1 : Form
         WindowState = FormWindowState.Maximized;
         Bounds = Screen.FromControl(this).Bounds;
 
-        _cursorHelper?.Hide();
+        CursorHelper.Hide();
     }
 
     // Class-level variable to store the manually adjusted bounds
@@ -187,7 +183,7 @@ public partial class Form1 : Form
         WindowState = FormWindowState.Normal;
         Bounds = _manuallyAdjustedBounds ?? Screen.FromControl(this).WorkingArea;
 
-        _cursorHelper.ShowDefault();
+        CursorHelper.ShowDefault();
     }
 
     #endregion UI Helpers
@@ -259,7 +255,7 @@ public partial class Form1 : Form
 
     private void MediaPlayer_Playing(object sender, EventArgs e)
     {
-        _cursorHelper.Hide();
+        CursorHelper.Hide();
 
         _toastHelper.Show(_currentChannelName);
 
