@@ -16,7 +16,7 @@ public class MenuSettingsHelper
 
     private readonly Func<Form> _createFavoritesForm;
     private readonly Action _rebuildFavoritesMenu;
-
+    private readonly Action _saveCurrentChannel;
     private readonly UpdateManager _updater;
 
     public MenuSettingsHelper(
@@ -24,7 +24,8 @@ public class MenuSettingsHelper
         string appVersionName,
         MediaPlayer mediaPlayer,
         Func<Form> createFavoritesForm,
-        Action rebuildFavoritesMenu
+        Action rebuildFavoritesMenu,
+        Action saveCurrentChannel // Add this parameter
     )
     {
         _menu = menu;
@@ -32,7 +33,7 @@ public class MenuSettingsHelper
         _mediaPlayer = mediaPlayer;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
-
+        _saveCurrentChannel = saveCurrentChannel;
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
@@ -140,6 +141,10 @@ public class MenuSettingsHelper
             {
                 CursorHelper.ShowWaiting();
                 await _updater.DownloadUpdatesAsync(info);
+
+                // Save current channel before restart
+                _saveCurrentChannel?.Invoke(); // Call it here!
+
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
 

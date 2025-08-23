@@ -84,10 +84,7 @@ public partial class Form1 : Form
 
     private void AndyTV_FormClosing(object sender, FormClosingEventArgs e)
     {
-        if (_mediaPlayer?.Media?.Mrl is string mrl && !string.IsNullOrWhiteSpace(mrl))
-        {
-            LastChannelHelper.Save(_currentChannelName, mrl);
-        }
+        SaveCurrentChannelState();
     }
 
     private async void AndyTV_Shown(object sender, EventArgs e)
@@ -107,7 +104,8 @@ public partial class Form1 : Form
             appVersionName: appVersionName,
             mediaPlayer: _mediaPlayer,
             createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
-            rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu()
+            rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
+            saveCurrentChannel: SaveCurrentChannelState
         );
 
         _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
@@ -159,8 +157,6 @@ public partial class Form1 : Form
 
             // Play on UI thread
             _mediaPlayer.Play(media);
-
-            // Don't dispose here - let MediaPlayer manage the media lifecycle
         }
         catch (Exception ex)
         {
@@ -265,6 +261,14 @@ public partial class Form1 : Form
     #endregion VideoView Events
 
     #region MediaPlayer Events
+
+    private void SaveCurrentChannelState()
+    {
+        if (_mediaPlayer?.Media?.Mrl is string mrl && !string.IsNullOrWhiteSpace(mrl))
+        {
+            LastChannelHelper.Save(_currentChannelName, mrl);
+        }
+    }
 
     private void MediaPlayer_Playing(object sender, EventArgs e)
     {
