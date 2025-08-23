@@ -43,6 +43,7 @@ jobs:
           vpk download github
           --repoUrl https://github.com/${{ github.repository }}
           --channel $env:CHANNEL
+          --token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack Velopack release
         run: >
