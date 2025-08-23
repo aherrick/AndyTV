@@ -38,10 +38,7 @@ public class MenuSettingsHelper
         int headerIndex = _menu.Items.IndexOf(_header);
 
         // Check for Update (bold)
-        _checkUpdatesItem = new ToolStripMenuItem("Check for Update")
-        {
-            Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
-        };
+        _checkUpdatesItem = new ToolStripMenuItem("Update");
         _checkUpdatesItem.Click += async (_, __) => await CheckForUpdates();
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
