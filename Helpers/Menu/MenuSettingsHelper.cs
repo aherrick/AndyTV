@@ -51,20 +51,16 @@ public class MenuSettingsHelper
         var logsItem = new ToolStripMenuItem("Logs");
         logsItem.Click += (_, _) =>
         {
-            try
-            {
-                var logsPath = PathHelper.GetPath("logs");
-                Directory.CreateDirectory(logsPath);
-                Process.Start(
-                    new ProcessStartInfo
-                    {
-                        FileName = "explorer.exe",
-                        Arguments = logsPath,
-                        UseShellExecute = true,
-                    }
-                );
-            }
-            catch { }
+            var logsPath = PathHelper.GetPath("logs");
+            Directory.CreateDirectory(logsPath);
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = logsPath,
+                    UseShellExecute = true,
+                }
+            );
         };
         _menu.Items.Insert(headerIndex + 4, logsItem);
 
@@ -122,7 +118,6 @@ public class MenuSettingsHelper
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
                 );
-                CursorHelper.Hide();
                 return;
             }
 
@@ -140,12 +135,10 @@ public class MenuSettingsHelper
                 await _updater.DownloadUpdatesAsync(info);
 
                 // Save current channel before restart
-                _saveCurrentChannel?.Invoke(); // Call it here!
+                _saveCurrentChannel?.Invoke();
 
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
-
-            CursorHelper.Hide();
         }
         catch (Exception ex)
         {
@@ -157,6 +150,9 @@ public class MenuSettingsHelper
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error
             );
+        }
+        finally
+        {
             CursorHelper.Hide();
         }
     }
