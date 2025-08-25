@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-using AndyTV.Models;
-using AndyTV.UI;
+﻿using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -13,18 +11,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
 
     public void RebuildFavoritesMenu()
     {
-        if (!File.Exists(FavoriteChannelForm.FileName))
-        {
-            return; // no favorites file, nothing to do
-        }
-
-        List<Channel> favorites = [];
-        try
-        {
-            var json = File.ReadAllText(FavoriteChannelForm.FileName);
-            favorites = JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
-        }
-        catch { }
+        var favorites = ChannelDataService.LoadFavoriteChannels();
 
         _ui.Post(
             _ =>

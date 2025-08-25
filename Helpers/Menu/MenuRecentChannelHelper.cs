@@ -1,40 +1,28 @@
-﻿using System.Text.Json;
-using AndyTV.Models;
+﻿using AndyTV.Models;
+using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+public class MenuRecentChannelHelper(
+    ContextMenuStrip menu,
+    EventHandler clickHandler,
+    RecentChannelsService recentChannelsService
+)
 {
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
-    private readonly int MaxRecent = 5;
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT");
-
-    public static readonly string FileName = PathHelper.GetPath("recents.json");
 
     public void AddOrPromote(Channel ch)
     {
-        if (ch == null || string.IsNullOrWhiteSpace(ch.Url))
-            return;
-
-        var list = LoadListFromDisk();
-        list.RemoveAll(x => string.Equals(x?.Url, ch.Url, StringComparison.OrdinalIgnoreCase));
-        list.Insert(0, ch);
-
-        if (list.Count > MaxRecent)
-        {
-            list = [.. list.Take(MaxRecent)];
-        }
-
-        SaveListToDisk(list);
-
+        recentChannelsService.AddOrPromote(ch);
         RebuildRecentMenu();
     }
 
     public void RebuildRecentMenu()
     {
-        var recents = LoadListFromDisk().Take(MaxRecent).ToList();
+        var recents = recentChannelsService.GetRecentChannels();
 
         _ui.Post(
             _ =>
@@ -65,26 +53,6 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
 
     public Channel GetPrevious()
     {
-        var list = LoadListFromDisk().Take(MaxRecent).ToList();
-        return list.ElementAtOrDefault(1);
-    }
-
-    private static List<Channel> LoadListFromDisk()
-    {
-        if (!File.Exists(FileName))
-        {
-            File.WriteAllText(FileName, "[]");
-            return [];
-        }
-
-        var json = File.ReadAllText(FileName);
-        return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
-    }
-
-    private void SaveListToDisk(List<Channel> list)
-    {
-        var trimmed = list.Take(MaxRecent).ToList();
-        var json = JsonSerializer.Serialize(trimmed);
-        File.WriteAllText(FileName, json);
+        return recentChannelsService.GetPrevious();
     }
 }

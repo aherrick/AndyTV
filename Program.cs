@@ -1,4 +1,5 @@
 using AndyTV.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 using Velopack;
 
 namespace AndyTV;
@@ -21,7 +22,7 @@ internal static class Program
         );
         if (!isNew)
         {
-            // Another instance is running — just bail out.
+            // Another instance is running â€” just bail out.
             return;
         }
 
@@ -29,6 +30,11 @@ internal static class Program
         Logger.WireGlobalHandlers();
 
         ApplicationConfiguration.Initialize();
-        Application.Run(new Form1());
+
+        // Setup dependency injection
+        using var serviceProvider = ServiceConfiguration.ConfigureServices();
+        var mainForm = serviceProvider.GetRequiredService<Form1>();
+
+        Application.Run(mainForm);
     }
 }

@@ -2,6 +2,7 @@
 using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
+using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
@@ -10,9 +11,11 @@ namespace AndyTV
 {
     public partial class Form1 : Form
     {
-        private readonly LibVLC _libVLC = new();
+        private readonly LibVLC _libVLC;
         private readonly MediaPlayer _mediaPlayer;
-        private readonly ToastHelper _toastHelper;
+        private readonly NotificationService _notificationService;
+        private readonly RecentChannelsService _recentChannelsService;
+        private readonly UpdateService _updateService;
 
         // Menu
         private readonly ContextMenuStrip _contextMenuStrip = new();
@@ -29,24 +32,28 @@ namespace AndyTV
         private DateTime _mouseDownRightExit = DateTime.MinValue;
         private DateTime _lastActivityUtc = DateTime.UtcNow;
 
-        public Form1()
+        public Form1(
+            LibVLC libVLC,
+            MediaPlayer mediaPlayer,
+            RecentChannelsService recentChannelsService,
+            UpdateService updateService
+        )
         {
+            _libVLC = libVLC;
+            _mediaPlayer = mediaPlayer;
+            _recentChannelsService = recentChannelsService;
+            _updateService = updateService;
+
             InitializeComponent();
+
+            // Create NotificationService after form is initialized
+            _notificationService = new NotificationService(this);
 
             Logger.Info("Starting AndyTV...");
 
             MaximizeWindow();
 
             Icon = new Icon("AndyTV.ico");
-
-            _toastHelper = new ToastHelper(this);
-
-            _mediaPlayer = new MediaPlayer(_libVLC)
-            {
-                EnableHardwareDecoding = true,
-                EnableKeyInput = false,
-                EnableMouseInput = false,
-            };
 
             // VLC state logs
             _mediaPlayer.Playing += delegate
@@ -130,7 +137,7 @@ namespace AndyTV
         {
             Logger.Info("[APP] Form Shown, initializing...");
 
-            var last = LastChannelHelper.Load();
+            var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
                 Play(last.Value.Name, last.Value.Url);
@@ -145,6 +152,7 @@ namespace AndyTV
                 _contextMenuStrip,
                 appVersionName,
                 _mediaPlayer,
+                _updateService,
                 delegate
                 {
                     return new FavoriteChannelForm(_menuTVChannelHelper.Channels);
@@ -156,7 +164,11 @@ namespace AndyTV
                 SaveCurrentChannelState
             );
 
-            _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
+            _menuRecentChannelHelper = new MenuRecentChannelHelper(
+                _contextMenuStrip,
+                ChItem_Click,
+                _recentChannelsService
+            );
             _menuRecentChannelHelper.RebuildRecentMenu();
 
             _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
@@ -165,11 +177,11 @@ namespace AndyTV
             );
             _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
-            var source = M3USourceStore.TryGetFirst();
+            var source = M3UService.TryGetFirstSource();
             if (source == null)
             {
                 RestoreWindow();
-                source = M3USourceStore.PromptNewSource();
+                source = M3UService.PromptNewSource();
                 if (source == null)
                 {
                     Logger.Warn("[APP] No M3U source selected. Exiting.");
@@ -288,7 +300,7 @@ namespace AndyTV
                 && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
             )
             {
-                var prevChannel = _menuRecentChannelHelper.GetPrevious();
+                var prevChannel = _recentChannelsService.GetPrevious();
                 if (prevChannel != null)
                 {
                     Play(prevChannel.Name, prevChannel.Url);
@@ -329,18 +341,18 @@ namespace AndyTV
         {
             if (_mediaPlayer.Media != null && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl))
             {
-                LastChannelHelper.Save(_currentChannelName, _mediaPlayer.Media.Mrl);
+                ChannelDataService.SaveLastChannel(_currentChannelName, _mediaPlayer.Media.Mrl);
             }
         }
 
         private void MediaPlayer_Playing(object sender, EventArgs e)
         {
             CursorHelper.Hide();
-            _toastHelper.Show(_currentChannelName);
+            _notificationService.ShowToast(_currentChannelName);
 
             if (_mediaPlayer.Media != null)
             {
-                _menuRecentChannelHelper.AddOrPromote(
+                _recentChannelsService.AddOrPromote(
                     new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
                 );
             }

@@ -1,8 +1,8 @@
-﻿namespace AndyTV.Helpers;
+namespace AndyTV.Services;
 
-public class ToastHelper(Form form)
+public class NotificationService(Form parentForm)
 {
-    public void Show(string message, int durationMs = 3000)
+    public void ShowToast(string message, int durationMs = 3000)
     {
         void Show()
         {
@@ -29,10 +29,10 @@ public class ToastHelper(Form form)
 
             toast.Controls.Add(label);
 
-            var formPos = form.PointToScreen(Point.Empty);
+            var formPos = parentForm.PointToScreen(Point.Empty);
             toast.Location = new Point(
-                formPos.X + form.ClientSize.Width - toast.Width - 40,
-                formPos.Y + form.ClientSize.Height - toast.Height - 40
+                formPos.X + parentForm.ClientSize.Width - toast.Width - 40,
+                formPos.Y + parentForm.ClientSize.Height - toast.Height - 40
             );
 
             toast.Shown += async (_, __) =>
@@ -41,11 +41,11 @@ public class ToastHelper(Form form)
                 toast.Close();
             };
 
-            toast.Show(form);
+            toast.Show(parentForm);
         }
 
-        if (form.InvokeRequired)
-            form.BeginInvoke(Show);
+        if (parentForm.InvokeRequired)
+            parentForm.BeginInvoke(Show);
         else
             Show();
     }

@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
-using System.Text.Json;
-using AndyTV.Helpers;
 using AndyTV.Models;
+using AndyTV.Services;
 
 namespace AndyTV.UI;
 
@@ -15,7 +14,6 @@ public class FavoriteChannelForm : Form
     private Button _upButton;
     private Button _downButton;
     private Button _removeButton;
-    public static readonly string FileName = PathHelper.GetPath("favorite_channels.json");
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -271,23 +269,16 @@ public class FavoriteChannelForm : Form
 
     private void LoadFavorites()
     {
-        if (File.Exists(FileName))
+        var savedChannels = ChannelDataService.LoadFavoriteChannels();
+        foreach (var channel in savedChannels)
         {
-            string json = File.ReadAllText(FileName);
-            var savedChannels = JsonSerializer.Deserialize<List<Channel>>(json);
-
-            foreach (var channel in savedChannels)
-            {
-                _selectedChannels.Add(channel);
-            }
+            _selectedChannels.Add(channel);
         }
     }
 
     private void SaveFavorites()
     {
-        string filePath = PathHelper.GetPath(FileName);
-        string json = JsonSerializer.Serialize(_selectedChannels.ToList());
-        File.WriteAllText(filePath, json);
+        ChannelDataService.SaveFavoriteChannels(_selectedChannels.ToList());
     }
 
     public List<Channel> SelectedChannels => [.. _selectedChannels];

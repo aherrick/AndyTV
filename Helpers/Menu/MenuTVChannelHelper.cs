@@ -1,4 +1,5 @@
 ﻿using AndyTV.Models;
+using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -12,7 +13,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
         Channels =
         [
-            .. (await M3UParser.Parse(m3uURL)).OrderBy(
+            .. (await M3UService.ParseM3U(m3uURL)).OrderBy(
                 c => c.Name,
                 StringComparer.OrdinalIgnoreCase
             ),

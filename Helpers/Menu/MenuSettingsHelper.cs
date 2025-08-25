@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
+using AndyTV.Services;
 using LibVLCSharp.Shared;
-using Velopack;
-using Velopack.Sources;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -17,62 +16,71 @@ public class MenuSettingsHelper
     private readonly Func<Form> _createFavoritesForm;
     private readonly Action _rebuildFavoritesMenu;
     private readonly Action _saveCurrentChannel;
-    private readonly UpdateManager _updater;
+
+    private readonly UpdateService _updateService;
 
     public MenuSettingsHelper(
         ContextMenuStrip menu,
         string appVersionName,
         MediaPlayer mediaPlayer,
+        UpdateService updateService,
         Func<Form> createFavoritesForm,
         Action rebuildFavoritesMenu,
-        Action saveCurrentChannel // Add this parameter
+        Action saveCurrentChannel
     )
     {
         _menu = menu;
         _appVersionName = appVersionName;
         _mediaPlayer = mediaPlayer;
+        _updateService = updateService;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
         _saveCurrentChannel = saveCurrentChannel;
+
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
-        // Check for Update
+        // Update
         _checkUpdatesItem = new ToolStripMenuItem("Update");
-        _checkUpdatesItem.Click += async (_, __) => await CheckForUpdates();
+        _checkUpdatesItem.Click += async (_, __) =>
+        {
+            await _updateService.CheckForUpdates(_saveCurrentChannel);
+        };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
         // Mute
         _muteItem = new ToolStripMenuItem("Mute");
-        _muteItem.Click += (_, _) => _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        _muteItem.Click += (_, __) =>
+        {
+            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        };
         _menu.Items.Insert(headerIndex + 3, _muteItem);
 
         // Logs
         var logsItem = new ToolStripMenuItem("Logs");
-        logsItem.Click += (_, _) =>
+        logsItem.Click += (_, __) =>
         {
-            var logsPath = PathHelper.GetPath("logs");
-            Directory.CreateDirectory(logsPath);
+            var path = PathHelper.GetPath("logs");
+            Directory.CreateDirectory(path);
             Process.Start(
                 new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
-                    Arguments = logsPath,
+                    Arguments = path,
                     UseShellExecute = true,
                 }
             );
         };
         _menu.Items.Insert(headerIndex + 4, logsItem);
 
+        // Favorites
         var favoritesItem = new ToolStripMenuItem("Favorites");
-        favoritesItem.Click += (_, _) =>
+        favoritesItem.Click += (_, __) =>
         {
-            // Always restore cursor before showing dialog
             CursorHelper.ShowDefault();
 
             using var form = _createFavoritesForm();
-
-            form.FormClosed += (_, _) =>
+            form.FormClosed += (_, __2) =>
             {
                 CursorHelper.Hide();
                 _rebuildFavoritesMenu();
@@ -84,76 +92,15 @@ public class MenuSettingsHelper
 
         // Exit
         var exitItem = new ToolStripMenuItem("Exit");
-        exitItem.Click += (_, _) => Application.Exit();
+        exitItem.Click += (_, __) =>
+        {
+            Application.Exit();
+        };
         _menu.Items.Insert(headerIndex + 6, exitItem);
 
-        _menu.Opening += (_, _) =>
+        _menu.Opening += (_, __) =>
         {
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
         };
-
-        _updater = new UpdateManager(
-            new GithubSource(
-                "https://github.com/aherrick/AndyTV",
-                accessToken: null,
-                prerelease: false
-            )
-        );
-    }
-
-    private async Task CheckForUpdates()
-    {
-        try
-        {
-            CursorHelper.ShowWaiting();
-
-            var info = await _updater.CheckForUpdatesAsync();
-
-            if (info == null)
-            {
-                CursorHelper.ShowDefault();
-                MessageBox.Show(
-                    "You’re already up to date.",
-                    "Update",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
-                return;
-            }
-
-            CursorHelper.ShowDefault();
-            var result = MessageBox.Show(
-                $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
-                "Update Available",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question
-            );
-
-            if (result == DialogResult.Yes)
-            {
-                CursorHelper.ShowWaiting();
-                await _updater.DownloadUpdatesAsync(info);
-
-                // Save current channel before restart
-                _saveCurrentChannel?.Invoke();
-
-                _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
-            }
-        }
-        catch (Exception ex)
-        {
-            CursorHelper.ShowDefault();
-            Logger.Error($"Unexpected error while checking updates: {ex}");
-            MessageBox.Show(
-                "An error occurred while checking for updates. Please try again.",
-                "Update Error",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error
-            );
-        }
-        finally
-        {
-            CursorHelper.Hide();
-        }
     }
 }
