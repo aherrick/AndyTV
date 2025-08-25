@@ -27,11 +27,7 @@ namespace AndyTV
 
         private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
         private DateTime _mouseDownRightExit = DateTime.MinValue;
-
-        private CancellationTokenSource _playbackMonitorCts;
         private DateTime _lastActivityUtc = DateTime.UtcNow;
-        private readonly TimeSpan _monitorInterval = TimeSpan.FromSeconds(5);
-        private readonly TimeSpan _inactivityThreshold = TimeSpan.FromSeconds(10);
 
         public Form1()
         {
@@ -86,6 +82,7 @@ namespace AndyTV
 
             _mediaPlayer.Playing += MediaPlayer_Playing;
 
+            // Touch activity whenever time advances (super simple signal)
             _mediaPlayer.TimeChanged += delegate
             {
                 TouchPlaybackActivity();
@@ -126,6 +123,7 @@ namespace AndyTV
         {
             Logger.Info("[APP] FormClosing");
             SaveCurrentChannelState();
+            // No need to stop monitor — process exits.
         }
 
         private async void AndyTV_Shown(object sender, EventArgs e)
@@ -187,6 +185,7 @@ namespace AndyTV
 
             Logger.Info("[CHANNELS] Loaded");
 
+            // --- SUPER LEAN: start the simple monitor loop ---
             StartPlaybackMonitor();
         }
 
@@ -213,7 +212,7 @@ namespace AndyTV
                 var started = _mediaPlayer.Play(media);
                 Logger.Info("[PLAY] Play() returned=" + started + " channel='" + channel + "'");
 
-                // ===== Touch activity on (re)start to avoid immediate restart loop =====
+                // Touch activity on (re)start so monitor doesn't immediately fire
                 TouchPlaybackActivity();
             }
             catch (Exception ex)
@@ -347,8 +346,6 @@ namespace AndyTV
             TouchPlaybackActivity();
         }
 
-        // ===== Playback monitor implementation =====
-
         private void TouchPlaybackActivity()
         {
             _lastActivityUtc = DateTime.UtcNow;
@@ -356,81 +353,39 @@ namespace AndyTV
 
         private void StartPlaybackMonitor()
         {
-            try
+            _ = Task.Run(async () =>
             {
-                _playbackMonitorCts = new CancellationTokenSource();
-                var token = _playbackMonitorCts.Token;
-
-                Logger.Info("[MONITOR] Starting...");
-
-                _ = Task.Run(
-                    async () =>
+                while (true)
+                {
+                    try
                     {
-                        try
+                        await Task.Delay(5000);
+
+                        var inactiveFor = DateTime.UtcNow - _lastActivityUtc;
+                        if (inactiveFor > TimeSpan.FromSeconds(10))
                         {
-                            while (!token.IsCancellationRequested)
+                            if (
+                                _mediaPlayer != null
+                                && _mediaPlayer.Media != null
+                                && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
+                            )
                             {
-                                await Task.Delay(_monitorInterval, token);
-
-                                var inactiveFor = DateTime.UtcNow - _lastActivityUtc;
-                                if (inactiveFor > _inactivityThreshold)
-                                {
-                                    Logger.Warn(
-                                        "[MONITOR] Inactive for "
-                                            + inactiveFor.TotalSeconds.ToString("N0")
-                                            + "s. Restarting..."
-                                    );
-
-                                    if (
-                                        _mediaPlayer != null
-                                        && _mediaPlayer.Media != null
-                                        && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
-                                    )
-                                    {
-                                        try
-                                        {
-                                            var mrl = _mediaPlayer.Media.Mrl;
-                                            Play(_currentChannelName, mrl);
-
-                                            // Avoid immediate re-trigger
-                                            TouchPlaybackActivity();
-
-                                            Logger.Info("[MONITOR] Restart attempted.");
-                                        }
-                                        catch (Exception exRestart)
-                                        {
-                                            Logger.Error(exRestart, "[MONITOR] Restart failed.");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Logger.Warn(
-                                            "[MONITOR] Cannot restart: no current media MRL."
-                                        );
-                                    }
-                                }
+                                Logger.Warn(
+                                    "[MONITOR] Inactive for "
+                                        + inactiveFor.TotalSeconds.ToString("N0")
+                                        + "s. Restarting..."
+                                );
+                                Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+                                _lastActivityUtc = DateTime.UtcNow;
                             }
                         }
-                        catch (TaskCanceledException)
-                        {
-                            // normal during shutdown
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "[MONITOR] Loop exception.");
-                        }
-                        finally
-                        {
-                            Logger.Info("[MONITOR] Stopped.");
-                        }
-                    },
-                    token
-                );
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "[MONITOR] Failed to start.");
-            }
+                    }
+                    catch
+                    {
+                        // Keep it ultra-simple: swallow and keep looping.
+                    }
+                }
+            });
         }
     }
 }
