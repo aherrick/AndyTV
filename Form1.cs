@@ -183,6 +183,8 @@ namespace AndyTV
 
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
+            CursorHelper.Hide();
+
             Logger.Info("[CHANNELS] Loaded");
 
             // --- SUPER LEAN: start the simple monitor loop ---
