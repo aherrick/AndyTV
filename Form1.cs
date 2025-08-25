@@ -28,6 +28,11 @@ namespace AndyTV
         private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
         private DateTime _mouseDownRightExit = DateTime.MinValue;
 
+        private CancellationTokenSource _playbackMonitorCts;
+        private DateTime _lastActivityUtc = DateTime.UtcNow;
+        private readonly TimeSpan _monitorInterval = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _inactivityThreshold = TimeSpan.FromSeconds(10);
+
         public Form1()
         {
             InitializeComponent();
@@ -36,11 +41,7 @@ namespace AndyTV
 
             MaximizeWindow();
 
-            // Load icon from file
-
             Icon = new Icon("AndyTV.ico");
-
-            BackColor = Color.Black;
 
             _toastHelper = new ToastHelper(this);
 
@@ -84,6 +85,11 @@ namespace AndyTV
             };
 
             _mediaPlayer.Playing += MediaPlayer_Playing;
+
+            _mediaPlayer.TimeChanged += delegate
+            {
+                TouchPlaybackActivity();
+            };
 
             var videoView = new VideoView
             {
@@ -180,6 +186,8 @@ namespace AndyTV
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
             Logger.Info("[CHANNELS] Loaded");
+
+            StartPlaybackMonitor();
         }
 
         private void ChItem_Click(object sender, EventArgs e)
@@ -204,6 +212,9 @@ namespace AndyTV
                 var media = await Task.Run(() => new Media(_libVLC, url, FromType.FromLocation));
                 var started = _mediaPlayer.Play(media);
                 Logger.Info("[PLAY] Play() returned=" + started + " channel='" + channel + "'");
+
+                // ===== Touch activity on (re)start to avoid immediate restart loop =====
+                TouchPlaybackActivity();
             }
             catch (Exception ex)
             {
@@ -331,6 +342,94 @@ namespace AndyTV
                 _menuRecentChannelHelper.AddOrPromote(
                     new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
                 );
+            }
+
+            TouchPlaybackActivity();
+        }
+
+        // ===== Playback monitor implementation =====
+
+        private void TouchPlaybackActivity()
+        {
+            _lastActivityUtc = DateTime.UtcNow;
+        }
+
+        private void StartPlaybackMonitor()
+        {
+            try
+            {
+                _playbackMonitorCts = new CancellationTokenSource();
+                var token = _playbackMonitorCts.Token;
+
+                Logger.Info("[MONITOR] Starting...");
+
+                _ = Task.Run(
+                    async () =>
+                    {
+                        try
+                        {
+                            while (!token.IsCancellationRequested)
+                            {
+                                await Task.Delay(_monitorInterval, token);
+
+                                var inactiveFor = DateTime.UtcNow - _lastActivityUtc;
+                                if (inactiveFor > _inactivityThreshold)
+                                {
+                                    Logger.Warn(
+                                        "[MONITOR] Inactive for "
+                                            + inactiveFor.TotalSeconds.ToString("N0")
+                                            + "s. Restarting..."
+                                    );
+
+                                    if (
+                                        _mediaPlayer != null
+                                        && _mediaPlayer.Media != null
+                                        && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
+                                    )
+                                    {
+                                        try
+                                        {
+                                            var mrl = _mediaPlayer.Media.Mrl;
+                                            Play(_currentChannelName, mrl);
+
+                                            // Avoid immediate re-trigger
+                                            TouchPlaybackActivity();
+
+                                            Logger.Info("[MONITOR] Restart attempted.");
+                                        }
+                                        catch (Exception exRestart)
+                                        {
+                                            Logger.Error(exRestart, "[MONITOR] Restart failed.");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Logger.Warn(
+                                            "[MONITOR] Cannot restart: no current media MRL."
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            // normal during shutdown
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error(ex, "[MONITOR] Loop exception.");
+                        }
+                        finally
+                        {
+                            Logger.Info("[MONITOR] Stopped.");
+                        }
+                    },
+                    token
+                );
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "[MONITOR] Failed to start.");
             }
         }
     }
