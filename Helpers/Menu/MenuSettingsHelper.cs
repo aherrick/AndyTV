@@ -37,7 +37,7 @@ public class MenuSettingsHelper
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
-        // Check for Update (bold)
+        // Check for Update
         _checkUpdatesItem = new ToolStripMenuItem("Update");
         _checkUpdatesItem.Click += async (_, __) => await CheckForUpdates();
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
