@@ -1,285 +1,337 @@
-﻿using AndyTV.Helpers;
+﻿using System.Diagnostics;
+using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 
-namespace AndyTV;
-
-public partial class Form1 : Form
+namespace AndyTV
 {
-    private readonly LibVLC _libVLC = new();
-    private readonly MediaPlayer _mediaPlayer;
-    private readonly ToastHelper _toastHelper;
-
-    // menu
-    private readonly ContextMenuStrip _contextMenuStrip = new();
-
-    private MenuRecentChannelHelper _menuRecentChannelHelper;
-    private MenuSettingsHelper _menuSettingsHelper;
-    private MenuTVChannelHelper _menuTVChannelHelper;
-    private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
-
-    private string _currentChannelName = "";
-
-    public Form1()
+    public partial class Form1 : Form
     {
-        InitializeComponent();
+        private readonly LibVLC _libVLC = new();
+        private readonly MediaPlayer _mediaPlayer;
+        private readonly ToastHelper _toastHelper;
 
-        MaximizeWindow();
+        // Menu
+        private readonly ContextMenuStrip _contextMenuStrip = new();
 
-        Logger.Info("Starting AndyTV...");
+        private MenuRecentChannelHelper _menuRecentChannelHelper;
+        private MenuSettingsHelper _menuSettingsHelper;
+        private MenuTVChannelHelper _menuTVChannelHelper;
+        private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
 
-        // Load icon from file
-        Icon = new Icon("AndyTV.ico");
+        private string _currentChannelName = "";
+        private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
 
-        BackColor = Color.Black;
+        private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
+        private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-        _toastHelper = new ToastHelper(this);
-
-        _mediaPlayer = new MediaPlayer(_libVLC)
+        public Form1()
         {
-            EnableHardwareDecoding = true,
-            EnableKeyInput = false,
-            EnableMouseInput = false,
-        };
+            InitializeComponent();
 
-        _mediaPlayer.Playing += MediaPlayer_Playing;
+            Logger.Info("Starting AndyTV...");
 
-        _mediaPlayer.EncounteredError += (_, __) =>
-            _ = Play(_currentChannelName, _mediaPlayer.Media.Mrl); // attempt restart
-        _mediaPlayer.EndReached += (_, __) => _ = Play(_currentChannelName, _mediaPlayer.Media.Mrl); // attempt restart
+            MaximizeWindow();
 
-        var videoView = new VideoView
-        {
-            Dock = DockStyle.Fill,
-            MediaPlayer = _mediaPlayer,
-            ContextMenuStrip = _contextMenuStrip,
-        };
+            // Load icon from file
 
-        videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
-        videoView.MouseUp += VideoView_MouseUp;
-        videoView.MouseDown += VideoView_MouseDown;
+            Icon = new Icon("AndyTV.ico");
 
-        Controls.Add(videoView);
+            BackColor = Color.Black;
 
-        // form events
-        ResizeEnd += AndyTV_ResizeEnd;
-        Shown += AndyTV_Shown;
-        FormClosing += AndyTV_FormClosing;
+            _toastHelper = new ToastHelper(this);
 
-        _contextMenuStrip.Opening += (s, e) =>
-        {
-            CursorHelper.ShowDefault();
-        };
-
-        _contextMenuStrip.Closing += (s, e) =>
-        {
-            CursorHelper.Hide();
-        };
-    }
-
-    #region UI Helpers
-
-    private void AndyTV_FormClosing(object sender, FormClosingEventArgs e)
-    {
-        SaveCurrentChannelState();
-    }
-
-    private async void AndyTV_Shown(object sender, EventArgs e)
-    {
-        // auto-play immediately on startup
-        var last = LastChannelHelper.Load();
-        if (last is not null)
-        {
-            _ = Play(last.Value.Name, last.Value.Url);
-        }
-
-        var appVersionName = $"AndyTV v{AppHelper.Version}";
-        Text = appVersionName;
-
-        _menuSettingsHelper = new MenuSettingsHelper(
-            menu: _contextMenuStrip,
-            appVersionName: appVersionName,
-            mediaPlayer: _mediaPlayer,
-            createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
-            rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
-            saveCurrentChannel: SaveCurrentChannelState
-        );
-
-        _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
-        _menuRecentChannelHelper.RebuildRecentMenu();
-
-        _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(_contextMenuStrip, ChItem_Click);
-        _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-
-        _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
-
-        var source = M3USourceStore.TryGetFirst();
-        if (source is null)
-        {
-            RestoreWindow();
-            // Prompt user for M3U source if none found
-            source = M3USourceStore.PromptNewSource();
-            if (source is null)
+            _mediaPlayer = new MediaPlayer(_libVLC)
             {
-                Close(); // exits the form/app gracefully if cancelled
-                return;
-            }
+                EnableHardwareDecoding = true,
+                EnableKeyInput = false,
+                EnableMouseInput = false,
+            };
+
+            // VLC state logs
+            _mediaPlayer.Playing += delegate
+            {
+                Logger.Info("[VLC] Playing");
+            };
+            _mediaPlayer.Stopped += delegate
+            {
+                Logger.Info("[VLC] Stopped");
+            };
+            _mediaPlayer.EndReached += delegate
+            {
+                Logger.Warn("[VLC] EndReached");
+                if (
+                    _mediaPlayer.Media != null
+                    && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
+                )
+                {
+                    Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+                }
+            };
+            _mediaPlayer.EncounteredError += delegate
+            {
+                Logger.Error("[VLC] EncounteredError");
+                if (
+                    _mediaPlayer.Media != null
+                    && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
+                )
+                {
+                    Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+                }
+            };
+
+            _mediaPlayer.Playing += MediaPlayer_Playing;
+
+            var videoView = new VideoView
+            {
+                Dock = DockStyle.Fill,
+                MediaPlayer = _mediaPlayer,
+                ContextMenuStrip = _contextMenuStrip,
+            };
+
+            videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
+            videoView.MouseUp += VideoView_MouseUp;
+            videoView.MouseDown += VideoView_MouseDown;
+
+            Controls.Add(videoView);
+
+            // Form events
+            ResizeEnd += AndyTV_ResizeEnd;
+            Shown += AndyTV_Shown;
+            FormClosing += AndyTV_FormClosing;
+
+            _contextMenuStrip.Opening += delegate
+            {
+                CursorHelper.ShowDefault();
+            };
+
+            _contextMenuStrip.Closing += delegate
+            {
+                CursorHelper.Hide();
+            };
         }
 
-        CursorHelper.ShowWaiting();
+        // --- UI Helpers ---
 
-        await _menuTVChannelHelper.LoadChannels(channelClick: ChItem_Click, m3uURL: source.Url);
-    }
-
-    private void ChItem_Click(object sender, EventArgs e)
-    {
-        var item = (ToolStripMenuItem)sender;
-
-        _ = Play(item.Text, item.Tag.ToString());
-    }
-
-    private async Task Play(string channel, string url)
-    {
-        try
+        private void AndyTV_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Ensure we're on UI thread and yield to prevent blocking
-            // await Task.Yield();
+            Logger.Info("[APP] FormClosing");
+            SaveCurrentChannelState();
+        }
 
-            _mediaPlayer.Stop();
-            _currentChannelName = channel;
+        private async void AndyTV_Shown(object sender, EventArgs e)
+        {
+            Logger.Info("[APP] Form Shown, initializing...");
+
+            var last = LastChannelHelper.Load();
+            if (last != null)
+            {
+                Play(last.Value.Name, last.Value.Url);
+            }
+
+            var appVersionName = "AndyTV v" + AppHelper.Version;
+            Text = appVersionName;
+
+            _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
+
+            _menuSettingsHelper = new MenuSettingsHelper(
+                _contextMenuStrip,
+                appVersionName,
+                _mediaPlayer,
+                delegate
+                {
+                    return new FavoriteChannelForm(_menuTVChannelHelper.Channels);
+                },
+                delegate
+                {
+                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                },
+                SaveCurrentChannelState
+            );
+
+            _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
+            _menuRecentChannelHelper.RebuildRecentMenu();
+
+            _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
+                _contextMenuStrip,
+                ChItem_Click
+            );
+            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+
+            var source = M3USourceStore.TryGetFirst();
+            if (source == null)
+            {
+                RestoreWindow();
+                source = M3USourceStore.PromptNewSource();
+                if (source == null)
+                {
+                    Logger.Warn("[APP] No M3U source selected. Exiting.");
+                    Close();
+                    return;
+                }
+            }
+
+            Logger.Info("[CHANNELS] Loading from M3U...");
             CursorHelper.ShowWaiting();
 
-            // Create media on background thread to avoid UI blocking
-            var media = await Task.Run(() => new Media(_libVLC, url, FromType.FromLocation));
+            await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
-            // Play on UI thread
-            _mediaPlayer.Play(media);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"Failed to play channel {channel}: {ex.Message}");
-            CursorHelper.ShowDefault();
-        }
-    }
-
-    private void AndyTV_ResizeEnd(object sender, EventArgs e)
-    {
-        // Update the last manual size only if the window is in normal state
-        if (WindowState == FormWindowState.Normal)
-        {
-            _manuallyAdjustedBounds = Bounds;
-        }
-    }
-
-    private void MaximizeWindow()
-    {
-        FormBorderStyle = FormBorderStyle.None;
-        WindowState = FormWindowState.Maximized;
-        Bounds = Screen.FromControl(this).Bounds;
-
-        CursorHelper.Hide();
-    }
-
-    // Class-level variable to store the manually adjusted bounds
-    private Rectangle? _manuallyAdjustedBounds;
-
-    private void RestoreWindow()
-    {
-        FormBorderStyle = FormBorderStyle.Sizable;
-        WindowState = FormWindowState.Normal;
-        Bounds = _manuallyAdjustedBounds ?? Screen.FromControl(this).WorkingArea;
-
-        CursorHelper.ShowDefault();
-    }
-
-    #endregion UI Helpers
-
-    #region VideoView Events
-
-    private DateTime? _mouseDownLeftPrevChannel;
-    private DateTime? _mouseDownRightExit;
-
-    private void VideoView_MouseDown(object sender, MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Left)
-        {
-            _mouseDownLeftPrevChannel = DateTime.Now;
+            Logger.Info("[CHANNELS] Loaded");
         }
 
-        if (e.Button == MouseButtons.Right)
+        private void ChItem_Click(object sender, EventArgs e)
         {
-            _mouseDownRightExit = DateTime.Now;
-        }
-    }
-
-    private void VideoView_MouseUp(object sender, MouseEventArgs e)
-    {
-        if (
-            e.Button == MouseButtons.Left
-            && _mouseDownLeftPrevChannel != null
-            && _mouseDownLeftPrevChannel.Value.AddSeconds(1) < DateTime.Now
-        )
-        {
-            var prevChannel = _menuRecentChannelHelper.GetPrevious();
-            if (prevChannel != null)
+            if (sender is ToolStripMenuItem item && item.Tag != null)
             {
-                _ = Play(prevChannel.Name, prevChannel.Url);
-                _currentChannelName = prevChannel.Name;
+                Play(item.Text, item.Tag.ToString());
             }
         }
 
-        if (e.Button == MouseButtons.Middle)
+        private async void Play(string channel, string url)
         {
-            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+            var sw = Stopwatch.StartNew();
+            Logger.Info("[PLAY][BEGIN] channel='" + channel + "' url='" + url + "'");
+
+            try
+            {
+                _mediaPlayer.Stop();
+                _currentChannelName = channel;
+                CursorHelper.ShowWaiting();
+
+                var media = await Task.Run(() => new Media(_libVLC, url, FromType.FromLocation));
+                var started = _mediaPlayer.Play(media);
+                Logger.Info("[PLAY] Play() returned=" + started + " channel='" + channel + "'");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("[PLAY][ERROR] channel='" + channel + "' url='" + url + "' ex=" + ex);
+                CursorHelper.ShowDefault();
+            }
+            finally
+            {
+                sw.Stop();
+                Logger.Info(
+                    "[PLAY][END] channel='" + channel + "' elapsedMs=" + sw.ElapsedMilliseconds
+                );
+            }
         }
 
-        if (
-            e.Button == MouseButtons.Right
-            && _mouseDownRightExit != null
-            && _mouseDownRightExit.Value.AddSeconds(5) < DateTime.Now
-        )
+        private void AndyTV_ResizeEnd(object sender, EventArgs e)
         {
-            Close(); // exit app if right held ≥ 5 seconds
+            if (WindowState == FormWindowState.Normal)
+            {
+                _manuallyAdjustedBounds = Bounds;
+            }
+        }
+
+        private void MaximizeWindow()
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            WindowState = FormWindowState.Maximized;
+            Bounds = Screen.FromControl(this).Bounds;
+
+            CursorHelper.Hide();
+        }
+
+        private void RestoreWindow()
+        {
+            FormBorderStyle = FormBorderStyle.Sizable;
+            WindowState = FormWindowState.Normal;
+
+            if (_manuallyAdjustedBounds != Rectangle.Empty)
+            {
+                Bounds = _manuallyAdjustedBounds;
+            }
+            else
+            {
+                Bounds = Screen.FromControl(this).WorkingArea;
+            }
+
+            CursorHelper.ShowDefault();
+        }
+
+        // --- VideoView Events ---
+
+        private void VideoView_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _mouseDownLeftPrevChannel = DateTime.Now;
+            }
+
+            if (e.Button == MouseButtons.Right)
+            {
+                _mouseDownRightExit = DateTime.Now;
+            }
+        }
+
+        private void VideoView_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (
+                e.Button == MouseButtons.Left
+                && _mouseDownLeftPrevChannel != DateTime.MinValue
+                && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
+            )
+            {
+                var prevChannel = _menuRecentChannelHelper.GetPrevious();
+                if (prevChannel != null)
+                {
+                    Play(prevChannel.Name, prevChannel.Url);
+                    _currentChannelName = prevChannel.Name;
+                }
+            }
+
+            if (e.Button == MouseButtons.Middle)
+            {
+                _mediaPlayer.Mute = !_mediaPlayer.Mute;
+            }
+
+            if (
+                e.Button == MouseButtons.Right
+                && _mouseDownRightExit != DateTime.MinValue
+                && _mouseDownRightExit.AddSeconds(5) < DateTime.Now
+            )
+            {
+                Close();
+            }
+        }
+
+        private void VideoView_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (FormBorderStyle == FormBorderStyle.None)
+            {
+                RestoreWindow();
+            }
+            else
+            {
+                MaximizeWindow();
+            }
+        }
+
+        // --- MediaPlayer Events ---
+
+        private void SaveCurrentChannelState()
+        {
+            if (_mediaPlayer.Media != null && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl))
+            {
+                LastChannelHelper.Save(_currentChannelName, _mediaPlayer.Media.Mrl);
+            }
+        }
+
+        private void MediaPlayer_Playing(object sender, EventArgs e)
+        {
+            CursorHelper.Hide();
+            _toastHelper.Show(_currentChannelName);
+
+            if (_mediaPlayer.Media != null)
+            {
+                _menuRecentChannelHelper.AddOrPromote(
+                    new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
+                );
+            }
         }
     }
-
-    private void VideoView_MouseDoubleClick(object sender, MouseEventArgs e)
-    {
-        if (FormBorderStyle == FormBorderStyle.None)
-        {
-            RestoreWindow();
-        }
-        else
-        {
-            MaximizeWindow();
-        }
-    }
-
-    #endregion VideoView Events
-
-    #region MediaPlayer Events
-
-    private void SaveCurrentChannelState()
-    {
-        if (_mediaPlayer?.Media?.Mrl is string mrl && !string.IsNullOrWhiteSpace(mrl))
-        {
-            LastChannelHelper.Save(_currentChannelName, mrl);
-        }
-    }
-
-    private void MediaPlayer_Playing(object sender, EventArgs e)
-    {
-        CursorHelper.Hide();
-
-        _toastHelper.Show(_currentChannelName);
-
-        _menuRecentChannelHelper.AddOrPromote(
-            new Channel(Group: "Recent", Name: _currentChannelName, Url: _mediaPlayer.Media.Mrl)
-        );
-    }
-
-    #endregion MediaPlayer Events
 }
