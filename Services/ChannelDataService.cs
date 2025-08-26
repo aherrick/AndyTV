@@ -6,7 +6,7 @@ namespace AndyTV.Services;
 
 public static class ChannelDataService
 {
-    private const string LastChannelFile = "last_channel.txt";
+    private const string LastChannelFile = "last_channel.json";
     private const string FavoriteChannelsFile = "favorite_channels.json";
 
     public static void SaveLastChannel(Channel channel)
