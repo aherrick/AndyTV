@@ -82,6 +82,8 @@ namespace AndyTV
                 _recentChannelsService.AddOrPromote(
                     new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
                 );
+
+                ChannelDataService.SaveLastChannel(_currentChannelName, _mediaPlayer.Media.Mrl);
             };
 
             var videoView = new VideoView
@@ -106,8 +108,69 @@ namespace AndyTV
                 }
             };
 
-            Shown += AndyTV_Shown;
-            FormClosing += AndyTV_FormClosing;
+            Shown += async delegate
+            {
+                var last = ChannelDataService.LoadLastChannel();
+                if (last != null)
+                {
+                    Play(last.Value.Name, last.Value.Url);
+                }
+
+                var appVersionName = "AndyTV v" + AppHelper.Version;
+                Text = appVersionName;
+
+                _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
+
+                _menuSettingsHelper = new MenuSettingsHelper(
+                    _contextMenuStrip,
+                    appVersionName,
+                    _mediaPlayer,
+                    _updateService,
+                    delegate
+                    {
+                        return new FavoriteChannelForm(_menuTVChannelHelper.Channels);
+                    },
+                    delegate
+                    {
+                        _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                    }
+                );
+
+                _menuRecentChannelHelper = new MenuRecentChannelHelper(
+                    _contextMenuStrip,
+                    ChItem_Click,
+                    _recentChannelsService
+                );
+                _menuRecentChannelHelper.RebuildRecentMenu();
+
+                _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
+                    _contextMenuStrip,
+                    ChItem_Click
+                );
+                _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+
+                var source = M3UService.TryGetFirstSource();
+                if (source == null)
+                {
+                    RestoreWindow();
+                    source = M3UService.PromptNewSource();
+                    if (source == null)
+                    {
+                        Logger.Warn("[APP] No M3U source selected. Exiting.");
+                        Close();
+                        return;
+                    }
+                }
+
+                Logger.Info("[CHANNELS] Loading from M3U...");
+                CursorHelper.ShowWaiting();
+
+                await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
+
+                CursorHelper.Hide();
+
+                Logger.Info("[CHANNELS] Loaded");
+            };
 
             _contextMenuStrip.Opening += delegate
             {
@@ -118,81 +181,6 @@ namespace AndyTV
             {
                 CursorHelper.Hide();
             };
-        }
-
-        // --- UI Helpers ---
-
-        private void AndyTV_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Logger.Info("[APP] FormClosing");
-            SaveCurrentChannelState();
-        }
-
-        private async void AndyTV_Shown(object sender, EventArgs e)
-        {
-            Logger.Info("[APP] Form Shown, initializing...");
-
-            var last = ChannelDataService.LoadLastChannel();
-            if (last != null)
-            {
-                Play(last.Value.Name, last.Value.Url);
-            }
-
-            var appVersionName = "AndyTV v" + AppHelper.Version;
-            Text = appVersionName;
-
-            _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
-
-            _menuSettingsHelper = new MenuSettingsHelper(
-                _contextMenuStrip,
-                appVersionName,
-                _mediaPlayer,
-                _updateService,
-                delegate
-                {
-                    return new FavoriteChannelForm(_menuTVChannelHelper.Channels);
-                },
-                delegate
-                {
-                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-                },
-                SaveCurrentChannelState
-            );
-
-            _menuRecentChannelHelper = new MenuRecentChannelHelper(
-                _contextMenuStrip,
-                ChItem_Click,
-                _recentChannelsService
-            );
-            _menuRecentChannelHelper.RebuildRecentMenu();
-
-            _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
-                _contextMenuStrip,
-                ChItem_Click
-            );
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-
-            var source = M3UService.TryGetFirstSource();
-            if (source == null)
-            {
-                RestoreWindow();
-                source = M3UService.PromptNewSource();
-                if (source == null)
-                {
-                    Logger.Warn("[APP] No M3U source selected. Exiting.");
-                    Close();
-                    return;
-                }
-            }
-
-            Logger.Info("[CHANNELS] Loading from M3U...");
-            CursorHelper.ShowWaiting();
-
-            await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
-
-            CursorHelper.Hide();
-
-            Logger.Info("[CHANNELS] Loaded");
         }
 
         private void ChItem_Click(object sender, EventArgs e)
@@ -306,16 +294,6 @@ namespace AndyTV
             else
             {
                 MaximizeWindow();
-            }
-        }
-
-        // --- MediaPlayer Events ---
-
-        private void SaveCurrentChannelState()
-        {
-            if (_mediaPlayer.Media != null && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl))
-            {
-                ChannelDataService.SaveLastChannel(_currentChannelName, _mediaPlayer.Media.Mrl);
             }
         }
     }

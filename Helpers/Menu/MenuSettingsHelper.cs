@@ -15,7 +15,6 @@ public class MenuSettingsHelper
 
     private readonly Func<Form> _createFavoritesForm;
     private readonly Action _rebuildFavoritesMenu;
-    private readonly Action _saveCurrentChannel;
 
     private readonly UpdateService _updateService;
 
@@ -25,8 +24,7 @@ public class MenuSettingsHelper
         MediaPlayer mediaPlayer,
         UpdateService updateService,
         Func<Form> createFavoritesForm,
-        Action rebuildFavoritesMenu,
-        Action saveCurrentChannel
+        Action rebuildFavoritesMenu
     )
     {
         _menu = menu;
@@ -35,17 +33,12 @@ public class MenuSettingsHelper
         _updateService = updateService;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
-        _saveCurrentChannel = saveCurrentChannel;
 
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
 
         // Update
         _checkUpdatesItem = new ToolStripMenuItem("Update");
-        _checkUpdatesItem.Click += async (_, __) =>
-        {
-            await _updateService.CheckForUpdates(_saveCurrentChannel);
-        };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
         // Mute
