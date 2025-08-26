@@ -29,7 +29,6 @@ namespace AndyTV
 
         private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
         private DateTime _mouseDownRightExit = DateTime.MinValue;
-        private DateTime _lastActivityUtc = DateTime.UtcNow;
 
         public Form1(
             LibVLC libVLC,
