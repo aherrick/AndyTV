@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using AndyTV.Services;
 using LibVLCSharp.Shared;
+using LibVLCSharp.WinForms;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -9,6 +10,8 @@ public class MenuSettingsHelper
     private readonly ContextMenuStrip _menu;
     private readonly string _appVersionName;
     private readonly MediaPlayer _mediaPlayer;
+    private readonly VideoView _videoSurface;
+
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripMenuItem _muteItem;
     private readonly ToolStripMenuItem _checkUpdatesItem;
@@ -24,7 +27,8 @@ public class MenuSettingsHelper
         MediaPlayer mediaPlayer,
         UpdateService updateService,
         Func<Form> createFavoritesForm,
-        Action rebuildFavoritesMenu
+        Action rebuildFavoritesMenu,
+        VideoView videoSurface
     )
     {
         _menu = menu;
@@ -33,6 +37,7 @@ public class MenuSettingsHelper
         _updateService = updateService;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
+        _videoSurface = videoSurface;
 
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
@@ -41,7 +46,7 @@ public class MenuSettingsHelper
         _checkUpdatesItem = new ToolStripMenuItem("Update");
         _checkUpdatesItem.Click += async (_, __) =>
         {
-            await _updateService.CheckForUpdates();
+            await _updateService.CheckForUpdates(_videoSurface);
         };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
@@ -74,30 +79,48 @@ public class MenuSettingsHelper
         var favoritesItem = new ToolStripMenuItem("Favorites");
         favoritesItem.Click += (_, __) =>
         {
-            CursorHelper.ShowDefault();
+            // Ensure a visible cursor while a dialog is open
+            _videoSurface.ShowDefault();
 
             using var form = _createFavoritesForm();
             form.FormClosed += (_, __2) =>
             {
-                CursorHelper.Hide();
+                // Rebuild menu after dialog closes
                 _rebuildFavoritesMenu();
+
+                // Restore hidden cursor if owner is fullscreen
+                var owner = _menu.SourceControl?.FindForm();
+                bool isFullscreen = owner?.FormBorderStyle == FormBorderStyle.None;
+                if (isFullscreen)
+                    _videoSurface.HideCursor();
+                else
+                    _videoSurface.ShowDefault();
             };
 
-            form.ShowDialog(_menu.SourceControl.FindForm());
+            form.ShowDialog(_menu.SourceControl?.FindForm());
         };
         _menu.Items.Insert(headerIndex + 5, favoritesItem);
 
         // Exit
         var exitItem = new ToolStripMenuItem("Exit");
-        exitItem.Click += (_, __) =>
-        {
-            Application.Exit();
-        };
+        exitItem.Click += (_, __) => Application.Exit();
         _menu.Items.Insert(headerIndex + 6, exitItem);
 
         _menu.Opening += (_, __) =>
         {
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
+            // Make sure cursor is visible while menu is open
+            _videoSurface.ShowDefault();
+        };
+
+        _menu.Closing += (_, __) =>
+        {
+            var owner = _menu.SourceControl?.FindForm();
+            bool isFullscreen = owner?.FormBorderStyle == FormBorderStyle.None;
+            if (isFullscreen)
+                _videoSurface.HideCursor();
+            else
+                _videoSurface.ShowDefault();
         };
     }
 }

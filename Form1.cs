@@ -15,7 +15,6 @@ public partial class Form1 : Form
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
 
-    // Menu
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
     private MenuRecentChannelHelper _menuRecentChannelHelper;
@@ -29,6 +28,8 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
+    private readonly VideoView _videoView;
+
     public Form1(LibVLC libVLC, MediaPlayer mediaPlayer, UpdateService updateService)
     {
         _libVLC = libVLC;
@@ -37,12 +38,10 @@ public partial class Form1 : Form
 
         InitializeComponent();
 
-        // Create NotificationService after form is initialized
         _notificationService = new NotificationService(this);
 
         HandleCreated += delegate
         {
-            // kickoff play asap
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
@@ -52,62 +51,51 @@ public partial class Form1 : Form
 
         Logger.Info("Starting AndyTV...");
 
-        MaximizeWindow();
-
         Icon = new Icon("AndyTV.ico");
 
         _mediaPlayer.Stopped += delegate
         {
-            Logger.Info("[VLC] Stopped");
-
             Play(_currentChannel);
         };
         _mediaPlayer.EndReached += delegate
         {
-            Logger.Warn("[VLC] EndReached");
-
             Play(_currentChannel);
         };
         _mediaPlayer.EncounteredError += delegate
         {
-            Logger.Error("[VLC] EncounteredError");
-
             Play(_currentChannel);
         };
-
         _mediaPlayer.Playing += delegate
         {
-            CursorHelper.Hide();
+            // Reset cursor based on fullscreen state
+            if (FormBorderStyle == FormBorderStyle.None)
+                _videoView.HideCursor();
+            else
+                _videoView.ShowDefault();
+
             _notificationService.ShowToast(_currentChannel.DisplayName);
-
             RecentChannelsService.AddOrPromote(_currentChannel);
-
             ChannelDataService.SaveLastChannel(_currentChannel);
-
-            // potential race condition, for now it's fine
             _menuRecentChannelHelper?.RebuildRecentMenu();
         };
 
-        var videoView = new VideoView
+        _videoView = new VideoView
         {
             Dock = DockStyle.Fill,
             MediaPlayer = _mediaPlayer,
             ContextMenuStrip = _contextMenuStrip,
         };
+        _videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
+        _videoView.MouseUp += VideoView_MouseUp;
+        _videoView.MouseDown += VideoView_MouseDown;
+        Controls.Add(_videoView);
 
-        videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
-        videoView.MouseUp += VideoView_MouseUp;
-        videoView.MouseDown += VideoView_MouseDown;
+        MaximizeWindow(); // start fullscreen
 
-        Controls.Add(videoView);
-
-        // Form events
         ResizeEnd += delegate
         {
             if (WindowState == FormWindowState.Normal)
-            {
                 _manuallyAdjustedBounds = Bounds;
-            }
         };
 
         Shown += async delegate
@@ -122,14 +110,9 @@ public partial class Form1 : Form
                 appVersionName,
                 _mediaPlayer,
                 _updateService,
-                delegate
-                {
-                    return new FavoriteChannelForm(_menuTVChannelHelper.Channels);
-                },
-                delegate
-                {
-                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-                }
+                () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
+                () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
+                _videoView
             );
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
@@ -155,40 +138,45 @@ public partial class Form1 : Form
             }
 
             Logger.Info("[CHANNELS] Loading from M3U...");
-            CursorHelper.ShowWaiting();
+            _videoView.ShowWaiting();
 
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
-            CursorHelper.Hide();
+            if (FormBorderStyle == FormBorderStyle.None)
+                _videoView.HideCursor();
+            else
+                _videoView.ShowDefault();
 
             Logger.Info("[CHANNELS] Loaded");
         };
 
         _contextMenuStrip.Opening += delegate
         {
-            CursorHelper.ShowDefault();
+            _videoView.ShowDefault();
         };
-
         _contextMenuStrip.Closing += delegate
         {
-            CursorHelper.Hide();
+            if (FormBorderStyle == FormBorderStyle.None)
+                _videoView.HideCursor();
+            else
+                _videoView.ShowDefault();
         };
     }
 
     private void ChItem_Click(object sender, EventArgs e)
     {
-        if (sender is ToolStripMenuItem item && item.Tag != null)
-        {
-            Play(item.Tag as Channel);
-        }
+        if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
+            Play(ch);
     }
 
     private void Play(Channel channel)
     {
-        Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
+        if (channel == null)
+            return;
 
+        Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
-        CursorHelper.ShowWaiting();
+        _videoView.ShowWaiting();
 
         ThreadPool.QueueUserWorkItem(_ =>
         {
@@ -199,10 +187,10 @@ public partial class Form1 : Form
             }
             catch (Exception ex)
             {
+                _videoView.ShowDefault();
                 Logger.Error(
                     $"[PLAY][ERROR] channel='{channel.DisplayName}' url='{channel.Url}' ex={ex}"
                 );
-                CursorHelper.ShowDefault();
             }
         });
     }
@@ -213,7 +201,8 @@ public partial class Form1 : Form
         WindowState = FormWindowState.Maximized;
         Bounds = Screen.FromControl(this).Bounds;
 
-        CursorHelper.Hide();
+        // Hide cursor when hovering over video view
+        _videoView.HideCursor();
     }
 
     private void RestoreWindow()
@@ -221,31 +210,20 @@ public partial class Form1 : Form
         FormBorderStyle = FormBorderStyle.Sizable;
         WindowState = FormWindowState.Normal;
 
-        if (_manuallyAdjustedBounds != Rectangle.Empty)
-        {
-            Bounds = _manuallyAdjustedBounds;
-        }
-        else
-        {
-            Bounds = Screen.FromControl(this).WorkingArea;
-        }
+        Bounds =
+            _manuallyAdjustedBounds != Rectangle.Empty
+                ? _manuallyAdjustedBounds
+                : Screen.FromControl(this).WorkingArea;
 
-        CursorHelper.ShowDefault();
+        _videoView.ShowDefault(); // show
     }
-
-    // --- VideoView Events ---
 
     private void VideoView_MouseDown(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left)
-        {
             _mouseDownLeftPrevChannel = DateTime.Now;
-        }
-
         if (e.Button == MouseButtons.Right)
-        {
             _mouseDownRightExit = DateTime.Now;
-        }
     }
 
     private void VideoView_MouseUp(object sender, MouseEventArgs e)
@@ -265,9 +243,7 @@ public partial class Form1 : Form
         }
 
         if (e.Button == MouseButtons.Middle)
-        {
             _mediaPlayer.Mute = !_mediaPlayer.Mute;
-        }
 
         if (
             e.Button == MouseButtons.Right
@@ -282,12 +258,8 @@ public partial class Form1 : Form
     private void VideoView_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         if (FormBorderStyle == FormBorderStyle.None)
-        {
             RestoreWindow();
-        }
         else
-        {
             MaximizeWindow();
-        }
     }
 }

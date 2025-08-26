@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Text.Json;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -8,12 +9,18 @@ public class FavoriteChannelForm : Form
 {
     private readonly List<Channel> _allChannels;
     private readonly BindingList<Channel> _selectedChannels;
+
+    private readonly BindingSource _binding = [];
+
     private TextBox _channelTextBox;
     private ListBox _suggestionListBox;
     private DataGridView _channelsGrid;
     private Button _upButton;
     private Button _downButton;
     private Button _removeButton;
+    private Button _importButton;
+    private Button _exportButton;
+    private Button _saveButton;
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -22,21 +29,17 @@ public class FavoriteChannelForm : Form
         InitializeUI();
         SetupEvents();
         LoadFavorites();
-
-        FormClosing += (s, e) => SaveFavorites();
     }
 
     private void InitializeUI()
     {
         Text = "Favorite Channels";
-        // Bigger overall window
-        Size = new Size(720, 560);
+        Size = new Size(720, 600);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         MinimizeBox = false;
 
-        // Channel search
         var lblChannels = new Label
         {
             Text = "Search:",
@@ -53,7 +56,6 @@ public class FavoriteChannelForm : Form
             Visible = false,
         };
 
-        // Selected channels grid
         var lblSelected = new Label
         {
             Text = "Favorites:",
@@ -67,7 +69,7 @@ public class FavoriteChannelForm : Form
             Size = new Size(640, 300),
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
-            ReadOnly = false, // allow editing mapped columns
+            ReadOnly = false,
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false,
@@ -78,7 +80,6 @@ public class FavoriteChannelForm : Form
                 AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
         };
 
-        // Columns
         var colName = new DataGridViewTextBoxColumn
         {
             DataPropertyName = nameof(Channel.Name),
@@ -113,7 +114,6 @@ public class FavoriteChannelForm : Form
 
         _channelsGrid.Columns.AddRange(colName, colGroup, colMappedName, colMappedGroup);
 
-        // Control buttons on the right of the grid
         _upButton = new Button
         {
             Text = "↑",
@@ -144,6 +144,30 @@ public class FavoriteChannelForm : Form
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
 
+        _importButton = new Button
+        {
+            Text = "Import",
+            Location = new Point(12, 520),
+            Size = new Size(80, 30),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+        };
+
+        _exportButton = new Button
+        {
+            Text = "Export",
+            Location = new Point(100, 520),
+            Size = new Size(80, 30),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+        };
+
+        _saveButton = new Button
+        {
+            Text = "Save",
+            Location = new Point(592, 520),
+            Size = new Size(100, 30),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+        };
+
         Controls.AddRange(
             [
                 lblChannels,
@@ -154,6 +178,9 @@ public class FavoriteChannelForm : Form
                 _upButton,
                 _downButton,
                 _removeButton,
+                _importButton,
+                _exportButton,
+                _saveButton,
             ]
         );
     }
@@ -167,9 +194,17 @@ public class FavoriteChannelForm : Form
         _upButton.Click += MoveUp;
         _downButton.Click += MoveDown;
         _removeButton.Click += RemoveChannel;
-        _channelsGrid.DataSource = _selectedChannels;
+
+        // Bind through BindingSource so we can EndEdit() safely.
+        _binding.DataSource = _selectedChannels;
+        _channelsGrid.DataSource = _binding;
+
+        _importButton.Click += ImportFavorites;
+        _exportButton.Click += ExportFavorites;
+        _saveButton.Click += SaveButton_Click;
     }
 
+    // --- Search / Suggestions ---
     private void OnTextChanged(object sender, EventArgs e)
     {
         string searchText = _channelTextBox.Text.Trim();
@@ -189,7 +224,7 @@ public class FavoriteChannelForm : Form
         if (matches.Count > 0)
         {
             _suggestionListBox.DataSource = matches;
-            _suggestionListBox.DisplayMember = "Name";
+            _suggestionListBox.DisplayMember = nameof(Channel.Name);
             _suggestionListBox.Visible = true;
             _suggestionListBox.BringToFront();
         }
@@ -205,7 +240,9 @@ public class FavoriteChannelForm : Form
         {
             _suggestionListBox.Focus();
             if (_suggestionListBox.Items.Count > 0)
+            {
                 _suggestionListBox.SelectedIndex = 0;
+            }
         }
         else if (
             e.KeyCode == Keys.Enter
@@ -239,7 +276,6 @@ public class FavoriteChannelForm : Form
     {
         var channel = (Channel)_suggestionListBox.SelectedItem;
 
-        // prevent duplicates by URL
         if (
             !_selectedChannels.Any(c =>
                 string.Equals(c.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
@@ -253,6 +289,7 @@ public class FavoriteChannelForm : Form
         }
     }
 
+    // --- Move / Remove ---
     private void MoveUp(object sender, EventArgs e)
     {
         if (_channelsGrid.SelectedRows.Count > 0)
@@ -291,6 +328,66 @@ public class FavoriteChannelForm : Form
         }
     }
 
+    // --- Import / Export ---
+    private void ImportFavorites(object sender, EventArgs e)
+    {
+        using var ofd = new OpenFileDialog
+        {
+            Filter = "JSON Files (*.json)|*.json",
+            Title = "Import Favorite Channels",
+        };
+        if (ofd.ShowDialog() == DialogResult.OK)
+        {
+            try
+            {
+                var json = File.ReadAllText(ofd.FileName);
+                var imported = JsonSerializer.Deserialize<List<Channel>>(json);
+
+                _selectedChannels.Clear();
+                foreach (var ch in imported)
+                {
+                    _selectedChannels.Add(ch);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Import failed: {ex.Message}");
+            }
+        }
+    }
+
+    private void ExportFavorites(object sender, EventArgs e)
+    {
+        using var sfd = new SaveFileDialog
+        {
+            Filter = "JSON Files (*.json)|*.json",
+            Title = "Export Favorite Channels",
+            FileName = "favorites.json",
+        };
+        if (sfd.ShowDialog() == DialogResult.OK)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_selectedChannels.ToList());
+                File.WriteAllText(sfd.FileName, json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Export failed: {ex.Message}");
+            }
+        }
+    }
+
+    // --- Save (commit edits + write file) ---
+    private void SaveButton_Click(object sender, EventArgs e)
+    {
+        _channelsGrid.CurrentCell = null; // flush edit box into cell
+        _binding.EndEdit(); // finalize binding layer
+
+        ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
+    }
+
+    // --- Load / Save favorites ---
     private void LoadFavorites()
     {
         var savedChannels = ChannelDataService.LoadFavoriteChannels();
@@ -298,11 +395,6 @@ public class FavoriteChannelForm : Form
         {
             _selectedChannels.Add(channel);
         }
-    }
-
-    private void SaveFavorites()
-    {
-        ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
     }
 
     public List<Channel> SelectedChannels => [.. _selectedChannels];

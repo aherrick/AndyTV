@@ -1,4 +1,5 @@
 using AndyTV.Helpers;
+using LibVLCSharp.WinForms;
 using Velopack;
 using Velopack.Sources;
 
@@ -19,18 +20,25 @@ public class UpdateService
         );
     }
 
-    public async Task CheckForUpdates()
+    public async Task CheckForUpdates(VideoView cursorSurface)
     {
+        var owner = cursorSurface.FindForm();
+
+        bool IsFullscreen() => owner != null && owner.FormBorderStyle == FormBorderStyle.None;
+
         try
         {
-            CursorHelper.ShowWaiting();
+            cursorSurface.ShowWaiting();
 
             var info = await _updater.CheckForUpdatesAsync();
 
+            // Show default cursor while prompting the user
+            cursorSurface.ShowDefault();
+
             if (info == null)
             {
-                CursorHelper.ShowDefault();
                 MessageBox.Show(
+                    owner,
                     "You're already up to date.",
                     "Update",
                     MessageBoxButtons.OK,
@@ -39,8 +47,8 @@ public class UpdateService
                 return;
             }
 
-            CursorHelper.ShowDefault();
             var result = MessageBox.Show(
+                owner,
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
                 "Update Available",
                 MessageBoxButtons.YesNo,
@@ -49,17 +57,20 @@ public class UpdateService
 
             if (result == DialogResult.Yes)
             {
-                CursorHelper.ShowWaiting();
+                cursorSurface.ShowWaiting();
 
                 await _updater.DownloadUpdatesAsync(info);
+
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
         }
         catch (Exception ex)
         {
-            CursorHelper.ShowDefault();
+            cursorSurface.ShowDefault();
+
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
+                owner,
                 "An error occurred while checking for updates. Please try again.",
                 "Update Error",
                 MessageBoxButtons.OK,
@@ -68,7 +79,10 @@ public class UpdateService
         }
         finally
         {
-            CursorHelper.Hide();
+            if (IsFullscreen())
+                cursorSurface.HideCursor();
+            else
+                cursorSurface.ShowDefault();
         }
     }
 }

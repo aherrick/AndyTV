@@ -1,75 +1,28 @@
 ﻿namespace AndyTV.Helpers;
 
-public static class CursorHelper
+public static class CursorExtensions
 {
-    private static bool _cursorShown = true;
+    private static readonly Cursor HiddenCursor = CreateHiddenCursor();
 
-    public static void Hide()
+    private static Cursor CreateHiddenCursor()
     {
-        ExecuteOnUIThread(() =>
-        {
-            Application.UseWaitCursor = false;
-            CursorShown = false;
-        });
+        using var bmp = new Bitmap(1, 1);
+        IntPtr ptr = bmp.GetHicon();
+        return new Cursor(ptr);
     }
 
-    public static void ShowDefault()
+    public static void ShowDefault(this Control control)
     {
-        ExecuteOnUIThread(() =>
-        {
-            Application.UseWaitCursor = false;
-            CursorShown = true;
-        });
+        control.Cursor = Cursors.Default;
     }
 
-    public static void ShowWaiting()
+    public static void ShowWaiting(this Control control)
     {
-        ExecuteOnUIThread(() =>
-        {
-            Application.UseWaitCursor = true;
-            CursorShown = true;
-        });
+        control.Cursor = Cursors.WaitCursor;
     }
 
-    private static void ExecuteOnUIThread(Action action)
+    public static void HideCursor(this Control control)
     {
-        var form = Application.OpenForms.Cast<Form>().FirstOrDefault();
-
-        if (form?.InvokeRequired == true)
-        {
-            form.Invoke(action);
-        }
-        else if (form != null)
-        {
-            action(); // We have a form and we're on UI thread
-        }
-        else
-        {
-            // No forms available - defer execution until UI is ready
-            void idleHandler(object s, EventArgs e)
-            {
-                Application.Idle -= idleHandler; // Remove self
-                action();
-            }
-
-            Application.Idle += idleHandler;
-        }
-    }
-
-    private static bool CursorShown
-    {
-        get => _cursorShown;
-        set
-        {
-            if (value == _cursorShown)
-                return;
-
-            if (value)
-                Cursor.Show();
-            else
-                Cursor.Hide();
-
-            _cursorShown = value;
-        }
+        control.Cursor = HiddenCursor;
     }
 }
