@@ -4,7 +4,7 @@ using AndyTV.Models;
 
 namespace AndyTV.Services;
 
-public class M3UService
+public static class M3UService
 {
     public static async Task<List<Channel>> ParseM3U(string m3uURL)
     {

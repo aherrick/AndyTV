@@ -6,34 +6,34 @@ namespace AndyTV.Services;
 
 public static class ChannelDataService
 {
+    private const string LastChannelFile = "last_channel.txt";
+    private const string FavoriteChannelsFile = "favorite_channels.json";
+
     public static void SaveLastChannel(string name, string url)
     {
-        var filePath = PathHelper.GetPath("last_channel.txt");
+        var filePath = PathHelper.GetPath(LastChannelFile);
         File.WriteAllLines(filePath, [name, url]);
     }
 
     public static (string Name, string Url)? LoadLastChannel()
     {
-        var filePath = PathHelper.GetPath("last_channel.txt");
-        if (!File.Exists(filePath))
+        try
+        {
+            var filePath = PathHelper.GetPath(LastChannelFile);
+            var lines = File.ReadAllLines(filePath);
+            return (lines[0], lines[1]);
+        }
+        catch
         {
             return null;
         }
-
-        var lines = File.ReadAllLines(filePath);
-        return (lines[0], lines[1]);
     }
 
     public static List<Channel> LoadFavoriteChannels()
     {
-        var filePath = PathHelper.GetPath("favorite_channels.json");
-        if (!File.Exists(filePath))
-        {
-            return [];
-        }
-
         try
         {
+            var filePath = PathHelper.GetPath(FavoriteChannelsFile);
             var json = File.ReadAllText(filePath);
             return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
         }
@@ -45,7 +45,7 @@ public static class ChannelDataService
 
     public static void SaveFavoriteChannels(IEnumerable<Channel> channels)
     {
-        var filePath = PathHelper.GetPath("favorite_channels.json");
+        var filePath = PathHelper.GetPath(FavoriteChannelsFile);
         var json = JsonSerializer.Serialize(channels.ToList());
         File.WriteAllText(filePath, json);
     }
