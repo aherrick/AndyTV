@@ -84,7 +84,7 @@ public class FavoriteChannelForm : Form
         {
             DataPropertyName = nameof(Channel.Name),
             HeaderText = nameof(Channel.Name),
-            Width = 180,
+            Width = 185,
             ReadOnly = true,
         };
 
@@ -100,7 +100,7 @@ public class FavoriteChannelForm : Form
         {
             DataPropertyName = nameof(Channel.MappedName),
             HeaderText = nameof(Channel.MappedName),
-            Width = 180,
+            Width = 185,
             ReadOnly = false,
         };
 
