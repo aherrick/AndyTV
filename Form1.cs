@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using AndyTV.Helpers;
+﻿using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
 using AndyTV.Services;
@@ -55,44 +54,35 @@ namespace AndyTV
 
             Icon = new Icon("AndyTV.ico");
 
-            // VLC state logs
-            _mediaPlayer.Playing += delegate
-            {
-                Logger.Info("[VLC] Playing");
-            };
             _mediaPlayer.Stopped += delegate
             {
                 Logger.Info("[VLC] Stopped");
+
+                Play(_currentChannelName, _mediaPlayer.Media.Mrl);
             };
             _mediaPlayer.EndReached += delegate
             {
                 Logger.Warn("[VLC] EndReached");
-                if (
-                    _mediaPlayer.Media != null
-                    && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
-                )
-                {
-                    Play(_currentChannelName, _mediaPlayer.Media.Mrl);
-                }
+
+                Play(_currentChannelName, _mediaPlayer.Media.Mrl);
             };
             _mediaPlayer.EncounteredError += delegate
             {
                 Logger.Error("[VLC] EncounteredError");
-                if (
-                    _mediaPlayer.Media != null
-                    && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
-                )
-                {
-                    Play(_currentChannelName, _mediaPlayer.Media.Mrl);
-                }
+
+                Play(_currentChannelName, _mediaPlayer.Media.Mrl);
             };
 
-            _mediaPlayer.Playing += MediaPlayer_Playing;
-
-            // Touch activity whenever time advances (super simple signal)
-            _mediaPlayer.TimeChanged += delegate
+            _mediaPlayer.Playing += delegate
             {
-                TouchPlaybackActivity();
+                Logger.Error("[VLC] EncounteredError");
+
+                CursorHelper.Hide();
+                _notificationService.ShowToast(_currentChannelName);
+
+                _recentChannelsService.AddOrPromote(
+                    new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
+                );
             };
 
             var videoView = new VideoView
@@ -198,9 +188,6 @@ namespace AndyTV
             CursorHelper.Hide();
 
             Logger.Info("[CHANNELS] Loaded");
-
-            // --- SUPER LEAN: start the simple monitor loop ---
-            StartPlaybackMonitor();
         }
 
         private void ChItem_Click(object sender, EventArgs e)
@@ -211,36 +198,26 @@ namespace AndyTV
             }
         }
 
-        private async void Play(string channel, string url)
+        private void Play(string channel, string url)
         {
-            var sw = Stopwatch.StartNew();
-            Logger.Info("[PLAY][BEGIN] channel='" + channel + "' url='" + url + "'");
+            Logger.Info($"[PLAY][BEGIN] channel='{channel}' url='{url}'");
 
-            try
-            {
-                _mediaPlayer.Stop();
-                _currentChannelName = channel;
-                CursorHelper.ShowWaiting();
+            _currentChannelName = channel;
+            CursorHelper.ShowWaiting();
 
-                var media = await Task.Run(() => new Media(_libVLC, url, FromType.FromLocation));
-                var started = _mediaPlayer.Play(media);
-                Logger.Info("[PLAY] Play() returned=" + started + " channel='" + channel + "'");
-
-                // Touch activity on (re)start so monitor doesn't immediately fire
-                TouchPlaybackActivity();
-            }
-            catch (Exception ex)
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-                Logger.Error("[PLAY][ERROR] channel='" + channel + "' url='" + url + "' ex=" + ex);
-                CursorHelper.ShowDefault();
-            }
-            finally
-            {
-                sw.Stop();
-                Logger.Info(
-                    "[PLAY][END] channel='" + channel + "' elapsedMs=" + sw.ElapsedMilliseconds
-                );
-            }
+                try
+                {
+                    using var media = new Media(_libVLC, url, FromType.FromLocation);
+                    _mediaPlayer.Play(media);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"[PLAY][ERROR] channel='{channel}' url='{url}' ex={ex}");
+                    CursorHelper.ShowDefault();
+                }
+            });
         }
 
         private void AndyTV_ResizeEnd(object sender, EventArgs e)
@@ -343,63 +320,6 @@ namespace AndyTV
             {
                 ChannelDataService.SaveLastChannel(_currentChannelName, _mediaPlayer.Media.Mrl);
             }
-        }
-
-        private void MediaPlayer_Playing(object sender, EventArgs e)
-        {
-            CursorHelper.Hide();
-            _notificationService.ShowToast(_currentChannelName);
-
-            if (_mediaPlayer.Media != null)
-            {
-                _recentChannelsService.AddOrPromote(
-                    new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
-                );
-            }
-
-            TouchPlaybackActivity();
-        }
-
-        private void TouchPlaybackActivity()
-        {
-            _lastActivityUtc = DateTime.UtcNow;
-        }
-
-        private void StartPlaybackMonitor()
-        {
-            _ = Task.Run(async () =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        await Task.Delay(5000);
-
-                        var inactiveFor = DateTime.UtcNow - _lastActivityUtc;
-                        if (inactiveFor > TimeSpan.FromSeconds(10))
-                        {
-                            if (
-                                _mediaPlayer != null
-                                && _mediaPlayer.Media != null
-                                && !string.IsNullOrWhiteSpace(_mediaPlayer.Media.Mrl)
-                            )
-                            {
-                                Logger.Warn(
-                                    "[MONITOR] Inactive for "
-                                        + inactiveFor.TotalSeconds.ToString("N0")
-                                        + "s. Restarting..."
-                                );
-                                Play(_currentChannelName, _mediaPlayer.Media.Mrl);
-                                _lastActivityUtc = DateTime.UtcNow;
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Keep it ultra-simple: swallow and keep looping.
-                    }
-                }
-            });
         }
     }
 }
