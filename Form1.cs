@@ -74,10 +74,10 @@ public partial class Form1 : Form
 
             RecentChannelsService.AddOrPromote(_currentChannel);
 
+            ChannelDataService.SaveLastChannel(_currentChannel);
+
             // potential race condition, for now it's fine
             _menuRecentChannelHelper?.RebuildRecentMenu();
-
-            ChannelDataService.SaveLastChannel(_currentChannel);
         };
 
         var videoView = new VideoView
