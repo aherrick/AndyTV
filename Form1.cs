@@ -40,6 +40,16 @@ public partial class Form1 : Form
         // Create NotificationService after form is initialized
         _notificationService = new NotificationService(this);
 
+        HandleCreated += delegate
+        {
+            // kickoff play asap
+            var last = ChannelDataService.LoadLastChannel();
+            if (last != null)
+            {
+                Play(last);
+            }
+        };
+
         Logger.Info("Starting AndyTV...");
 
         MaximizeWindow();
@@ -67,8 +77,6 @@ public partial class Form1 : Form
 
         _mediaPlayer.Playing += delegate
         {
-            Logger.Error("[VLC] EncounteredError");
-
             CursorHelper.Hide();
             _notificationService.ShowToast(_currentChannel.DisplayName);
 
@@ -99,16 +107,6 @@ public partial class Form1 : Form
             if (WindowState == FormWindowState.Normal)
             {
                 _manuallyAdjustedBounds = Bounds;
-            }
-        };
-
-        HandleCreated += delegate
-        {
-            var last = ChannelDataService.LoadLastChannel();
-            if (last != null)
-            {
-                // We're already on the UI thread here; no BeginInvoke needed
-                Play(last);
             }
         };
 
