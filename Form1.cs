@@ -102,14 +102,18 @@ public partial class Form1 : Form
             }
         };
 
-        Shown += async delegate
+        HandleCreated += (_, __) =>
         {
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
+                // We're already on the UI thread here; no BeginInvoke needed
                 Play(last);
             }
+        };
 
+        Shown += async delegate
+        {
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
