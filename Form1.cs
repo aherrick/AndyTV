@@ -98,7 +98,14 @@ namespace AndyTV
             Controls.Add(videoView);
 
             // Form events
-            ResizeEnd += AndyTV_ResizeEnd;
+            ResizeEnd += delegate
+            {
+                if (WindowState == FormWindowState.Normal)
+                {
+                    _manuallyAdjustedBounds = Bounds;
+                }
+            };
+
             Shown += AndyTV_Shown;
             FormClosing += AndyTV_FormClosing;
 
@@ -119,7 +126,6 @@ namespace AndyTV
         {
             Logger.Info("[APP] FormClosing");
             SaveCurrentChannelState();
-            // No need to stop monitor — process exits.
         }
 
         private async void AndyTV_Shown(object sender, EventArgs e)
@@ -217,14 +223,6 @@ namespace AndyTV
                     CursorHelper.ShowDefault();
                 }
             });
-        }
-
-        private void AndyTV_ResizeEnd(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Normal)
-            {
-                _manuallyAdjustedBounds = Bounds;
-            }
         }
 
         private void MaximizeWindow()
