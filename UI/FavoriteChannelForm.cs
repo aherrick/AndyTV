@@ -29,13 +29,14 @@ public class FavoriteChannelForm : Form
     private void InitializeUI()
     {
         Text = "Favorite Channels";
-        Size = new Size(300, 380);
+        // Bigger overall window
+        Size = new Size(720, 560);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         MinimizeBox = false;
 
-        // Channel search - extended to use available width
+        // Channel search
         var lblChannels = new Label
         {
             Text = "Search:",
@@ -43,16 +44,12 @@ public class FavoriteChannelForm : Form
             AutoSize = true,
         };
 
-        _channelTextBox = new TextBox
-        {
-            Location = new Point(12, 32),
-            Size = new Size(260, 23), // Extended to fill width minus margins
-        };
+        _channelTextBox = new TextBox { Location = new Point(12, 32), Size = new Size(680, 24) };
 
         _suggestionListBox = new ListBox
         {
             Location = new Point(12, 58),
-            Size = new Size(260, 60), // Match textbox width
+            Size = new Size(680, 120),
             Visible = false,
         };
 
@@ -60,68 +57,91 @@ public class FavoriteChannelForm : Form
         var lblSelected = new Label
         {
             Text = "Favorites:",
-            Location = new Point(12, 130),
+            Location = new Point(12, 186),
             AutoSize = true,
         };
 
         _channelsGrid = new DataGridView
         {
-            Location = new Point(12, 150),
-            Size = new Size(220, 180),
+            Location = new Point(12, 206),
+            Size = new Size(640, 300),
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
-            ReadOnly = true,
+            ReadOnly = false, // allow editing mapped columns
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false,
             AutoGenerateColumns = false,
             BorderStyle = BorderStyle.FixedSingle,
+            EditMode = DataGridViewEditMode.EditOnEnter,
+            Anchor =
+                AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
         };
 
-        _channelsGrid.Columns.Add(
-            new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Name",
-                HeaderText = "Name",
-                Width = 130,
-            }
-        );
+        // Columns
+        var colName = new DataGridViewTextBoxColumn
+        {
+            DataPropertyName = nameof(Channel.Name),
+            HeaderText = nameof(Channel.Name),
+            Width = 180,
+            ReadOnly = true,
+        };
 
-        _channelsGrid.Columns.Add(
-            new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Group",
-                HeaderText = "Group",
-                Width = 85,
-            }
-        );
+        var colGroup = new DataGridViewTextBoxColumn
+        {
+            DataPropertyName = nameof(Channel.Group),
+            HeaderText = nameof(Channel.Group),
+            Width = 140,
+            ReadOnly = true,
+        };
 
-        // Control buttons - positioned right next to the grid
+        var colMappedName = new DataGridViewTextBoxColumn
+        {
+            DataPropertyName = nameof(Channel.MappedName),
+            HeaderText = nameof(Channel.MappedName),
+            Width = 180,
+            ReadOnly = false,
+        };
+
+        var colMappedGroup = new DataGridViewTextBoxColumn
+        {
+            DataPropertyName = nameof(Channel.MappedGroup),
+            HeaderText = nameof(Channel.MappedGroup),
+            Width = 140,
+            ReadOnly = false,
+        };
+
+        _channelsGrid.Columns.AddRange(colName, colGroup, colMappedName, colMappedGroup);
+
+        // Control buttons on the right of the grid
         _upButton = new Button
         {
             Text = "↑",
-            Location = new Point(240, 150),
+            Location = new Point(660, 206),
             Size = new Size(32, 32),
             Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
 
         _downButton = new Button
         {
             Text = "↓",
-            Location = new Point(240, 190),
+            Location = new Point(660, 246),
             Size = new Size(32, 32),
             Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
 
         _removeButton = new Button
         {
             Text = "✕",
-            Location = new Point(240, 230),
+            Location = new Point(660, 286),
             Size = new Size(32, 32),
             Font = new Font(Font.FontFamily, 13, FontStyle.Bold),
             FlatStyle = FlatStyle.System,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
 
         Controls.AddRange(
@@ -163,7 +183,7 @@ public class FavoriteChannelForm : Form
         var matches = _allChannels
             .Where(c => c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .OrderBy(c => c.Name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase))
-            .Take(6)
+            .Take(10)
             .ToList();
 
         if (matches.Count > 0)
@@ -217,9 +237,13 @@ public class FavoriteChannelForm : Form
 
     private void AddSelectedChannel()
     {
+        var channel = (Channel)_suggestionListBox.SelectedItem;
+
+        // prevent duplicates by URL
         if (
-            _suggestionListBox.SelectedItem is Channel channel
-            && !_selectedChannels.Contains(channel)
+            !_selectedChannels.Any(c =>
+                string.Equals(c.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
+            )
         )
         {
             _selectedChannels.Add(channel);
@@ -278,7 +302,7 @@ public class FavoriteChannelForm : Form
 
     private void SaveFavorites()
     {
-        ChannelDataService.SaveFavoriteChannels(_selectedChannels.ToList());
+        ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
     }
 
     public List<Channel> SelectedChannels => [.. _selectedChannels];

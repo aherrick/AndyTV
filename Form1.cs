@@ -13,7 +13,6 @@ public partial class Form1 : Form
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
     private readonly NotificationService _notificationService;
-    private readonly RecentChannelsService _recentChannelsService;
     private readonly UpdateService _updateService;
 
     // Menu
@@ -24,22 +23,16 @@ public partial class Form1 : Form
     private MenuTVChannelHelper _menuTVChannelHelper;
     private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
 
-    private string _currentChannelName = "";
+    private Channel _currentChannel = null;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
 
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    public Form1(
-        LibVLC libVLC,
-        MediaPlayer mediaPlayer,
-        RecentChannelsService recentChannelsService,
-        UpdateService updateService
-    )
+    public Form1(LibVLC libVLC, MediaPlayer mediaPlayer, UpdateService updateService)
     {
         _libVLC = libVLC;
         _mediaPlayer = mediaPlayer;
-        _recentChannelsService = recentChannelsService;
         _updateService = updateService;
 
         InitializeComponent();
@@ -57,19 +50,19 @@ public partial class Form1 : Form
         {
             Logger.Info("[VLC] Stopped");
 
-            Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+            Play(_currentChannel);
         };
         _mediaPlayer.EndReached += delegate
         {
             Logger.Warn("[VLC] EndReached");
 
-            Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+            Play(_currentChannel);
         };
         _mediaPlayer.EncounteredError += delegate
         {
             Logger.Error("[VLC] EncounteredError");
 
-            Play(_currentChannelName, _mediaPlayer.Media.Mrl);
+            Play(_currentChannel);
         };
 
         _mediaPlayer.Playing += delegate
@@ -77,13 +70,14 @@ public partial class Form1 : Form
             Logger.Error("[VLC] EncounteredError");
 
             CursorHelper.Hide();
-            _notificationService.ShowToast(_currentChannelName);
+            _notificationService.ShowToast(_currentChannel.DisplayName);
 
-            _recentChannelsService.AddOrPromote(
-                new Channel("Recent", _currentChannelName, _mediaPlayer.Media.Mrl)
-            );
+            RecentChannelsService.AddOrPromote(_currentChannel);
 
-            ChannelDataService.SaveLastChannel(_currentChannelName, _mediaPlayer.Media.Mrl);
+            // potential race condition, for now it's fine
+            _menuRecentChannelHelper?.RebuildRecentMenu();
+
+            ChannelDataService.SaveLastChannel(_currentChannel);
         };
 
         var videoView = new VideoView
@@ -113,7 +107,7 @@ public partial class Form1 : Form
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
-                Play(last.Value.Name, last.Value.Url);
+                Play(last);
             }
 
             var appVersionName = "AndyTV v" + AppHelper.Version;
@@ -136,11 +130,7 @@ public partial class Form1 : Form
                 }
             );
 
-            _menuRecentChannelHelper = new MenuRecentChannelHelper(
-                _contextMenuStrip,
-                ChItem_Click,
-                _recentChannelsService
-            );
+            _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
             _menuRecentChannelHelper.RebuildRecentMenu();
 
             _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
@@ -187,27 +177,29 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag != null)
         {
-            Play(item.Text, item.Tag.ToString());
+            Play(item.Tag as Channel);
         }
     }
 
-    private void Play(string channel, string url)
+    private void Play(Channel channel)
     {
-        Logger.Info($"[PLAY][BEGIN] channel='{channel}' url='{url}'");
+        Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
 
-        _currentChannelName = channel;
+        _currentChannel = channel;
         CursorHelper.ShowWaiting();
 
         ThreadPool.QueueUserWorkItem(_ =>
         {
             try
             {
-                using var media = new Media(_libVLC, url, FromType.FromLocation);
+                using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);
                 _mediaPlayer.Play(media);
             }
             catch (Exception ex)
             {
-                Logger.Error($"[PLAY][ERROR] channel='{channel}' url='{url}' ex={ex}");
+                Logger.Error(
+                    $"[PLAY][ERROR] channel='{channel.DisplayName}' url='{channel.Url}' ex={ex}"
+                );
                 CursorHelper.ShowDefault();
             }
         });
@@ -262,11 +254,11 @@ public partial class Form1 : Form
             && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
         )
         {
-            var prevChannel = _recentChannelsService.GetPrevious();
+            var prevChannel = RecentChannelsService.GetPrevious();
             if (prevChannel != null)
             {
-                Play(prevChannel.Name, prevChannel.Url);
-                _currentChannelName = prevChannel.Name;
+                Play(prevChannel);
+                _currentChannel = prevChannel;
             }
         }
 

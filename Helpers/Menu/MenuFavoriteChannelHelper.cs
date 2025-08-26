@@ -31,7 +31,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 // Insert favorites
                 foreach (var ch in favorites)
                 {
-                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch.Url };
+                    var item = new ToolStripMenuItem(ch.MappedName) { Tag = ch };
                     item.Click += clickHandler;
                     menu.Items.Insert(insertIndex++, item);
                 }

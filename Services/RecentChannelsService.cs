@@ -4,11 +4,11 @@ using AndyTV.Models;
 
 namespace AndyTV.Services;
 
-public class RecentChannelsService
+public static class RecentChannelsService
 {
-    private readonly int MaxRecent = 5;
+    private static readonly int MaxRecent = 5;
 
-    public void AddOrPromote(Channel channel)
+    public static void AddOrPromote(Channel channel)
     {
         if (channel == null || string.IsNullOrWhiteSpace(channel.Url))
             return;
@@ -25,13 +25,13 @@ public class RecentChannelsService
         SaveListToDisk(list);
     }
 
-    public Channel GetPrevious()
+    public static Channel GetPrevious()
     {
         var list = LoadListFromDisk().Take(MaxRecent).ToList();
         return list.ElementAtOrDefault(1);
     }
 
-    public List<Channel> GetRecentChannels()
+    public static List<Channel> GetRecentChannels()
     {
         return [.. LoadListFromDisk().Take(MaxRecent)];
     }
@@ -46,10 +46,10 @@ public class RecentChannelsService
         }
 
         var json = File.ReadAllText(fileName);
-        return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
+        return JsonSerializer.Deserialize<List<Channel>>(json);
     }
 
-    private void SaveListToDisk(List<Channel> list)
+    private static void SaveListToDisk(List<Channel> list)
     {
         var fileName = PathHelper.GetPath("recents.json");
         var trimmed = list.Take(MaxRecent).ToList();

@@ -3,26 +3,16 @@ using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuRecentChannelHelper(
-    ContextMenuStrip menu,
-    EventHandler clickHandler,
-    RecentChannelsService recentChannelsService
-)
+public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT");
 
-    public void AddOrPromote(Channel ch)
-    {
-        recentChannelsService.AddOrPromote(ch);
-        RebuildRecentMenu();
-    }
-
     public void RebuildRecentMenu()
     {
-        var recents = recentChannelsService.GetRecentChannels();
+        var recents = RecentChannelsService.GetRecentChannels();
 
         _ui.Post(
             _ =>
@@ -42,17 +32,12 @@ public class MenuRecentChannelHelper(
                 // Insert current recents
                 foreach (var ch in recents)
                 {
-                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch.Url };
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                     item.Click += clickHandler;
                     menu.Items.Insert(insertIndex++, item);
                 }
             },
             null
         );
-    }
-
-    public Channel GetPrevious()
-    {
-        return recentChannelsService.GetPrevious();
     }
 }

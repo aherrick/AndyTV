@@ -41,7 +41,14 @@ public static class M3UService
                 continue;
             }
 
-            channels.Add(new Channel(groupTitle, name, url));
+            channels.Add(
+                new Channel()
+                {
+                    Group = groupTitle,
+                    Name = name,
+                    Url = url,
+                }
+            );
         }
 
         return channels;

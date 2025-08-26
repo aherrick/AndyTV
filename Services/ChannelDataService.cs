@@ -9,19 +9,22 @@ public static class ChannelDataService
     private const string LastChannelFile = "last_channel.txt";
     private const string FavoriteChannelsFile = "favorite_channels.json";
 
-    public static void SaveLastChannel(string name, string url)
+    public static void SaveLastChannel(Channel channel)
     {
         var filePath = PathHelper.GetPath(LastChannelFile);
-        File.WriteAllLines(filePath, [name, url]);
+        var json = JsonSerializer.Serialize(channel);
+
+        File.WriteAllText(filePath, json);
     }
 
-    public static (string Name, string Url)? LoadLastChannel()
+    public static Channel LoadLastChannel()
     {
         try
         {
             var filePath = PathHelper.GetPath(LastChannelFile);
-            var lines = File.ReadAllLines(filePath);
-            return (lines[0], lines[1]);
+            var json = File.ReadAllText(filePath);
+
+            return JsonSerializer.Deserialize<Channel>(json);
         }
         catch
         {
@@ -35,7 +38,8 @@ public static class ChannelDataService
         {
             var filePath = PathHelper.GetPath(FavoriteChannelsFile);
             var json = File.ReadAllText(filePath);
-            return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
+
+            return JsonSerializer.Deserialize<List<Channel>>(json);
         }
         catch
         {
@@ -47,6 +51,7 @@ public static class ChannelDataService
     {
         var filePath = PathHelper.GetPath(FavoriteChannelsFile);
         var json = JsonSerializer.Serialize(channels.ToList());
+
         File.WriteAllText(filePath, json);
     }
 }

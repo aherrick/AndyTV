@@ -24,7 +24,6 @@ public static class ServiceConfiguration
         });
 
         // App services
-        services.AddSingleton<RecentChannelsService>();
         services.AddSingleton<UpdateService>();
 
         // Forms

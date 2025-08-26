@@ -325,7 +325,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
                     foreach (var ch in matches)
                     {
-                        var chItem = new ToolStripMenuItem(ch.Name) { Tag = ch.Url };
+                        var chItem = new ToolStripMenuItem(ch.Name) { Tag = ch };
                         chItem.Click += channelClick;
                         networkItem.DropDownItems.Add(chItem);
                     }
