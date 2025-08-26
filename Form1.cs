@@ -102,7 +102,7 @@ public partial class Form1 : Form
             }
         };
 
-        HandleCreated += (_, __) =>
+        HandleCreated += delegate
         {
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
