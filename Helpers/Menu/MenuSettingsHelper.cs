@@ -39,6 +39,10 @@ public class MenuSettingsHelper
 
         // Update
         _checkUpdatesItem = new ToolStripMenuItem("Update");
+        _checkUpdatesItem.Click += async (_, __) =>
+        {
+            await _updateService.CheckForUpdates();
+        };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
         // Mute

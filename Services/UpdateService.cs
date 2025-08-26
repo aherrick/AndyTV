@@ -19,7 +19,7 @@ public class UpdateService
         );
     }
 
-    public async Task CheckForUpdates(Action saveCurrentChannelAction)
+    public async Task CheckForUpdates()
     {
         try
         {
@@ -50,11 +50,8 @@ public class UpdateService
             if (result == DialogResult.Yes)
             {
                 CursorHelper.ShowWaiting();
+
                 await _updater.DownloadUpdatesAsync(info);
-
-                // Save current channel before restart
-                saveCurrentChannelAction?.Invoke();
-
                 _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
         }
