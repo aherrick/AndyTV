@@ -6,13 +6,8 @@ public static class PathHelper
 
     static PathHelper()
     {
-        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        AppDataFolder = Path.Combine(
-            local,
-            "com.ajh.AndyTV" /* set in velopak */
-            ,
-            "data"
-        );
+        string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        AppDataFolder = Path.Combine(roaming, "com.ajh.AndyTV");
         Directory.CreateDirectory(AppDataFolder);
     }
 
