@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
-using AndyTV.Helpers;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -39,21 +38,22 @@ public class FavoriteChannelForm : Form
 
         FormClosing += (sender, e) =>
         {
-            if (!IsDirty())
+            // no changes, close directly
+            if (SnapshotString() == _baseline)
                 return;
 
-            var r = MessageBox.Show(
+            var saveChangesPrompt = MessageBox.Show(
                 "You have unsaved changes. Save before closing?",
                 "Unsaved changes",
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Warning
             );
 
-            if (r == DialogResult.Yes)
+            if (saveChangesPrompt == DialogResult.Yes)
             {
                 SaveButton_Click(sender, EventArgs.Empty);
             }
-            else if (r == DialogResult.Cancel)
+            else if (saveChangesPrompt == DialogResult.Cancel)
             {
                 e.Cancel = true; // stop closing
             }
@@ -371,12 +371,13 @@ public class FavoriteChannelForm : Form
             try
             {
                 var json = File.ReadAllText(ofd.FileName);
-                var imported = JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
+                var imported = JsonSerializer.Deserialize<List<Channel>>(json);
 
                 _selectedChannels.Clear();
                 foreach (var ch in imported)
+                {
                     _selectedChannels.Add(ch);
-                // NOTE: baseline is not updated here — only when you Save.
+                }
             }
             catch (Exception ex)
             {
@@ -395,15 +396,8 @@ public class FavoriteChannelForm : Form
         };
         if (sfd.ShowDialog() == DialogResult.OK)
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_selectedChannels.ToList());
-                File.WriteAllText(sfd.FileName, json);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Export failed: {ex.Message}");
-            }
+            var json = JsonSerializer.Serialize(_selectedChannels.ToList());
+            File.WriteAllText(sfd.FileName, json);
         }
     }
 
@@ -424,12 +418,12 @@ public class FavoriteChannelForm : Form
     {
         var savedChannels = ChannelDataService.LoadFavoriteChannels();
         foreach (var channel in savedChannels)
+        {
             _selectedChannels.Add(channel);
+        }
 
         _baseline = SnapshotString(); // capture clean state
     }
-
-    public List<Channel> SelectedChannels => [.. _selectedChannels];
 
     // --- Dirty helpers (string snapshot with exotic delimiter) ---
     private string SnapshotString()
@@ -454,6 +448,4 @@ public class FavoriteChannelForm : Form
             )
         );
     }
-
-    private bool IsDirty() => SnapshotString() != _baseline;
 }
