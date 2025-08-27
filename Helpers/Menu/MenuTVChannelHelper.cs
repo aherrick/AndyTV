@@ -10,24 +10,19 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     private static readonly Regex Parens = RegexRemoveParens();
 
-    // Case-sensitive: must END WITH 'channelName' and have a left boundary (start or whitespace)
     private static bool EndsWithChannel(string text, string channelName)
     {
         var cleaned = Parens.Replace(text, "").Trim();
+        var target = Parens.Replace(channelName ?? "", "").Trim();
 
-        if (!cleaned.EndsWith(channelName, StringComparison.Ordinal))
-        {
+        if (target.Length == 0 || cleaned.Length < target.Length)
             return false;
-        }
 
-        int idx = cleaned.Length - channelName.Length;
+        if (!cleaned.EndsWith(target, StringComparison.OrdinalIgnoreCase))
+            return false;
 
-        if (idx == 0 || char.IsWhiteSpace(cleaned[idx - 1]))
-        {
-            return true;
-        }
-
-        return false;
+        int idx = cleaned.Length - target.Length;
+        return idx == 0 || char.IsWhiteSpace(cleaned[idx - 1]);
     }
 
     // Candidate names for matching; master list never includes East/West,
