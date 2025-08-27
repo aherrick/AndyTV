@@ -10,16 +10,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     private static readonly Regex Parens = RegexRemoveParens();
 
-    private static string StripParens(string s)
-    {
-        if (string.IsNullOrEmpty(s))
-        {
-            return string.Empty;
-        }
-
-        return Parens.Replace(s, "").Trim();
-    }
-
     // Case-sensitive: must END WITH 'channelName' and have a left boundary (start or whitespace)
     private static bool EndsWithChannel(string text, string channelName)
     {
@@ -28,7 +18,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             return false;
         }
 
-        var cleaned = StripParens(text);
+        var cleaned = Parens.Replace(text, "").Trim();
 
         if (!cleaned.EndsWith(channelName, StringComparison.Ordinal))
         {
