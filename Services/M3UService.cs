@@ -85,7 +85,9 @@ public static class M3UService
         {
             url = Microsoft.VisualBasic.Interaction.InputBox("Enter M3U URL:", "M3U URL", "");
             if (string.IsNullOrWhiteSpace(url))
+            {
                 return null; // user cancelled
+            }
 
             if (
                 Uri.TryCreate(url, UriKind.Absolute, out var uri)

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using AndyTV.Helpers;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -22,13 +23,42 @@ public class FavoriteChannelForm : Form
     private Button _exportButton;
     private Button _saveButton;
 
+    // --- Dirty tracking (super lean) ---
+    private string _baseline = ""; // captured after load & after save
+
+    private const char US = '\u001F'; // Unit Separator (exotic delimiter)
+
     public FavoriteChannelForm(List<Channel> channels)
     {
         _allChannels = channels;
         _selectedChannels = [];
+
         InitializeUI();
         SetupEvents();
-        LoadFavorites();
+        LoadFavorites(); // sets _baseline
+
+        FormClosing += (sender, e) =>
+        {
+            if (!IsDirty())
+                return;
+
+            var r = MessageBox.Show(
+                "You have unsaved changes. Save before closing?",
+                "Unsaved changes",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Warning
+            );
+
+            if (r == DialogResult.Yes)
+            {
+                SaveButton_Click(sender, EventArgs.Empty);
+            }
+            else if (r == DialogResult.Cancel)
+            {
+                e.Cancel = true; // stop closing
+            }
+            // No = discard
+        };
     }
 
     private void InitializeUI()
@@ -341,13 +371,12 @@ public class FavoriteChannelForm : Form
             try
             {
                 var json = File.ReadAllText(ofd.FileName);
-                var imported = JsonSerializer.Deserialize<List<Channel>>(json);
+                var imported = JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
 
                 _selectedChannels.Clear();
                 foreach (var ch in imported)
-                {
                     _selectedChannels.Add(ch);
-                }
+                // NOTE: baseline is not updated here — only when you Save.
             }
             catch (Exception ex)
             {
@@ -385,17 +414,46 @@ public class FavoriteChannelForm : Form
         _binding.EndEdit(); // finalize binding layer
 
         ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
+
+        // refresh baseline after saving
+        _baseline = SnapshotString();
     }
 
-    // --- Load / Save favorites ---
+    // --- Load favorites and set baseline ---
     private void LoadFavorites()
     {
         var savedChannels = ChannelDataService.LoadFavoriteChannels();
         foreach (var channel in savedChannels)
-        {
             _selectedChannels.Add(channel);
-        }
+
+        _baseline = SnapshotString(); // capture clean state
     }
 
     public List<Channel> SelectedChannels => [.. _selectedChannels];
+
+    // --- Dirty helpers (string snapshot with exotic delimiter) ---
+    private string SnapshotString()
+    {
+        _channelsGrid.CurrentCell = null; // flush edit-in-progress
+        _binding.EndEdit();
+
+        return string.Join(
+            "\n",
+            _selectedChannels.Select(ch =>
+                string.Concat(
+                    ch.Name ?? "",
+                    US,
+                    ch.Group ?? "",
+                    US,
+                    (ch.Url ?? "").ToLowerInvariant(),
+                    US, // URL compare case-insensitive
+                    ch.MappedName ?? "",
+                    US,
+                    ch.MappedGroup ?? ""
+                )
+            )
+        );
+    }
+
+    private bool IsDirty() => SnapshotString() != _baseline;
 }
