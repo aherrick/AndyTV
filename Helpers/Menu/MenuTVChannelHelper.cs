@@ -13,11 +13,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
     // Case-sensitive: must END WITH 'channelName' and have a left boundary (start or whitespace)
     private static bool EndsWithChannel(string text, string channelName)
     {
-        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(channelName))
-        {
-            return false;
-        }
-
         var cleaned = Parens.Replace(text, "").Trim();
 
         if (!cleaned.EndsWith(channelName, StringComparison.Ordinal))
@@ -367,7 +362,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (categoryItem.DropDownItems.Count > 0)
+                {
                     rootItem.DropDownItems.Add(categoryItem);
+                }
             }
 
             menu.Items.Add(rootItem);
