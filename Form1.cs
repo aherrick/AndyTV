@@ -29,7 +29,12 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    public Form1(LibVLC libVLC, MediaPlayer mediaPlayer, UpdateService updateService, VideoView videoView)
+    public Form1(
+        LibVLC libVLC,
+        MediaPlayer mediaPlayer,
+        UpdateService updateService,
+        VideoView videoView
+    )
     {
         _libVLC = libVLC;
         _mediaPlayer = mediaPlayer;

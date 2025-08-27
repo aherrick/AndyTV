@@ -27,10 +27,15 @@ public class FavoriteChannelForm : Form
 
     public FavoriteChannelForm(List<Channel> channels)
     {
+        // 1) Enable DPI autoscaling
+        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96f, 96f); // baseline
+
         _allChannels = channels;
         _selectedChannels = [];
 
         InitializeUI();
+
         SetupEvents();
         LoadFavorites(); // sets _baseline
 
