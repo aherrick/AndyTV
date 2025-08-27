@@ -7,6 +7,8 @@ namespace AndyTV.Services;
 
 public static class M3UService
 {
+    private const string M3uSourcesFile = "m3u_sources.json";
+
     public static async Task<List<Channel>> ParseM3U(string m3uURL)
     {
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
@@ -27,7 +29,7 @@ public static class M3UService
 
     public static List<M3USource> LoadSources()
     {
-        var fileName = PathHelper.GetPath("m3u_sources.json");
+        var fileName = PathHelper.GetPath(M3uSourcesFile);
         if (!File.Exists(fileName))
             return [];
 
@@ -37,7 +39,7 @@ public static class M3UService
 
     public static void SaveSources(List<M3USource> sources)
     {
-        var fileName = PathHelper.GetPath("m3u_sources.json");
+        var fileName = PathHelper.GetPath(M3uSourcesFile);
         var json = JsonSerializer.Serialize(sources);
         File.WriteAllText(fileName, json);
     }

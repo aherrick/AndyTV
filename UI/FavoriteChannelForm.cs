@@ -21,7 +21,6 @@ public class FavoriteChannelForm : Form
     private Button _exportButton;
     private Button _saveButton;
 
-    // --- Dirty tracking (super lean) ---
     private string _baseline = ""; // captured after load & after save
 
     private const char US = '\u001F'; // exotic delimiter
@@ -290,7 +289,9 @@ public class FavoriteChannelForm : Form
     private void OnSuggestionKeyDown(object sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.Enter)
+        {
             AddSelectedChannel();
+        }
         else if (e.KeyCode == Keys.Escape)
         {
             _suggestionListBox.Visible = false;
@@ -350,7 +351,9 @@ public class FavoriteChannelForm : Form
     private void RemoveChannel(object sender, EventArgs e)
     {
         if (_channelsGrid.SelectedRows.Count > 0)
+        {
             _selectedChannels.RemoveAt(_channelsGrid.SelectedRows[0].Index);
+        }
     }
 
     // --- Import / Export (delegates to service) ---
@@ -370,7 +373,9 @@ public class FavoriteChannelForm : Form
                 var imported = ChannelDataService.ImportFavoriteChannels(ofd.FileName) ?? [];
                 _selectedChannels.Clear();
                 foreach (var ch in imported)
+                {
                     _selectedChannels.Add(ch);
+                }
                 _baseline = SnapshotString(); // treat freshly imported as clean
             }
             catch (Exception ex)

@@ -1,5 +1,4 @@
 ﻿using AndyTV.Services;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -40,12 +39,12 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 // Add channels without category directly to top level
                 foreach (
                     var ch in channelsWithoutCategory.OrderBy(
-                        c => c.MappedName ?? c.Name,
+                        c => c.DisplayName,
                         StringComparer.OrdinalIgnoreCase
                     )
                 )
                 {
-                    var item = new ToolStripMenuItem(ch.MappedName ?? ch.Name) { Tag = ch };
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                     item.Click += clickHandler;
                     menu.Items.Insert(insertIndex++, item);
                 }
@@ -62,7 +61,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                         new ToolStripMenuItem
                         {
                             Text = catGroup.Key.ToUpperInvariant(),
-                            Font = new System.Drawing.Font(SystemFonts.MenuFont, FontStyle.Bold),
+                            Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
                             Enabled = false,
                         }
                     );
@@ -83,7 +82,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                         )
                     )
                     {
-                        var item = new ToolStripMenuItem(ch.MappedName ?? ch.Name) { Tag = ch };
+                        var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                         item.Click += clickHandler;
                         menu.Items.Insert(insertIndex++, item);
                     }
@@ -105,7 +104,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                             )
                         )
                         {
-                            var item = new ToolStripMenuItem(ch.MappedName ?? ch.Name) { Tag = ch };
+                            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                             item.Click += clickHandler;
                             groupNode.DropDownItems.Add(item);
                         }
