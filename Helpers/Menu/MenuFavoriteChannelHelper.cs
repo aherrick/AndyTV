@@ -1,4 +1,6 @@
-﻿using AndyTV.Services;
+﻿using System.Drawing;
+using System.Linq;
+using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
@@ -19,43 +21,40 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 int headerIndex = menu.Items.IndexOf(_header);
                 int insertIndex = headerIndex + 2; // header + separator
 
-                // Clear existing favorites until next separator
+                // Clear existing favorites until the next separator
                 while (
                     insertIndex < menu.Items.Count
                     && menu.Items[insertIndex] is not ToolStripSeparator
                 )
-                {
                     menu.Items.RemoveAt(insertIndex);
-                }
 
-                // Separate channels with and without categories
-                var channelsWithoutCategory = favorites.Where(ch =>
-                    string.IsNullOrWhiteSpace(ch.Category)
-                );
-                var channelsWithCategory = favorites.Where(ch =>
-                    !string.IsNullOrWhiteSpace(ch.Category)
-                );
-
-                // Add channels without category directly to top level
-                foreach (
-                    var ch in channelsWithoutCategory.OrderBy(
-                        c => c.DisplayName,
-                        StringComparer.OrdinalIgnoreCase
+                // Group everything by Category (null/empty treated as top-level)
+                var byCategory = favorites
+                    .GroupBy(ch =>
+                        string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim()
                     )
-                )
-                {
-                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += clickHandler;
-                    menu.Items.Insert(insertIndex++, item);
-                }
-
-                // Group by Category
-                var byCategory = channelsWithCategory
-                    .GroupBy(ch => ch.Category)
-                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase); // null (top-level) will sort first
 
                 foreach (var catGroup in byCategory)
                 {
+                    if (catGroup.Key is null)
+                    {
+                        // Top-level items (no category header)
+                        foreach (
+                            var ch in catGroup.OrderBy(
+                                c => c.DisplayName,
+                                StringComparer.OrdinalIgnoreCase
+                            )
+                        )
+                        {
+                            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                            item.Click += clickHandler;
+                            menu.Items.Insert(insertIndex++, item);
+                        }
+                        continue;
+                    }
+
+                    // Category header
                     menu.Items.Insert(
                         insertIndex++,
                         new ToolStripMenuItem
@@ -66,18 +65,14 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                         }
                     );
 
-                    // Separate channels with and without groups within this category
-                    var channelsWithGroups = catGroup.Where(ch =>
-                        !string.IsNullOrWhiteSpace(ch.Group)
-                    );
-                    var channelsWithoutGroups = catGroup.Where(ch =>
-                        string.IsNullOrWhiteSpace(ch.Group)
-                    );
+                    // Split into with/without Group inside this category
+                    var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
+                    var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
 
-                    // Add channels without groups directly under category header
+                    // Direct items (no group) under the category header
                     foreach (
-                        var ch in channelsWithoutGroups.OrderBy(
-                            c => c.MappedName ?? c.Name,
+                        var ch in noGroup.OrderBy(
+                            c => c.DisplayName,
                             StringComparer.OrdinalIgnoreCase
                         )
                     )
@@ -87,28 +82,25 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                         menu.Items.Insert(insertIndex++, item);
                     }
 
-                    // Group channels with groups
-                    var byGroup = channelsWithGroups
-                        .GroupBy(ch => ch.Group)
+                    // Grouped submenus
+                    var byGroup = withGroup
+                        .GroupBy(ch => ch.Group!.Trim())
                         .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
                     foreach (var grp in byGroup)
                     {
                         var groupNode = new ToolStripMenuItem(grp.Key);
-
-                        // Channels under group
                         foreach (
                             var ch in grp.OrderBy(
-                                c => c.MappedName ?? c.Name,
+                                c => c.DisplayName,
                                 StringComparer.OrdinalIgnoreCase
                             )
                         )
                         {
-                            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                            item.Click += clickHandler;
-                            groupNode.DropDownItems.Add(item);
+                            var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                            child.Click += clickHandler;
+                            groupNode.DropDownItems.Add(child);
                         }
-
                         menu.Items.Insert(insertIndex++, groupNode);
                     }
                 }
