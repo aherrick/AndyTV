@@ -12,29 +12,20 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        // One name for the whole machine/session. Use "Global\" to block across user sessions.
         const string MutexName = @"Global\AndyTV_SingleInstance";
-
-        _singleInstanceMutex = new Mutex(
-            initiallyOwned: true,
-            name: MutexName,
-            createdNew: out bool isNew
-        );
+        _singleInstanceMutex = new Mutex(true, MutexName, out bool isNew);
         if (!isNew)
-        {
-            // Another instance is running — just bail out.
             return;
-        }
 
         VelopackApp.Build().Run();
         Logger.WireGlobalHandlers();
 
-        ApplicationConfiguration.Initialize();
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
 
-        // Setup dependency injection
         using var serviceProvider = ServiceConfiguration.ConfigureServices();
         var mainForm = serviceProvider.GetRequiredService<Form1>();
-
         Application.Run(mainForm);
     }
 }
