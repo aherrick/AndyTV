@@ -1,5 +1,6 @@
 using AndyTV.Services;
 using LibVLCSharp.Shared;
+using LibVLCSharp.WinForms;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AndyTV;
@@ -20,6 +21,17 @@ public static class ServiceConfiguration
                 EnableHardwareDecoding = true,
                 EnableKeyInput = false,
                 EnableMouseInput = false,
+            };
+        });
+
+        // VideoView
+        services.AddSingleton<VideoView>(sp =>
+        {
+            var mediaPlayer = sp.GetRequiredService<MediaPlayer>();
+            return new VideoView
+            {
+                Dock = DockStyle.Fill,
+                MediaPlayer = mediaPlayer,
             };
         });
 

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using AndyTV.Helpers;
 using AndyTV.Models;
 
@@ -10,17 +9,11 @@ public static class ChannelDataService
     private const string LastChannelFile = "last_channel.json";
     public const string FavoriteChannelsFile = "favorite_channels.json";
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     // --- Last Channel ---
     public static void SaveLastChannel(Channel channel)
     {
         string path = PathHelper.GetPath(LastChannelFile);
-        string json = JsonSerializer.Serialize(channel, JsonOpts);
+        string json = JsonSerializer.Serialize(channel);
         File.WriteAllText(path, json);
     }
 
@@ -30,7 +23,7 @@ public static class ChannelDataService
         {
             string path = PathHelper.GetPath(LastChannelFile);
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<Channel>(json, JsonOpts);
+            return JsonSerializer.Deserialize<Channel>(json);
         }
         catch
         {
@@ -45,7 +38,7 @@ public static class ChannelDataService
         {
             string path = PathHelper.GetPath(FavoriteChannelsFile);
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<List<Channel>>(json, JsonOpts) ?? [];
+            return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
         }
         catch
         {
@@ -56,7 +49,7 @@ public static class ChannelDataService
     public static void SaveFavoriteChannels(IEnumerable<Channel> channels)
     {
         string path = PathHelper.GetPath(FavoriteChannelsFile);
-        string json = JsonSerializer.Serialize(channels.ToList(), JsonOpts);
+        string json = JsonSerializer.Serialize(channels.ToList());
         File.WriteAllText(path, json);
     }
 
@@ -64,12 +57,12 @@ public static class ChannelDataService
     public static List<Channel> ImportFavoriteChannels(string filePath)
     {
         string json = File.ReadAllText(filePath);
-        return JsonSerializer.Deserialize<List<Channel>>(json, JsonOpts);
+        return JsonSerializer.Deserialize<List<Channel>>(json);
     }
 
     public static void ExportFavoriteChannels(IEnumerable<Channel> channels, string filePath)
     {
-        string json = JsonSerializer.Serialize(channels.ToList(), JsonOpts);
+        string json = JsonSerializer.Serialize(channels.ToList());
         File.WriteAllText(filePath, json);
     }
 }

@@ -46,7 +46,7 @@ public class MenuSettingsHelper
         _checkUpdatesItem = new ToolStripMenuItem("Update");
         _checkUpdatesItem.Click += async (_, __) =>
         {
-            await _updateService.CheckForUpdates(_videoSurface);
+            await _updateService.CheckForUpdates();
         };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
@@ -111,16 +111,6 @@ public class MenuSettingsHelper
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
             // Make sure cursor is visible while menu is open
             _videoSurface.ShowDefault();
-        };
-
-        _menu.Closing += (_, __) =>
-        {
-            var owner = _menu.SourceControl?.FindForm();
-            bool isFullscreen = owner?.FormBorderStyle == FormBorderStyle.None;
-            if (isFullscreen)
-                _videoSurface.HideCursor();
-            else
-                _videoSurface.ShowDefault();
         };
     }
 }

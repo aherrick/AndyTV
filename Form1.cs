@@ -14,6 +14,7 @@ public partial class Form1 : Form
     private readonly MediaPlayer _mediaPlayer;
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
+    private readonly VideoView _videoView;
 
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
@@ -28,13 +29,12 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    private readonly VideoView _videoView;
-
-    public Form1(LibVLC libVLC, MediaPlayer mediaPlayer, UpdateService updateService)
+    public Form1(LibVLC libVLC, MediaPlayer mediaPlayer, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
         _mediaPlayer = mediaPlayer;
         _updateService = updateService;
+        _videoView = videoView;
 
         InitializeComponent();
 
@@ -79,12 +79,8 @@ public partial class Form1 : Form
             _menuRecentChannelHelper?.RebuildRecentMenu();
         };
 
-        _videoView = new VideoView
-        {
-            Dock = DockStyle.Fill,
-            MediaPlayer = _mediaPlayer,
-            ContextMenuStrip = _contextMenuStrip,
-        };
+        // Configure VideoView with context menu and event handlers
+        _videoView.ContextMenuStrip = _contextMenuStrip;
         _videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
         _videoView.MouseUp += VideoView_MouseUp;
         _videoView.MouseDown += VideoView_MouseDown;

@@ -7,6 +7,7 @@ namespace AndyTV.Services;
 public static class RecentChannelsService
 {
     private static readonly int MaxRecent = 5;
+    private const string RecentChannelsFile = "recents.json";
 
     public static void AddOrPromote(Channel channel)
     {
@@ -38,22 +39,21 @@ public static class RecentChannelsService
 
     private static List<Channel> LoadListFromDisk()
     {
-        var fileName = PathHelper.GetPath("recents.json");
-        if (!File.Exists(fileName))
+        try
         {
-            File.WriteAllText(fileName, "[]");
+            var fileName = PathHelper.GetPath(RecentChannelsFile);
+            var json = File.ReadAllText(fileName);
+            return JsonSerializer.Deserialize<List<Channel>>(json);
+        }
+        catch
+        {
             return [];
         }
-
-        var json = File.ReadAllText(fileName);
-        return JsonSerializer.Deserialize<List<Channel>>(json);
     }
 
     private static void SaveListToDisk(List<Channel> list)
     {
-        var fileName = PathHelper.GetPath("recents.json");
-        var trimmed = list.Take(MaxRecent).ToList();
-        var json = JsonSerializer.Serialize(trimmed);
-        File.WriteAllText(fileName, json);
+        var fileName = PathHelper.GetPath(RecentChannelsFile);
+        File.WriteAllText(fileName, JsonSerializer.Serialize(list.Take(MaxRecent)));
     }
 }

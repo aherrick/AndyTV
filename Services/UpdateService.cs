@@ -5,35 +5,30 @@ using Velopack.Sources;
 
 namespace AndyTV.Services;
 
-public class UpdateService
+public class UpdateService(VideoView videoView)
 {
-    private readonly UpdateManager _updater;
-
-    public UpdateService()
+    public async Task CheckForUpdates()
     {
-        _updater = new UpdateManager(
-            new GithubSource(
-                "https://github.com/aherrick/AndyTV",
-                accessToken: null,
-                prerelease: false
-            )
-        );
-    }
-
-    public async Task CheckForUpdates(VideoView cursorSurface)
-    {
-        var owner = cursorSurface.FindForm();
+        var owner = videoView.FindForm();
 
         bool IsFullscreen() => owner != null && owner.FormBorderStyle == FormBorderStyle.None;
 
         try
         {
-            cursorSurface.ShowWaiting();
+            videoView.ShowWaiting();
 
-            var info = await _updater.CheckForUpdatesAsync();
+            var updater = new UpdateManager(
+                new GithubSource(
+                    "https://github.com/aherrick/AndyTV",
+                    accessToken: null,
+                    prerelease: false
+                )
+            );
+
+            var info = await updater.CheckForUpdatesAsync();
 
             // Show default cursor while prompting the user
-            cursorSurface.ShowDefault();
+            videoView.ShowDefault();
 
             if (info == null)
             {
@@ -57,16 +52,16 @@ public class UpdateService
 
             if (result == DialogResult.Yes)
             {
-                cursorSurface.ShowWaiting();
+                videoView.ShowWaiting();
 
-                await _updater.DownloadUpdatesAsync(info);
+                await updater.DownloadUpdatesAsync(info);
 
-                _updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
+                updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
         }
         catch (Exception ex)
         {
-            cursorSurface.ShowDefault();
+            videoView.ShowDefault();
 
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
@@ -80,9 +75,9 @@ public class UpdateService
         finally
         {
             if (IsFullscreen())
-                cursorSurface.HideCursor();
+                videoView.HideCursor();
             else
-                cursorSurface.ShowDefault();
+                videoView.ShowDefault();
         }
     }
 }

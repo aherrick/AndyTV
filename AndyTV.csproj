@@ -13,6 +13,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="LibVLCSharp.WinForms" Version="3.9.4" />
+		<PackageReference Include="m3uParser.NET" Version="1.0.17" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />

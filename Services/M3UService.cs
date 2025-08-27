@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AndyTV.Helpers;
 using AndyTV.Models;
+using m3uParser;
 
 namespace AndyTV.Services;
 
@@ -10,45 +11,13 @@ public static class M3UService
     {
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
 
-        var lines = m3uText.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
+        var contentM3u = M3U.Parse(m3uText);
 
         var channels = new List<Channel>();
 
-        // Parse to a flat list
-        for (int i = 0; i < lines.Length; i++)
+        foreach (var item in contentM3u.Medias)
         {
-            if (!lines[i].StartsWith("#EXTINF", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            string groupTitle = "Unknown";
-            int start = lines[i].IndexOf("group-title=\"", StringComparison.OrdinalIgnoreCase);
-            if (start >= 0)
-            {
-                start += "group-title=\"".Length;
-                int end = lines[i].IndexOf('"', start);
-                if (end > start)
-                {
-                    groupTitle = lines[i][start..end];
-                }
-            }
-
-            string name = lines[i][(lines[i].LastIndexOf(',') + 1)..].Trim();
-            string url = (i + 1 < lines.Length) ? lines[i + 1].Trim() : string.Empty;
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                continue;
-            }
-
-            channels.Add(
-                new Channel()
-                {
-                    Group = groupTitle,
-                    Name = name,
-                    Url = url,
-                }
-            );
+            channels.Add(new Channel() { Name = item.Title.RawTitle, Url = item.MediaFile });
         }
 
         return channels;
