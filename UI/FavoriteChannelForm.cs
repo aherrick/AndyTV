@@ -25,7 +25,7 @@ public class FavoriteChannelForm : Form
     // --- Dirty tracking (super lean) ---
     private string _baseline = ""; // captured after load & after save
 
-    private const char US = '\u001F'; // Unit Separator (exotic delimiter)
+    private const char US = '\u001F'; // exotic delimiter
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -38,26 +38,26 @@ public class FavoriteChannelForm : Form
 
         FormClosing += (sender, e) =>
         {
-            // no changes, close directly
             if (SnapshotString() == _baseline)
+            {
                 return;
+            }
 
-            var saveChangesPrompt = MessageBox.Show(
+            var r = MessageBox.Show(
                 "You have unsaved changes. Save before closing?",
                 "Unsaved changes",
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Warning
             );
 
-            if (saveChangesPrompt == DialogResult.Yes)
+            if (r == DialogResult.Yes)
             {
                 SaveButton_Click(sender, EventArgs.Empty);
             }
-            else if (saveChangesPrompt == DialogResult.Cancel)
+            else if (r == DialogResult.Cancel)
             {
-                e.Cancel = true; // stop closing
+                e.Cancel = true;
             }
-            // No = discard
         };
     }
 
@@ -76,7 +76,6 @@ public class FavoriteChannelForm : Form
             Location = new Point(12, 12),
             AutoSize = true,
         };
-
         _channelTextBox = new TextBox { Location = new Point(12, 32), Size = new Size(680, 24) };
 
         _suggestionListBox = new ListBox
@@ -117,7 +116,6 @@ public class FavoriteChannelForm : Form
             Width = 185,
             ReadOnly = true,
         };
-
         var colGroup = new DataGridViewTextBoxColumn
         {
             DataPropertyName = nameof(Channel.Group),
@@ -125,7 +123,6 @@ public class FavoriteChannelForm : Form
             Width = 130,
             ReadOnly = true,
         };
-
         var colMappedName = new DataGridViewTextBoxColumn
         {
             DataPropertyName = nameof(Channel.MappedName),
@@ -133,7 +130,6 @@ public class FavoriteChannelForm : Form
             Width = 185,
             ReadOnly = false,
         };
-
         var colMappedGroup = new DataGridViewTextBoxColumn
         {
             DataPropertyName = nameof(Channel.MappedGroup),
@@ -153,7 +149,6 @@ public class FavoriteChannelForm : Form
             FlatStyle = FlatStyle.System,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
-
         _downButton = new Button
         {
             Text = "↓",
@@ -163,7 +158,6 @@ public class FavoriteChannelForm : Form
             FlatStyle = FlatStyle.System,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
-
         _removeButton = new Button
         {
             Text = "✕",
@@ -173,7 +167,6 @@ public class FavoriteChannelForm : Form
             FlatStyle = FlatStyle.System,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
         };
-
         _importButton = new Button
         {
             Text = "Import",
@@ -181,7 +174,6 @@ public class FavoriteChannelForm : Form
             Size = new Size(80, 30),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
         };
-
         _exportButton = new Button
         {
             Text = "Export",
@@ -189,7 +181,6 @@ public class FavoriteChannelForm : Form
             Size = new Size(80, 30),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
         };
-
         _saveButton = new Button
         {
             Text = "Save",
@@ -221,11 +212,11 @@ public class FavoriteChannelForm : Form
         _channelTextBox.KeyDown += OnTextBoxKeyDown;
         _suggestionListBox.Click += OnSuggestionSelected;
         _suggestionListBox.KeyDown += OnSuggestionKeyDown;
+
         _upButton.Click += MoveUp;
         _downButton.Click += MoveDown;
         _removeButton.Click += RemoveChannel;
 
-        // Bind through BindingSource so we can EndEdit() safely.
         _binding.DataSource = _selectedChannels;
         _channelsGrid.DataSource = _binding;
 
@@ -238,7 +229,6 @@ public class FavoriteChannelForm : Form
     private void OnTextChanged(object sender, EventArgs e)
     {
         string searchText = _channelTextBox.Text.Trim();
-
         if (string.IsNullOrEmpty(searchText))
         {
             _suggestionListBox.Visible = false;
@@ -305,7 +295,6 @@ public class FavoriteChannelForm : Form
     private void AddSelectedChannel()
     {
         var channel = (Channel)_suggestionListBox.SelectedItem;
-
         if (
             !_selectedChannels.Any(c =>
                 string.Equals(c.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
@@ -358,26 +347,28 @@ public class FavoriteChannelForm : Form
         }
     }
 
-    // --- Import / Export ---
+    // --- Import / Export (delegates to service) ---
     private void ImportFavorites(object sender, EventArgs e)
     {
         using var ofd = new OpenFileDialog
         {
             Filter = "JSON Files (*.json)|*.json",
             Title = "Import Favorite Channels",
+            FileName = ChannelDataService.FavoriteChannelsFile,
         };
+
         if (ofd.ShowDialog() == DialogResult.OK)
         {
             try
             {
-                var json = File.ReadAllText(ofd.FileName);
-                var imported = JsonSerializer.Deserialize<List<Channel>>(json);
-
+                var imported = ChannelDataService.ImportFavoriteChannels(ofd.FileName) ?? [];
                 _selectedChannels.Clear();
                 foreach (var ch in imported)
                 {
                     _selectedChannels.Add(ch);
                 }
+
+                _baseline = SnapshotString(); // treat freshly imported as clean if you want
             }
             catch (Exception ex)
             {
@@ -392,12 +383,19 @@ public class FavoriteChannelForm : Form
         {
             Filter = "JSON Files (*.json)|*.json",
             Title = "Export Favorite Channels",
-            FileName = "favorites.json",
+            FileName = ChannelDataService.FavoriteChannelsFile,
         };
+
         if (sfd.ShowDialog() == DialogResult.OK)
         {
-            var json = JsonSerializer.Serialize(_selectedChannels.ToList());
-            File.WriteAllText(sfd.FileName, json);
+            try
+            {
+                ChannelDataService.ExportFavoriteChannels(_selectedChannels, sfd.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Export failed: {ex.Message}");
+            }
         }
     }
 
@@ -409,7 +407,6 @@ public class FavoriteChannelForm : Form
 
         ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
 
-        // refresh baseline after saving
         _baseline = SnapshotString();
     }
 
@@ -422,13 +419,13 @@ public class FavoriteChannelForm : Form
             _selectedChannels.Add(channel);
         }
 
-        _baseline = SnapshotString(); // capture clean state
+        _baseline = SnapshotString();
     }
 
-    // --- Dirty helpers (string snapshot with exotic delimiter) ---
+    // --- Dirty helpers ---
     private string SnapshotString()
     {
-        _channelsGrid.CurrentCell = null; // flush edit-in-progress
+        _channelsGrid.CurrentCell = null;
         _binding.EndEdit();
 
         return string.Join(
@@ -440,7 +437,7 @@ public class FavoriteChannelForm : Form
                     ch.Group ?? "",
                     US,
                     (ch.Url ?? "").ToLowerInvariant(),
-                    US, // URL compare case-insensitive
+                    US,
                     ch.MappedName ?? "",
                     US,
                     ch.MappedGroup ?? ""
