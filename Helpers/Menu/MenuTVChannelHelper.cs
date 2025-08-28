@@ -1,49 +1,11 @@
-﻿using System.Text.RegularExpressions;
-using AndyTV.Models;
+﻿using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public partial class MenuTVChannelHelper(ContextMenuStrip menu)
+public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
     public List<Channel> Channels { get; private set; } = [];
-
-    private static readonly Regex Parens = RegexRemoveParens();
-
-    private static bool EndsWithChannel(string text, string channelName)
-    {
-        var cleaned = Parens.Replace(text, "").Trim();
-        var target = Parens.Replace(channelName ?? "", "").Trim();
-
-        if (target.Length == 0 || cleaned.Length < target.Length)
-            return false;
-
-        if (!cleaned.EndsWith(target, StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        int idx = cleaned.Length - target.Length;
-        return idx == 0 || char.IsWhiteSpace(cleaned[idx - 1]);
-    }
-
-    // Candidate names for matching; master list never includes East/West,
-    // so for US we always try base, base East, base West.
-    private static IEnumerable<string> CandidateNames(string baseName, bool addEastWest)
-    {
-        var b = baseName?.Trim() ?? string.Empty;
-
-        if (b.Length == 0)
-        {
-            yield break;
-        }
-
-        yield return b;
-
-        if (addEastWest)
-        {
-            yield return $"{b} East";
-            yield return $"{b} West";
-        }
-    }
 
     public async Task LoadChannels(EventHandler channelClick, string m3uURL)
     {
@@ -313,14 +275,41 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             ],
         };
 
-        // ===== Local helper (inside LoadChannels) =====
-        void AddTopChannelsMenu(
-            string rootTitle,
-            Dictionary<string, string[]> categories,
-            bool addEastWest
-        )
+        void AddTopChannelsMenu(string rootTitle, Dictionary<string, string[]> categories)
         {
+            bool MatchesWordLike(string text, string term)
+            {
+                if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(term))
+                    return false;
+
+                int startIndex = 0;
+                while (true)
+                {
+                    int idx = text.IndexOf(term, startIndex, StringComparison.OrdinalIgnoreCase);
+                    if (idx < 0)
+                        return false;
+
+                    int leftIdx = idx - 1;
+                    int rightIdx = idx + term.Length;
+
+                    bool leftIsBoundary = idx == 0 || !char.IsLetterOrDigit(text[leftIdx]);
+                    bool rightIsBoundary =
+                        rightIdx == text.Length || !char.IsLetterOrDigit(text[rightIdx]);
+
+                    if (leftIsBoundary && rightIsBoundary)
+                        return true;
+
+                    startIndex = idx + 1;
+                }
+            }
+
             var rootItem = new ToolStripMenuItem { Text = rootTitle };
+
+            // Build once per AddTopChannelsMenu call
+            var allProperNames = topUsCategories
+                .Values.SelectMany(x => x)
+                .Concat(topUkCategories.Values.SelectMany(x => x))
+                .ToList();
 
             foreach (
                 var category in categories.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
@@ -335,10 +324,13 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     )
                 )
                 {
-                    var candidates = CandidateNames(properName, addEastWest).ToArray();
-
                     var matches = Channels
-                        .Where(c => candidates.Any(name => EndsWithChannel(c.Name, name)))
+                        .Where(c => MatchesWordLike(c.Name, properName))
+                        .Where(c =>
+                            !allProperNames.Any(pn =>
+                                c.Name.Equals(pn, StringComparison.OrdinalIgnoreCase)
+                            ) || c.Name.Equals(properName, StringComparison.OrdinalIgnoreCase)
+                        )
                         .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                         .ToList();
 
@@ -346,6 +338,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                         continue;
 
                     var networkItem = new ToolStripMenuItem(properName);
+
                     foreach (var ch in matches)
                     {
                         var chItem = new ToolStripMenuItem(ch.Name) { Tag = ch };
@@ -357,21 +350,15 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (categoryItem.DropDownItems.Count > 0)
-                {
                     rootItem.DropDownItems.Add(categoryItem);
-                }
             }
 
             menu.Items.Add(rootItem);
         }
 
-        // Build both menus (US adds East/West; UK does not)
-        AddTopChannelsMenu("US", topUsCategories, addEastWest: true);
-        AddTopChannelsMenu("UK", topUkCategories, addEastWest: false);
+        AddTopChannelsMenu("US", topUsCategories);
+        AddTopChannelsMenu("UK", topUkCategories);
 
         menu.Items.Add(new ToolStripSeparator());
     }
-
-    [GeneratedRegex(@"\([^)]*\)", RegexOptions.Compiled)]
-    private static partial Regex RegexRemoveParens();
 }

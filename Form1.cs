@@ -11,7 +11,6 @@ namespace AndyTV;
 public partial class Form1 : Form
 {
     private readonly LibVLC _libVLC;
-    private readonly MediaPlayer _mediaPlayer;
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
     private readonly VideoView _videoView;
@@ -29,15 +28,9 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    public Form1(
-        LibVLC libVLC,
-        MediaPlayer mediaPlayer,
-        UpdateService updateService,
-        VideoView videoView
-    )
+    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
-        _mediaPlayer = mediaPlayer;
         _updateService = updateService;
         _videoView = videoView;
 
@@ -58,25 +51,26 @@ public partial class Form1 : Form
 
         Icon = new Icon("AndyTV.ico");
 
-        _mediaPlayer.Stopped += delegate
+        void RestartChannel()
         {
-            Play(_currentChannel);
-        };
-        _mediaPlayer.EndReached += delegate
-        {
-            Play(_currentChannel);
-        };
-        _mediaPlayer.EncounteredError += delegate
-        {
-            Play(_currentChannel);
-        };
-        _mediaPlayer.Playing += delegate
+            Task.Run(() => Play(_currentChannel));
+        }
+
+        videoView.MediaPlayer.Stopped += (_, _) => RestartChannel();
+        videoView.MediaPlayer.EndReached += (_, _) => RestartChannel();
+        videoView.MediaPlayer.EncounteredError += (_, _) => RestartChannel();
+
+        videoView.MediaPlayer.Playing += delegate
         {
             // Reset cursor based on fullscreen state
             if (FormBorderStyle == FormBorderStyle.None)
+            {
                 _videoView.HideCursor();
+            }
             else
+            {
                 _videoView.ShowDefault();
+            }
 
             _notificationService.ShowToast(_currentChannel.DisplayName);
             RecentChannelsService.AddOrPromote(_currentChannel);
@@ -96,7 +90,9 @@ public partial class Form1 : Form
         ResizeEnd += delegate
         {
             if (WindowState == FormWindowState.Normal)
+            {
                 _manuallyAdjustedBounds = Bounds;
+            }
         };
 
         Shown += async delegate
@@ -109,7 +105,7 @@ public partial class Form1 : Form
             _menuSettingsHelper = new MenuSettingsHelper(
                 _contextMenuStrip,
                 appVersionName,
-                _mediaPlayer,
+                videoView.MediaPlayer,
                 _updateService,
                 () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
                 () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
@@ -173,27 +169,26 @@ public partial class Form1 : Form
     private void Play(Channel channel)
     {
         if (channel == null)
+        {
             return;
+        }
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
         _videoView.ShowWaiting();
 
-        ThreadPool.QueueUserWorkItem(_ =>
+        try
         {
-            try
-            {
-                using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);
-                _mediaPlayer.Play(media);
-            }
-            catch (Exception ex)
-            {
-                _videoView.ShowDefault();
-                Logger.Error(
-                    $"[PLAY][ERROR] channel='{channel.DisplayName}' url='{channel.Url}' ex={ex}"
-                );
-            }
-        });
+            _videoView.MediaPlayer.Stop();
+            _videoView.MediaPlayer.Play(new Media(_libVLC, new Uri(channel.Url)));
+        }
+        catch (Exception ex)
+        {
+            _videoView.ShowDefault();
+            Logger.Error(
+                $"[PLAY][ERROR] channel='{channel.DisplayName}' url='{channel.Url}' ex={ex}"
+            );
+        }
     }
 
     private void MaximizeWindow()
@@ -244,7 +239,9 @@ public partial class Form1 : Form
         }
 
         if (e.Button == MouseButtons.Middle)
-            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        {
+            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+        }
 
         if (
             e.Button == MouseButtons.Right

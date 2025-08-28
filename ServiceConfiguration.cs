@@ -11,27 +11,22 @@ public static class ServiceConfiguration
     {
         var services = new ServiceCollection();
 
-        // LibVLC & MediaPlayer
+        // LibVLC
         services.AddSingleton(_ => new LibVLC(enableDebugLogs: false));
+
+        // VideoView
         services.AddSingleton(sp =>
         {
             var libVlc = sp.GetRequiredService<LibVLC>();
-            return new MediaPlayer(libVlc)
-            {
-                EnableHardwareDecoding = true,
-                EnableKeyInput = false,
-                EnableMouseInput = false,
-            };
-        });
-
-        // VideoView
-        services.AddSingleton<VideoView>(sp =>
-        {
-            var mediaPlayer = sp.GetRequiredService<MediaPlayer>();
             return new VideoView
             {
                 Dock = DockStyle.Fill,
-                MediaPlayer = mediaPlayer,
+                MediaPlayer = new MediaPlayer(libVlc)
+                {
+                    EnableHardwareDecoding = true,
+                    EnableKeyInput = false,
+                    EnableMouseInput = false,
+                },
             };
         });
 
