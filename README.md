@@ -1,6 +1,6 @@
-﻿<p align="center">
+﻿
   <img src="https://raw.githubusercontent.com/aherrick/AndyTV/main/AndyTV.png" alt="AndyTV logo" width="128"/>
-</p>
+
 
 
 [![Build](https://github.com/aherrick/AndyTV/actions/workflows/build.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/build.yml)
