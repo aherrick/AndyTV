@@ -101,7 +101,7 @@ public partial class FavoriteChannelForm : Form
 
         // Form properties - increased width with consistent margins
         Text = "Favorites Manager";
-        Size = new Size(750, 665); // Slightly taller for status label
+        Size = new Size(754, 665); // Slightly taller for status label
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog; // Disable resize
         MaximizeBox = false;
