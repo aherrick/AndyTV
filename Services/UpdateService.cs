@@ -75,9 +75,13 @@ public class UpdateService(VideoView videoView)
         finally
         {
             if (IsFullscreen())
+            {
                 videoView.HideCursor();
+            }
             else
+            {
                 videoView.ShowDefault();
+            }
         }
     }
 }
