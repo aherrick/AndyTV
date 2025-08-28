@@ -2,6 +2,7 @@
 using AndyTV.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
+using Microsoft.VisualBasic; // for Interaction.InputBox
 
 namespace AndyTV.Helpers.Menu;
 
@@ -9,8 +10,8 @@ public class MenuSettingsHelper
 {
     private readonly ContextMenuStrip _menu;
     private readonly string _appVersionName;
-    private readonly MediaPlayer _mediaPlayer;
-    private readonly VideoView _videoSurface;
+    private readonly VideoView _videoView;
+    private readonly LibVLC _libVLC;
 
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripMenuItem _muteItem;
@@ -18,26 +19,25 @@ public class MenuSettingsHelper
 
     private readonly Func<Form> _createFavoritesForm;
     private readonly Action _rebuildFavoritesMenu;
-
     private readonly UpdateService _updateService;
 
     public MenuSettingsHelper(
         ContextMenuStrip menu,
         string appVersionName,
-        MediaPlayer mediaPlayer,
         UpdateService updateService,
         Func<Form> createFavoritesForm,
         Action rebuildFavoritesMenu,
-        VideoView videoSurface
+        VideoView videoView,
+        LibVLC libVLC
     )
     {
         _menu = menu;
         _appVersionName = appVersionName;
-        _mediaPlayer = mediaPlayer;
         _updateService = updateService;
         _createFavoritesForm = createFavoritesForm;
         _rebuildFavoritesMenu = rebuildFavoritesMenu;
-        _videoSurface = videoSurface;
+        _videoView = videoView;
+        _libVLC = libVLC;
 
         _header = MenuHelper.AddHeader(_menu, appVersionName);
         int headerIndex = _menu.Items.IndexOf(_header);
@@ -50,13 +50,30 @@ public class MenuSettingsHelper
         };
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
+        // Swap (raw URL)
+        var swapItem = new ToolStripMenuItem("Swap (raw URL)");
+        swapItem.Click += (_, __) =>
+        {
+            // Show cursor for dialog
+            _videoView.ShowDefault();
+
+            string input = Interaction.InputBox("Enter media URL:", "Swap Stream", "").Trim();
+
+            if (string.IsNullOrEmpty(input))
+                return;
+
+            _videoView.MediaPlayer.Stop();
+            _videoView.MediaPlayer.Play(new Media(_libVLC, input, FromType.FromLocation));
+        };
+        _menu.Items.Insert(headerIndex + 3, swapItem);
+
         // Mute
         _muteItem = new ToolStripMenuItem("Mute");
         _muteItem.Click += (_, __) =>
         {
-            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
         };
-        _menu.Items.Insert(headerIndex + 3, _muteItem);
+        _menu.Items.Insert(headerIndex + 4, _muteItem);
 
         // Logs
         var logsItem = new ToolStripMenuItem("Logs");
@@ -73,44 +90,38 @@ public class MenuSettingsHelper
                 }
             );
         };
-        _menu.Items.Insert(headerIndex + 4, logsItem);
+        _menu.Items.Insert(headerIndex + 5, logsItem);
 
         // Favorites
         var favoritesItem = new ToolStripMenuItem("Favorites");
         favoritesItem.Click += (_, __) =>
         {
-            // Ensure a visible cursor while a dialog is open
-            _videoSurface.ShowDefault();
-
+            _videoView.ShowDefault();
             using var form = _createFavoritesForm();
             form.FormClosed += (_, __2) =>
             {
-                // Rebuild menu after dialog closes
                 _rebuildFavoritesMenu();
 
-                // Restore hidden cursor if owner is fullscreen
                 var owner = _menu.SourceControl?.FindForm();
                 bool isFullscreen = owner?.FormBorderStyle == FormBorderStyle.None;
                 if (isFullscreen)
-                    _videoSurface.HideCursor();
+                    _videoView.HideCursor();
                 else
-                    _videoSurface.ShowDefault();
+                    _videoView.ShowDefault();
             };
-
             form.ShowDialog(_menu.SourceControl?.FindForm());
         };
-        _menu.Items.Insert(headerIndex + 5, favoritesItem);
+        _menu.Items.Insert(headerIndex + 6, favoritesItem);
 
         // Exit
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, __) => Application.Exit();
-        _menu.Items.Insert(headerIndex + 6, exitItem);
+        _menu.Items.Insert(headerIndex + 7, exitItem);
 
         _menu.Opening += (_, __) =>
         {
-            _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
-            // Make sure cursor is visible while menu is open
-            _videoSurface.ShowDefault();
+            _muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
+            _videoView.ShowDefault();
         };
     }
 }

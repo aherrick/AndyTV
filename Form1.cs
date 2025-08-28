@@ -102,13 +102,13 @@ public partial class Form1 : Form
             _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
 
             _menuSettingsHelper = new MenuSettingsHelper(
-                _contextMenuStrip,
-                appVersionName,
-                videoView.MediaPlayer,
-                _updateService,
-                () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
-                () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
-                _videoView
+                menu: _contextMenuStrip,
+                appVersionName: appVersionName,
+                updateService: _updateService,
+                createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
+                rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
+                videoView: _videoView,
+                libVLC: _libVLC
             );
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
