@@ -4,359 +4,428 @@ using AndyTV.Services;
 
 namespace AndyTV.UI;
 
-public class FavoriteChannelForm : Form
+public partial class FavoriteChannelForm : Form
 {
     private readonly List<Channel> _allChannels;
-    private readonly BindingList<Channel> _selectedChannels;
+    private readonly List<Channel> _filteredChannels;
+    private readonly BindingList<Channel> _favorites;
+    private string _baseline;
 
-    private readonly BindingSource _binding = [];
-
-    private TextBox _channelTextBox;
-    private ListBox _suggestionListBox;
-    private DataGridView _channelsGrid;
-    private Button _upButton;
-    private Button _downButton;
+    private TextBox _filterTextBox;
+    private ListBox _channelListBox;
+    private DataGridView _favoritesGrid;
+    private Button _moveUpButton;
+    private Button _moveDownButton;
     private Button _removeButton;
     private Button _importButton;
     private Button _exportButton;
     private Button _saveButton;
 
-    private string _baseline = ""; // captured after load & after save
-
-    private const char US = '\u001F'; // exotic delimiter
-
     public FavoriteChannelForm(List<Channel> channels)
     {
-        AutoScaleMode = AutoScaleMode.Dpi;
-        AutoScaleDimensions = new SizeF(96f, 96f); // baseline
+        _allChannels = channels ?? [];
+        _filteredChannels = [];
+        _favorites = [];
+        _baseline = "";
 
-        _allChannels = channels;
-        _selectedChannels = [];
-
-        InitializeUI();
-
-        SetupEvents();
-        LoadFavorites(); // sets _baseline
-
-        FormClosing += (sender, e) =>
-        {
-            if (SnapshotString() == _baseline)
-                return;
-
-            var r = MessageBox.Show(
-                "You have unsaved changes. Save before closing?",
-                "Unsaved changes",
-                MessageBoxButtons.YesNoCancel,
-                MessageBoxIcon.Warning
-            );
-
-            if (r == DialogResult.Yes)
-            {
-                SaveButton_Click(sender, EventArgs.Empty);
-            }
-            else if (r == DialogResult.Cancel)
-            {
-                e.Cancel = true;
-            }
-        };
+        InitializeComponent();
+        SetupForm();
+        UpdateFilteredChannels();
+        LoadExistingFavorites();
     }
 
-    private void InitializeUI()
+    private void LoadExistingFavorites()
     {
-        Text = "Favorite Channels";
-        Size = new Size(860, 650);
-        StartPosition = FormStartPosition.CenterParent;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        MaximizeBox = false;
-        MinimizeBox = false;
-
-        // simple layout constants for uniformity
-        int pad = 12;
-        int sideBtnSize = 34; // ↑ ↓ ✕ buttons
-        int sideGap = 8;
-        int bottomBtnW = 96,
-            bottomBtnH = 32;
-
-        var lblChannels = new Label
+        var existingFavorites = ChannelDataService.LoadFavoriteChannels() ?? [];
+        _favorites.Clear();
+        foreach (var channel in existingFavorites)
         {
-            Text = "Search:",
-            Location = new Point(pad, pad),
+            _favorites.Add(channel);
+        }
+        _baseline = SnapshotString();
+    }
+
+    private string SnapshotString()
+    {
+        // Create a snapshot string for tracking changes
+        return string.Join(
+            "|",
+            _favorites.Select(f => $"{f.Name}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
+        );
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // Check for unsaved changes
+        var currentSnapshot = SnapshotString();
+        if (currentSnapshot != _baseline)
+        {
+            var result = MessageBox.Show(
+                "You have unsaved changes. Do you want to save before closing?",
+                "Unsaved Changes",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question
+            );
+
+            switch (result)
+            {
+                case DialogResult.Yes:
+                    // Save changes
+                    _favoritesGrid.CurrentCell = null;
+                    _favoritesGrid.EndEdit();
+                    ChannelDataService.SaveFavoriteChannels([.. _favorites]);
+                    _baseline = SnapshotString();
+                    break;
+
+                case DialogResult.Cancel:
+                    // Cancel closing
+                    e.Cancel = true;
+                    return;
+
+                case DialogResult.No:
+                    // Don't save, just close
+                    break;
+            }
+        }
+
+        base.OnFormClosing(e);
+    }
+
+    private void InitializeComponent()
+    {
+        SuspendLayout();
+
+        // Form properties - increased width with consistent margins
+        Text = "Favorites Manager";
+        Size = new Size(750, 660);
+        StartPosition = FormStartPosition.CenterScreen;
+        FormBorderStyle = FormBorderStyle.FixedDialog; // Disable resize
+        MaximizeBox = false;
+
+        // Filter section
+        var filterLabel = new Label
+        {
+            Text = "Filter Channels:",
+            Location = new Point(15, 15),
+            Size = new Size(100, 23),
             AutoSize = true,
         };
 
-        _channelTextBox = new TextBox
+        _filterTextBox = new TextBox
         {
-            Location = new Point(pad, lblChannels.Bottom + 8),
-            Size = new Size(Width - 2 * pad - 16, 24), // wide, with a little breathing space
+            Location = new Point(15, 40),
+            Size = new Size(615, 23), // Same width as grid for consistent right margin
         };
+        _filterTextBox.TextChanged += FilterTextBox_TextChanged;
 
-        _suggestionListBox = new ListBox
+        _channelListBox = new ListBox
         {
-            Location = new Point(pad, _channelTextBox.Bottom + 8),
-            Size = new Size(Width - 2 * pad - 16, 140),
-            Visible = false,
+            Location = new Point(15, 70),
+            Size = new Size(615, 200), // Same width as grid for consistent right margin
+            DisplayMember = "DisplayName",
         };
+        _channelListBox.DoubleClick += ChannelListBox_DoubleClick;
 
-        var lblSelected = new Label
+        // Favorites grid - larger width
+        var favoritesLabel = new Label
         {
             Text = "Favorites:",
-            Location = new Point(pad, _suggestionListBox.Bottom + 18),
+            Location = new Point(15, 285),
+            Size = new Size(100, 23),
             AutoSize = true,
         };
 
-        // Grid: narrower so side buttons fit; not anchored to bottom
-        _channelsGrid = new DataGridView
+        _favoritesGrid = new DataGridView
         {
-            Location = new Point(pad, lblSelected.Bottom + 8),
-            Size = new Size(780, 300),
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            ReadOnly = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.CellSelect, // copy cell text
-            ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
-            MultiSelect = false,
+            Location = new Point(15, 310),
+            Size = new Size(615, 250), // Grid width matches filter and listbox
             AutoGenerateColumns = false,
-            BorderStyle = BorderStyle.FixedSingle,
-            EditMode = DataGridViewEditMode.EditOnEnter,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, // no Bottom
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false, // Disable delete key functionality
+            SelectionMode = DataGridViewSelectionMode.CellSelect,
+            MultiSelect = false,
+            ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
+            EditMode = DataGridViewEditMode.EditOnEnter, // Single click to edit
         };
 
-        // Columns: Name (ro), MappedName (rw), Group (rw), Category (rw)
-        var colName = new DataGridViewTextBoxColumn
-        {
-            DataPropertyName = nameof(Channel.Name),
-            HeaderText = nameof(Channel.Name),
-            ReadOnly = true,
-            FillWeight = 28,
-        };
-        var colMappedName = new DataGridViewTextBoxColumn
-        {
-            DataPropertyName = nameof(Channel.MappedName),
-            HeaderText = nameof(Channel.MappedName),
-            ReadOnly = false,
-            FillWeight = 32,
-        };
-        var colGroup = new DataGridViewTextBoxColumn
-        {
-            DataPropertyName = nameof(Channel.Group),
-            HeaderText = nameof(Channel.Group),
-            ReadOnly = false,
-            FillWeight = 20,
-        };
-        var colCategory = new DataGridViewTextBoxColumn
-        {
-            DataPropertyName = nameof(Channel.Category),
-            HeaderText = nameof(Channel.Category),
-            ReadOnly = false,
-            FillWeight = 20,
-        };
-        _channelsGrid.Columns.AddRange(colName, colMappedName, colGroup, colCategory);
+        SetupGridColumns();
+        SetupCopyPaste();
 
-        // Side buttons: uniform sizing & spacing, aligned to grid top
-        int sideX = _channelsGrid.Right + pad;
-        _upButton = new Button
+        // Control buttons (right side of grid) - maintaining 15px right margin
+        _moveUpButton = new Button
         {
-            Text = "↑",
-            Location = new Point(sideX, _channelsGrid.Top),
-            Size = new Size(sideBtnSize, sideBtnSize),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            UseVisualStyleBackColor = true,
+            Text = "Move Up",
+            Location = new Point(645, 310), // 15px from right edge
+            Size = new Size(80, 30),
         };
-        _downButton = new Button
+        _moveUpButton.Click += MoveUpButton_Click;
+
+        _moveDownButton = new Button
         {
-            Text = "↓",
-            Location = new Point(sideX, _upButton.Bottom + sideGap),
-            Size = new Size(sideBtnSize, sideBtnSize),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            UseVisualStyleBackColor = true,
+            Text = "Move Down",
+            Location = new Point(645, 350),
+            Size = new Size(80, 30),
         };
+        _moveDownButton.Click += MoveDownButton_Click;
+
         _removeButton = new Button
         {
-            Text = "✕",
-            Location = new Point(sideX, _downButton.Bottom + sideGap),
-            Size = new Size(sideBtnSize, sideBtnSize),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            UseVisualStyleBackColor = true,
+            Text = "Remove",
+            Location = new Point(645, 390),
+            Size = new Size(80, 30),
         };
+        _removeButton.Click += RemoveButton_Click;
 
-        // Bottom buttons: compute from ClientSize so they sit cleanly
-        int bottomY = ClientSize.Height - pad - bottomBtnH;
+        // Bottom buttons - maintaining consistent margins
         _importButton = new Button
         {
             Text = "Import",
-            Size = new Size(bottomBtnW, bottomBtnH),
-            Location = new Point(pad, bottomY),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-            UseVisualStyleBackColor = true,
+            Location = new Point(15, 580),
+            Size = new Size(80, 30),
         };
+        _importButton.Click += ImportFavorites;
+
         _exportButton = new Button
         {
             Text = "Export",
-            Size = new Size(bottomBtnW, bottomBtnH),
-            Location = new Point(_importButton.Right + pad, bottomY),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-            UseVisualStyleBackColor = true,
+            Location = new Point(105, 580),
+            Size = new Size(80, 30),
         };
+        _exportButton.Click += ExportFavorites;
+
         _saveButton = new Button
         {
             Text = "Save",
-            Size = new Size(bottomBtnW, bottomBtnH),
-            Location = new Point(ClientSize.Width - pad - bottomBtnW, bottomY),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-            UseVisualStyleBackColor = true,
+            Location = new Point(645, 580), // Aligned with right-side buttons, 15px from edge
+            Size = new Size(80, 30),
         };
+        _saveButton.Click += SaveButton_Click;
 
+        // Add controls to form
         Controls.AddRange(
             [
-                lblChannels,
-                _channelTextBox,
-                _suggestionListBox,
-                lblSelected,
-                _channelsGrid,
-                _upButton,
-                _downButton,
+                filterLabel,
+                _filterTextBox,
+                _channelListBox,
+                favoritesLabel,
+                _favoritesGrid,
+                _moveUpButton,
+                _moveDownButton,
                 _removeButton,
                 _importButton,
                 _exportButton,
                 _saveButton,
             ]
         );
+
+        ResumeLayout(false);
+        PerformLayout();
     }
 
-    private void SetupEvents()
+    private void SetupForm()
     {
-        _channelTextBox.TextChanged += OnTextChanged;
-        _channelTextBox.KeyDown += OnTextBoxKeyDown;
-        _suggestionListBox.Click += OnSuggestionSelected;
-        _suggestionListBox.KeyDown += OnSuggestionKeyDown;
-
-        _upButton.Click += MoveUp;
-        _downButton.Click += MoveDown;
-        _removeButton.Click += RemoveChannel;
-
-        _binding.DataSource = _selectedChannels;
-        _channelsGrid.DataSource = _binding;
-
-        _importButton.Click += ImportFavorites;
-        _exportButton.Click += ExportFavorites;
-        _saveButton.Click += SaveButton_Click;
+        _favoritesGrid.DataSource = _favorites;
+        _channelListBox.DataSource = _filteredChannels;
     }
 
-    // --- Search / Suggestions ---
-    private void OnTextChanged(object sender, EventArgs e)
+    private void SetupGridColumns()
     {
-        string searchText = _channelTextBox.Text.Trim();
-        if (string.IsNullOrEmpty(searchText))
+        var nameColumn = new DataGridViewTextBoxColumn
         {
-            _suggestionListBox.Visible = false;
-            return;
-        }
+            Name = "Name",
+            HeaderText = "Name",
+            DataPropertyName = "Name",
+            ReadOnly = true,
+            Width = 150, // Increased column widths for larger grid
+        };
 
-        var matches = _allChannels
-            .Where(c => c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(c => c.Name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase))
-            .Take(10)
-            .ToList();
+        var mappedNameColumn = new DataGridViewTextBoxColumn
+        {
+            Name = "MappedName",
+            HeaderText = "Mapped Name",
+            DataPropertyName = "MappedName",
+            Width = 150,
+        };
 
-        if (matches.Count > 0)
+        var groupColumn = new DataGridViewTextBoxColumn
         {
-            _suggestionListBox.DataSource = matches;
-            _suggestionListBox.DisplayMember = nameof(Channel.Name);
-            _suggestionListBox.Visible = true;
-        }
-        else
+            Name = "Group",
+            HeaderText = "Group",
+            DataPropertyName = "Group",
+            Width = 150,
+        };
+
+        var categoryColumn = new DataGridViewTextBoxColumn
         {
-            _suggestionListBox.Visible = false;
+            Name = "Category",
+            HeaderText = "Category",
+            DataPropertyName = "Category",
+            Width = 150,
+        };
+
+        _favoritesGrid.Columns.AddRange(
+            [nameColumn, mappedNameColumn, groupColumn, categoryColumn]
+        );
+    }
+
+    private void SetupCopyPaste()
+    {
+        _favoritesGrid.KeyDown += (sender, e) =>
+        {
+            if (e.Control && e.KeyCode == Keys.C)
+            {
+                CopySelectedCell();
+                e.Handled = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.V)
+            {
+                PasteToSelectedCell();
+                e.Handled = true;
+            }
+        };
+
+        // Enable single-click editing on editable columns
+        _favoritesGrid.CellClick += (sender, e) =>
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex > 0) // Don't allow editing Name column (index 0)
+            {
+                _favoritesGrid.BeginEdit(true);
+            }
+        };
+
+        _favoritesGrid.CellBeginEdit += (sender, e) =>
+        {
+            // Prevent editing on Name column (index 0)
+            if (e.ColumnIndex == 0)
+            {
+                e.Cancel = true;
+            }
+        };
+    }
+
+    private void CopySelectedCell()
+    {
+        if (_favoritesGrid.CurrentCell?.Value != null)
+        {
+            var cellValue = _favoritesGrid.CurrentCell.Value.ToString();
+            Clipboard.SetText(cellValue ?? string.Empty);
         }
     }
 
-    private void OnTextBoxKeyDown(object sender, KeyEventArgs e)
+    private void PasteToSelectedCell()
     {
-        if (e.KeyCode == Keys.Down && _suggestionListBox.Visible)
-        {
-            _suggestionListBox.Focus();
-            if (_suggestionListBox.Items.Count > 0)
-                _suggestionListBox.SelectedIndex = 0;
-        }
-        else if (
-            e.KeyCode == Keys.Enter
-            && _suggestionListBox.Visible
-            && _suggestionListBox.SelectedItem != null
+        if (
+            _favoritesGrid.CurrentCell != null
+            && _favoritesGrid.CurrentCell.ColumnIndex > 0
+            && // Don't allow paste into Name column
+            Clipboard.ContainsText()
         )
         {
-            AddSelectedChannel();
+            var clipboardText = Clipboard.GetText();
+            _favoritesGrid.CurrentCell.Value = clipboardText;
+            _favoritesGrid.EndEdit();
         }
     }
 
-    private void OnSuggestionKeyDown(object sender, KeyEventArgs e)
+    private void FilterTextBox_TextChanged(object sender, EventArgs e)
     {
-        if (e.KeyCode == Keys.Enter)
+        UpdateFilteredChannels();
+    }
+
+    private void UpdateFilteredChannels()
+    {
+        var filterText = _filterTextBox.Text.Trim();
+
+        _filteredChannels.Clear();
+
+        var filtered = string.IsNullOrEmpty(filterText)
+            ? _allChannels
+            : _allChannels.Where(c =>
+                c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase)
+            );
+
+        foreach (var channel in filtered)
         {
-            AddSelectedChannel();
+            _filteredChannels.Add(channel);
         }
-        else if (e.KeyCode == Keys.Escape)
+
+        _channelListBox.DataSource = null;
+        _channelListBox.DataSource = _filteredChannels;
+        _channelListBox.DisplayMember = "DisplayName";
+    }
+
+    private void ChannelListBox_DoubleClick(object sender, EventArgs e)
+    {
+        if (_channelListBox.SelectedItem is Channel selectedChannel)
         {
-            _suggestionListBox.Visible = false;
-            _channelTextBox.Focus();
+            AddToFavorites(selectedChannel);
         }
     }
 
-    private void OnSuggestionSelected(object sender, EventArgs e) => AddSelectedChannel();
-
-    private void AddSelectedChannel()
+    private void AddToFavorites(Channel channel)
     {
-        var channel = (Channel)_suggestionListBox.SelectedItem;
+        // Check for duplicate based on URL
         if (
-            !_selectedChannels.Any(c =>
-                string.Equals(c.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
+            _favorites.Any(f =>
+                string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
             )
         )
         {
-            _selectedChannels.Add(channel);
-            _channelTextBox.Clear();
-            _suggestionListBox.Visible = false;
-            _channelTextBox.Focus();
+            MessageBox.Show(
+                $"Channel '{channel.DisplayName}' is already in favorites.",
+                "Duplicate Channel",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+            return;
         }
+
+        // Create a copy to avoid modifying the original
+        var favorite = new Channel
+        {
+            Name = channel.Name,
+            MappedName = channel.MappedName,
+            Url = channel.Url,
+            Group = channel.Group,
+            Category = channel.Category,
+        };
+
+        _favorites.Add(favorite);
     }
 
-    // --- Move / Remove ---
-    private void MoveUp(object sender, EventArgs e)
+    private void MoveUpButton_Click(object sender, EventArgs e)
     {
-        if (_channelsGrid.SelectedRows.Count > 0)
-        {
-            int index = _channelsGrid.SelectedRows[0].Index;
-            if (index > 0)
-            {
-                var item = _selectedChannels[index];
-                _selectedChannels.RemoveAt(index);
-                _selectedChannels.Insert(index - 1, item);
-                _channelsGrid.Rows[index - 1].Selected = true;
-            }
-        }
+        if (_favoritesGrid.CurrentRow?.Index is not int index || index <= 0)
+            return;
+
+        var item = _favorites[index];
+        _favorites.RemoveAt(index);
+        _favorites.Insert(index - 1, item);
+
+        _favoritesGrid.CurrentCell = _favoritesGrid.Rows[index - 1].Cells[
+            _favoritesGrid.CurrentCell?.ColumnIndex ?? 0
+        ];
     }
 
-    private void MoveDown(object sender, EventArgs e)
+    private void MoveDownButton_Click(object sender, EventArgs e)
     {
-        if (_channelsGrid.SelectedRows.Count > 0)
-        {
-            int index = _channelsGrid.SelectedRows[0].Index;
-            if (index < _selectedChannels.Count - 1)
-            {
-                var item = _selectedChannels[index];
-                _selectedChannels.RemoveAt(index);
-                _selectedChannels.Insert(index + 1, item);
-                _channelsGrid.Rows[index + 1].Selected = true;
-            }
-        }
+        if (_favoritesGrid.CurrentRow?.Index is not int index || index >= _favorites.Count - 1)
+            return;
+
+        var item = _favorites[index];
+        _favorites.RemoveAt(index);
+        _favorites.Insert(index + 1, item);
+
+        _favoritesGrid.CurrentCell = _favoritesGrid.Rows[index + 1].Cells[
+            _favoritesGrid.CurrentCell?.ColumnIndex ?? 0
+        ];
     }
 
-    private void RemoveChannel(object sender, EventArgs e)
+    private void RemoveButton_Click(object sender, EventArgs e)
     {
-        if (_channelsGrid.SelectedRows.Count > 0)
+        if (_favoritesGrid.CurrentRow?.Index is int index && index >= 0)
         {
-            _selectedChannels.RemoveAt(_channelsGrid.SelectedRows[0].Index);
+            _favorites.RemoveAt(index);
         }
     }
 
@@ -365,7 +434,7 @@ public class FavoriteChannelForm : Form
     {
         using var ofd = new OpenFileDialog
         {
-            Filter = "JSON Files (*.json)|*.json",
+            Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Import Favorite Channels",
             FileName = ChannelDataService.FavoriteChannelsFile,
         };
@@ -375,91 +444,77 @@ public class FavoriteChannelForm : Form
             try
             {
                 var imported = ChannelDataService.ImportFavoriteChannels(ofd.FileName) ?? [];
-                _selectedChannels.Clear();
+                _favorites.Clear();
                 foreach (var ch in imported)
                 {
-                    _selectedChannels.Add(ch);
+                    _favorites.Add(ch);
                 }
-                _baseline = SnapshotString(); // treat freshly imported as clean
+                _baseline = SnapshotString(); // freshly imported = clean
+                MessageBox.Show(
+                    $"Imported {_favorites.Count} favorite(s).",
+                    "Import Complete",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Import failed: {ex.Message}");
+                MessageBox.Show(
+                    $"Import failed: {ex.Message}",
+                    "Import Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
     }
 
     private void ExportFavorites(object sender, EventArgs e)
     {
+        if (_favorites.Count == 0)
+        {
+            MessageBox.Show(
+                "No favorites to export.",
+                "Export",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+            return;
+        }
+
         using var sfd = new SaveFileDialog
         {
-            Filter = "JSON Files (*.json)|*.json",
+            Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Export Favorite Channels",
             FileName = ChannelDataService.FavoriteChannelsFile,
         };
 
         if (sfd.ShowDialog() == DialogResult.OK)
         {
-            try
-            {
-                ChannelDataService.ExportFavoriteChannels(_selectedChannels, sfd.FileName);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Export failed: {ex.Message}");
-            }
+            ChannelDataService.ExportFavoriteChannels(_favorites, sfd.FileName);
+            MessageBox.Show(
+                $"Exported {_favorites.Count} favorite(s).",
+                "Export Complete",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
         }
     }
 
     // --- Save (commit edits + write file) ---
     private void SaveButton_Click(object sender, EventArgs e)
     {
-        _channelsGrid.CurrentCell = null;
-        _binding.EndEdit();
-        ChannelDataService.SaveFavoriteChannels([.. _selectedChannels]);
+        _favoritesGrid.CurrentCell = null;
+        _favoritesGrid.EndEdit();
+
+        ChannelDataService.SaveFavoriteChannels([.. _favorites]);
         _baseline = SnapshotString();
 
         MessageBox.Show(
-            "Save successful.",
-            "Favorites",
+            "Favorites saved successfully!",
+            "Save Complete",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information
-        );
-    }
-
-    // --- Load favorites and set baseline ---
-    private void LoadFavorites()
-    {
-        var savedChannels = ChannelDataService.LoadFavoriteChannels();
-        foreach (var channel in savedChannels)
-        {
-            _selectedChannels.Add(channel);
-        }
-
-        _baseline = SnapshotString();
-    }
-
-    // --- Dirty helpers ---
-    private string SnapshotString()
-    {
-        _channelsGrid.CurrentCell = null;
-        _binding.EndEdit();
-
-        return string.Join(
-            "\n",
-            _selectedChannels.Select(ch =>
-                string.Concat(
-                    ch.Name ?? "",
-                    US,
-                    ch.Group ?? "",
-                    US,
-                    (ch.Url ?? "").ToLowerInvariant(),
-                    US,
-                    ch.MappedName ?? "",
-                    US,
-                    ch.Category ?? ""
-                )
-            )
         );
     }
 }

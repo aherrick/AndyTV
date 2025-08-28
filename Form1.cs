@@ -56,7 +56,6 @@ public partial class Form1 : Form
             Task.Run(() => Play(_currentChannel));
         }
 
-        videoView.MediaPlayer.Stopped += (_, _) => RestartChannel();
         videoView.MediaPlayer.EndReached += (_, _) => RestartChannel();
         videoView.MediaPlayer.EncounteredError += (_, _) => RestartChannel();
 
@@ -138,6 +137,9 @@ public partial class Form1 : Form
             _videoView.ShowWaiting();
 
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
+
+            using var form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
+            form.ShowDialog();
 
             if (FormBorderStyle == FormBorderStyle.None)
                 _videoView.HideCursor();
