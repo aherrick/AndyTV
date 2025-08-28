@@ -1,4 +1,8 @@
-﻿# AndyTV 📺
+﻿<p align="center">
+  <img src="https://raw.githubusercontent.com/aherrick/AndyTV/main/AndyTV.png" alt="AndyTV logo" width="128"/>
+</p>
+
+# <img src="https://raw.githubusercontent.com/aherrick/AndyTV/main/AndyTV.png" alt="AndyTV" width="32"/> AndyTV 📺
 
 [![Build](https://github.com/aherrick/AndyTV/actions/workflows/build.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/build.yml)
 [![Publish](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml)
