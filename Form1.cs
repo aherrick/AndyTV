@@ -138,9 +138,6 @@ public partial class Form1 : Form
 
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
-            using var form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
-            form.ShowDialog();
-
             if (FormBorderStyle == FormBorderStyle.None)
                 _videoView.HideCursor();
             else

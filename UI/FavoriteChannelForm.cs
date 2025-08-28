@@ -20,6 +20,10 @@ public partial class FavoriteChannelForm : Form
     private Button _importButton;
     private Button _exportButton;
     private Button _saveButton;
+    private Label _statusLabel;
+
+    private const int MIN_FILTER_LENGTH = 2;
+    private const int MAX_RESULTS = 100;
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -30,7 +34,7 @@ public partial class FavoriteChannelForm : Form
 
         InitializeComponent();
         SetupForm();
-        UpdateFilteredChannels();
+        UpdateChannelListStatus(); // Show initial status instead of loading all channels
         LoadExistingFavorites();
     }
 
@@ -97,7 +101,7 @@ public partial class FavoriteChannelForm : Form
 
         // Form properties - increased width with consistent margins
         Text = "Favorites Manager";
-        Size = new Size(750, 660);
+        Size = new Size(750, 670); // Slightly taller for status label
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog; // Disable resize
         MaximizeBox = false;
@@ -118,10 +122,20 @@ public partial class FavoriteChannelForm : Form
         };
         _filterTextBox.TextChanged += FilterTextBox_TextChanged;
 
-        _channelListBox = new ListBox
+        // Status label to show filtering instructions
+        _statusLabel = new Label
         {
             Location = new Point(15, 70),
-            Size = new Size(615, 200), // Same width as grid for consistent right margin
+            Size = new Size(615, 20),
+            Text = $"Type at least {MIN_FILTER_LENGTH} characters to search channels...",
+            ForeColor = Color.Gray,
+            AutoSize = false,
+        };
+
+        _channelListBox = new ListBox
+        {
+            Location = new Point(15, 95), // Moved down to accommodate status label
+            Size = new Size(615, 175), // Reduced height slightly for status label
             DisplayMember = "DisplayName",
         };
         _channelListBox.DoubleClick += ChannelListBox_DoubleClick;
@@ -206,6 +220,7 @@ public partial class FavoriteChannelForm : Form
             [
                 filterLabel,
                 _filterTextBox,
+                _statusLabel,
                 _channelListBox,
                 favoritesLabel,
                 _favoritesGrid,
@@ -338,20 +353,66 @@ public partial class FavoriteChannelForm : Form
 
         _filteredChannels.Clear();
 
-        var filtered = string.IsNullOrEmpty(filterText)
-            ? _allChannels
-            : _allChannels.Where(c =>
-                c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase)
-            );
-
-        foreach (var channel in filtered)
+        // Only filter if we have enough characters
+        if (filterText.Length >= MIN_FILTER_LENGTH)
         {
-            _filteredChannels.Add(channel);
+            var filtered = _allChannels
+                .Where(c => c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase))
+                .Take(MAX_RESULTS); // Limit results to improve performance
+
+            foreach (var channel in filtered)
+            {
+                _filteredChannels.Add(channel);
+            }
+
+            UpdateChannelListStatus();
+        }
+        else
+        {
+            UpdateChannelListStatus();
         }
 
         _channelListBox.DataSource = null;
         _channelListBox.DataSource = _filteredChannels;
         _channelListBox.DisplayMember = "DisplayName";
+    }
+
+    private void UpdateChannelListStatus()
+    {
+        var filterText = _filterTextBox.Text.Trim();
+
+        if (filterText.Length < MIN_FILTER_LENGTH)
+        {
+            _statusLabel.Text =
+                $"Type at least {MIN_FILTER_LENGTH} characters to search channels...";
+            _statusLabel.ForeColor = Color.Gray;
+        }
+        else
+        {
+            var totalMatches = _allChannels.Count(c =>
+                c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase)
+            );
+
+            var displayedCount = Math.Min(totalMatches, MAX_RESULTS);
+
+            if (totalMatches > MAX_RESULTS)
+            {
+                _statusLabel.Text =
+                    $"Showing {displayedCount} of {totalMatches} matches (refine search to see more)";
+                _statusLabel.ForeColor = Color.DarkOrange;
+            }
+            else if (totalMatches > 0)
+            {
+                _statusLabel.Text =
+                    $"Found {totalMatches} matching channel{(totalMatches == 1 ? "" : "s")}";
+                _statusLabel.ForeColor = Color.DarkGreen;
+            }
+            else
+            {
+                _statusLabel.Text = "No channels found matching your search";
+                _statusLabel.ForeColor = Color.DarkRed;
+            }
+        }
     }
 
     private void ChannelListBox_DoubleClick(object sender, EventArgs e)
