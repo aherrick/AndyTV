@@ -320,7 +320,9 @@ public partial class Form1 : Form
             {
                 string clip = Clipboard.GetText().Trim();
                 if (Uri.TryCreate(clip, UriKind.Absolute, out var _))
+                {
                     input = clip;
+                }
             }
 
             if (string.IsNullOrEmpty(input))
@@ -333,7 +335,7 @@ public partial class Form1 : Form
                 return;
 
             Channel ch = _menuTVChannelHelper.ChannelByUrl(input);
-            ch ??= new Channel { Name = "Swap (raw)", Url = input };
+            ch ??= new Channel { Name = "Swap", Url = input };
             Play(ch, force: true);
         };
         _contextMenuStrip.Items.Add(swapItem);

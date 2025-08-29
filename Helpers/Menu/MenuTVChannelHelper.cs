@@ -1,4 +1,8 @@
-﻿using AndyTV.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
+using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
@@ -174,7 +178,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 "MLB Network",
                 "NBA TV",
                 "NFL Network",
-                "NFL RedZone", // added
+                "NFL RedZone",
                 "NHL Network",
                 "SEC Network",
             ],
@@ -280,27 +284,62 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             bool MatchesWordLike(string text, string term)
             {
                 if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(term))
-                    return false;
-
-                int startIndex = 0;
-                while (true)
                 {
-                    int idx = text.IndexOf(term, startIndex, StringComparison.OrdinalIgnoreCase);
-                    if (idx < 0)
-                        return false;
-
-                    int leftIdx = idx - 1;
-                    int rightIdx = idx + term.Length;
-
-                    bool leftIsBoundary = idx == 0 || !char.IsLetterOrDigit(text[leftIdx]);
-                    bool rightIsBoundary =
-                        rightIdx == text.Length || !char.IsLetterOrDigit(text[rightIdx]);
-
-                    if (leftIsBoundary && rightIsBoundary)
-                        return true;
-
-                    startIndex = idx + 1;
+                    return false;
                 }
+
+                // Accept exact term, "<term> Channel", and "<term> Network"
+                string[] candidates = [term, term + " Channel", term + " Network"];
+
+                foreach (string candidate in candidates)
+                {
+                    int startIndex = 0;
+                    while (true)
+                    {
+                        int idx = text.IndexOf(
+                            candidate,
+                            startIndex,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+                        if (idx < 0)
+                        {
+                            break;
+                        }
+
+                        int leftIdx = idx - 1;
+                        int rightIdx = idx + candidate.Length;
+
+                        bool leftIsBoundary = idx == 0 || !char.IsLetterOrDigit(text[leftIdx]);
+                        bool rightIsBoundary =
+                            rightIdx == text.Length || !char.IsLetterOrDigit(text[rightIdx]);
+
+                        if (leftIsBoundary && rightIsBoundary)
+                        {
+                            return true;
+                        }
+
+                        startIndex = idx + 1;
+                    }
+                }
+
+                return false;
+            }
+
+            // When the root is "... Channel/Network", also allow the base name (e.g., "USA Network" => "USA")
+            List<string> BuildRootCandidates(string properName)
+            {
+                var list = new List<string> { properName };
+
+                if (properName.EndsWith(" Network", StringComparison.OrdinalIgnoreCase))
+                {
+                    list.Add(properName[..^" Network".Length].Trim());
+                }
+                else if (properName.EndsWith(" Channel", StringComparison.OrdinalIgnoreCase))
+                {
+                    list.Add(properName[..^" Channel".Length].Trim());
+                }
+
+                return list;
             }
 
             var rootItem = new ToolStripMenuItem { Text = rootTitle };
@@ -324,18 +363,34 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                     )
                 )
                 {
+                    var rootCandidates = BuildRootCandidates(properName);
+
                     var matches = Channels
-                        .Where(c => MatchesWordLike(c.Name, properName))
+                        .Where(c => rootCandidates.Any(cand => MatchesWordLike(c.Name, cand)))
                         .Where(c =>
-                            !allProperNames.Any(pn =>
+                        {
+                            // If an item is exactly any official proper name from any category,
+                            // only include it when it equals one of our root candidates.
+                            bool isOfficial = allProperNames.Any(pn =>
                                 c.Name.Equals(pn, StringComparison.OrdinalIgnoreCase)
-                            ) || c.Name.Equals(properName, StringComparison.OrdinalIgnoreCase)
-                        )
+                            );
+
+                            if (!isOfficial)
+                            {
+                                return true;
+                            }
+
+                            return rootCandidates.Any(cand =>
+                                c.Name.Equals(cand, StringComparison.OrdinalIgnoreCase)
+                            );
+                        })
                         .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                         .ToList();
 
                     if (matches.Count == 0)
+                    {
                         continue;
+                    }
 
                     var networkItem = new ToolStripMenuItem(properName);
 
@@ -350,7 +405,9 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (categoryItem.DropDownItems.Count > 0)
+                {
                     rootItem.DropDownItems.Add(categoryItem);
+                }
             }
 
             menu.Items.Add(rootItem);
