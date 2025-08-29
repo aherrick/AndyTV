@@ -361,4 +361,11 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
         menu.Items.Add(new ToolStripSeparator());
     }
+
+    public Channel ChannelByUrl(string url)
+    {
+        return Channels.FirstOrDefault(ch =>
+            string.Equals(ch.Url.Trim(), url.Trim(), StringComparison.OrdinalIgnoreCase)
+        );
+    }
 }

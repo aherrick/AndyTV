@@ -1,10 +1,12 @@
-﻿using AndyTV.Helpers;
+﻿using System.Diagnostics;
+using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
+using Microsoft.VisualBasic;
 
 namespace AndyTV;
 
@@ -18,7 +20,6 @@ public partial class Form1 : Form
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
     private MenuRecentChannelHelper _menuRecentChannelHelper;
-    private MenuSettingsHelper _menuSettingsHelper;
     private MenuTVChannelHelper _menuTVChannelHelper;
     private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
 
@@ -157,15 +158,7 @@ public partial class Form1 : Form
 
             _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
 
-            _menuSettingsHelper = new MenuSettingsHelper(
-                menu: _contextMenuStrip,
-                appVersionName: appVersionName,
-                updateService: _updateService,
-                createFavoritesForm: () => new FavoriteChannelForm(_menuTVChannelHelper.Channels),
-                rebuildFavoritesMenu: () => _menuFavoriteChannelHelper.RebuildFavoritesMenu(),
-                videoView: _videoView,
-                libVLC: _libVLC
-            );
+            BuildSettingsMenu(appVersionName);
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
             _menuRecentChannelHelper.RebuildRecentMenu();
@@ -204,22 +197,6 @@ public partial class Form1 : Form
             }
 
             Logger.Info("[CHANNELS] Loaded");
-        };
-
-        _contextMenuStrip.Opening += delegate
-        {
-            _videoView.ShowDefault();
-        };
-        _contextMenuStrip.Closing += delegate
-        {
-            if (FormBorderStyle == FormBorderStyle.None)
-            {
-                _videoView.HideCursor();
-            }
-            else
-            {
-                _videoView.ShowDefault();
-            }
         };
     }
 
@@ -321,5 +298,123 @@ public partial class Form1 : Form
             RestoreWindow();
         else
             MaximizeWindow();
+    }
+
+    private void BuildSettingsMenu(string appVersionName)
+    {
+        // Header
+        var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName);
+
+        // --- Update ---
+        var updateItem = new ToolStripMenuItem("Update");
+        updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
+        _contextMenuStrip.Items.Add(updateItem);
+
+        // --- Swap (clipboard first, else prompt) ---
+        var swapItem = new ToolStripMenuItem("Swap");
+        swapItem.Click += (_, __) =>
+        {
+            string input = string.Empty;
+
+            if (Clipboard.ContainsText())
+            {
+                string clip = Clipboard.GetText().Trim();
+                if (Uri.TryCreate(clip, UriKind.Absolute, out var _))
+                    input = clip;
+            }
+
+            if (string.IsNullOrEmpty(input))
+            {
+                _videoView.ShowDefault();
+                input = Interaction.InputBox("Enter media URL:", "Swap Stream", "").Trim();
+            }
+
+            if (string.IsNullOrEmpty(input))
+                return;
+
+            Channel ch = _menuTVChannelHelper.ChannelByUrl(input);
+            ch ??= new Channel { Name = "Swap (raw)", Url = input };
+            Play(ch, force: true);
+        };
+        _contextMenuStrip.Items.Add(swapItem);
+
+        // --- Mute / Unmute (LOCAL var; toggled via Opening handler) ---
+        var muteItem = new ToolStripMenuItem("Mute");
+        muteItem.Click += (_, __) =>
+        {
+            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+        };
+        _contextMenuStrip.Items.Add(muteItem);
+
+        // --- Logs ---
+        var logsItem = new ToolStripMenuItem("Logs");
+        logsItem.Click += (_, __) =>
+        {
+            var path = PathHelper.GetPath("logs");
+            Directory.CreateDirectory(path);
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = path,
+                    UseShellExecute = true,
+                }
+            );
+        };
+        _contextMenuStrip.Items.Add(logsItem);
+
+        // --- Favorites ---
+        var favoritesItem = new ToolStripMenuItem("Favorites");
+        favoritesItem.Click += (_, __) =>
+        {
+            _videoView.ShowDefault();
+
+            using Form form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
+            form.FormClosed += (_, __2) =>
+            {
+                _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+
+                Form owner = _contextMenuStrip.SourceControl.FindForm();
+                bool isFullscreen = owner.FormBorderStyle == FormBorderStyle.None;
+                if (isFullscreen)
+                {
+                    _videoView.HideCursor();
+                }
+                else
+                {
+                    _videoView.ShowDefault();
+                }
+            };
+
+            form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
+        };
+        _contextMenuStrip.Items.Add(favoritesItem);
+
+        // --- Exit ---
+        var exitItem = new ToolStripMenuItem("Exit");
+        exitItem.Click += (_, __) => Application.Exit();
+        _contextMenuStrip.Items.Add(exitItem);
+
+        // Context menu state hooks
+        _contextMenuStrip.Opening += (_, __) =>
+        {
+            _videoView.ShowDefault();
+            if (_videoView.MediaPlayer != null)
+            {
+                muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
+            }
+        };
+
+        _contextMenuStrip.Closing += (_, __) =>
+        {
+            if (FormBorderStyle == FormBorderStyle.None)
+            {
+                _videoView.HideCursor();
+            }
+            else
+            {
+                _videoView.ShowDefault();
+            }
+        };
     }
 }
