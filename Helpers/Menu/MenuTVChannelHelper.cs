@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows.Forms;
-using AndyTV.Models;
+﻿using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
@@ -281,65 +277,31 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
         void AddTopChannelsMenu(string rootTitle, Dictionary<string, string[]> categories)
         {
+            // Simple word-like match: candidate appears as a whole token (boundary on both sides)
             bool MatchesWordLike(string text, string term)
             {
                 if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(term))
-                {
                     return false;
-                }
 
-                // Accept exact term, "<term> Channel", and "<term> Network"
-                string[] candidates = [term, term + " Channel", term + " Network"];
-
-                foreach (string candidate in candidates)
+                int startIndex = 0;
+                while (true)
                 {
-                    int startIndex = 0;
-                    while (true)
-                    {
-                        int idx = text.IndexOf(
-                            candidate,
-                            startIndex,
-                            StringComparison.OrdinalIgnoreCase
-                        );
-                        if (idx < 0)
-                        {
-                            break;
-                        }
+                    int idx = text.IndexOf(term, startIndex, StringComparison.OrdinalIgnoreCase);
+                    if (idx < 0)
+                        return false;
 
-                        int leftIdx = idx - 1;
-                        int rightIdx = idx + candidate.Length;
+                    int leftIdx = idx - 1;
+                    int rightIdx = idx + term.Length;
 
-                        bool leftIsBoundary = idx == 0 || !char.IsLetterOrDigit(text[leftIdx]);
-                        bool rightIsBoundary =
-                            rightIdx == text.Length || !char.IsLetterOrDigit(text[rightIdx]);
+                    bool leftBoundary = idx == 0 || !char.IsLetterOrDigit(text[leftIdx]);
+                    bool rightBoundary =
+                        rightIdx == text.Length || !char.IsLetterOrDigit(text[rightIdx]);
 
-                        if (leftIsBoundary && rightIsBoundary)
-                        {
-                            return true;
-                        }
+                    if (leftBoundary && rightBoundary)
+                        return true;
 
-                        startIndex = idx + 1;
-                    }
+                    startIndex = idx + 1;
                 }
-
-                return false;
-            }
-
-            // When the root is "... Channel/Network", also allow the base name (e.g., "USA Network" => "USA")
-            List<string> BuildRootCandidates(string properName)
-            {
-                var list = new List<string> { properName };
-
-                if (properName.EndsWith(" Network", StringComparison.OrdinalIgnoreCase))
-                {
-                    list.Add(properName[..^" Network".Length].Trim());
-                }
-                else if (properName.EndsWith(" Channel", StringComparison.OrdinalIgnoreCase))
-                {
-                    list.Add(properName[..^" Channel".Length].Trim());
-                }
-
-                return list;
             }
 
             var rootItem = new ToolStripMenuItem { Text = rootTitle };
@@ -363,24 +325,30 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                     )
                 )
                 {
-                    var rootCandidates = BuildRootCandidates(properName);
+                    // Since roots are long-form, make candidates = {long root, base root}
+                    string baseName = null;
+                    if (properName.EndsWith(" Network", StringComparison.OrdinalIgnoreCase))
+                        baseName = properName[..^" Network".Length].Trim();
+                    else if (properName.EndsWith(" Channel", StringComparison.OrdinalIgnoreCase))
+                        baseName = properName[..^" Channel".Length].Trim();
+
+                    var candidates = baseName is not null
+                        ? [properName, baseName]
+                        : new[] { properName };
 
                     var matches = Channels
-                        .Where(c => rootCandidates.Any(cand => MatchesWordLike(c.Name, cand)))
+                        .Where(c => candidates.Any(cand => MatchesWordLike(c.Name, cand)))
                         .Where(c =>
                         {
-                            // If an item is exactly any official proper name from any category,
-                            // only include it when it equals one of our root candidates.
+                            // If a channel name exactly matches any official proper name,
+                            // only include it if it equals one of our candidates (root or base).
                             bool isOfficial = allProperNames.Any(pn =>
                                 c.Name.Equals(pn, StringComparison.OrdinalIgnoreCase)
                             );
-
                             if (!isOfficial)
-                            {
                                 return true;
-                            }
 
-                            return rootCandidates.Any(cand =>
+                            return candidates.Any(cand =>
                                 c.Name.Equals(cand, StringComparison.OrdinalIgnoreCase)
                             );
                         })
@@ -388,12 +356,9 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                         .ToList();
 
                     if (matches.Count == 0)
-                    {
                         continue;
-                    }
 
                     var networkItem = new ToolStripMenuItem(properName);
-
                     foreach (var ch in matches)
                     {
                         var chItem = new ToolStripMenuItem(ch.Name) { Tag = ch };
@@ -405,9 +370,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (categoryItem.DropDownItems.Count > 0)
-                {
                     rootItem.DropDownItems.Add(categoryItem);
-                }
             }
 
             menu.Items.Add(rootItem);
