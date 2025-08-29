@@ -51,7 +51,7 @@ public class MenuSettingsHelper
         _menu.Items.Insert(headerIndex + 2, _checkUpdatesItem);
 
         // Swap (raw URL)
-        var swapItem = new ToolStripMenuItem("Swap (raw URL)");
+        var swapItem = new ToolStripMenuItem("Swap");
         swapItem.Click += (_, __) =>
         {
             // Show cursor for dialog
@@ -61,6 +61,8 @@ public class MenuSettingsHelper
 
             if (string.IsNullOrEmpty(input))
                 return;
+
+            videoView.ShowWaiting();
 
             _videoView.MediaPlayer.Stop();
             _videoView.MediaPlayer.Play(new Media(_libVLC, input, FromType.FromLocation));
