@@ -28,6 +28,12 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
+    // 🔒 Prevent overlapping Play() attempts
+    private volatile bool _isPlaying = false;
+
+    // ⛔ Kill stale tasks/events from a previous play
+    private CancellationTokenSource _playCts;
+
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
@@ -37,13 +43,14 @@ public partial class Form1 : Form
         InitializeComponent();
 
         _notificationService = new NotificationService(this);
+        _playCts = new CancellationTokenSource();
 
         HandleCreated += delegate
         {
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
-                Play(last);
+                Play(last); // guarded; will be ignored if something is already starting
             }
         };
 
@@ -51,16 +58,43 @@ public partial class Form1 : Form
 
         Icon = new Icon("AndyTV.ico");
 
-        void RestartChannel()
+        void RestartChannel(string trigger)
         {
-            Task.Run(() => Play(_currentChannel));
+            var ct = _playCts.Token; // snapshot current token
+            Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(500, ct); // tiny backoff to let VLC settle
+                        if (ct.IsCancellationRequested)
+                        {
+                            return;
+                        }
+                        Logger.Info(
+                            $"[RESTART] trigger={trigger} ch='{_currentChannel.DisplayName}'"
+                        );
+                        Play(_currentChannel); // normal (non-forced) restart; guard applies
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // stale restart; ignore
+                    }
+                },
+                ct
+            );
         }
 
-        videoView.MediaPlayer.EndReached += (_, _) => RestartChannel();
-        videoView.MediaPlayer.EncounteredError += (_, _) => RestartChannel();
-
+        // VLC events
         videoView.MediaPlayer.Playing += delegate
         {
+            if (_playCts.IsCancellationRequested)
+            {
+                return; // stale event from old play
+            }
+
+            _isPlaying = false; // now safe to allow another Play()
+
             // Reset cursor based on fullscreen state
             if (FormBorderStyle == FormBorderStyle.None)
             {
@@ -75,6 +109,28 @@ public partial class Form1 : Form
             RecentChannelsService.AddOrPromote(_currentChannel);
             ChannelDataService.SaveLastChannel(_currentChannel);
             _menuRecentChannelHelper?.RebuildRecentMenu();
+        };
+
+        videoView.MediaPlayer.EndReached += (_, _) =>
+        {
+            if (_playCts.IsCancellationRequested)
+            {
+                return; // stale
+            }
+
+            _isPlaying = false;
+            RestartChannel("EndReached");
+        };
+
+        videoView.MediaPlayer.EncounteredError += (_, _) =>
+        {
+            if (_playCts.IsCancellationRequested)
+            {
+                return; // stale
+            }
+
+            _isPlaying = false;
+            RestartChannel("EncounteredError");
         };
 
         // Configure VideoView with context menu and event handlers
@@ -139,9 +195,13 @@ public partial class Form1 : Form
             await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
 
             if (FormBorderStyle == FormBorderStyle.None)
+            {
                 _videoView.HideCursor();
+            }
             else
+            {
                 _videoView.ShowDefault();
+            }
 
             Logger.Info("[CHANNELS] Loaded");
         };
@@ -153,41 +213,46 @@ public partial class Form1 : Form
         _contextMenuStrip.Closing += delegate
         {
             if (FormBorderStyle == FormBorderStyle.None)
+            {
                 _videoView.HideCursor();
+            }
             else
+            {
                 _videoView.ShowDefault();
+            }
         };
     }
 
     private void ChItem_Click(object sender, EventArgs e)
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
-            Play(ch);
+        {
+            Play(ch, force: true); // manual selection overrides guard
+        }
     }
 
-    private void Play(Channel channel)
+    private void Play(Channel channel, bool force = false)
     {
-        if (channel == null)
+        if (_isPlaying && !force)
         {
-            return;
+            return; // throttle auto restarts
         }
+
+        _isPlaying = true;
+
+        // Cancel any pending work from previous play (restarts, stale event reactions)
+        _playCts.Cancel();
+        _playCts.Dispose();
+        _playCts = new CancellationTokenSource();
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
         _videoView.ShowWaiting();
 
-        try
-        {
-            _videoView.MediaPlayer.Stop();
-            _videoView.MediaPlayer.Play(new Media(_libVLC, new Uri(channel.Url)));
-        }
-        catch (Exception ex)
-        {
-            _videoView.ShowDefault();
-            Logger.Error(
-                $"[PLAY][ERROR] channel='{channel.DisplayName}' url='{channel.Url}' ex={ex}"
-            );
-        }
+        _videoView.MediaPlayer.Stop();
+
+        using var media = new Media(_libVLC, new Uri(channel.Url));
+        _videoView.MediaPlayer.Play(media);
     }
 
     private void MaximizeWindow()
@@ -195,8 +260,6 @@ public partial class Form1 : Form
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
         Bounds = Screen.FromControl(this).Bounds;
-
-        // Hide cursor when hovering over video view
         _videoView.HideCursor();
     }
 
@@ -210,7 +273,7 @@ public partial class Form1 : Form
                 ? _manuallyAdjustedBounds
                 : Screen.FromControl(this).WorkingArea;
 
-        _videoView.ShowDefault(); // show
+        _videoView.ShowDefault();
     }
 
     private void VideoView_MouseDown(object sender, MouseEventArgs e)
@@ -232,7 +295,7 @@ public partial class Form1 : Form
             var prevChannel = RecentChannelsService.GetPrevious();
             if (prevChannel != null)
             {
-                Play(prevChannel);
+                Play(prevChannel, force: true); // make previous-channel switch authoritative
                 _currentChannel = prevChannel;
             }
         }
