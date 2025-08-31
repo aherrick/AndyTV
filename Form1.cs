@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Windows.Forms;
 using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
@@ -239,11 +238,11 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
         {
-            Play(ch, force: true); // manual selection overrides any pending waits/retries
+            Play(ch); // manual selection overrides any pending waits/retries
         }
     }
 
-    private void Play(Channel channel, bool force = false)
+    private void Play(Channel channel)
     {
         // Cancel any pending work from previous play (retries or waits)
         _playCts.Cancel();
@@ -304,7 +303,7 @@ public partial class Form1 : Form
             var prevChannel = RecentChannelsService.GetPrevious();
             if (prevChannel != null)
             {
-                Play(prevChannel, force: true); // authoritative previous-channel switch
+                Play(prevChannel); // authoritative previous-channel switch
                 _currentChannel = prevChannel;
             }
         }
@@ -374,7 +373,7 @@ public partial class Form1 : Form
 
             Channel ch = _menuTVChannelHelper.ChannelByUrl(input);
             ch ??= new Channel { Name = "Swap", Url = input };
-            Play(ch, force: true);
+            Play(ch);
         };
         _contextMenuStrip.Items.Add(swapItem);
 
