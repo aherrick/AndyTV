@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Windows.Forms;
 using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
 using AndyTV.Models;
@@ -29,10 +30,7 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    // 🔒 Prevent overlapping Play() attempts
-    private volatile bool _isPlaying = false;
-
-    // ⛔ Kill stale tasks/events from a previous play
+    // Cancels any pending waits/retries when a new Play begins
     private CancellationTokenSource _playCts;
 
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
@@ -51,7 +49,7 @@ public partial class Form1 : Form
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
             {
-                Play(last); // guarded; will be ignored if something is already starting
+                Play(last);
             }
         };
 
@@ -59,42 +57,83 @@ public partial class Form1 : Form
 
         Icon = new Icon("AndyTV.ico");
 
+        // ------- Lean Restart (3 tries; each waits up to 10s for Playing; aborts if user force-switches)
         void RestartChannel(string trigger)
         {
-            var ct = _playCts.Token; // snapshot current token
-            Task.Run(
-                async () =>
+            Task.Run(async () =>
+            {
+                try
                 {
-                    try
+                    for (int attempt = 1; attempt <= 3; attempt++)
                     {
-                        await Task.Delay(500, ct); // tiny backoff to let VLC settle
-                        if (ct.IsCancellationRequested)
-                        {
-                            return;
-                        }
                         Logger.Info(
-                            $"[RESTART] trigger={trigger} ch='{_currentChannel.DisplayName}'"
+                            $"[RESTART] trigger={trigger} attempt={attempt}/3 ch='{_currentChannel?.DisplayName}'"
                         );
-                        Play(_currentChannel); // normal (non-forced) restart; guard applies
+
+                        var tcs = new TaskCompletionSource<bool>(
+                            TaskCreationOptions.RunContinuationsAsynchronously
+                        );
+                        void OnPlaying(object s, EventArgs e)
+                        {
+                            tcs.TrySetResult(true);
+                        }
+
+                        _videoView.MediaPlayer.Playing += OnPlaying;
+                        try
+                        {
+                            // Normal (non-forced) restart
+                            Play(_currentChannel);
+
+                            // Play() recreated _playCts; use the fresh token for this attempt
+                            var attemptToken = _playCts.Token;
+
+                            // Wait up to 10s for Playing, or cancel if user force-plays another channel
+                            var finished = await Task.WhenAny(
+                                tcs.Task,
+                                Task.Delay(10_000, attemptToken)
+                            );
+
+                            if (attemptToken.IsCancellationRequested)
+                            {
+                                return; // user switched channels; this retry loop is stale
+                            }
+
+                            if (finished == tcs.Task && await tcs.Task)
+                            {
+                                Logger.Info($"[RESTART] success on attempt {attempt}");
+                                return; // hit Playing — done
+                            }
+
+                            Logger.Info($"[RESTART] no 'Playing' within 10s on attempt {attempt}");
+                        }
+                        finally
+                        {
+                            _videoView.MediaPlayer.Playing -= OnPlaying;
+                        }
                     }
-                    catch (OperationCanceledException)
-                    {
-                        // stale restart; ignore
-                    }
-                },
-                ct
-            );
+
+                    Logger.Warn(
+                        $"[RESTART] giving up after 3 attempts ch='{_currentChannel?.DisplayName}'"
+                    );
+                }
+                catch (OperationCanceledException)
+                {
+                    // stale restart; ignore
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "[RESTART] unexpected error");
+                }
+            });
         }
 
-        // VLC events
+        // ------- VLC events (lean)
         videoView.MediaPlayer.Playing += delegate
         {
             if (_playCts.IsCancellationRequested)
             {
                 return; // stale event from old play
             }
-
-            _isPlaying = false; // now safe to allow another Play()
 
             // Reset cursor based on fullscreen state
             if (FormBorderStyle == FormBorderStyle.None)
@@ -112,25 +151,21 @@ public partial class Form1 : Form
             _menuRecentChannelHelper?.RebuildRecentMenu();
         };
 
-        videoView.MediaPlayer.EndReached += (_, _) =>
+        videoView.MediaPlayer.EndReached += (_, __) =>
         {
             if (_playCts.IsCancellationRequested)
             {
-                return; // stale
-            }
-
-            _isPlaying = false;
+                return;
+            } // stale
             RestartChannel("EndReached");
         };
 
-        videoView.MediaPlayer.EncounteredError += (_, _) =>
+        videoView.MediaPlayer.EncounteredError += (_, __) =>
         {
             if (_playCts.IsCancellationRequested)
             {
-                return; // stale
-            }
-
-            _isPlaying = false;
+                return;
+            } // stale
             RestartChannel("EncounteredError");
         };
 
@@ -161,13 +196,13 @@ public partial class Form1 : Form
             BuildSettingsMenu(appVersionName);
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
-            _menuRecentChannelHelper.RebuildRecentMenu();
+            _menuRecentChannelHelper?.RebuildRecentMenu();
 
             _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
                 _contextMenuStrip,
                 ChItem_Click
             );
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+            _menuFavoriteChannelHelper?.RebuildFavoritesMenu();
 
             var source = M3UService.TryGetFirstSource();
             if (source == null)
@@ -204,20 +239,13 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
         {
-            Play(ch, force: true); // manual selection overrides guard
+            Play(ch, force: true); // manual selection overrides any pending waits/retries
         }
     }
 
     private void Play(Channel channel, bool force = false)
     {
-        if (_isPlaying && !force)
-        {
-            return; // throttle auto restarts
-        }
-
-        _isPlaying = true;
-
-        // Cancel any pending work from previous play (restarts, stale event reactions)
+        // Cancel any pending work from previous play (retries or waits)
         _playCts.Cancel();
         _playCts.Dispose();
         _playCts = new CancellationTokenSource();
@@ -256,9 +284,13 @@ public partial class Form1 : Form
     private void VideoView_MouseDown(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left)
+        {
             _mouseDownLeftPrevChannel = DateTime.Now;
+        }
         if (e.Button == MouseButtons.Right)
+        {
             _mouseDownRightExit = DateTime.Now;
+        }
     }
 
     private void VideoView_MouseUp(object sender, MouseEventArgs e)
@@ -272,7 +304,7 @@ public partial class Form1 : Form
             var prevChannel = RecentChannelsService.GetPrevious();
             if (prevChannel != null)
             {
-                Play(prevChannel, force: true); // make previous-channel switch authoritative
+                Play(prevChannel, force: true); // authoritative previous-channel switch
                 _currentChannel = prevChannel;
             }
         }
@@ -295,9 +327,13 @@ public partial class Form1 : Form
     private void VideoView_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         if (FormBorderStyle == FormBorderStyle.None)
+        {
             RestoreWindow();
+        }
         else
+        {
             MaximizeWindow();
+        }
     }
 
     private void BuildSettingsMenu(string appVersionName)
@@ -308,7 +344,7 @@ public partial class Form1 : Form
         // --- Update ---
         var updateItem = new ToolStripMenuItem("Update");
         updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
-        _contextMenuStrip.Items.Add(updateItem);
+        _context_menuStrip.Items.Add(updateItem);
 
         // --- Swap (clipboard first, else prompt) ---
         var swapItem = new ToolStripMenuItem("Swap");
@@ -332,7 +368,9 @@ public partial class Form1 : Form
             }
 
             if (string.IsNullOrEmpty(input))
+            {
                 return;
+            }
 
             Channel ch = _menuTVChannelHelper.ChannelByUrl(input);
             ch ??= new Channel { Name = "Swap", Url = input };
@@ -340,7 +378,7 @@ public partial class Form1 : Form
         };
         _contextMenuStrip.Items.Add(swapItem);
 
-        // --- Mute / Unmute (LOCAL var; toggled via Opening handler) ---
+        // --- Mute / Unmute ---
         var muteItem = new ToolStripMenuItem("Mute");
         muteItem.Click += (_, __) =>
         {
