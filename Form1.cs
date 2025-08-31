@@ -429,6 +429,23 @@ public partial class Form1 : Form
         };
         _contextMenuStrip.Items.Add(favoritesItem);
 
+        // --- Restart ---
+        var restartItem = new ToolStripMenuItem("Restart");
+        restartItem.Click += (_, __) =>
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = Application.ExecutablePath,
+                    UseShellExecute = true,
+                    WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
+                }
+            );
+
+            Application.Exit();
+        };
+        _contextMenuStrip.Items.Add(restartItem);
+
         // --- Exit ---
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, __) => Application.Exit();
