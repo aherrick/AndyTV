@@ -344,7 +344,7 @@ public partial class Form1 : Form
         // --- Update ---
         var updateItem = new ToolStripMenuItem("Update");
         updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
-        _context_menuStrip.Items.Add(updateItem);
+        _contextMenuStrip.Items.Add(updateItem);
 
         // --- Swap (clipboard first, else prompt) ---
         var swapItem = new ToolStripMenuItem("Swap");
