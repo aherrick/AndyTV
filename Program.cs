@@ -33,20 +33,14 @@ internal static class Program
 
     public static void Restart()
     {
-        var exe = Environment.ProcessPath ?? Application.ExecutablePath;
-
-        try
-        {
-            _mutex?.ReleaseMutex();
-        }
-        catch { }
+        _mutex?.ReleaseMutex();
         _mutex?.Dispose();
         _mutex = null;
 
         Process.Start(
             new ProcessStartInfo
             {
-                FileName = exe,
+                FileName = Environment.ProcessPath ?? Application.ExecutablePath,
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
             }
