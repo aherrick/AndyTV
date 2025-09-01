@@ -33,8 +33,8 @@ internal static class Program
 
     public static void Restart()
     {
-        _mutex?.ReleaseMutex();
-        _mutex?.Dispose();
+        _mutex.ReleaseMutex();
+        _mutex.Dispose();
         _mutex = null;
 
         Process.Start(
