@@ -12,6 +12,10 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+#pragma warning disable WFO5001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        Application.SetColorMode(SystemColorMode.Dark);
+#pragma warning restore WFO5001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         // One name for the whole machine/session. Use "Global\" to block across user sessions.
         const string MutexName = @"Global\AndyTV_SingleInstance";
 

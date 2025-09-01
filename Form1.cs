@@ -32,6 +32,9 @@ public partial class Form1 : Form
     // Cancels any pending waits/retries when a new Play begins
     private CancellationTokenSource _playCts;
 
+    // Prevent multiple restart loops
+    private bool _isRestarting = false;
+
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
@@ -59,8 +62,12 @@ public partial class Form1 : Form
         // ------- Lean Restart (3 tries; each waits up to 10s for Playing; aborts if user force-switches)
         void RestartChannel(string trigger)
         {
+            if (_isRestarting)
+                return; // Prevent multiple restart loops
+
             Task.Run(async () =>
             {
+                _isRestarting = true;
                 try
                 {
                     for (int attempt = 1; attempt <= 3; attempt++)
@@ -80,8 +87,8 @@ public partial class Form1 : Form
                         _videoView.MediaPlayer.Playing += OnPlaying;
                         try
                         {
-                            // Normal (non-forced) restart
-                            Play(_currentChannel);
+                            // Use BeginInvoke to marshal to UI thread
+                            BeginInvoke(() => Play(_currentChannel));
 
                             // Play() recreated _playCts; use the fresh token for this attempt
                             var attemptToken = _playCts.Token;
@@ -123,6 +130,10 @@ public partial class Form1 : Form
                 {
                     Logger.Error(ex, "[RESTART] unexpected error");
                 }
+                finally
+                {
+                    _isRestarting = false; // Reset flag when done
+                }
             });
         }
 
@@ -134,20 +145,18 @@ public partial class Form1 : Form
                 return; // stale event from old play
             }
 
-            // Reset cursor based on fullscreen state
-            if (FormBorderStyle == FormBorderStyle.None)
-            {
-                _videoView.HideCursor();
-            }
-            else
-            {
-                _videoView.ShowDefault();
-            }
+            _isRestarting = false; // Reset restart flag on successful play
 
-            _notificationService.ShowToast(_currentChannel.DisplayName);
-            RecentChannelsService.AddOrPromote(_currentChannel);
-            ChannelDataService.SaveLastChannel(_currentChannel);
-            _menuRecentChannelHelper?.RebuildRecentMenu();
+            // Reset cursor based on fullscreen state
+            SetCursorForCurrentMode();
+
+            BeginInvoke(() =>
+            {
+                _notificationService.ShowToast(_currentChannel.DisplayName);
+                RecentChannelsService.AddOrPromote(_currentChannel);
+                ChannelDataService.SaveLastChannel(_currentChannel);
+                _menuRecentChannelHelper?.RebuildRecentMenu();
+            });
         };
 
         videoView.MediaPlayer.EndReached += (_, __) =>
@@ -185,7 +194,7 @@ public partial class Form1 : Form
             }
         };
 
-        Shown += async delegate
+        Shown += delegate
         {
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
@@ -195,13 +204,13 @@ public partial class Form1 : Form
             BuildSettingsMenu(appVersionName);
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
-            _menuRecentChannelHelper?.RebuildRecentMenu();
+            _menuRecentChannelHelper.RebuildRecentMenu();
 
             _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
                 _contextMenuStrip,
                 ChItem_Click
             );
-            _menuFavoriteChannelHelper?.RebuildFavoritesMenu();
+            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
             var source = M3UService.TryGetFirstSource();
             if (source == null)
@@ -219,19 +228,28 @@ public partial class Form1 : Form
             Logger.Info("[CHANNELS] Loading from M3U...");
             _videoView.ShowWaiting();
 
-            await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
-
-            if (FormBorderStyle == FormBorderStyle.None)
+            // Only the slow channel loading runs on background thread
+            _ = Task.Run(async () =>
             {
-                _videoView.HideCursor();
-            }
-            else
-            {
-                _videoView.ShowDefault();
-            }
+                await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
+                Logger.Info("[CHANNELS] Loaded");
+            });
 
-            Logger.Info("[CHANNELS] Loaded");
+            // Cursor stuff can happen immediately on UI thread
+            SetCursorForCurrentMode();
         };
+    }
+
+    private void SetCursorForCurrentMode()
+    {
+        if (FormBorderStyle == FormBorderStyle.None)
+        {
+            _videoView.HideCursor();
+        }
+        else
+        {
+            _videoView.ShowDefault();
+        }
     }
 
     private void ChItem_Click(object sender, EventArgs e)
@@ -248,6 +266,8 @@ public partial class Form1 : Form
         _playCts.Cancel();
         _playCts.Dispose();
         _playCts = new CancellationTokenSource();
+
+        _isRestarting = false; // Reset restart flag when user manually plays
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
@@ -414,15 +434,7 @@ public partial class Form1 : Form
                 _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
                 Form owner = _contextMenuStrip.SourceControl.FindForm();
-                bool isFullscreen = owner.FormBorderStyle == FormBorderStyle.None;
-                if (isFullscreen)
-                {
-                    _videoView.HideCursor();
-                }
-                else
-                {
-                    _videoView.ShowDefault();
-                }
+                SetCursorForCurrentMode();
             };
 
             form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
@@ -463,14 +475,7 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Closing += (_, __) =>
         {
-            if (FormBorderStyle == FormBorderStyle.None)
-            {
-                _videoView.HideCursor();
-            }
-            else
-            {
-                _videoView.ShowDefault();
-            }
+            SetCursorForCurrentMode();
         };
     }
 }
