@@ -171,6 +171,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Move Up",
             Location = new Point(645, 310), // 15px from right edge
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _moveUpButton.Click += MoveUpButton_Click;
 
@@ -179,6 +180,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Move Down",
             Location = new Point(645, 350),
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _moveDownButton.Click += MoveDownButton_Click;
 
@@ -187,6 +189,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Remove",
             Location = new Point(645, 390),
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _removeButton.Click += RemoveButton_Click;
 
@@ -196,6 +199,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Import",
             Location = new Point(15, 580),
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _importButton.Click += ImportFavorites;
 
@@ -204,6 +208,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Export",
             Location = new Point(105, 580),
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _exportButton.Click += ExportFavorites;
 
@@ -212,6 +217,7 @@ public partial class FavoriteChannelForm : Form
             Text = "Save",
             Location = new Point(645, 580), // Aligned with right-side buttons, 15px from edge
             Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
         _saveButton.Click += SaveButton_Click;
 
