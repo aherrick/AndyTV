@@ -443,12 +443,13 @@ public partial class Form1 : Form
         _contextMenuStrip.Items.Add(favoritesItem);
 
         // --- Restart ---
-        var restartItem = new ToolStripMenuItem("Restart");
-        restartItem.Click += (_, __) =>
-        {
-            Program.RestartApplication();
-        };
-        _contextMenuStrip.Items.Add(restartItem);
+        //var restartItem = new ToolStripMenuItem("Restart");
+        //restartItem.Click += (_, __) =>
+        //{
+        //    Application.Restart();
+        //    Environment.Exit(0);
+        //};
+        //_contextMenuStrip.Items.Add(restartItem);
 
         // --- Exit ---
         var exitItem = new ToolStripMenuItem("Exit");

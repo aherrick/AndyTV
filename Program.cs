@@ -42,12 +42,4 @@ internal static class Program
 
         Application.Run(mainForm);
     }
-
-    public static void RestartApplication()
-    {
-        Process.Start(
-            new ProcessStartInfo { FileName = Application.ExecutablePath, UseShellExecute = true }
-        );
-        Environment.Exit(0);
-    }
 }
