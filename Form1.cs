@@ -6,7 +6,6 @@ using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
-using Microsoft.VisualBasic;
 
 namespace AndyTV;
 
@@ -365,34 +364,53 @@ public partial class Form1 : Form
         updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
         _contextMenuStrip.Items.Add(updateItem);
 
-        // --- Swap (clipboard first, else prompt) ---
         var swapItem = new ToolStripMenuItem("Swap");
         swapItem.Click += (_, __) =>
         {
-            string input = string.Empty;
+            string input = null;
 
+            // Prefer a valid absolute URL from clipboard if present
             if (Clipboard.ContainsText())
             {
-                string clip = Clipboard.GetText().Trim();
-                if (Uri.TryCreate(clip, UriKind.Absolute, out var _))
+                var clip = Clipboard.GetText().Trim();
+                if (Uri.IsWellFormedUriString(clip, UriKind.Absolute))
                 {
                     input = clip;
                 }
             }
 
-            if (string.IsNullOrEmpty(input))
+            // If no valid clipboard URL, prompt
+            if (string.IsNullOrWhiteSpace(input))
             {
                 _videoView.ShowDefault();
-                input = Interaction.InputBox("Enter media URL:", "Swap Stream", "").Trim();
+
+                using var dlg = new InputForm("Swap Stream", "Enter media URL:");
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                input = dlg.Result?.Trim();
             }
 
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrWhiteSpace(input))
+                return;
+
+            // Final sanity check
+            if (!Uri.IsWellFormedUriString(input, UriKind.Absolute))
             {
+                MessageBox.Show(
+                    this,
+                    "Please enter a valid absolute URL.",
+                    "Invalid URL",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
                 return;
             }
 
-            Channel ch = _menuTVChannelHelper.ChannelByUrl(input);
-            ch ??= new Channel { Name = "Swap", Url = input };
+            var ch =
+                _menuTVChannelHelper.ChannelByUrl(input)
+                ?? new Channel { Name = "Swap", Url = input };
+
             Play(ch);
         };
         _contextMenuStrip.Items.Add(swapItem);
