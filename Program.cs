@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AndyTV.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Velopack;
@@ -40,5 +41,13 @@ internal static class Program
         var mainForm = serviceProvider.GetRequiredService<Form1>();
 
         Application.Run(mainForm);
+    }
+
+    public static void RestartApplication()
+    {
+        Process.Start(
+            new ProcessStartInfo { FileName = Application.ExecutablePath, UseShellExecute = true }
+        );
+        Environment.Exit(0);
     }
 }

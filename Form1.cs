@@ -282,8 +282,9 @@ public partial class Form1 : Form
     private void MaximizeWindow()
     {
         FormBorderStyle = FormBorderStyle.None;
-        WindowState = FormWindowState.Maximized;
-        Bounds = Screen.FromControl(this).Bounds;
+        WindowState = FormWindowState.Normal; // Set to Normal first
+        TopMost = true; // Ensures it stays on top of everything
+        Bounds = Screen.PrimaryScreen.Bounds; // Covers entire screen including taskbar area
         _videoView.HideCursor();
     }
 
@@ -445,16 +446,7 @@ public partial class Form1 : Form
         var restartItem = new ToolStripMenuItem("Restart");
         restartItem.Click += (_, __) =>
         {
-            Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = Application.ExecutablePath,
-                    UseShellExecute = true,
-                    WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
-                }
-            );
-
-            Application.Exit();
+            Program.RestartApplication();
         };
         _contextMenuStrip.Items.Add(restartItem);
 
