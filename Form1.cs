@@ -283,7 +283,6 @@ public partial class Form1 : Form
     {
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Normal; // Set to Normal first
-        TopMost = true; // Ensures it stays on top of everything
         Bounds = Screen.PrimaryScreen.Bounds; // Covers entire screen including taskbar area
         _videoView.HideCursor();
     }
