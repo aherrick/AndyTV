@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using AndyTV.Helpers;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -165,6 +166,54 @@ public partial class FavoriteChannelForm : Form
         SetupGridColumns();
         SetupCopyPaste();
 
+        _moveUpButton = new Button
+        {
+            Text = "Move Up",
+            Location = new Point(645, 310),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _moveUpButton.Click += MoveUpButton_Click;
+
+        _moveDownButton = new Button
+        {
+            Text = "Move Down",
+            Location = new Point(645, 350),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _moveDownButton.Click += MoveDownButton_Click;
+
+        _removeButton = new Button
+        {
+            Text = "Remove",
+            Location = new Point(645, 390),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _removeButton.Click += RemoveButton_Click;
+
+        _importButton = new Button
+        {
+            Text = "Import",
+            Location = new Point(15, 580),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _importButton.Click += ImportFavorites;
+
+        _exportButton = new Button
+        {
+            Text = "Export",
+            Location = new Point(105, 580),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _exportButton.Click += ExportFavorites;
+
+        _saveButton = new Button
+        {
+            Text = "Save",
+            Location = new Point(645, 580),
+            Size = new Size(80, 30),
+        }.ApplySystemStyle();
+        _saveButton.Click += SaveButton_Click;
+
         // Control buttons (right side of grid) - maintaining 15px right margin
         _moveUpButton = new Button
         {
@@ -173,6 +222,7 @@ public partial class FavoriteChannelForm : Form
             Size = new Size(80, 30),
             UseVisualStyleBackColor = true, // important so buttons adopt the system theme
         };
+        _moveUpButton.ApplySystemStyle();
         _moveUpButton.Click += MoveUpButton_Click;
 
         _moveDownButton = new Button
@@ -180,8 +230,9 @@ public partial class FavoriteChannelForm : Form
             Text = "Move Down",
             Location = new Point(645, 350),
             Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            UseVisualStyleBackColor = true,
         };
+        _moveDownButton.ApplySystemStyle();
         _moveDownButton.Click += MoveDownButton_Click;
 
         _removeButton = new Button
@@ -189,8 +240,9 @@ public partial class FavoriteChannelForm : Form
             Text = "Remove",
             Location = new Point(645, 390),
             Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            UseVisualStyleBackColor = true,
         };
+        _removeButton.ApplySystemStyle();
         _removeButton.Click += RemoveButton_Click;
 
         // Bottom buttons - maintaining consistent margins
@@ -199,8 +251,9 @@ public partial class FavoriteChannelForm : Form
             Text = "Import",
             Location = new Point(15, 580),
             Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            UseVisualStyleBackColor = true,
         };
+        _importButton.ApplySystemStyle();
         _importButton.Click += ImportFavorites;
 
         _exportButton = new Button
@@ -208,8 +261,9 @@ public partial class FavoriteChannelForm : Form
             Text = "Export",
             Location = new Point(105, 580),
             Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            UseVisualStyleBackColor = true,
         };
+        _exportButton.ApplySystemStyle();
         _exportButton.Click += ExportFavorites;
 
         _saveButton = new Button
@@ -217,8 +271,9 @@ public partial class FavoriteChannelForm : Form
             Text = "Save",
             Location = new Point(645, 580), // Aligned with right-side buttons, 15px from edge
             Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            UseVisualStyleBackColor = true,
         };
+        _saveButton.ApplySystemStyle();
         _saveButton.Click += SaveButton_Click;
 
         // Add controls to form

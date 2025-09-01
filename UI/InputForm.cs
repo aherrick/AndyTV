@@ -1,54 +1,66 @@
-﻿namespace AndyTV.UI;
+﻿using System.Drawing;
+using System.Windows.Forms;
+using AndyTV.Helpers;
 
-public class InputForm : Form
+namespace AndyTV.UI
 {
-    public TextBox InputBox { get; } = new TextBox();
-    private readonly Button _ok;
-    private readonly Button _cancel;
-
-    public string Result => DialogResult == DialogResult.OK ? InputBox.Text.Trim() : string.Empty;
-
-    public InputForm(string title, string prompt, string defaultText = "")
+    public class InputForm : Form
     {
-        Text = title;
-        StartPosition = FormStartPosition.CenterParent;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MinimizeBox = false;
-        MaximizeBox = false;
-        ClientSize = new Size(400, 120);
+        public TextBox InputBox { get; } = new TextBox();
+        private readonly Button _ok;
+        private readonly Button _cancel;
 
-        var lbl = new Label
+        public string Result =>
+            DialogResult == DialogResult.OK ? InputBox.Text.Trim() : string.Empty;
+
+        public InputForm(string title, string prompt, string defaultText = "")
         {
-            Left = 10,
-            Top = 10,
-            Text = prompt,
-            AutoSize = true,
-        };
-        InputBox.Left = 10;
-        InputBox.Top = 35;
-        InputBox.Width = 370;
-        InputBox.Text = defaultText;
+            Text = title;
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MinimizeBox = false;
+            MaximizeBox = false;
+            ClientSize = new Size(400, 120);
 
-        _ok = new Button
-        {
-            Text = "OK",
-            Left = 220,
-            Width = 75,
-            Top = 70,
-            DialogResult = DialogResult.OK,
-        };
-        _cancel = new Button
-        {
-            Text = "Cancel",
-            Left = 305,
-            Width = 75,
-            Top = 70,
-            DialogResult = DialogResult.Cancel,
-        };
+            var lbl = new Label
+            {
+                Left = 10,
+                Top = 10,
+                Text = prompt,
+                AutoSize = true,
+            };
 
-        Controls.AddRange([lbl, InputBox, _ok, _cancel]);
+            InputBox.Left = 10;
+            InputBox.Top = 35;
+            InputBox.Width = 370;
+            InputBox.Text = defaultText;
 
-        AcceptButton = _ok;
-        CancelButton = _cancel;
+            _ok = new Button
+            {
+                Text = "OK",
+                Left = 220,
+                Width = 75,
+                Top = 70,
+                DialogResult = DialogResult.OK,
+                UseVisualStyleBackColor = true,
+            };
+            _ok.ApplySystemStyle();
+
+            _cancel = new Button
+            {
+                Text = "Cancel",
+                Left = 305,
+                Width = 75,
+                Top = 70,
+                DialogResult = DialogResult.Cancel,
+                UseVisualStyleBackColor = true,
+            };
+            _cancel.ApplySystemStyle();
+
+            Controls.AddRange([lbl, InputBox, _ok, _cancel]);
+
+            AcceptButton = _ok;
+            CancelButton = _cancel;
+        }
     }
 }
