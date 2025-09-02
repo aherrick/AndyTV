@@ -24,8 +24,11 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             var usDict = BuildTopUs();
             var ukDict = BuildTopUk();
 
-            var usItem = BuildTopMenu("US", usDict, channelClick);
-            var ukItem = BuildTopMenu("UK", ukDict, channelClick);
+            // Create channel lookup for faster matching
+            var channelLookup = BuildChannelLookup();
+
+            var usItem = BuildTopMenu("US", usDict, channelClick, channelLookup);
+            var ukItem = BuildTopMenu("UK", ukDict, channelClick, channelLookup);
 
             return (usItem, ukItem);
         });
@@ -338,10 +341,33 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
     // ---------- Menu building (off-screen) ----------
 
-    private ToolStripMenuItem BuildTopMenu(
+    private Dictionary<string, List<Channel>> BuildChannelLookup()
+    {
+        var lookup = new Dictionary<string, List<Channel>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var channel in Channels)
+        {
+            var words = channel.Name.Split(
+                [' ', '-', '.', '_'],
+                StringSplitOptions.RemoveEmptyEntries
+            );
+            foreach (var word in words)
+            {
+                if (!lookup.TryGetValue(word, out var list))
+                {
+                    list = [];
+                    lookup[word] = list;
+                }
+                list.Add(channel);
+            }
+        }
+        return lookup;
+    }
+
+    private static ToolStripMenuItem BuildTopMenu(
         string rootTitle,
         Dictionary<string, string[][]> categories,
-        EventHandler channelClick
+        EventHandler channelClick,
+        Dictionary<string, List<Channel>> channelLookup
     )
     {
         var rootItem = new ToolStripMenuItem(rootTitle);
@@ -360,20 +386,27 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 var display = entry[0];
                 var candidates = entry; // entry[0] is display, rest are alternates
 
-                var matches = Channels
-                    .Where(ch =>
-                        candidates.Any(term =>
-                            ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                        )
-                    )
+                var matches = new HashSet<Channel>();
+                foreach (var term in candidates)
+                {
+                    if (channelLookup.TryGetValue(term, out var channels))
+                    {
+                        foreach (var ch in channels)
+                        {
+                            matches.Add(ch);
+                        }
+                    }
+                }
+
+                var sortedMatches = matches
                     .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
-                if (matches.Count == 0)
+                if (sortedMatches.Count == 0)
                     continue;
 
                 var parent = new ToolStripMenuItem(display);
-                foreach (var ch in matches)
+                foreach (var ch in sortedMatches)
                 {
                     var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
                     item.Click += channelClick;
