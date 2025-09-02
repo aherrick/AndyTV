@@ -5,6 +5,9 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public List<Channel> Channels { get; private set; } = [];
 
     public async Task LoadChannels(string m3uURL)
@@ -13,21 +16,30 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
     }
 
-    public void BuildMenu(EventHandler channelClick)
+    public async Task BuildMenu(EventHandler channelClick)
     {
-        // Use MenuHelper.AddHeader to add the header
-        var headerItem = MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        // Build menu structure in background thread
+        var menuItems = await Task.Run(() =>
+        {
+            var usDict = BuildTopUs();
+            var ukDict = BuildTopUk();
 
-        var usDict = BuildTopUs();
-        var ukDict = BuildTopUk();
+            var usItem = BuildTopMenu("US", usDict, channelClick);
+            var ukItem = BuildTopMenu("UK", ukDict, channelClick);
 
-        var usItem = BuildTopMenu("US", usDict, channelClick);
+            return (usItem, ukItem);
+        });
 
-        menu.Items.Add(usItem);
-
-        var ukItem = BuildTopMenu("UK", ukDict, channelClick);
-
-        menu.Items.Add(ukItem);
+        // Add to menu on UI thread
+        _ui.Post(
+            _ =>
+            {
+                MenuHelper.AddHeader(menu, "TOP CHANNELS");
+                menu.Items.Add(menuItems.usItem);
+                menu.Items.Add(menuItems.ukItem);
+            },
+            null
+        );
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------

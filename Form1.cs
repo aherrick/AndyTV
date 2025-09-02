@@ -235,11 +235,8 @@ public partial class Form1 : Form
                 await _menuTVChannelHelper.LoadChannels(source.Url).ConfigureAwait(false);
                 Logger.Info("[CHANNELS] Loaded");
 
-                // Update menu on UI thread
-                BeginInvoke(() =>
-                {
-                    _menuTVChannelHelper.BuildMenu(ChItem_Click);
-                });
+                // Build menu (handles UI thread internally)
+                await _menuTVChannelHelper.BuildMenu(ChItem_Click);
             }
 
             // Cursor stuff can happen immediately on UI thread
