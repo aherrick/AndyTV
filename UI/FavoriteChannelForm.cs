@@ -24,7 +24,7 @@ public partial class FavoriteChannelForm : Form
     private Label _statusLabel;
 
     private const int MIN_FILTER_LENGTH = 2;
-    private const int MAX_RESULTS = 100;
+    private const int MAX_RESULTS = 150;
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -100,12 +100,13 @@ public partial class FavoriteChannelForm : Form
     {
         SuspendLayout();
 
-        // Form properties - increased width with consistent margins
+        // Form properties - increased size significantly
         Text = "Favorites Manager";
-        Size = new Size(754, 665); // Slightly taller for status label
+        Size = new Size(1000, 800);
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog; // Disable resize
+        FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
+        MinimizeBox = false;
 
         // Filter section
         var filterLabel = new Label
@@ -116,18 +117,14 @@ public partial class FavoriteChannelForm : Form
             AutoSize = true,
         };
 
-        _filterTextBox = new TextBox
-        {
-            Location = new Point(15, 40),
-            Size = new Size(615, 23), // Same width as grid for consistent right margin
-        };
+        _filterTextBox = new TextBox { Location = new Point(15, 40), Size = new Size(840, 23) };
         _filterTextBox.TextChanged += FilterTextBox_TextChanged;
 
         // Status label to show filtering instructions
         _statusLabel = new Label
         {
             Location = new Point(15, 70),
-            Size = new Size(615, 20),
+            Size = new Size(840, 20),
             Text = $"Type at least {MIN_FILTER_LENGTH} characters to search channels...",
             ForeColor = Color.Gray,
             AutoSize = false,
@@ -135,8 +132,8 @@ public partial class FavoriteChannelForm : Form
 
         _channelListBox = new ListBox
         {
-            Location = new Point(15, 95), // Moved down to accommodate status label
-            Size = new Size(615, 175), // Reduced height slightly for status label
+            Location = new Point(15, 95),
+            Size = new Size(840, 200),
             DisplayMember = "DisplayName",
         };
         _channelListBox.DoubleClick += ChannelListBox_DoubleClick;
@@ -145,82 +142,34 @@ public partial class FavoriteChannelForm : Form
         var favoritesLabel = new Label
         {
             Text = "Favorites:",
-            Location = new Point(15, 285),
+            Location = new Point(15, 310),
             Size = new Size(100, 23),
             AutoSize = true,
         };
 
         _favoritesGrid = new DataGridView
         {
-            Location = new Point(15, 310),
-            Size = new Size(615, 250), // Grid width matches filter and listbox
+            Location = new Point(15, 335),
+            Size = new Size(840, 350),
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false, // Disable delete key functionality
+            AllowUserToDeleteRows = false,
             SelectionMode = DataGridViewSelectionMode.CellSelect,
             MultiSelect = false,
             ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
-            EditMode = DataGridViewEditMode.EditOnEnter, // Single click to edit
+            EditMode = DataGridViewEditMode.EditOnEnter,
         };
 
         SetupGridColumns();
         SetupCopyPaste();
 
+        // Control buttons (right side of grid)
         _moveUpButton = new Button
         {
             Text = "Move Up",
-            Location = new Point(645, 310),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _moveUpButton.Click += MoveUpButton_Click;
-
-        _moveDownButton = new Button
-        {
-            Text = "Move Down",
-            Location = new Point(645, 350),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _moveDownButton.Click += MoveDownButton_Click;
-
-        _removeButton = new Button
-        {
-            Text = "Remove",
-            Location = new Point(645, 390),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _removeButton.Click += RemoveButton_Click;
-
-        _importButton = new Button
-        {
-            Text = "Import",
-            Location = new Point(15, 580),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _importButton.Click += ImportFavorites;
-
-        _exportButton = new Button
-        {
-            Text = "Export",
-            Location = new Point(105, 580),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _exportButton.Click += ExportFavorites;
-
-        _saveButton = new Button
-        {
-            Text = "Save",
-            Location = new Point(645, 580),
-            Size = new Size(80, 30),
-        }.ApplySystemStyle();
-        _saveButton.Click += SaveButton_Click;
-
-        // Control buttons (right side of grid) - maintaining 15px right margin
-        _moveUpButton = new Button
-        {
-            Text = "Move Up",
-            Location = new Point(645, 310), // 15px from right edge
-            Size = new Size(80, 30),
-            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+            Location = new Point(870, 335),
+            Size = new Size(100, 35),
+            UseVisualStyleBackColor = true,
         };
         _moveUpButton.ApplySystemStyle();
         _moveUpButton.Click += MoveUpButton_Click;
@@ -228,8 +177,8 @@ public partial class FavoriteChannelForm : Form
         _moveDownButton = new Button
         {
             Text = "Move Down",
-            Location = new Point(645, 350),
-            Size = new Size(80, 30),
+            Location = new Point(870, 380),
+            Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
         };
         _moveDownButton.ApplySystemStyle();
@@ -238,19 +187,19 @@ public partial class FavoriteChannelForm : Form
         _removeButton = new Button
         {
             Text = "Remove",
-            Location = new Point(645, 390),
-            Size = new Size(80, 30),
+            Location = new Point(870, 425),
+            Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
         };
         _removeButton.ApplySystemStyle();
         _removeButton.Click += RemoveButton_Click;
 
-        // Bottom buttons - maintaining consistent margins
+        // Bottom buttons
         _importButton = new Button
         {
             Text = "Import",
-            Location = new Point(15, 580),
-            Size = new Size(80, 30),
+            Location = new Point(15, 700),
+            Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
         };
         _importButton.ApplySystemStyle();
@@ -259,8 +208,8 @@ public partial class FavoriteChannelForm : Form
         _exportButton = new Button
         {
             Text = "Export",
-            Location = new Point(105, 580),
-            Size = new Size(80, 30),
+            Location = new Point(125, 700),
+            Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
         };
         _exportButton.ApplySystemStyle();
@@ -269,8 +218,8 @@ public partial class FavoriteChannelForm : Form
         _saveButton = new Button
         {
             Text = "Save",
-            Location = new Point(645, 580), // Aligned with right-side buttons, 15px from edge
-            Size = new Size(80, 30),
+            Location = new Point(870, 700),
+            Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
         };
         _saveButton.ApplySystemStyle();
@@ -312,7 +261,7 @@ public partial class FavoriteChannelForm : Form
             HeaderText = "Name",
             DataPropertyName = "Name",
             ReadOnly = true,
-            Width = 150, // Increased column widths for larger grid
+            Width = 200,
         };
 
         var mappedNameColumn = new DataGridViewTextBoxColumn
@@ -320,7 +269,7 @@ public partial class FavoriteChannelForm : Form
             Name = "MappedName",
             HeaderText = "Mapped Name",
             DataPropertyName = "MappedName",
-            Width = 150,
+            Width = 200,
         };
 
         var groupColumn = new DataGridViewTextBoxColumn
@@ -328,7 +277,7 @@ public partial class FavoriteChannelForm : Form
             Name = "Group",
             HeaderText = "Group",
             DataPropertyName = "Group",
-            Width = 150,
+            Width = 200,
         };
 
         var categoryColumn = new DataGridViewTextBoxColumn
@@ -336,7 +285,7 @@ public partial class FavoriteChannelForm : Form
             Name = "Category",
             HeaderText = "Category",
             DataPropertyName = "Category",
-            Width = 150,
+            Width = 200,
         };
 
         _favoritesGrid.Columns.AddRange(

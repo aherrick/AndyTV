@@ -387,7 +387,7 @@ public partial class Form1 : Form
             {
                 _videoView.ShowDefault();
 
-                using var dlg = new InputForm("Swap Stream", "Enter media URL:");
+                using var dlg = new InputForm(title: "Swap Stream", prompt: "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
                     return;
 

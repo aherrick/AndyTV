@@ -4,59 +4,79 @@ namespace AndyTV.UI;
 
 public class InputForm : Form
 {
+    private const int FormPadding = 10;
+    private const int ButtonWidth = 75;
+    private const int ButtonSpacing = 10;
+    private const int FormWidth = 400;
+    private const int FormHeight = 120;
+
     public TextBox InputBox { get; } = new TextBox();
-    private readonly Button _ok;
-    private readonly Button _cancel;
+    private readonly Button _okButton = new();
+    private readonly Button _cancelButton = new();
 
     public string Result => DialogResult == DialogResult.OK ? InputBox.Text.Trim() : string.Empty;
 
     public InputForm(string title, string prompt, string defaultText = "")
+    {
+        InitializeForm(title);
+        CreateControls(prompt, defaultText);
+        SetupLayout();
+    }
+
+    private void InitializeForm(string title)
     {
         Text = title;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MinimizeBox = false;
         MaximizeBox = false;
-        ClientSize = new Size(400, 120);
+        ClientSize = new Size(FormWidth, FormHeight);
+    }
 
-        var lbl = new Label
+    private void CreateControls(string prompt, string defaultText)
+    {
+        var promptLabel = new Label
         {
-            Left = 10,
-            Top = 10,
+            Left = FormPadding,
+            Top = FormPadding,
             Text = prompt,
             AutoSize = true,
         };
 
-        InputBox.Left = 10;
-        InputBox.Top = 35;
-        InputBox.Width = 370;
+        InputBox.Left = FormPadding;
+        InputBox.Top = promptLabel.Bottom + 5;
+        InputBox.Width = FormWidth - (FormPadding * 2);
         InputBox.Text = defaultText;
 
-        _ok = new Button
-        {
-            Text = "OK",
-            Left = 220,
-            Width = 75,
-            Top = 70,
-            DialogResult = DialogResult.OK,
-            UseVisualStyleBackColor = true,
-        };
-        _ok.ApplySystemStyle();
+        var buttonTop = InputBox.Bottom + 15;
+        var buttonRight = FormWidth - FormPadding;
 
-        _cancel = new Button
-        {
-            Text = "Cancel",
-            Left = 305,
-            Width = 75,
-            Top = 70,
-            DialogResult = DialogResult.Cancel,
-            UseVisualStyleBackColor = true,
-        };
-        _cancel.ApplySystemStyle();
+        _cancelButton.Text = "Cancel";
+        _cancelButton.Left = buttonRight - ButtonWidth;
+        _cancelButton.Width = ButtonWidth;
+        _cancelButton.Top = buttonTop;
+        _cancelButton.DialogResult = DialogResult.Cancel;
+        _cancelButton.UseVisualStyleBackColor = true;
+        _cancelButton.ApplySystemStyle();
 
-        Controls.AddRange([lbl, InputBox, _ok, _cancel]);
+        _okButton.Text = "OK";
+        _okButton.Left = _cancelButton.Left - ButtonWidth - ButtonSpacing;
+        _okButton.Width = ButtonWidth;
+        _okButton.Top = buttonTop;
+        _okButton.DialogResult = DialogResult.OK;
+        _okButton.UseVisualStyleBackColor = true;
+        _okButton.ApplySystemStyle();
 
-        AcceptButton = _ok;
-        CancelButton = _cancel;
+        Controls.AddRange([promptLabel, InputBox, _okButton, _cancelButton]);
+    }
+
+    private void SetupLayout()
+    {
+        AcceptButton = _okButton;
+        CancelButton = _cancelButton;
+
+        // Set focus to the input box when form loads
+        InputBox.Select();
+        InputBox.SelectAll();
     }
 }
