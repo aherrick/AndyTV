@@ -15,30 +15,30 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         var usDict = BuildTopUs();
         var ukDict = BuildTopUk();
 
-        menu.BeginInvoke(
-            (MethodInvoker)(
-                () =>
-                {
-                    menu.SuspendLayout();
-                    try
-                    {
-                        MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        //menu.BeginInvoke(
+        //    (MethodInvoker)(
+        //        () =>
+        //        {
+        //            menu.SuspendLayout();
+        //            try
+        //            {
+        MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-                        var usRoot = BuildTopMenu("US", usDict, channelClick);
-                        menu.Items.Add(usRoot); // always add
+        var usRoot = BuildTopMenu("US", usDict, channelClick);
+        menu.Items.Add(usRoot); // always add
 
-                        var ukRoot = BuildTopMenu("UK", ukDict, channelClick);
-                        menu.Items.Add(ukRoot); // always add
+        var ukRoot = BuildTopMenu("UK", ukDict, channelClick);
+        menu.Items.Add(ukRoot); // always add
 
-                        menu.Items.Add(new ToolStripSeparator());
-                    }
-                    finally
-                    {
-                        menu.ResumeLayout(true);
-                    }
-                }
-            )
-        );
+        menu.Items.Add(new ToolStripSeparator());
+        //            }
+        //            finally
+        //            {
+        //                menu.ResumeLayout(true);
+        //            }
+        //        }
+        //    )
+        //);
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------
