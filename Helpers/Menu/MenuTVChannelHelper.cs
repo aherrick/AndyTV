@@ -263,7 +263,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
             ["Main"] =
             [
-                ["4seven", "4Seven"],
+                ["4seven"],
                 ["5Action"],
                 ["5Select"],
                 ["5Star"],
