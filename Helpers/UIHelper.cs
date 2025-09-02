@@ -1,7 +1,4 @@
-﻿using System.Drawing;
-using System.Windows.Forms;
-
-namespace AndyTV.Helpers;
+﻿namespace AndyTV.Helpers;
 
 public static class UIHelper
 {

@@ -228,11 +228,14 @@ public partial class Form1 : Form
             _videoView.ShowWaiting();
 
             // Only the slow channel loading runs on background thread
-            _ = Task.Run(async () =>
+            _ = LoadChannelsUiSafe();
+
+            async Task LoadChannelsUiSafe()
             {
+                // If your helper does network/IO, it should 'await' internally and keep UI responsive.
                 await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
                 Logger.Info("[CHANNELS] Loaded");
-            });
+            }
 
             // Cursor stuff can happen immediately on UI thread
             SetCursorForCurrentMode();
