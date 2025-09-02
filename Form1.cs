@@ -227,14 +227,19 @@ public partial class Form1 : Form
             Logger.Info("[CHANNELS] Loading from M3U...");
             _videoView.ShowWaiting();
 
-            // Only the slow channel loading runs on background thread
-            _ = LoadChannelsUiSafe();
+            // Load channels in background
+            _ = LoadChannelsAsync();
 
-            async Task LoadChannelsUiSafe()
+            async Task LoadChannelsAsync()
             {
-                // If your helper does network/IO, it should 'await' internally and keep UI responsive.
-                await _menuTVChannelHelper.LoadChannels(ChItem_Click, source.Url);
+                await _menuTVChannelHelper.LoadChannels(source.Url).ConfigureAwait(false);
                 Logger.Info("[CHANNELS] Loaded");
+
+                // Update menu on UI thread
+                BeginInvoke(() =>
+                {
+                    _menuTVChannelHelper.BuildMenu(ChItem_Click);
+                });
             }
 
             // Cursor stuff can happen immediately on UI thread

@@ -7,38 +7,27 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
     public List<Channel> Channels { get; private set; } = [];
 
-    public async Task LoadChannels(EventHandler channelClick, string m3uURL)
+    public async Task LoadChannels(string m3uURL)
     {
         var parsed = await M3UService.ParseM3U(m3uURL);
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    public void BuildMenu(EventHandler channelClick)
+    {
+        // Use MenuHelper.AddHeader to add the header
+        var headerItem = MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
         var usDict = BuildTopUs();
         var ukDict = BuildTopUk();
 
-        //menu.BeginInvoke(
-        //    (MethodInvoker)(
-        //        () =>
-        //        {
-        //            menu.SuspendLayout();
-        //            try
-        //            {
-        MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        var usItem = BuildTopMenu("US", usDict, channelClick);
 
-        var usRoot = BuildTopMenu("US", usDict, channelClick);
-        menu.Items.Add(usRoot); // always add
+        menu.Items.Add(usItem);
 
-        var ukRoot = BuildTopMenu("UK", ukDict, channelClick);
-        menu.Items.Add(ukRoot); // always add
+        var ukItem = BuildTopMenu("UK", ukDict, channelClick);
 
-        menu.Items.Add(new ToolStripSeparator());
-        //            }
-        //            finally
-        //            {
-        //                menu.ResumeLayout(true);
-        //            }
-        //        }
-        //    )
-        //);
+        menu.Items.Add(ukItem);
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------
