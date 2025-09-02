@@ -166,7 +166,7 @@ public partial class FavoriteChannelForm : Form
         // Control buttons (right side of grid)
         _moveUpButton = new Button
         {
-            Text = "Move Up",
+            Text = "Up",
             Location = new Point(870, 335),
             Size = new Size(100, 35),
             UseVisualStyleBackColor = true,
@@ -176,7 +176,7 @@ public partial class FavoriteChannelForm : Form
 
         _moveDownButton = new Button
         {
-            Text = "Move Down",
+            Text = "Down",
             Location = new Point(870, 380),
             Size = new Size(100, 35),
             UseVisualStyleBackColor = true,

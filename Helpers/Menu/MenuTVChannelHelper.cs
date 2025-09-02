@@ -9,26 +9,36 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task LoadChannels(EventHandler channelClick, string m3uURL)
     {
-        // Parse + sort channels (already on background thread)
         var parsed = await M3UService.ParseM3U(m3uURL);
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
 
-        // Build menus (still on background thread)
-        var usRoot = BuildTopMenu("US", BuildTopUs(), channelClick);
-        var ukRoot = BuildTopMenu("UK", BuildTopUk(), channelClick);
+        var usDict = BuildTopUs();
+        var ukDict = BuildTopUk();
 
-        // Only UI update needs invoke
-        menu.Invoke(() =>
-        {
-            MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        menu.BeginInvoke(
+            (MethodInvoker)(
+                () =>
+                {
+                    menu.SuspendLayout();
+                    try
+                    {
+                        MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-            if (usRoot != null)
-                menu.Items.Add(usRoot);
-            if (ukRoot != null)
-                menu.Items.Add(ukRoot);
+                        var usRoot = BuildTopMenu("US", usDict, channelClick);
+                        menu.Items.Add(usRoot); // always add
 
-            menu.Items.Add(new ToolStripSeparator());
-        });
+                        var ukRoot = BuildTopMenu("UK", ukDict, channelClick);
+                        menu.Items.Add(ukRoot); // always add
+
+                        menu.Items.Add(new ToolStripSeparator());
+                    }
+                    finally
+                    {
+                        menu.ResumeLayout(true);
+                    }
+                }
+            )
+        );
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------
