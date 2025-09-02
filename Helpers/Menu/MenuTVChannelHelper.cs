@@ -13,34 +13,16 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         var parsed = await M3UService.ParseM3U(m3uURL);
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
 
-        // Build the two top menus completely off-screen
-        var topUs = BuildTopUs();
-        var topUk = BuildTopUk();
+        var usRoot = BuildTopMenu("US", BuildTopUs(), channelClick);
+        var ukRoot = BuildTopMenu("UK", BuildTopUk(), channelClick);
 
-        var usRoot = BuildTopMenu("US", topUs, channelClick);
-        var ukRoot = BuildTopMenu("UK", topUk, channelClick);
+        // Add a fresh header + US/UK + a trailing separator every time
+        MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-        // Now atomically add/replace them on the UI thread
-        menu.BeginInvoke(
-            new MethodInvoker(() =>
-            {
-                menu.SuspendLayout();
-                try
-                {
-                    // Add a fresh header + US/UK + a trailing separator every time
-                    MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        menu.Items.Add(usRoot);
+        menu.Items.Add(ukRoot);
 
-                    menu.Items.Add(usRoot);
-                    menu.Items.Add(ukRoot);
-
-                    menu.Items.Add(new ToolStripSeparator());
-                }
-                finally
-                {
-                    menu.ResumeLayout(performLayout: true);
-                }
-            })
-        );
+        menu.Items.Add(new ToolStripSeparator());
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------

@@ -12,19 +12,19 @@ public partial class FavoriteChannelForm : Form
     private readonly BindingList<Channel> _favorites;
     private string _baseline;
 
-    private TextBox _filterTextBox = null!;
-    private ListBox _channelListBox = null!;
-    private DataGridView _favoritesGrid = null!;
-    private Button _moveUpButton = null!;
-    private Button _moveDownButton = null!;
-    private Button _removeButton = null!;
-    private Button _importButton = null!;
-    private Button _exportButton = null!;
-    private Button _saveButton = null!;
-    private Label _statusLabel = null!;
+    private TextBox _filterTextBox;
+    private ListBox _channelListBox;
+    private DataGridView _favoritesGrid;
+    private Button _moveUpButton;
+    private Button _moveDownButton;
+    private Button _removeButton;
+    private Button _importButton;
+    private Button _exportButton;
+    private Button _saveButton;
+    private Label _statusLabel;
 
     private const int MIN_FILTER_LENGTH = 2;
-    private const int MAX_RESULTS = 150;
+    private const int MAX_RESULTS = 100;
 
     public FavoriteChannelForm(List<Channel> channels)
     {
@@ -35,7 +35,7 @@ public partial class FavoriteChannelForm : Form
 
         InitializeComponent();
         SetupForm();
-        UpdateChannelListStatus(); // initial status
+        UpdateChannelListStatus(); // Show initial status instead of loading all channels
         LoadExistingFavorites();
     }
 
@@ -100,188 +100,189 @@ public partial class FavoriteChannelForm : Form
     {
         SuspendLayout();
 
-        // ---------- Form ----------
+        // Form properties - increased width with consistent margins
         Text = "Favorites Manager";
-        // Bigger canvas: wider + taller so the grid can breathe
-        Size = new Size(980, 780);
+        Size = new Size(754, 665); // Slightly taller for status label
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog; // non-resizable per app style
+        FormBorderStyle = FormBorderStyle.FixedDialog; // Disable resize
         MaximizeBox = false;
 
-        // Common layout metrics
-        const int left = 16;
-        const int top = 16;
-        const int colGap = 12;
-        const int rowGap = 10;
-
-        // Left column (filter + list)
-        int leftColumnWidth = 420;
-        int rightColumnWidth = 420;
-        int rightPanelX = left + leftColumnWidth + colGap * 2 + 92; // list + gap + mid buttons (92) + gap
-
-        // ---------- Filter ----------
+        // Filter section
         var filterLabel = new Label
         {
             Text = "Filter Channels:",
-            Location = new Point(left, top),
+            Location = new Point(15, 15),
+            Size = new Size(100, 23),
             AutoSize = true,
         };
 
         _filterTextBox = new TextBox
         {
-            Location = new Point(left, filterLabel.Bottom + 6),
-            Size = new Size(leftColumnWidth, 28),
+            Location = new Point(15, 40),
+            Size = new Size(615, 23), // Same width as grid for consistent right margin
         };
         _filterTextBox.TextChanged += FilterTextBox_TextChanged;
 
+        // Status label to show filtering instructions
         _statusLabel = new Label
         {
-            Location = new Point(left, _filterTextBox.Bottom + 6),
-            Size = new Size(leftColumnWidth, 20),
+            Location = new Point(15, 70),
+            Size = new Size(615, 20),
             Text = $"Type at least {MIN_FILTER_LENGTH} characters to search channels...",
             ForeColor = Color.Gray,
             AutoSize = false,
         };
 
-        // ---------- Channel list ----------
         _channelListBox = new ListBox
         {
-            Location = new Point(left, _statusLabel.Bottom + 6),
-            Size = new Size(leftColumnWidth, 260),
+            Location = new Point(15, 95), // Moved down to accommodate status label
+            Size = new Size(615, 175), // Reduced height slightly for status label
             DisplayMember = "DisplayName",
-            IntegralHeight = false,
         };
         _channelListBox.DoubleClick += ChannelListBox_DoubleClick;
-        _channelListBox.KeyDown += (s, e) =>
-        {
-            if (e.KeyCode == Keys.Enter && _channelListBox.SelectedItem is Channel ch)
-            {
-                AddToFavorites(ch);
-                e.Handled = true;
-            }
-        };
 
-        // ---------- Mid "Add →" helper (optional visual cue) ----------
-        var addHint = new Label
-        {
-            Text = "Double-click to add →",
-            Location = new Point(left + leftColumnWidth + colGap, _channelListBox.Top + 4),
-            AutoSize = true,
-        };
-
-        // ---------- Favorites label ----------
+        // Favorites grid - larger width
         var favoritesLabel = new Label
         {
             Text = "Favorites:",
-            Location = new Point(rightPanelX, filterLabel.Top),
+            Location = new Point(15, 285),
+            Size = new Size(100, 23),
             AutoSize = true,
         };
 
-        // ---------- Favorites grid (much larger) ----------
         _favoritesGrid = new DataGridView
         {
-            Location = new Point(rightPanelX, favoritesLabel.Bottom + 6),
-            Size = new Size(rightColumnWidth, 520),
+            Location = new Point(15, 310),
+            Size = new Size(615, 250), // Grid width matches filter and listbox
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
+            AllowUserToDeleteRows = false, // Disable delete key functionality
             SelectionMode = DataGridViewSelectionMode.CellSelect,
             MultiSelect = false,
             ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
-            EditMode = DataGridViewEditMode.EditOnEnter,
-            RowHeadersVisible = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            EditMode = DataGridViewEditMode.EditOnEnter, // Single click to edit
         };
 
         SetupGridColumns();
         SetupCopyPaste();
 
-        // ---------- Right-side vertical buttons next to grid ----------
-        // A neat, taller column to the immediate right of the grid
-        int gridRightX = rightPanelX + rightColumnWidth + colGap;
-        int btnWidth = 108;
-        int btnHeight = 34;
-
         _moveUpButton = new Button
         {
             Text = "Move Up",
-            Location = new Point(gridRightX, _favoritesGrid.Top),
-            Size = new Size(btnWidth, btnHeight),
-            UseVisualStyleBackColor = true,
+            Location = new Point(645, 310),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _moveUpButton.Click += MoveUpButton_Click;
 
         _moveDownButton = new Button
         {
             Text = "Move Down",
-            Location = new Point(gridRightX, _moveUpButton.Bottom + rowGap),
-            Size = new Size(btnWidth, btnHeight),
-            UseVisualStyleBackColor = true,
+            Location = new Point(645, 350),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _moveDownButton.Click += MoveDownButton_Click;
 
         _removeButton = new Button
         {
             Text = "Remove",
-            Location = new Point(gridRightX, _moveDownButton.Bottom + rowGap),
-            Size = new Size(btnWidth, btnHeight),
-            UseVisualStyleBackColor = true,
+            Location = new Point(645, 390),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _removeButton.Click += RemoveButton_Click;
-
-        // Also allow Delete key to remove selected favorite
-        KeyPreview = true;
-        KeyDown += (s, e) =>
-        {
-            if (
-                e.KeyCode == Keys.Delete
-                && _favoritesGrid.Focused
-                && _favoritesGrid.CurrentRow != null
-            )
-            {
-                RemoveSelectedFavorite();
-                e.Handled = true;
-            }
-        };
-
-        // ---------- Bottom action buttons ----------
-        int bottomY = _favoritesGrid.Bottom + 16;
 
         _importButton = new Button
         {
             Text = "Import",
-            Location = new Point(rightPanelX, bottomY),
-            Size = new Size(100, 36),
-            UseVisualStyleBackColor = true,
+            Location = new Point(15, 580),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _importButton.Click += ImportFavorites;
 
         _exportButton = new Button
         {
             Text = "Export",
-            Location = new Point(_importButton.Right + 10, bottomY),
-            Size = new Size(100, 36),
-            UseVisualStyleBackColor = true,
+            Location = new Point(105, 580),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _exportButton.Click += ExportFavorites;
 
         _saveButton = new Button
         {
             Text = "Save",
-            Location = new Point(gridRightX, bottomY),
-            Size = new Size(btnWidth, 36),
-            UseVisualStyleBackColor = true,
+            Location = new Point(645, 580),
+            Size = new Size(80, 30),
         }.ApplySystemStyle();
         _saveButton.Click += SaveButton_Click;
 
-        // ---------- Add controls ----------
+        // Control buttons (right side of grid) - maintaining 15px right margin
+        _moveUpButton = new Button
+        {
+            Text = "Move Up",
+            Location = new Point(645, 310), // 15px from right edge
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true, // important so buttons adopt the system theme
+        };
+        _moveUpButton.ApplySystemStyle();
+        _moveUpButton.Click += MoveUpButton_Click;
+
+        _moveDownButton = new Button
+        {
+            Text = "Move Down",
+            Location = new Point(645, 350),
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true,
+        };
+        _moveDownButton.ApplySystemStyle();
+        _moveDownButton.Click += MoveDownButton_Click;
+
+        _removeButton = new Button
+        {
+            Text = "Remove",
+            Location = new Point(645, 390),
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true,
+        };
+        _removeButton.ApplySystemStyle();
+        _removeButton.Click += RemoveButton_Click;
+
+        // Bottom buttons - maintaining consistent margins
+        _importButton = new Button
+        {
+            Text = "Import",
+            Location = new Point(15, 580),
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true,
+        };
+        _importButton.ApplySystemStyle();
+        _importButton.Click += ImportFavorites;
+
+        _exportButton = new Button
+        {
+            Text = "Export",
+            Location = new Point(105, 580),
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true,
+        };
+        _exportButton.ApplySystemStyle();
+        _exportButton.Click += ExportFavorites;
+
+        _saveButton = new Button
+        {
+            Text = "Save",
+            Location = new Point(645, 580), // Aligned with right-side buttons, 15px from edge
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = true,
+        };
+        _saveButton.ApplySystemStyle();
+        _saveButton.Click += SaveButton_Click;
+
+        // Add controls to form
         Controls.AddRange(
             [
                 filterLabel,
                 _filterTextBox,
                 _statusLabel,
                 _channelListBox,
-                addHint,
                 favoritesLabel,
                 _favoritesGrid,
                 _moveUpButton,
@@ -311,7 +312,7 @@ public partial class FavoriteChannelForm : Form
             HeaderText = "Name",
             DataPropertyName = "Name",
             ReadOnly = true,
-            FillWeight = 130,
+            Width = 150, // Increased column widths for larger grid
         };
 
         var mappedNameColumn = new DataGridViewTextBoxColumn
@@ -319,7 +320,7 @@ public partial class FavoriteChannelForm : Form
             Name = "MappedName",
             HeaderText = "Mapped Name",
             DataPropertyName = "MappedName",
-            FillWeight = 125,
+            Width = 150,
         };
 
         var groupColumn = new DataGridViewTextBoxColumn
@@ -327,7 +328,7 @@ public partial class FavoriteChannelForm : Form
             Name = "Group",
             HeaderText = "Group",
             DataPropertyName = "Group",
-            FillWeight = 120,
+            Width = 150,
         };
 
         var categoryColumn = new DataGridViewTextBoxColumn
@@ -335,7 +336,7 @@ public partial class FavoriteChannelForm : Form
             Name = "Category",
             HeaderText = "Category",
             DataPropertyName = "Category",
-            FillWeight = 120,
+            Width = 150,
         };
 
         _favoritesGrid.Columns.AddRange(
@@ -392,7 +393,7 @@ public partial class FavoriteChannelForm : Form
         if (
             _favoritesGrid.CurrentCell != null
             && _favoritesGrid.CurrentCell.ColumnIndex > 0
-            && // no paste into Name
+            && // Don't allow paste into Name column
             Clipboard.ContainsText()
         )
         {
@@ -418,7 +419,7 @@ public partial class FavoriteChannelForm : Form
         {
             var filtered = _allChannels
                 .Where(c => c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase))
-                .Take(MAX_RESULTS);
+                .Take(MAX_RESULTS); // Limit results to improve performance
 
             foreach (var channel in filtered)
             {
@@ -501,6 +502,7 @@ public partial class FavoriteChannelForm : Form
             return;
         }
 
+        // Create a copy to avoid modifying the original
         var favorite = new Channel
         {
             Name = channel.Name,
@@ -542,11 +544,6 @@ public partial class FavoriteChannelForm : Form
     }
 
     private void RemoveButton_Click(object sender, EventArgs e)
-    {
-        RemoveSelectedFavorite();
-    }
-
-    private void RemoveSelectedFavorite()
     {
         if (_favoritesGrid.CurrentRow?.Index is int index && index >= 0)
         {
