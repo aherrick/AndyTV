@@ -72,10 +72,6 @@ public partial class Form1 : Form
 
                 _isRestarting = true;
 
-                Logger.Info(
-                    $"[HEALTH] Inactivity {inactive.TotalSeconds:F0}s ≥ {STALL_SECONDS}s; scheduling restart…"
-                );
-
                 // Throttle next attempts so we don't fire again immediately
                 _lastActivityUtc = nowUtc;
 
@@ -101,12 +97,12 @@ public partial class Form1 : Form
 
         Icon = new Icon("AndyTV.ico");
 
-        videoView.MediaPlayer.TimeChanged += (_, __) =>
+        videoView.MediaPlayer.TimeChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
         };
 
-        videoView.MediaPlayer.PositionChanged += (_, __) =>
+        videoView.MediaPlayer.PositionChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
         };
@@ -213,16 +209,12 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
         {
-            _isRestarting = false;
-            _lastActivityUtc = DateTime.UtcNow;
-
             Play(ch); // manual selection overrides any pending waits/retries
         }
     }
 
     private void Play(Channel channel)
     {
-        Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
 
         // UI feedback on UI thread
@@ -238,6 +230,8 @@ public partial class Form1 : Form
 
     private void StartMediaOnPool(Channel channel)
     {
+        Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
+
         ThreadPool.QueueUserWorkItem(_ =>
         {
             _videoView.MediaPlayer.Stop();
