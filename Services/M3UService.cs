@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AndyTV.Helpers;
 using AndyTV.Models;
+using AndyTV.UI;
 using m3uParser;
 
 namespace AndyTV.Services;
@@ -52,12 +53,17 @@ public static class M3UService
     public static M3USource PromptNewSource()
     {
         string url;
+
         while (true)
         {
-            url = Microsoft.VisualBasic.Interaction.InputBox("Enter M3U URL:", "M3U URL", "");
-            if (string.IsNullOrWhiteSpace(url))
+            using (var dlg = new InputForm(title: "M3U URL", prompt: "Enter M3U URL:"))
             {
-                return null; // user cancelled
+                if (dlg.ShowDialog() != DialogResult.OK)
+                {
+                    return null; // user cancelled
+                }
+
+                url = dlg.Result;
             }
 
             if (
@@ -71,11 +77,23 @@ public static class M3UService
             MessageBox.Show("Please enter a valid HTTP/HTTPS URL or Cancel to quit.");
         }
 
-        var name = Microsoft.VisualBasic.Interaction.InputBox(
-            "Optional name:",
-            "M3U Name",
-            "Default"
-        );
+        string name;
+        using (
+            var dlg = new InputForm(
+                title: "M3U Name",
+                prompt: "Optional name:",
+                defaultText: "Default"
+            )
+        )
+        {
+            if (dlg.ShowDialog() != DialogResult.OK)
+            {
+                return null; // cancelled here too
+            }
+
+            name = dlg.Result;
+        }
+
         var src = new M3USource(
             string.IsNullOrWhiteSpace(name) ? "Default" : name.Trim(),
             url.Trim()

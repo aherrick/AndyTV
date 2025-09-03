@@ -209,7 +209,7 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
         {
-            Play(ch); // manual selection overrides any pending waits/retries
+            Play(ch);
         }
     }
 
