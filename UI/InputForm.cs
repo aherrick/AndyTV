@@ -14,7 +14,7 @@ public class InputForm : Form
     private readonly Button _okButton = new();
     private readonly Button _cancelButton = new();
 
-    public string Result => DialogResult == DialogResult.OK ? InputBox.Text.Trim() : string.Empty;
+    public string Result => InputBox.Text.Trim();
 
     public InputForm(string title, string prompt, string defaultText = "")
     {

@@ -32,7 +32,7 @@ public partial class Form1 : Form
     private bool _isRestarting = false;
 
     private const int STALL_SECONDS = 10;
-    private readonly System.Windows.Forms.Timer _healthTimer;
+    private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
@@ -53,45 +53,6 @@ public partial class Form1 : Form
                 Play(last);
             }
         };
-
-        _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 }; // 1s
-        _healthTimer.Tick += (_, __) =>
-        {
-            var nowUtc = DateTime.UtcNow;
-            var inactive = nowUtc - _lastActivityUtc;
-
-            if (inactive.TotalSeconds >= STALL_SECONDS)
-            {
-                if (_isRestarting)
-                {
-                    Logger.Info(
-                        $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s, threshold={STALL_SECONDS}s)."
-                    );
-                    return;
-                }
-
-                _isRestarting = true;
-
-                // Throttle next attempts so we don't fire again immediately
-                _lastActivityUtc = nowUtc;
-
-                Logger.Info(
-                    $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
-                );
-
-                // LibVLC ops on the pool (no UI here)
-                StartMediaOnPool(_currentChannel);
-
-                // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
-                _isRestarting = false;
-
-                Logger.Info(
-                    "[HEALTH] Restart queued to thread pool; awaiting Playing or next health check."
-                );
-            }
-        };
-
-        _healthTimer.Start();
 
         Logger.Info("Starting AndyTV...");
 
@@ -190,6 +151,50 @@ public partial class Form1 : Form
 
             // Cursor stuff can happen immediately on UI thread
             SetCursorForCurrentMode();
+
+            _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 }; // 1s
+            _healthTimer.Tick += (_, __) =>
+            {
+                if (_currentChannel == null)
+                {
+                    return;
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                var inactive = nowUtc - _lastActivityUtc;
+
+                if (inactive.TotalSeconds >= STALL_SECONDS)
+                {
+                    if (_isRestarting)
+                    {
+                        Logger.Info(
+                            $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s, threshold={STALL_SECONDS}s)."
+                        );
+                        return;
+                    }
+
+                    _isRestarting = true;
+
+                    // Throttle next attempts so we don't fire again immediately
+                    _lastActivityUtc = nowUtc;
+
+                    Logger.Info(
+                        $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
+                    );
+
+                    // LibVLC ops on the pool (no UI here)
+                    StartMediaOnPool(_currentChannel);
+
+                    // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
+                    _isRestarting = false;
+
+                    Logger.Info(
+                        "[HEALTH] Restart queued to thread pool; awaiting Playing or next health check."
+                    );
+                }
+            };
+
+            _healthTimer.Start();
         };
     }
 
@@ -349,7 +354,7 @@ public partial class Form1 : Form
                 if (dlg.ShowDialog(this) != DialogResult.OK)
                     return;
 
-                input = dlg.Result?.Trim();
+                input = dlg.Result;
             }
 
             if (string.IsNullOrWhiteSpace(input))
