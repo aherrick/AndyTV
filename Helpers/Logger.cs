@@ -50,7 +50,7 @@ public static class Logger
         try
         {
             var line =
-                $"{DateTime.UtcNow:O} [{level}] "
+                $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss} [{level}] "
                 + $"[T{Environment.CurrentManagedThreadId}] {message}{Environment.NewLine}";
 
             lock (_gate)
@@ -60,7 +60,8 @@ public static class Logger
             }
         }
         catch
-        { /* never throw from logging */
+        {
+            /* never throw from logging */
         }
     }
 }
