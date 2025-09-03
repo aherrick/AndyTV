@@ -4,17 +4,14 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT");
 
     public void RebuildRecentMenu()
     {
         var recents = RecentChannelsService.GetRecentChannels();
 
-        _ui.Post(
-            _ =>
+        menu.FindForm()
+            .BeginInvoke(() =>
             {
                 int headerIndex = menu.Items.IndexOf(_header);
                 int insertIndex = headerIndex + 2; // header + separator
@@ -35,8 +32,6 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
                     item.Click += clickHandler;
                     menu.Items.Insert(insertIndex++, item);
                 }
-            },
-            null
-        );
+            });
     }
 }

@@ -4,17 +4,14 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
 
     public void RebuildFavoritesMenu()
     {
         var favorites = ChannelDataService.LoadFavoriteChannels();
 
-        _ui.Post(
-            _ =>
+        menu.FindForm()
+            .BeginInvoke(() =>
             {
                 int headerIndex = menu.Items.IndexOf(_header);
                 int insertIndex = headerIndex + 2; // header + separator
@@ -102,8 +99,6 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                         menu.Items.Insert(insertIndex++, groupNode);
                     }
                 }
-            },
-            null
-        );
+            });
     }
 }

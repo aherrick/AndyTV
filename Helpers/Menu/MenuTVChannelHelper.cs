@@ -5,9 +5,6 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
     public List<Channel> Channels { get; private set; } = [];
 
     public async Task LoadChannels(string m3uURL)
@@ -33,16 +30,23 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             return (usItem, ukItem);
         });
 
-        // Add to menu on UI thread
-        _ui.Post(
-            _ =>
+        // Add to menu on UI thread using BeginInvoke for better responsiveness
+        menu.FindForm()
+            .BeginInvoke(() =>
             {
-                MenuHelper.AddHeader(menu, "TOP CHANNELS");
-                menu.Items.Add(menuItems.usItem);
-                menu.Items.Add(menuItems.ukItem);
-            },
-            null
-        );
+                try
+                {
+                    MenuHelper.AddHeader(menu, "TOP CHANNELS");
+                    if (menuItems.usItem != null)
+                        menu.Items.Add(menuItems.usItem);
+                    if (menuItems.ukItem != null)
+                        menu.Items.Add(menuItems.ukItem);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "[MENU] Error adding menu items");
+                }
+            });
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------

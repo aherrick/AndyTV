@@ -28,11 +28,12 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    // Cancels any pending waits/retries when a new Play begins
-    private CancellationTokenSource _playCts;
-
-    // Prevent multiple restart loops
+    // retry logic
     private bool _isRestarting = false;
+
+    private const int STALL_SECONDS = 10;
+    private readonly System.Windows.Forms.Timer _healthTimer;
+    private DateTime _lastActivityUtc = DateTime.UtcNow;
 
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
@@ -43,7 +44,6 @@ public partial class Form1 : Form
         InitializeComponent();
 
         _notificationService = new NotificationService(this);
-        _playCts = new CancellationTokenSource();
 
         HandleCreated += delegate
         {
@@ -54,126 +54,79 @@ public partial class Form1 : Form
             }
         };
 
+        _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 }; // 1s
+        _healthTimer.Tick += (_, __) =>
+        {
+            var nowUtc = DateTime.UtcNow;
+            var inactive = nowUtc - _lastActivityUtc;
+
+            if (inactive.TotalSeconds >= STALL_SECONDS)
+            {
+                if (_isRestarting)
+                {
+                    Logger.Info(
+                        $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s, threshold={STALL_SECONDS}s)."
+                    );
+                    return;
+                }
+
+                _isRestarting = true;
+
+                Logger.Info(
+                    $"[HEALTH] Inactivity {inactive.TotalSeconds:F0}s ≥ {STALL_SECONDS}s; scheduling restart…"
+                );
+
+                // Throttle next attempts so we don't fire again immediately
+                _lastActivityUtc = nowUtc;
+
+                Logger.Info(
+                    $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
+                );
+
+                // LibVLC ops on the pool (no UI here)
+                StartMediaOnPool(_currentChannel);
+
+                // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
+                _isRestarting = false;
+
+                Logger.Info(
+                    "[HEALTH] Restart queued to thread pool; awaiting Playing or next health check."
+                );
+            }
+        };
+
+        _healthTimer.Start();
+
         Logger.Info("Starting AndyTV...");
 
         Icon = new Icon("AndyTV.ico");
 
-        // ------- Lean Restart (3 tries; each waits up to 10s for Playing; aborts if user force-switches)
-        void RestartChannel(string trigger)
+        videoView.MediaPlayer.TimeChanged += (_, __) =>
         {
-            if (_isRestarting)
-                return; // Prevent multiple restart loops
+            _lastActivityUtc = DateTime.UtcNow;
+        };
 
-            Task.Run(async () =>
-            {
-                _isRestarting = true;
-                try
-                {
-                    for (int attempt = 1; attempt <= 3; attempt++)
-                    {
-                        Logger.Info(
-                            $"[RESTART] trigger={trigger} attempt={attempt}/3 ch='{_currentChannel?.DisplayName}'"
-                        );
+        videoView.MediaPlayer.PositionChanged += (_, __) =>
+        {
+            _lastActivityUtc = DateTime.UtcNow;
+        };
 
-                        var tcs = new TaskCompletionSource<bool>(
-                            TaskCreationOptions.RunContinuationsAsynchronously
-                        );
-                        void OnPlaying(object s, EventArgs e)
-                        {
-                            tcs.TrySetResult(true);
-                        }
-
-                        _videoView.MediaPlayer.Playing += OnPlaying;
-                        try
-                        {
-                            // Use BeginInvoke to marshal to UI thread
-                            BeginInvoke(() => Play(_currentChannel));
-
-                            // Play() recreated _playCts; use the fresh token for this attempt
-                            var attemptToken = _playCts.Token;
-
-                            // Wait up to 10s for Playing, or cancel if user force-plays another channel
-                            var finished = await Task.WhenAny(
-                                tcs.Task,
-                                Task.Delay(10_000, attemptToken)
-                            );
-
-                            if (attemptToken.IsCancellationRequested)
-                            {
-                                return; // user switched channels; this retry loop is stale
-                            }
-
-                            if (finished == tcs.Task && await tcs.Task)
-                            {
-                                Logger.Info($"[RESTART] success on attempt {attempt}");
-                                return; // hit Playing — done
-                            }
-
-                            Logger.Info($"[RESTART] no 'Playing' within 10s on attempt {attempt}");
-                        }
-                        finally
-                        {
-                            _videoView.MediaPlayer.Playing -= OnPlaying;
-                        }
-                    }
-
-                    Logger.Warn(
-                        $"[RESTART] giving up after 3 attempts ch='{_currentChannel?.DisplayName}'"
-                    );
-                }
-                catch (OperationCanceledException)
-                {
-                    // stale restart; ignore
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "[RESTART] unexpected error");
-                }
-                finally
-                {
-                    _isRestarting = false; // Reset flag when done
-                }
-            });
-        }
-
-        // ------- VLC events (lean)
         videoView.MediaPlayer.Playing += delegate
         {
-            if (_playCts.IsCancellationRequested)
-            {
-                return; // stale event from old play
-            }
+            _lastActivityUtc = DateTime.UtcNow;
+            _isRestarting = false;
 
-            _isRestarting = false; // Reset restart flag on successful play
-
-            // Reset cursor based on fullscreen state
-            SetCursorForCurrentMode();
+            // Remove this call:
+            // SetCursorForCurrentMode();
 
             BeginInvoke(() =>
             {
+                SetCursorForCurrentMode();
                 _notificationService.ShowToast(_currentChannel.DisplayName);
                 RecentChannelsService.AddOrPromote(_currentChannel);
                 ChannelDataService.SaveLastChannel(_currentChannel);
                 _menuRecentChannelHelper?.RebuildRecentMenu();
             });
-        };
-
-        videoView.MediaPlayer.EndReached += (_, __) =>
-        {
-            if (_playCts.IsCancellationRequested)
-            {
-                return;
-            } // stale
-            RestartChannel("EndReached");
-        };
-
-        videoView.MediaPlayer.EncounteredError += (_, __) =>
-        {
-            if (_playCts.IsCancellationRequested)
-            {
-                return;
-            } // stale
-            RestartChannel("EncounteredError");
         };
 
         // Configure VideoView with context menu and event handlers
@@ -260,27 +213,37 @@ public partial class Form1 : Form
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
         {
+            _isRestarting = false;
+            _lastActivityUtc = DateTime.UtcNow;
+
             Play(ch); // manual selection overrides any pending waits/retries
         }
     }
 
     private void Play(Channel channel)
     {
-        // Cancel any pending work from previous play (retries or waits)
-        _playCts.Cancel();
-        _playCts.Dispose();
-        _playCts = new CancellationTokenSource();
-
-        _isRestarting = false; // Reset restart flag when user manually plays
-
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
         _currentChannel = channel;
+
+        // UI feedback on UI thread
         _videoView.ShowWaiting();
 
-        _videoView.MediaPlayer.Stop();
+        // Cancel any pending restart cadence and give a fresh window
+        _isRestarting = false;
+        _lastActivityUtc = DateTime.UtcNow;
 
-        using var media = new Media(_libVLC, new Uri(channel.Url));
-        _videoView.MediaPlayer.Play(media);
+        // LibVLC ops on the thread pool (recommended pattern)
+        StartMediaOnPool(channel);
+    }
+
+    private void StartMediaOnPool(Channel channel)
+    {
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            _videoView.MediaPlayer.Stop();
+            using var media = new Media(_libVLC, new Uri(channel.Url));
+            _videoView.MediaPlayer.Play(media);
+        });
     }
 
     private void MaximizeWindow()
@@ -327,8 +290,7 @@ public partial class Form1 : Form
             var prevChannel = RecentChannelsService.GetPrevious();
             if (prevChannel != null)
             {
-                Play(prevChannel); // authoritative previous-channel switch
-                _currentChannel = prevChannel;
+                Play(prevChannel);
             }
         }
 
