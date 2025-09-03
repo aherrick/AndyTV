@@ -56,7 +56,6 @@ public class InputForm : Form
         _cancelButton.Width = ButtonWidth;
         _cancelButton.Top = buttonTop;
         _cancelButton.DialogResult = DialogResult.Cancel;
-        _cancelButton.UseVisualStyleBackColor = true;
         _cancelButton.ApplySystemStyle();
 
         _okButton.Text = "OK";
@@ -64,7 +63,6 @@ public class InputForm : Form
         _okButton.Width = ButtonWidth;
         _okButton.Top = buttonTop;
         _okButton.DialogResult = DialogResult.OK;
-        _okButton.UseVisualStyleBackColor = true;
         _okButton.ApplySystemStyle();
 
         Controls.AddRange([promptLabel, InputBox, _okButton, _cancelButton]);

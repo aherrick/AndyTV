@@ -169,7 +169,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Up",
             Location = new Point(870, 335),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _moveUpButton.ApplySystemStyle();
         _moveUpButton.Click += MoveUpButton_Click;
@@ -179,7 +178,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Down",
             Location = new Point(870, 380),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _moveDownButton.ApplySystemStyle();
         _moveDownButton.Click += MoveDownButton_Click;
@@ -189,7 +187,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Remove",
             Location = new Point(870, 425),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _removeButton.ApplySystemStyle();
         _removeButton.Click += RemoveButton_Click;
@@ -200,7 +197,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Import",
             Location = new Point(15, 700),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _importButton.ApplySystemStyle();
         _importButton.Click += ImportFavorites;
@@ -210,7 +206,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Export",
             Location = new Point(125, 700),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _exportButton.ApplySystemStyle();
         _exportButton.Click += ExportFavorites;
@@ -220,7 +215,6 @@ public partial class FavoriteChannelForm : Form
             Text = "Save",
             Location = new Point(870, 700),
             Size = new Size(100, 35),
-            UseVisualStyleBackColor = true,
         };
         _saveButton.ApplySystemStyle();
         _saveButton.Click += SaveButton_Click;
