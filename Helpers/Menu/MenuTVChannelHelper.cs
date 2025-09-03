@@ -31,22 +31,10 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         });
 
         // Add to menu on UI thread using BeginInvoke for better responsiveness
-        menu.FindForm()
-            .BeginInvoke(() =>
-            {
-                try
-                {
-                    MenuHelper.AddHeader(menu, "TOP CHANNELS");
-                    if (menuItems.usItem != null)
-                        menu.Items.Add(menuItems.usItem);
-                    if (menuItems.ukItem != null)
-                        menu.Items.Add(menuItems.ukItem);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "[MENU] Error adding menu items");
-                }
-            });
+
+        MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        menu.Items.Add(menuItems.usItem);
+        menu.Items.Add(menuItems.ukItem);
     }
 
     // ---------- Build US/UK dictionaries (data only) ----------

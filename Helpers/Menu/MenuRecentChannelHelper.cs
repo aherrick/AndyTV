@@ -10,28 +10,21 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
     {
         var recents = RecentChannelsService.GetRecentChannels();
 
-        menu.FindForm()
-            .BeginInvoke(() =>
-            {
-                int headerIndex = menu.Items.IndexOf(_header);
-                int insertIndex = headerIndex + 2; // header + separator
+        int headerIndex = menu.Items.IndexOf(_header);
+        int insertIndex = headerIndex + 2; // header + separator
 
-                // Clear existing recents until next separator
-                while (
-                    insertIndex < menu.Items.Count
-                    && menu.Items[insertIndex] is not ToolStripSeparator
-                )
-                {
-                    menu.Items.RemoveAt(insertIndex);
-                }
+        // Clear existing recents until next separator
+        while (insertIndex < menu.Items.Count && menu.Items[insertIndex] is not ToolStripSeparator)
+        {
+            menu.Items.RemoveAt(insertIndex);
+        }
 
-                // Insert current recents
-                foreach (var ch in recents)
-                {
-                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += clickHandler;
-                    menu.Items.Insert(insertIndex++, item);
-                }
-            });
+        // Insert current recents
+        foreach (var ch in recents)
+        {
+            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+            item.Click += clickHandler;
+            menu.Items.Insert(insertIndex++, item);
+        }
     }
 }
