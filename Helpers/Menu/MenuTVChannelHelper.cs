@@ -42,6 +42,33 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         );
     }
 
+    public async Task BuildMenuForItem(ToolStripMenuItem item, EventHandler channelClick)
+    {
+        // Build menu structure in background thread
+        var menuItems = await Task.Run(() =>
+        {
+            var usDict = BuildTopUs();
+            var ukDict = BuildTopUk();
+
+            var usItem = BuildTopMenu("US", usDict, channelClick);
+            var ukItem = BuildTopMenu("UK", ukDict, channelClick);
+
+            return (usItem, ukItem);
+        });
+
+        // Add to item on UI thread
+        _ui.Post(
+            _ =>
+            {
+                item.DropDown.SuspendLayout();
+                item.DropDownItems.Add(menuItems.usItem);
+                item.DropDownItems.Add(menuItems.ukItem);
+                item.DropDown.ResumeLayout();
+            },
+            null
+        );
+    }
+
     // ---------- Build US/UK dictionaries (data only) ----------
 
     private static Dictionary<string, string[][]> BuildTopUs() =>
