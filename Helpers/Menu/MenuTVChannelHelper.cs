@@ -5,6 +5,9 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public List<Channel> Channels { get; private set; } = [];
 
     public async Task LoadChannels(string m3uURL)
@@ -24,26 +27,21 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             return (BuildTopUs(), BuildTopUk());
         });
 
-        menu.BeginInvoke(
-            new Action(() =>
+        _ui.Post(
+            _ =>
             {
                 // Optional: clean up or insert a header
                 MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
                 //menu.SuspendLayout();
-                try
-                {
-                    var usItem = BuildTopMenu("US", usDict, channelClick);
-                    var ukItem = BuildTopMenu("UK", ukDict, channelClick);
 
-                    menu.Items.Add(usItem);
-                    menu.Items.Add(ukItem);
-                }
-                finally
-                {
-                    //  menu.ResumeLayout(performLayout: true);
-                }
-            })
+                var usItem = BuildTopMenu("US", usDict, channelClick);
+                var ukItem = BuildTopMenu("UK", ukDict, channelClick);
+
+                menu.Items.Add(usItem);
+                menu.Items.Add(ukItem);
+            },
+            null
         );
 
         //MenuHelper.AddHeader(menu, "TOP CHANNELS");
