@@ -148,7 +148,7 @@ public partial class Form1 : Form
                 Logger.Info("[CHANNELS] Loaded");
 
                 // Build menu (handles UI thread internally)
-                await _menuTVChannelHelper.BuildMenuForItem(_tvChannelsItem, ChItem_Click);
+                await _menuTVChannelHelper.BuildMenu(ChItem_Click);
             }
 
             // Cursor stuff can happen immediately on UI thread

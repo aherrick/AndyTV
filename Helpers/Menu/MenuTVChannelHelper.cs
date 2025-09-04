@@ -5,20 +5,17 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
     public List<Channel> Channels { get; private set; } = [];
 
     public async Task LoadChannels(string m3uURL)
     {
-        var parsed = await M3UService.ParseM3U(m3uURL);
+        var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
+
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
     }
 
     public async Task BuildMenu(EventHandler channelClick)
     {
-        // Build menu structure in background thread
         var menuItems = await Task.Run(() =>
         {
             var usDict = BuildTopUs();
@@ -30,46 +27,12 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             return (usItem, ukItem);
         });
 
-        // Add to menu on UI thread
-        _ui.Post(
-            _ =>
-            {
-                MenuHelper.AddHeader(menu, "TOP CHANNELS");
-                menu.Items.Add(menuItems.usItem);
-                menu.Items.Add(menuItems.ukItem);
-            },
-            null
-        );
+        // Add to menu on UI thread using BeginInvoke for better responsiveness
+
+        MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        menu.Items.Add(menuItems.usItem);
+        menu.Items.Add(menuItems.ukItem);
     }
-
-    public async Task BuildMenuForItem(ToolStripMenuItem item, EventHandler channelClick)
-    {
-        // Build menu structure in background thread
-        var menuItems = await Task.Run(() =>
-        {
-            var usDict = BuildTopUs();
-            var ukDict = BuildTopUk();
-
-            var usItem = BuildTopMenu("US", usDict, channelClick);
-            var ukItem = BuildTopMenu("UK", ukDict, channelClick);
-
-            return (usItem, ukItem);
-        });
-
-        // Add to item on UI thread
-        _ui.Post(
-            _ =>
-            {
-                item.DropDown.SuspendLayout();
-                item.DropDownItems.Add(menuItems.usItem);
-                item.DropDownItems.Add(menuItems.ukItem);
-                item.DropDown.ResumeLayout();
-            },
-            null
-        );
-    }
-
-    // ---------- Build US/UK dictionaries (data only) ----------
 
     private static Dictionary<string, string[][]> BuildTopUs() =>
         new(StringComparer.OrdinalIgnoreCase)
