@@ -9,7 +9,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task LoadChannels(string m3uURL)
     {
-        var parsed = await M3UService.ParseM3U(m3uURL).ConfigureAwait(false);
+        var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
 
         Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
     }
