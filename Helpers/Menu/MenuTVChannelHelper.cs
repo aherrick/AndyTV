@@ -16,20 +16,39 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task BuildMenu(EventHandler channelClick)
     {
-        var menuItems = await Task.Run(() =>
+        var (usDict, ukDict) = await Task.Run(() =>
         {
             var usDict = BuildTopUs();
             var ukDict = BuildTopUk();
 
-            var usItem = BuildTopMenu("US", usDict, channelClick);
-            var ukItem = BuildTopMenu("UK", ukDict, channelClick);
-
-            return (usItem, ukItem);
+            return (BuildTopUs(), BuildTopUk());
         });
 
-        MenuHelper.AddHeader(menu, "TOP CHANNELS");
-        menu.Items.Add(menuItems.usItem);
-        menu.Items.Add(menuItems.ukItem);
+        menu.BeginInvoke(
+            new Action(() =>
+            {
+                // Optional: clean up or insert a header
+                MenuHelper.AddHeader(menu, "TOP CHANNELS");
+
+                menu.SuspendLayout();
+                try
+                {
+                    var usItem = BuildTopMenu("US", usDict, channelClick);
+                    var ukItem = BuildTopMenu("UK", ukDict, channelClick);
+
+                    menu.Items.Add(usItem);
+                    menu.Items.Add(ukItem);
+                }
+                finally
+                {
+                    menu.ResumeLayout(performLayout: true);
+                }
+            })
+        );
+
+        //MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        //menu.Items.Add(menuItems.usItem);
+        //menu.Items.Add(menuItems.ukItem);
     }
 
     private static Dictionary<string, string[][]> BuildTopUs() =>
