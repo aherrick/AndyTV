@@ -30,7 +30,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 // Optional: clean up or insert a header
                 MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-                menu.SuspendLayout();
+                //menu.SuspendLayout();
                 try
                 {
                     var usItem = BuildTopMenu("US", usDict, channelClick);
@@ -41,7 +41,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
                 finally
                 {
-                    menu.ResumeLayout(performLayout: true);
+                    //  menu.ResumeLayout(performLayout: true);
                 }
             })
         );
