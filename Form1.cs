@@ -35,8 +35,6 @@ public partial class Form1 : Form
     private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
-    private ToolStripMenuItem _tvChannelsItem;
-
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
@@ -426,10 +424,6 @@ public partial class Form1 : Form
             form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
         };
         _contextMenuStrip.Items.Add(favoritesItem);
-
-        // --- TV Channels ---
-        _tvChannelsItem = new ToolStripMenuItem("TV Channels");
-        _contextMenuStrip.Items.Add(_tvChannelsItem);
 
         // ---Restart-- -
         var restartItem = new ToolStripMenuItem("Restart");

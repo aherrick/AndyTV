@@ -27,8 +27,6 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
             return (usItem, ukItem);
         });
 
-        // Add to menu on UI thread using BeginInvoke for better responsiveness
-
         MenuHelper.AddHeader(menu, "TOP CHANNELS");
         menu.Items.Add(menuItems.usItem);
         menu.Items.Add(menuItems.ukItem);
