@@ -17,8 +17,11 @@ internal static class Program
         Application.SetColorMode(SystemColorMode.Dark);
 #pragma warning restore WFO5001
 
+        string[] args = Environment.GetCommandLineArgs();
+        bool isRestart = args.Contains("--restart");
+
         _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-        if (!isNew)
+        if (!isNew && !isRestart)
         {
             return;
         }
@@ -41,6 +44,7 @@ internal static class Program
             new ProcessStartInfo
             {
                 FileName = Environment.ProcessPath ?? Application.ExecutablePath,
+                Arguments = "--restart",
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
             }
