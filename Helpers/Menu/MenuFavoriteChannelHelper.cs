@@ -8,6 +8,9 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
     private const string RegionStartName = "__FAV_REGION_START__";
     private const string RegionEndName = "__FAV_REGION_END__";
 
+    // Cached bold font to avoid recreating per category header
+    private static readonly Font BoldMenuFont = new(SystemFonts.MenuFont, FontStyle.Bold);
+
     public void RebuildFavoritesMenu()
     {
         var favorites = ChannelDataService.LoadFavoriteChannels();
@@ -46,7 +49,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                     new ToolStripMenuItem
                     {
                         Text = catGroup.Key.ToUpperInvariant(),
-                        Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
+                        Font = BoldMenuFont, // <-- cached
                         Enabled = false,
                     }
                 );
@@ -105,17 +108,19 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
             menu.Items.Add(start);
         }
 
-        // END sentinel (must be after START)
+        // END sentinel (keep invisible so it never shows)
         int startIdx = menu.Items.IndexOf(start);
         for (int i = startIdx + 1; i < menu.Items.Count; i++)
         {
             if (menu.Items[i] is ToolStripSeparator e && e.Name == RegionEndName)
             {
+                e.Visible = false; // force hidden
                 return (startIdx, i);
             }
         }
 
-        var end = new ToolStripSeparator { Name = RegionEndName };
+        // Add invisible end sentinel
+        var end = new ToolStripSeparator { Name = RegionEndName, Visible = false };
         menu.Items.Add(end);
         return (startIdx, menu.Items.Count - 1);
     }
