@@ -18,7 +18,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
         var favorites = ChannelDataService.LoadFavoriteChannels();
         var (startIdx, endIdx) = EnsureRegion(menu, _header);
 
-        // Clear everything between START and END
+        // Clear everything between START and END (exclusive)
         for (int i = endIdx - 1; i > startIdx; i--)
         {
             menu.Items.RemoveAt(i);
@@ -34,19 +34,16 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
         {
             if (catGroup.Key is null)
             {
-                // Top-level (no category header)
                 foreach (
                     var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
                     menu.Items.Insert(pos++, CreateChannelItem(ch, clickHandler));
                 }
-
-                continue;
             }
             else
             {
-                // Category header block
+                // Category header block: sep + HEADER + sep
                 menu.Items.Insert(pos++, new ToolStripSeparator());
                 menu.Items.Insert(
                     pos++,
@@ -59,7 +56,6 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 );
                 menu.Items.Insert(pos++, new ToolStripSeparator());
 
-                // Items without group
                 foreach (
                     var ch in catGroup
                         .Where(c => string.IsNullOrWhiteSpace(c.Group))
@@ -69,7 +65,6 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                     menu.Items.Insert(pos++, CreateChannelItem(ch, clickHandler));
                 }
 
-                // Items grouped into submenus
                 foreach (
                     var grp in catGroup
                         .Where(c => !string.IsNullOrWhiteSpace(c.Group))
@@ -123,17 +118,18 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
             menu.Items.Insert(afterHeader, start);
         }
 
-        // END sentinel
+        // END sentinel (always invisible)
         int startIdx = menu.Items.IndexOf(start);
         for (int i = startIdx + 1; i < menu.Items.Count; i++)
         {
             if (menu.Items[i] is ToolStripSeparator e && e.Name == RegionEndName)
             {
+                e.Visible = false;
                 return (startIdx, i);
             }
         }
 
-        var end = new ToolStripSeparator { Name = RegionEndName };
+        var end = new ToolStripSeparator { Name = RegionEndName, Visible = false };
         menu.Items.Add(end);
         return (startIdx, menu.Items.Count - 1);
     }
