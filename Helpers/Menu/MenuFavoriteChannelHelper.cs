@@ -1,4 +1,7 @@
-﻿using AndyTV.Models;
+﻿using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
@@ -8,13 +11,12 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
     private const string RegionStartName = "__FAV_REGION_START__";
     private const string RegionEndName = "__FAV_REGION_END__";
 
-    // Cached bold font to avoid recreating per category header
-    private static readonly Font BoldMenuFont = new(SystemFonts.MenuFont, FontStyle.Bold);
+    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
 
     public void RebuildFavoritesMenu()
     {
         var favorites = ChannelDataService.LoadFavoriteChannels();
-        var (startIdx, endIdx) = EnsureRegion(menu);
+        var (startIdx, endIdx) = EnsureRegion(menu, _header);
 
         // Clear everything between START and END
         for (int i = endIdx - 1; i > startIdx; i--)
@@ -39,6 +41,8 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 {
                     menu.Items.Insert(pos++, CreateChannelItem(ch, clickHandler));
                 }
+
+                continue;
             }
             else
             {
@@ -49,7 +53,7 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                     new ToolStripMenuItem
                     {
                         Text = catGroup.Key.ToUpperInvariant(),
-                        Font = BoldMenuFont, // <-- cached
+                        Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
                         Enabled = false,
                     }
                 );
@@ -95,32 +99,41 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
         return item;
     }
 
-    private static (int startIdx, int endIdx) EnsureRegion(ContextMenuStrip menu)
+    private static (int startIdx, int endIdx) EnsureRegion(
+        ContextMenuStrip menu,
+        ToolStripMenuItem header
+    )
     {
-        // START sentinel
-        ToolStripSeparator start = menu
-            .Items.OfType<ToolStripSeparator>()
-            .FirstOrDefault(s => s.Name == RegionStartName);
+        int headerIndex = menu.Items.IndexOf(header);
+        int afterHeader = headerIndex + 2;
 
-        if (start is null)
+        // START sentinel
+        ToolStripSeparator start;
+        if (
+            afterHeader < menu.Items.Count
+            && menu.Items[afterHeader] is ToolStripSeparator s
+            && s.Name == RegionStartName
+        )
+        {
+            start = s;
+        }
+        else
         {
             start = new ToolStripSeparator { Name = RegionStartName };
-            menu.Items.Add(start);
+            menu.Items.Insert(afterHeader, start);
         }
 
-        // END sentinel (keep invisible so it never shows)
+        // END sentinel
         int startIdx = menu.Items.IndexOf(start);
         for (int i = startIdx + 1; i < menu.Items.Count; i++)
         {
             if (menu.Items[i] is ToolStripSeparator e && e.Name == RegionEndName)
             {
-                e.Visible = false; // force hidden
                 return (startIdx, i);
             }
         }
 
-        // Add invisible end sentinel
-        var end = new ToolStripSeparator { Name = RegionEndName, Visible = false };
+        var end = new ToolStripSeparator { Name = RegionEndName };
         menu.Items.Add(end);
         return (startIdx, menu.Items.Count - 1);
     }
