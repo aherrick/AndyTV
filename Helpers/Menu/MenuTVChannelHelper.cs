@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Windows.Forms;
-using AndyTV.Models;
+﻿using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu
@@ -25,107 +20,72 @@ namespace AndyTV.Helpers.Menu
             var us = BuildTopUs();
             var uk = BuildTopUk();
 
-            menu.BeginInvoke(() =>
+            menu.BeginInvoke(async () =>
             {
                 MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-                menu.Items.Add(BuildTopMenuLazy("US", us, channelClick));
+                menu.Items.Add(await BuildTopMenu("US", us, channelClick));
 
-                menu.Items.Add(BuildTopMenuLazy("UK", uk, channelClick));
+                menu.Items.Add(await BuildTopMenu("UK", uk, channelClick));
             });
         }
 
-        private ToolStripMenuItem BuildTopMenuLazy(
+        private async Task<ToolStripMenuItem> BuildTopMenu(
             string rootTitle,
             Dictionary<string, string[][]> categories,
             EventHandler channelClick
         )
         {
-            var rootItem = new ToolStripMenuItem(rootTitle);
+            var root = new ToolStripMenuItem(rootTitle);
 
             foreach (
                 var (catName, entries) in categories.OrderBy(
-                    k => k.Key,
+                    c => c.Key,
                     StringComparer.OrdinalIgnoreCase
                 )
             )
             {
-                var catItem = new ToolStripMenuItem(catName);
+                var cat = new ToolStripMenuItem(catName);
 
                 foreach (var entry in entries.OrderBy(e => e[0], StringComparer.OrdinalIgnoreCase))
                 {
                     var display = entry[0];
-                    var candidates = entry; // entry[0] is display, rest are alternates
+                    var terms = entry;
 
-                    // Create the parent node now; populate children when user opens it
-                    var parent = CreateLazyParent(display, candidates, channelClick);
+                    // Compute matches off-thread to avoid any UI hiccup
+                    var matches = await Task.Run(
+                        () =>
+                            Channels
+                                .Where(ch =>
+                                    terms.Any(term =>
+                                        ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                                    )
+                                )
+                                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                                .ToList()
+                    );
 
-                    // We always add the parent; if no matches on open, it shows a disabled "(no matches)"
-                    catItem.DropDownItems.Add(parent);
+                    if (matches.Count == 0)
+                        continue;
+
+                    var parent = new ToolStripMenuItem(display);
+                    foreach (var ch in matches)
+                    {
+                        var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
+                        item.Click += channelClick;
+                        parent.DropDownItems.Add(item);
+                    }
+
+                    cat.DropDownItems.Add(parent);
                 }
 
-                if (catItem.DropDownItems.Count > 0)
+                if (cat.DropDownItems.Count > 0)
                 {
-                    rootItem.DropDownItems.Add(catItem);
+                    root.DropDownItems.Add(cat);
                 }
             }
 
-            return rootItem.DropDownItems.Count > 0 ? rootItem : null;
-        }
-
-        private ToolStripMenuItem CreateLazyParent(
-            string display,
-            string[] candidates,
-            EventHandler channelClick
-        )
-        {
-            var parent = new ToolStripMenuItem(display) { Tag = candidates };
-
-            parent.DropDownOpening += async (s, e) =>
-            {
-                var p = (ToolStripMenuItem)s;
-
-                if (p.DropDownItems.Count > 0)
-                {
-                    return;
-                }
-
-                var terms = (string[])p.Tag;
-
-                // Compute matches off-thread to avoid any UI hiccup
-                var matches = await Task.Run(
-                    () =>
-                        Channels
-                            .Where(ch =>
-                                terms.Any(term =>
-                                    ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                                )
-                            )
-                            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                            .ToList()
-                );
-
-                if (matches.Count == 0)
-                {
-                    // Keep the menu clean; disable if no matches
-                    p.Enabled = false;
-                    return;
-                }
-
-                // Build and add in bulk
-                var items = new ToolStripItem[matches.Count];
-                for (int i = 0; i < matches.Count; i++)
-                {
-                    var ch = matches[i];
-                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
-                    item.Click += channelClick;
-                    items[i] = item;
-                }
-
-                p.DropDownItems.AddRange(items);
-            };
-
-            return parent;
+            return root.DropDownItems.Count > 0 ? root : null;
         }
 
         // ---------- Utility ----------
