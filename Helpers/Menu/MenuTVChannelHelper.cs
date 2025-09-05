@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using AndyTV.Models;
 using AndyTV.Services;
@@ -10,6 +10,12 @@ namespace AndyTV.Helpers.Menu
 {
     public class MenuTVChannelHelper(ContextMenuStrip menu)
     {
+        private sealed class LazyPayload(string[] terms)
+        {
+            public string[] Terms { get; } = terms;
+            public bool Loaded { get; set; }
+        }
+
         public List<Channel> Channels { get; private set; } = [];
 
         // ---------- Load ----------
@@ -29,9 +35,11 @@ namespace AndyTV.Helpers.Menu
             {
                 MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-                menu.Items.Add(BuildTopMenuLazy("US", us, channelClick));
+                var usItem = BuildTopMenuLazy("US", us, channelClick);
+                menu.Items.Add(usItem);
 
-                menu.Items.Add(BuildTopMenuLazy("UK", uk, channelClick));
+                var ukItem = BuildTopMenuLazy("UK", uk, channelClick);
+                menu.Items.Add(ukItem);
             });
         }
 
@@ -55,12 +63,9 @@ namespace AndyTV.Helpers.Menu
                 foreach (var entry in entries.OrderBy(e => e[0], StringComparer.OrdinalIgnoreCase))
                 {
                     var display = entry[0];
-                    var candidates = entry; // entry[0] is display, rest are alternates
+                    var candidates = entry;
 
-                    // Create the parent node now; populate children when user opens it
                     var parent = CreateLazyParent(display, candidates, channelClick);
-
-                    // We always add the parent; if no matches on open, it shows a disabled "(no matches)"
                     catItem.DropDownItems.Add(parent);
                 }
 
@@ -79,25 +84,37 @@ namespace AndyTV.Helpers.Menu
             EventHandler channelClick
         )
         {
-            var parent = new ToolStripMenuItem(display) { Tag = candidates };
+            var payload = new LazyPayload(candidates);
+            var parent = new ToolStripMenuItem(display) { Tag = payload };
 
+            // Force arrow so hover can open immediately, even before items exist
+            parent.DropDown = new ToolStripDropDownMenu();
+
+            // Hover to open (no click)
+            parent.MouseEnter += (_, __) =>
+            {
+                if (!parent.DropDown.Visible)
+                {
+                    parent.ShowDropDown();
+                }
+            };
+
+            // Populate once, on open
             parent.DropDownOpening += async (s, e) =>
             {
                 var p = (ToolStripMenuItem)s;
+                var data = (LazyPayload)p.Tag;
 
-                if (p.DropDownItems.Count > 0)
+                if (data.Loaded)
                 {
                     return;
                 }
 
-                var terms = (string[])p.Tag;
-
-                // Compute matches off-thread to avoid any UI hiccup
                 var matches = await Task.Run(
                     () =>
                         Channels
                             .Where(ch =>
-                                terms.Any(term =>
+                                data.Terms.Any(term =>
                                     ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                                 )
                             )
@@ -105,24 +122,20 @@ namespace AndyTV.Helpers.Menu
                             .ToList()
                 );
 
-                if (matches.Count == 0)
+                if (matches.Count > 0)
                 {
-                    // Keep the menu clean; disable if no matches
-                    p.Enabled = false;
-                    return;
+                    var items = new ToolStripItem[matches.Count];
+                    for (int i = 0; i < matches.Count; i++)
+                    {
+                        var ch = matches[i];
+                        var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
+                        item.Click += channelClick;
+                        items[i] = item;
+                    }
+                    p.DropDownItems.AddRange(items);
                 }
 
-                // Build and add in bulk
-                var items = new ToolStripItem[matches.Count];
-                for (int i = 0; i < matches.Count; i++)
-                {
-                    var ch = matches[i];
-                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
-                    item.Click += channelClick;
-                    items[i] = item;
-                }
-
-                p.DropDownItems.AddRange(items);
+                data.Loaded = true; // even if empty, don't re-query on every hover
             };
 
             return parent;
@@ -158,7 +171,6 @@ namespace AndyTV.Helpers.Menu
                     ["The Wire"],
                     ["Unsolved Mysteries"],
                 ],
-
                 ["Entertainment"] =
                 [
                     ["A&E", "AE"],
@@ -195,7 +207,6 @@ namespace AndyTV.Helpers.Menu
                     ["WE TV"],
                     ["Crime + Investigation", "Crime & Investigation", "Crime and Investigation"],
                 ],
-
                 ["Kids"] =
                 [
                     ["Boomerang"],
@@ -207,7 +218,6 @@ namespace AndyTV.Helpers.Menu
                     ["Nicktoons"],
                     ["Universal Kids"],
                 ],
-
                 ["Locals"] =
                 [
                     ["ABC"],
@@ -222,7 +232,6 @@ namespace AndyTV.Helpers.Menu
                     ["NBC"],
                     ["PBS"],
                 ],
-
                 ["Movies"] =
                 [
                     ["5StarMax"],
@@ -252,7 +261,6 @@ namespace AndyTV.Helpers.Menu
                     ["The Movie Channel", "TMC"],
                     ["The Movie Channel Xtra", "TMC Xtra", "TMCXtra"],
                 ],
-
                 ["Music"] =
                 [
                     ["AXS TV", "AXS"],
@@ -262,7 +270,6 @@ namespace AndyTV.Helpers.Menu
                     ["MTV2"],
                     ["Music Choice"],
                 ],
-
                 ["News"] =
                 [
                     ["ABC News"],
@@ -274,14 +281,13 @@ namespace AndyTV.Helpers.Menu
                     ["CSPAN 2", "C-SPAN 2"],
                     ["Fox Business", "Fox Business Network"],
                     ["Fox News", "Fox News Channel"],
-                    ["HLN", "Headline News"],
+                    ["HLN"],
                     ["MSNBC"],
                     ["NBC News"],
                     ["Newsmax"],
                     ["OANN", "One America News", "One America News Network"],
                     ["The Weather Channel", "Weather Channel"],
                 ],
-
                 ["Other"] =
                 [
                     ["BBC America"],
@@ -292,7 +298,6 @@ namespace AndyTV.Helpers.Menu
                     ["Reelz"],
                     ["Trinity Broadcasting", "TBN", "Trinity Broadcasting Network"],
                 ],
-
                 ["Sports"] =
                 [
                     ["ACC Network", "ACCN"],
@@ -325,7 +330,6 @@ namespace AndyTV.Helpers.Menu
                     ["Discovery Science"],
                     ["Sky History", "History (UK)"],
                 ],
-
                 ["Entertainment"] =
                 [
                     ["Alibi"],
@@ -345,7 +349,6 @@ namespace AndyTV.Helpers.Menu
                     ["W"],
                     ["Yesterday"],
                 ],
-
                 ["Kids"] =
                 [
                     ["CBBC"],
@@ -354,7 +357,6 @@ namespace AndyTV.Helpers.Menu
                     ["POP"],
                     ["Tiny Pop"],
                 ],
-
                 ["Main"] =
                 [
                     ["4seven"],
@@ -379,7 +381,6 @@ namespace AndyTV.Helpers.Menu
                     ["STV"],
                     ["UTV"],
                 ],
-
                 ["Movies"] =
                 [
                     ["Film4"],
@@ -393,7 +394,6 @@ namespace AndyTV.Helpers.Menu
                     ["Sky Cinema Sci-Fi & Horror", "Sky Cinema Sci-Fi and Horror"],
                     ["Sky Cinema Thriller"],
                 ],
-
                 ["Music"] =
                 [
                     ["4Music"],
@@ -401,7 +401,6 @@ namespace AndyTV.Helpers.Menu
                     ["Kiss TV"],
                     ["The Box"],
                 ],
-
                 ["News"] =
                 [
                     ["Al Jazeera English", "Al Jazeera"],
@@ -412,7 +411,6 @@ namespace AndyTV.Helpers.Menu
                     ["Sky News"],
                     ["TalkTV"],
                 ],
-
                 ["Sports"] =
                 [
                     ["Eurosport 1"],
