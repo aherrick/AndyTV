@@ -5,19 +5,17 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuTVChannelHelper(ContextMenuStrip menu)
 {
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public List<Channel> Channels { get; private set; } = [];
 
-    // ---------- Load ----------
-
-    public async Task LoadChannels(string m3uURL)
-    {
-        var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
-        Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
-    }
-
-    public void BuildMenu(EventHandler channelClick)
+    public async Task LoadAndBuildMenu(EventHandler channelClick, string m3uURL)
     {
         MenuHelper.AddHeader(menu, "TOP CHANNELS");
+
+        var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
+        Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
 
         var us = BuildTopUs();
         var uk = BuildTopUk();
@@ -36,28 +34,28 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         EventHandler channelClick
     )
     {
-        var root = new ToolStripMenuItem(rootTitle);
+        var rootItem = new ToolStripMenuItem(rootTitle);
 
         foreach (
             var (catName, entries) in categories.OrderBy(
-                c => c.Key,
+                k => k.Key,
                 StringComparer.OrdinalIgnoreCase
             )
         )
         {
-            var cat = new ToolStripMenuItem(catName);
+            var catItem = new ToolStripMenuItem(catName);
 
             foreach (var entry in entries.OrderBy(e => e[0], StringComparer.OrdinalIgnoreCase))
             {
                 var display = entry[0];
-                var terms = entry;
+                var candidates = entry; // entry[0] is display, rest are alternates
 
-                // Compute matches off-thread to avoid any UI hiccup
+                //  Compute matches off - thread to avoid any UI hiccup
                 var matches = await Task.Run(
                     () =>
                         Channels
                             .Where(ch =>
-                                terms.Any(term =>
+                                candidates.Any(term =>
                                     ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                                 )
                             )
@@ -76,16 +74,14 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                     parent.DropDownItems.Add(item);
                 }
 
-                cat.DropDownItems.Add(parent);
+                catItem.DropDownItems.Add(parent);
             }
 
-            if (cat.DropDownItems.Count > 0)
-            {
-                root.DropDownItems.Add(cat);
-            }
+            if (catItem.DropDownItems.Count > 0)
+                rootItem.DropDownItems.Add(catItem);
         }
 
-        return root.DropDownItems.Count > 0 ? root : null;
+        return rootItem.DropDownItems.Count > 0 ? rootItem : null;
     }
 
     // ---------- Utility ----------
@@ -97,7 +93,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
         );
     }
 
-    // ---------- Catalogs ----------
+    // ---------- Build US/UK dictionaries (data only) ----------
 
     private static Dictionary<string, string[][]> BuildTopUs() =>
         new(StringComparer.OrdinalIgnoreCase)

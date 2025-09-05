@@ -142,11 +142,10 @@ public partial class Form1 : Form
 
             async Task LoadChannelsAsync()
             {
-                await _menuTVChannelHelper.LoadChannels(source.Url).ConfigureAwait(false);
+                await _menuTVChannelHelper
+                    .LoadAndBuildMenu(ChItem_Click, source.Url)
+                    .ConfigureAwait(false);
                 Logger.Info("[CHANNELS] Loaded");
-
-                // Build menu (handles UI thread internally)
-                _menuTVChannelHelper.BuildMenu(ChItem_Click);
             }
 
             // Cursor stuff can happen immediately on UI thread

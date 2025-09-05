@@ -1,136 +1,86 @@
-﻿using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
-using AndyTV.Models;
-using AndyTV.Services;
+﻿using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
 public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    private const string RegionStartName = "__FAV_REGION_START__";
-    private const string RegionEndName = "__FAV_REGION_END__";
-
     private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
 
     public void RebuildFavoritesMenu()
     {
         var favorites = ChannelDataService.LoadFavoriteChannels();
-        var (startIdx, endIdx) = EnsureRegion(menu, _header);
 
-        // Clear everything between START and END (exclusive)
-        for (int i = endIdx - 1; i > startIdx; i--)
-        {
-            menu.Items.RemoveAt(i);
-        }
+        int headerIndex = menu.Items.IndexOf(_header);
+        int insertIndex = headerIndex + 2; // header + separator
 
-        int pos = startIdx + 1;
+        // Clear existing favorites until the next separator
+        while (insertIndex < menu.Items.Count && menu.Items[insertIndex] is not ToolStripSeparator)
+            menu.Items.RemoveAt(insertIndex);
 
+        // Group everything by Category (null/empty treated as top-level)
         var byCategory = favorites
             .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase); // null (top-level) will sort first
 
         foreach (var catGroup in byCategory)
         {
             if (catGroup.Key is null)
             {
+                // Top-level items (no category header)
                 foreach (
                     var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    menu.Items.Insert(pos++, CreateChannelItem(ch, clickHandler));
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                    item.Click += clickHandler;
+                    menu.Items.Insert(insertIndex++, item);
                 }
+                continue;
             }
-            else
-            {
-                // Category header block: sep + HEADER + sep
-                menu.Items.Insert(pos++, new ToolStripSeparator());
-                menu.Items.Insert(
-                    pos++,
-                    new ToolStripMenuItem
-                    {
-                        Text = catGroup.Key.ToUpperInvariant(),
-                        Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
-                        Enabled = false,
-                    }
-                );
-                menu.Items.Insert(pos++, new ToolStripSeparator());
 
+            // Category header
+            menu.Items.Insert(
+                insertIndex++,
+                new ToolStripMenuItem
+                {
+                    Text = catGroup.Key.ToUpperInvariant(),
+                    Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
+                    Enabled = false,
+                }
+            );
+
+            // Split into with/without Group inside this category
+            var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
+            var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
+
+            // Direct items (no group) under the category header
+            foreach (
+                var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+            )
+            {
+                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                item.Click += clickHandler;
+                menu.Items.Insert(insertIndex++, item);
+            }
+
+            // Grouped submenus
+            var byGroup = withGroup
+                .GroupBy(ch => ch.Group!.Trim())
+                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var grp in byGroup)
+            {
+                var groupNode = new ToolStripMenuItem(grp.Key);
                 foreach (
-                    var ch in catGroup
-                        .Where(c => string.IsNullOrWhiteSpace(c.Group))
-                        .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    menu.Items.Insert(pos++, CreateChannelItem(ch, clickHandler));
+                    var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                    child.Click += clickHandler;
+                    groupNode.DropDownItems.Add(child);
                 }
-
-                foreach (
-                    var grp in catGroup
-                        .Where(c => !string.IsNullOrWhiteSpace(c.Group))
-                        .GroupBy(c => c.Group!.Trim())
-                        .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-                )
-                {
-                    var node = new ToolStripMenuItem(grp.Key);
-
-                    foreach (
-                        var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
-                    )
-                    {
-                        node.DropDownItems.Add(CreateChannelItem(ch, clickHandler));
-                    }
-
-                    menu.Items.Insert(pos++, node);
-                }
+                menu.Items.Insert(insertIndex++, groupNode);
             }
         }
-    }
-
-    private static ToolStripMenuItem CreateChannelItem(Channel ch, EventHandler clickHandler)
-    {
-        var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-        item.Click += clickHandler;
-        return item;
-    }
-
-    private static (int startIdx, int endIdx) EnsureRegion(
-        ContextMenuStrip menu,
-        ToolStripMenuItem header
-    )
-    {
-        int headerIndex = menu.Items.IndexOf(header);
-        int afterHeader = headerIndex + 2;
-
-        // START sentinel
-        ToolStripSeparator start;
-        if (
-            afterHeader < menu.Items.Count
-            && menu.Items[afterHeader] is ToolStripSeparator s
-            && s.Name == RegionStartName
-        )
-        {
-            start = s;
-        }
-        else
-        {
-            start = new ToolStripSeparator { Name = RegionStartName };
-            menu.Items.Insert(afterHeader, start);
-        }
-
-        // END sentinel (always invisible)
-        int startIdx = menu.Items.IndexOf(start);
-        for (int i = startIdx + 1; i < menu.Items.Count; i++)
-        {
-            if (menu.Items[i] is ToolStripSeparator e && e.Name == RegionEndName)
-            {
-                e.Visible = false;
-                return (startIdx, i);
-            }
-        }
-
-        var end = new ToolStripSeparator { Name = RegionEndName, Visible = false };
-        menu.Items.Add(end);
-        return (startIdx, menu.Items.Count - 1);
     }
 }
