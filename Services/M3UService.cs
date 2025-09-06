@@ -2,7 +2,6 @@ using System.Text.Json;
 using AndyTV.Helpers;
 using AndyTV.Models;
 using AndyTV.UI;
-using m3uParser;
 
 namespace AndyTV.Services;
 
@@ -13,14 +12,13 @@ public static class M3UService
     public static async Task<List<Channel>> ParseM3U(string m3uURL)
     {
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
-
-        var contentM3u = M3U.Parse(m3uText);
+        var parsedM3U = M3UManager.M3UManager.ParseFromString(m3uText);
 
         var channels = new List<Channel>();
 
-        foreach (var item in contentM3u.Medias)
+        foreach (var item in parsedM3U.Channels)
         {
-            channels.Add(new Channel() { Name = item.Title.RawTitle, Url = item.MediaFile });
+            channels.Add(new Channel() { Name = item.Title, Url = item.MediaUrl });
         }
 
         return channels;
