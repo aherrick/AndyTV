@@ -18,7 +18,7 @@ public static class M3UService
 
         foreach (var item in parsedM3U.Channels)
         {
-            channels.Add(new Channel() { Name = item.Title, Url = item.MediaUrl });
+            channels.Add(new Channel() { Name = item.TvgName ?? item.Title, Url = item.MediaUrl });
         }
 
         return channels;
