@@ -1,4 +1,5 @@
-﻿using AndyTV.Models;
+﻿using System.Diagnostics;
+using AndyTV.Models;
 
 namespace AndyTV.UI;
 
@@ -29,6 +30,7 @@ public partial class AdHocChannelForm : Form
 
         searchTextBox.SetBounds(12, 12, 360, 20);
         searchTextBox.TextChanged += (_, __) => FilterItems();
+        searchTextBox.GotFocus += (_, __) => ShowOnScreenKeyboard();
 
         resultsListBox.SetBounds(12, 38, 360, 320);
         resultsListBox.DoubleClick += (_, __) => SelectChannel();
@@ -36,23 +38,42 @@ public partial class AdHocChannelForm : Form
         Controls.AddRange([searchTextBox, resultsListBox]);
     }
 
+    private static void ShowOnScreenKeyboard()
+    {
+        try
+        {
+            // Launch legacy On-Screen Keyboard (works on any Windows machine)
+            Process.Start("osk.exe");
+        }
+        catch
+        {
+            // ignore if unavailable
+        }
+    }
+
     private void FilterItems()
     {
-        var searchText = searchTextBox.Text.ToLower();
+        var searchText = searchTextBox.Text;
 
-        filteredItems = string.IsNullOrWhiteSpace(searchText)
-            ? [.. allItems.Take(100)]
-            :
+        if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
+        {
+            // Show everything until user types at least 2 characters
+            filteredItems = [.. allItems];
+        }
+        else
+        {
+            filteredItems =
             [
                 .. allItems
                     .Where(c =>
                         c.DisplayName.Contains(
                             searchText,
                             StringComparison.CurrentCultureIgnoreCase
-                        ) == true
+                        )
                     )
                     .Take(1000),
             ];
+        }
 
         resultsListBox.Items.Clear();
         resultsListBox.Items.AddRange([.. filteredItems.Select(c => c.DisplayName)]);
