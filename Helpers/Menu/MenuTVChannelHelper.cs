@@ -16,7 +16,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
         // Parse and sort off-thread
         var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
-        Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
+        Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
         var us = BuildTopUs();
         var uk = BuildTopUk();
@@ -43,15 +43,15 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
 
         // ---- Top-level 24/7 ----
         var matches247 = Channels
-            .Where(ch => ch.Name.Contains(rootTitle, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(ch => ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (matches247.Count > 0)
         {
             foreach (var ch in matches247)
             {
-                var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
+                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                 item.Click += channelClick;
                 rootItem.DropDownItems.Add(item);
             }
@@ -86,10 +86,10 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 var matches = Channels
                     .Where(ch =>
                         terms.Any(term =>
-                            ch.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
                         )
                     )
-                    .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 if (matches.Count == 0)
@@ -100,7 +100,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 var parent = new ToolStripMenuItem(display);
                 foreach (var ch in matches)
                 {
-                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                     item.Click += channelClick;
                     parent.DropDownItems.Add(item);
                 }

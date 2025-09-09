@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using AndyTV.Helpers;
+﻿using AndyTV.Helpers;
 using AndyTV.Models;
 
 namespace AndyTV.UI;

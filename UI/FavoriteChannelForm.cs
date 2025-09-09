@@ -55,7 +55,7 @@ public partial class FavoriteChannelForm : Form
         // Create a snapshot string for tracking changes
         return string.Join(
             "|",
-            _favorites.Select(f => $"{f.Name}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
+            _favorites.Select(f => $"{f.DisplayName}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
         );
     }
 
@@ -361,7 +361,7 @@ public partial class FavoriteChannelForm : Form
         if (filterText.Length >= MIN_FILTER_LENGTH)
         {
             var filtered = _allChannels
-                .Where(c => c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase))
+                .Where(c => c.DisplayName.Contains(filterText, StringComparison.OrdinalIgnoreCase))
                 .Take(MAX_RESULTS); // Limit results to improve performance
 
             foreach (var channel in filtered)
@@ -394,7 +394,7 @@ public partial class FavoriteChannelForm : Form
         else
         {
             var totalMatches = _allChannels.Count(c =>
-                c.Name.Contains(filterText, StringComparison.OrdinalIgnoreCase)
+                c.DisplayName.Contains(filterText, StringComparison.OrdinalIgnoreCase)
             );
 
             var displayedCount = Math.Min(totalMatches, MAX_RESULTS);
@@ -429,7 +429,6 @@ public partial class FavoriteChannelForm : Form
 
     private void AddToFavorites(Channel channel)
     {
-        // Check for duplicate based on URL
         if (
             _favorites.Any(f =>
                 string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
@@ -445,17 +444,7 @@ public partial class FavoriteChannelForm : Form
             return;
         }
 
-        // Create a copy to avoid modifying the original
-        var favorite = new Channel
-        {
-            Name = channel.Name,
-            MappedName = channel.MappedName,
-            Url = channel.Url,
-            Group = channel.Group,
-            Category = channel.Category,
-        };
-
-        _favorites.Add(favorite);
+        _favorites.Add(channel);
     }
 
     private void MoveUpButton_Click(object sender, EventArgs e)
