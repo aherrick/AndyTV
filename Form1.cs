@@ -135,7 +135,7 @@ public partial class Form1 : Form
             }
 
             Logger.Info("[CHANNELS] Loading from M3U...");
-            // _videoView.ShowWaiting(); // Commented out to allow immediate menu access
+            _videoView.ShowWaiting(); // Commented out to allow immediate menu access
 
             // Load channels in background
             _ = LoadChannelsAsync();
@@ -182,7 +182,7 @@ public partial class Form1 : Form
                     );
 
                     // LibVLC ops on the pool (no UI here)
-                    StartMediaOnPool(_currentChannel);
+                    Play(_currentChannel);
 
                     // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
                     _isRestarting = false;
@@ -228,12 +228,6 @@ public partial class Form1 : Form
         _isRestarting = false;
         _lastActivityUtc = DateTime.UtcNow;
 
-        // LibVLC ops on the thread pool (recommended pattern)
-        StartMediaOnPool(channel);
-    }
-
-    private void StartMediaOnPool(Channel channel)
-    {
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
 
         ThreadPool.QueueUserWorkItem(_ =>
@@ -424,7 +418,25 @@ public partial class Form1 : Form
         };
         _contextMenuStrip.Items.Add(favoritesItem);
 
-        // ---Restart-- -
+        // --- Ad Hoc ---
+        var adHocItem = new ToolStripMenuItem("Ad Hoc");
+        adHocItem.Click += (_, __) =>
+        {
+            _videoView.ShowDefault();
+
+            using var dialog = new AdHocChannelForm(_menuTVChannelHelper.Channels);
+            dialog.ShowDialog();
+            if (dialog.SelectedItem != null)
+            {
+                Play(dialog.SelectedItem);
+            }
+
+            SetCursorForCurrentMode();
+        };
+
+        _contextMenuStrip.Items.Add(adHocItem);
+
+        // ---Restart---
         var restartItem = new ToolStripMenuItem("Restart");
         restartItem.Click += (_, __) =>
         {
@@ -441,10 +453,8 @@ public partial class Form1 : Form
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
-            if (_videoView.MediaPlayer != null)
-            {
-                muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
-            }
+
+            muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
         };
 
         _contextMenuStrip.Closing += (_, __) =>
