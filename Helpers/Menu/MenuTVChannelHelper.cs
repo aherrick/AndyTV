@@ -18,17 +18,16 @@ namespace AndyTV.Helpers.Menu
             var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
             Channels = [.. parsed.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
 
-            // Prepare US/UK category maps (cheap)
             var us = BuildTopUs();
             var uk = BuildTopUk();
 
             // Build full menu trees off-thread
             var usTask = Task.Run(() => BuildTopMenuSync("US", us, channelClick));
             var ukTask = Task.Run(() => BuildTopMenuSync("UK", uk, channelClick));
+            var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
 
-            var topItems = await Task.WhenAll(usTask, ukTask);
+            var topItems = await Task.WhenAll(usTask, ukTask, twentyFourSevenTask);
 
-            // UI: attach built roots (skip nulls)
             _ui.Post(
                 _ =>
                 {
@@ -36,6 +35,29 @@ namespace AndyTV.Helpers.Menu
                 },
                 null
             );
+        }
+
+        private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
+        {
+            var rootItem = new ToolStripMenuItem(rootTitle);
+
+            // ---- Top-level 24/7 ----
+            var matches247 = Channels
+                .Where(ch => ch.Name.Contains(rootTitle, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (matches247.Count > 0)
+            {
+                foreach (var ch in matches247)
+                {
+                    var item = new ToolStripMenuItem(ch.Name) { Tag = ch };
+                    item.Click += channelClick;
+                    rootItem.DropDownItems.Add(item);
+                }
+            }
+
+            return rootItem;
         }
 
         // Synchronous builder used on a thread-pool thread; it only creates objects and wires handlers.
