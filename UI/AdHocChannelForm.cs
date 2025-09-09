@@ -28,11 +28,16 @@ public partial class AdHocChannelForm : Form
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        searchTextBox.SetBounds(12, 12, 360, 20);
+        // Slightly larger font for better readability
+        Font = new Font(Font.FontFamily, Font.Size + 1);
+
+        searchTextBox.SetBounds(12, 12, 360, 23);
+        searchTextBox.Font = new Font(Font.FontFamily, Font.Size + 1);
         searchTextBox.TextChanged += (_, __) => FilterItems();
         searchTextBox.GotFocus += (_, __) => ShowOnScreenKeyboard();
 
-        resultsListBox.SetBounds(12, 38, 360, 320);
+        resultsListBox.SetBounds(12, 40, 360, 318);
+        resultsListBox.Font = new Font(Font.FontFamily, Font.Size + 1);
         resultsListBox.DoubleClick += (_, __) => SelectChannel();
 
         Controls.AddRange([searchTextBox, resultsListBox]);
@@ -58,7 +63,7 @@ public partial class AdHocChannelForm : Form
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
         {
             // Show everything until user types at least 2 characters
-            filteredItems = [.. allItems];
+            filteredItems = [];
         }
         else
         {
