@@ -430,8 +430,6 @@ public partial class Form1 : Form
             {
                 Play(dialog.SelectedItem);
             }
-
-            SetCursorForCurrentMode();
         };
 
         _contextMenuStrip.Items.Add(adHocItem);
