@@ -18,17 +18,6 @@ public static class UIHelper
     {
         try
         {
-            // Try modern touch keyboard (Windows 10/11)
-            Process.Start("explorer.exe", "ms-touchkeyboard:");
-            return;
-        }
-        catch
-        {
-            // ignore and try TabTip
-        }
-
-        try
-        {
             // Try TabTip (modern handwriting/keyboard service)
             var tabTipPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles),
