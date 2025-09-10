@@ -5,6 +5,7 @@
 
 [![Build](https://github.com/aherrick/AndyTV/actions/workflows/build.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/build.yml)
 [![Publish](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **AndyTV** is a lightweight, open-source IPTV player for Windows.
 
@@ -39,7 +40,8 @@ or directly via:
 - 🌐 A valid M3U URL from an IPTV provider  
 
 ## 📜 License
-This project is licensed under the MIT License.
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
