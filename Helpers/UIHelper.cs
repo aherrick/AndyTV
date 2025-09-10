@@ -8,9 +8,6 @@ public static class UIHelper
     {
         button.FlatStyle = FlatStyle.System;
         button.UseVisualStyleBackColor = true;
-        button.BackColor = SystemColors.Control;
-        button.ForeColor = SystemColors.ControlText;
-
         return button;
     }
 

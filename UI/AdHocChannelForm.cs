@@ -21,21 +21,36 @@ public partial class AdHocChannelForm : Form
 
     private void InitializeComponent()
     {
+        AutoScaleMode = AutoScaleMode.Dpi;
         Text = "Ad Hoc Channel Selection";
-        ClientSize = new Size(384, 370);
+        ClientSize = new Size(400, 400);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        searchTextBox.SetBounds(12, 12, 360, 20);
+        var layoutPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            RowCount = 2,
+            ColumnCount = 1,
+        };
+        layoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        searchTextBox.Dock = DockStyle.Top;
+        searchTextBox.Margin = new Padding(0, 0, 0, 8);
         searchTextBox.TextChanged += (_, __) => FilterItems();
         searchTextBox.GotFocus += (_, __) => UIHelper.ShowOnScreenKeyboard();
 
-        resultsListBox.SetBounds(12, 38, 360, 320);
+        resultsListBox.Dock = DockStyle.Fill;
         resultsListBox.DoubleClick += (_, __) => SelectChannel();
 
-        Controls.AddRange([searchTextBox, resultsListBox]);
+        layoutPanel.Controls.Add(searchTextBox, 0, 0);
+        layoutPanel.Controls.Add(resultsListBox, 0, 1);
+
+        Controls.Add(layoutPanel);
     }
 
     private void FilterItems()

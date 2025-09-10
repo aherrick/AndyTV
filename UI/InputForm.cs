@@ -4,13 +4,7 @@ namespace AndyTV.UI;
 
 public class InputForm : Form
 {
-    private const int FormPadding = 10;
-    private const int ButtonWidth = 75;
-    private const int ButtonSpacing = 10;
-    private const int FormWidth = 400;
-    private const int FormHeight = 120;
-
-    public TextBox InputBox { get; } = new TextBox();
+    public TextBox InputBox { get; } = new();
     private readonly Button _okButton = new();
     private readonly Button _cancelButton = new();
 
@@ -18,9 +12,9 @@ public class InputForm : Form
 
     public InputForm(string title, string prompt, string defaultText = "")
     {
+        AutoScaleMode = AutoScaleMode.Dpi; // ✅ DPI-aware
         InitializeForm(title);
         CreateControls(prompt, defaultText);
-        SetupLayout();
     }
 
     private void InitializeForm(string title)
@@ -30,51 +24,66 @@ public class InputForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MinimizeBox = false;
         MaximizeBox = false;
-        ClientSize = new Size(FormWidth, FormHeight);
+        ClientSize = new Size(400, 140); // Will autosize if needed
     }
 
     private void CreateControls(string prompt, string defaultText)
     {
+        var mainPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(10),
+            RowCount = 3,
+            ColumnCount = 1,
+        };
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Prompt
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // TextBox
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45)); // Buttons
+
+        // Prompt label
         var promptLabel = new Label
         {
-            Left = FormPadding,
-            Top = FormPadding,
             Text = prompt,
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Padding = new Padding(0, 0, 0, 5),
+        };
+
+        // Input textbox
+        InputBox.Dock = DockStyle.Fill;
+        InputBox.Text = defaultText;
+
+        // Buttons
+        var buttonPanel = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.RightToLeft,
+            Dock = DockStyle.Fill,
             AutoSize = true,
         };
 
-        InputBox.Left = FormPadding;
-        InputBox.Top = promptLabel.Bottom + 5;
-        InputBox.Width = FormWidth - (FormPadding * 2);
-        InputBox.Text = defaultText;
-
-        var buttonTop = InputBox.Bottom + 15;
-        var buttonRight = FormWidth - FormPadding;
-
-        _cancelButton.Text = "Cancel";
-        _cancelButton.Left = buttonRight - ButtonWidth;
-        _cancelButton.Width = ButtonWidth;
-        _cancelButton.Top = buttonTop;
-        _cancelButton.DialogResult = DialogResult.Cancel;
-        _cancelButton.ApplySystemStyle();
-
         _okButton.Text = "OK";
-        _okButton.Left = _cancelButton.Left - ButtonWidth - ButtonSpacing;
-        _okButton.Width = ButtonWidth;
-        _okButton.Top = buttonTop;
         _okButton.DialogResult = DialogResult.OK;
         _okButton.ApplySystemStyle();
 
-        Controls.AddRange([promptLabel, InputBox, _okButton, _cancelButton]);
-    }
+        _cancelButton.Text = "Cancel";
+        _cancelButton.DialogResult = DialogResult.Cancel;
+        _cancelButton.ApplySystemStyle();
 
-    private void SetupLayout()
-    {
+        buttonPanel.Controls.AddRange([_cancelButton, _okButton]);
+
+        mainPanel.Controls.Add(promptLabel, 0, 0);
+        mainPanel.Controls.Add(InputBox, 0, 1);
+        mainPanel.Controls.Add(buttonPanel, 0, 2);
+
+        Controls.Add(mainPanel);
+
         AcceptButton = _okButton;
         CancelButton = _cancelButton;
 
-        // Set focus to the input box when form loads
-        InputBox.Select();
-        InputBox.SelectAll();
+        Shown += (_, _) =>
+        {
+            InputBox.Focus();
+            InputBox.SelectAll();
+        };
     }
 }
