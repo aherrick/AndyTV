@@ -2,18 +2,21 @@
 using AndyTV.Helpers;
 using AndyTV.Models;
 using AndyTV.Services;
+using AndyTV.UI.Controls;
 
 namespace AndyTV.UI;
 
 public partial class FavoriteChannelForm : Form
 {
+    // Data
     private readonly List<Channel> _allChannels;
-    private readonly List<Channel> _filteredChannels;
-    private readonly BindingList<Channel> _favorites;
-    private string _baseline;
 
-    private TextBox _filterTextBox;
-    private ListBox _channelListBox;
+    private readonly BindingList<Channel> _favorites = [];
+    private string _baseline = "";
+
+    // UI
+    private ChannelFilterListControl _channelPicker;
+
     private DataGridView _favoritesGrid;
     private Button _moveUpButton;
     private Button _moveDownButton;
@@ -21,27 +24,21 @@ public partial class FavoriteChannelForm : Form
     private Button _importButton;
     private Button _exportButton;
     private Button _saveButton;
-    private Label _statusLabel;
-
-    private const int MIN_FILTER_LENGTH = 2;
-    private const int MAX_RESULTS = 150;
 
     public FavoriteChannelForm(List<Channel> channels)
     {
-        _allChannels = channels ?? [];
-        _filteredChannels = [];
-        _favorites = [];
-        _baseline = "";
-
+        _allChannels = channels;
         InitializeComponent();
-        SetupForm();
-        UpdateChannelListStatus(); // show initial hint
+
+        _favoritesGrid.DataSource = _favorites;
+        _channelPicker.SetChannels(_allChannels);
+
         LoadExistingFavorites();
     }
 
     private void InitializeComponent()
     {
-        AutoScaleMode = AutoScaleMode.Dpi; // ✅ DPI-aware
+        AutoScaleMode = AutoScaleMode.Dpi; // DPI-aware
         Text = "Favorites Manager";
         ClientSize = new Size(1000, 800);
         StartPosition = FormStartPosition.CenterScreen;
@@ -55,73 +52,27 @@ public partial class FavoriteChannelForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
             ColumnCount = 2,
-            RowCount = 7,
+            RowCount = 3, // picker, grid, bottom bar
         };
 
         // Columns: left = content, right = vertical buttons
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); // slightly narrower so grid gets a bit more width
 
         // Rows
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // 0 Filter label
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // 1 Filter textbox
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // 2 Status label
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 200)); // 3 Channel list
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // 4 Favorites label
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // 5 Favorites grid
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 45)); // 6 Bottom buttons
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 220)); // 0 Picker
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // 1 Grid
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50)); // 2 Bottom bar
 
-        // ----- Filter label -----
-        var filterLabel = new Label
-        {
-            Text = "Filter Channels:",
-            AutoSize = true,
-            Dock = DockStyle.Fill,
-            Padding = new Padding(0, 0, 0, 4),
-        };
-        mainLayout.Controls.Add(filterLabel, 0, 0);
-        mainLayout.SetColumnSpan(filterLabel, 2);
-
-        // ----- Filter textbox -----
-        _filterTextBox = new TextBox { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 6) };
-        _filterTextBox.TextChanged += FilterTextBox_TextChanged;
-        _filterTextBox.GotFocus += (_, __) => UIHelper.ShowOnScreenKeyboard();
-        mainLayout.Controls.Add(_filterTextBox, 0, 1);
-        mainLayout.SetColumnSpan(_filterTextBox, 2);
-
-        // ----- Status label -----
-        _statusLabel = new Label
-        {
-            Text = $"Type at least {MIN_FILTER_LENGTH} characters to search channels...",
-            ForeColor = Color.Gray,
-            Dock = DockStyle.Fill,
-            AutoSize = true,
-            Margin = new Padding(0, 0, 0, 6),
-        };
-        mainLayout.Controls.Add(_statusLabel, 0, 2);
-        mainLayout.SetColumnSpan(_statusLabel, 2);
-
-        // ----- Channel list -----
-        _channelListBox = new ListBox
+        // ----- Reusable picker (filter + list) -----
+        _channelPicker = new ChannelFilterListControl
         {
             Dock = DockStyle.Fill,
-            DisplayMember = "DisplayName",
-            Margin = new Padding(0, 0, 6, 8),
+            Margin = new Padding(0, 0, 0, 8),
         };
-        _channelListBox.DoubleClick += ChannelListBox_DoubleClick;
-        mainLayout.Controls.Add(_channelListBox, 0, 3);
-        mainLayout.SetColumnSpan(_channelListBox, 2); // spans both columns above favorites label
-
-        // ----- Favorites label -----
-        var favoritesLabel = new Label
-        {
-            Text = "Favorites:",
-            AutoSize = true,
-            Dock = DockStyle.Fill,
-            Padding = new Padding(0, 0, 0, 4),
-        };
-        mainLayout.Controls.Add(favoritesLabel, 0, 4);
-        mainLayout.SetColumnSpan(favoritesLabel, 2);
+        _channelPicker.ItemActivated += (_, ch) => AddToFavorites(ch);
+        mainLayout.Controls.Add(_channelPicker, 0, 0);
+        mainLayout.SetColumnSpan(_channelPicker, 2);
 
         // ----- Favorites grid (left) -----
         _favoritesGrid = new DataGridView
@@ -134,11 +85,11 @@ public partial class FavoriteChannelForm : Form
             MultiSelect = false,
             ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
             EditMode = DataGridViewEditMode.EditOnEnter,
-            Margin = new Padding(0, 0, 6, 0),
+            Margin = new Padding(0, 0, 0, 0), // no gap so it’s a tad wider
         };
         SetupGridColumns();
         SetupCopyPaste();
-        mainLayout.Controls.Add(_favoritesGrid, 0, 5);
+        mainLayout.Controls.Add(_favoritesGrid, 0, 1);
 
         // ----- Right-side vertical button panel (aligned with grid) -----
         var rightButtons = new FlowLayoutPanel
@@ -147,6 +98,7 @@ public partial class FavoriteChannelForm : Form
             Dock = DockStyle.Fill,
             AutoSize = true,
             WrapContents = false,
+            Padding = new Padding(6, 0, 0, 0), // push the stack a hair to the right
             Margin = new Padding(0),
         };
 
@@ -155,30 +107,51 @@ public partial class FavoriteChannelForm : Form
         _removeButton = CreateButton("Remove", RemoveButton_Click);
 
         rightButtons.Controls.AddRange([_moveUpButton, _moveDownButton, _removeButton]);
-        mainLayout.Controls.Add(rightButtons, 1, 5);
+        mainLayout.Controls.Add(rightButtons, 1, 1);
 
-        // ----- Bottom buttons (span) -----
-        var bottomButtons = new FlowLayoutPanel
+        // ----- Bottom bar: left (Import/Export) + right (Save) -----
+        var bottomBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0, 8, 0, 0),
+        };
+        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer/left area
+        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // save button area
+
+        // Left group: Import/Export
+        var leftButtons = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight,
             Dock = DockStyle.Fill,
             AutoSize = true,
-            Margin = new Padding(0, 8, 0, 0),
+            Margin = new Padding(0),
+            WrapContents = false,
         };
 
         _importButton = CreateButton("Import", ImportFavorites);
         _exportButton = CreateButton("Export", ExportFavorites);
-        _saveButton = CreateButton("Save", SaveButton_Click);
+        leftButtons.Controls.AddRange([_importButton, _exportButton]);
 
-        bottomButtons.Controls.AddRange([_importButton, _exportButton, _saveButton]);
-        mainLayout.Controls.Add(bottomButtons, 0, 6);
-        mainLayout.SetColumnSpan(bottomButtons, 2);
+        // Right: Save (primary action)
+        _saveButton = CreateButton("Save", SaveButton_Click);
+        _saveButton.Width = 110; // a touch wider
+        _saveButton.Height = 36;
+        _saveButton.Font = new Font(_saveButton.Font, FontStyle.Bold); // feel a bit more "primary"
+        _saveButton.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+
+        bottomBar.Controls.Add(leftButtons, 0, 0);
+        bottomBar.Controls.Add(_saveButton, 1, 0);
+
+        mainLayout.Controls.Add(bottomBar, 0, 2);
+        mainLayout.SetColumnSpan(bottomBar, 2);
 
         Controls.Add(mainLayout);
     }
 
     // --- helper: consistent system-style buttons ---
-    private Button CreateButton(string text, EventHandler onClick)
+    private static Button CreateButton(string text, EventHandler onClick)
     {
         var btn = new Button
         {
@@ -193,35 +166,26 @@ public partial class FavoriteChannelForm : Form
         return btn;
     }
 
-    private void SetupForm()
-    {
-        _favoritesGrid.DataSource = _favorites;
-        _channelListBox.DataSource = _filteredChannels;
-        _channelListBox.DisplayMember = nameof(Channel.DisplayName);
-    }
-
     private void LoadExistingFavorites()
     {
-        var existingFavorites = ChannelDataService.LoadFavoriteChannels() ?? [];
+        var existing = ChannelDataService.LoadFavoriteChannels() ?? [];
         _favorites.Clear();
-        foreach (var channel in existingFavorites)
-            _favorites.Add(channel);
+        foreach (var ch in existing)
+            _favorites.Add(ch);
         _baseline = SnapshotString();
     }
 
-    private string SnapshotString()
-    {
-        return string.Join(
+    private string SnapshotString() =>
+        string.Join(
             "|",
             _favorites.Select(f => $"{f.DisplayName}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
         );
-    }
 
     // --- Unsaved changes guard ---
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        var currentSnapshot = SnapshotString();
-        if (currentSnapshot != _baseline)
+        var current = SnapshotString();
+        if (current != _baseline)
         {
             var result = MessageBox.Show(
                 "You have unsaved changes. Do you want to save before closing?",
@@ -344,84 +308,7 @@ public partial class FavoriteChannelForm : Form
         }
     }
 
-    // --- Filtering ---
-    private void FilterTextBox_TextChanged(object sender, EventArgs e)
-    {
-        UpdateFilteredChannels();
-    }
-
-    private void UpdateFilteredChannels()
-    {
-        var filterText = _filterTextBox.Text.Trim();
-
-        _filteredChannels.Clear();
-
-        if (filterText.Length >= MIN_FILTER_LENGTH)
-        {
-            foreach (
-                var ch in _allChannels
-                    .Where(c =>
-                        c.DisplayName.Contains(filterText, StringComparison.OrdinalIgnoreCase)
-                    )
-                    .Take(MAX_RESULTS)
-            )
-            {
-                _filteredChannels.Add(ch);
-            }
-        }
-
-        // refresh list binding
-        _channelListBox.DataSource = null;
-        _channelListBox.DataSource = _filteredChannels;
-        _channelListBox.DisplayMember = "DisplayName";
-
-        UpdateChannelListStatus();
-    }
-
-    private void UpdateChannelListStatus()
-    {
-        var filterText = _filterTextBox.Text.Trim();
-
-        if (filterText.Length < MIN_FILTER_LENGTH)
-        {
-            _statusLabel.Text =
-                $"Type at least {MIN_FILTER_LENGTH} characters to search channels...";
-            _statusLabel.ForeColor = Color.Gray;
-            return;
-        }
-
-        var totalMatches = _allChannels.Count(c =>
-            c.DisplayName.Contains(filterText, StringComparison.OrdinalIgnoreCase)
-        );
-
-        var displayed = Math.Min(totalMatches, MAX_RESULTS);
-
-        if (totalMatches == 0)
-        {
-            _statusLabel.Text = "No channels found matching your search";
-            _statusLabel.ForeColor = Color.DarkRed;
-        }
-        else if (totalMatches > MAX_RESULTS)
-        {
-            _statusLabel.Text =
-                $"Showing {displayed} of {totalMatches} matches (refine search to see more)";
-            _statusLabel.ForeColor = Color.DarkOrange;
-        }
-        else
-        {
-            _statusLabel.Text =
-                $"Found {totalMatches} matching channel{(totalMatches == 1 ? "" : "s")}";
-            _statusLabel.ForeColor = Color.DarkGreen;
-        }
-    }
-
     // --- Interactions ---
-    private void ChannelListBox_DoubleClick(object sender, EventArgs e)
-    {
-        if (_channelListBox.SelectedItem is Channel selected)
-            AddToFavorites(selected);
-    }
-
     private void AddToFavorites(Channel channel)
     {
         if (

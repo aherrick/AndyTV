@@ -15,27 +15,58 @@ public static class UIHelper
     {
         try
         {
-            // Try TabTip (modern handwriting/keyboard service)
-            var tabTipPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles),
-                @"Microsoft Shared\ink\TabTip.exe"
-            );
-            Process.Start(tabTipPath);
+            // Method 1: Direct TabTip call (simplest)
+            Process.Start("tabtip.exe");
             return;
         }
         catch
         {
-            // ignore and try legacy OSK
+            // Try next method
         }
 
         try
         {
-            // Final fallback: legacy On-Screen Keyboard
-            Process.Start(Path.Combine(Environment.SystemDirectory, "osk.exe"));
+            // Method 2: Full path to TabTip
+            var tabTipPath = @"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe";
+            if (File.Exists(tabTipPath))
+            {
+                Process.Start(tabTipPath);
+                return;
+            }
         }
         catch
         {
-            // Nothing left to try
+            // Try next method
+        }
+
+        try
+        {
+            // Method 3: Use Windows Shell to open touch keyboard
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/c start \"\" \"osk.exe\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                }
+            );
+            return;
+        }
+        catch
+        {
+            // Try next method
+        }
+
+        try
+        {
+            // Method 4: Direct OSK as final fallback
+            Process.Start("osk.exe");
+        }
+        catch
+        {
+            // Nothing worked
         }
     }
 }

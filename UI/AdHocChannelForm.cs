@@ -1,14 +1,11 @@
-﻿using AndyTV.Helpers;
-using AndyTV.Models;
+﻿using AndyTV.Models;
 
 namespace AndyTV.UI;
 
 public partial class AdHocChannelForm : Form
 {
-    private readonly TextBox searchTextBox = new();
-    private readonly ListBox resultsListBox = new();
     private readonly List<Channel> allItems;
-    private List<Channel> filteredItems;
+    private Controls.ChannelFilterListControl picker;
 
     public Channel SelectedItem { get; private set; }
 
@@ -16,14 +13,13 @@ public partial class AdHocChannelForm : Form
     {
         allItems = items;
         InitializeComponent();
-        FilterItems();
     }
 
     private void InitializeComponent()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
         Text = "Ad Hoc Channel Selection";
-        ClientSize = new Size(400, 400);
+        ClientSize = new Size(1000, 800); // match FavoriteChannelForm
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -33,70 +29,27 @@ public partial class AdHocChannelForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
-            RowCount = 2,
+            RowCount = 1,
             ColumnCount = 1,
         };
-        layoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        searchTextBox.Dock = DockStyle.Top;
-        searchTextBox.Margin = new Padding(0, 0, 0, 8);
-        searchTextBox.TextChanged += (_, __) => FilterItems();
-        searchTextBox.GotFocus += (_, __) => UIHelper.ShowOnScreenKeyboard();
-
-        resultsListBox.Dock = DockStyle.Fill;
-        resultsListBox.DoubleClick += (_, __) => SelectChannel();
-
-        layoutPanel.Controls.Add(searchTextBox, 0, 0);
-        layoutPanel.Controls.Add(resultsListBox, 0, 1);
-
-        Controls.Add(layoutPanel);
-    }
-
-    private void FilterItems()
-    {
-        var searchText = searchTextBox.Text;
-
-        if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
+        picker = new UI.Controls.ChannelFilterListControl { Dock = DockStyle.Fill };
+        // Ad-hoc wants longer list: 2+ chars, up to 1000
+        picker.SetChannels(allItems);
+        picker.ItemActivated += (_, ch) =>
         {
-            filteredItems = [];
-        }
-        else
-        {
-            filteredItems =
-            [
-                .. allItems
-                    .Where(c =>
-                        c.DisplayName.Contains(
-                            searchText,
-                            StringComparison.CurrentCultureIgnoreCase
-                        )
-                    )
-                    .Take(1000),
-            ];
-        }
-
-        resultsListBox.Items.Clear();
-        resultsListBox.Items.AddRange([.. filteredItems.Select(c => c.DisplayName)]);
-
-        if (resultsListBox.Items.Count > 0)
-        {
-            resultsListBox.SelectedIndex = 0;
-        }
-    }
-
-    private void SelectChannel()
-    {
-        if (resultsListBox.SelectedIndex >= 0)
-        {
-            SelectedItem = filteredItems[resultsListBox.SelectedIndex];
+            SelectedItem = ch;
             Close();
-        }
+        };
+
+        layoutPanel.Controls.Add(picker, 0, 0);
+        Controls.Add(layoutPanel);
     }
 
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
-        searchTextBox.Focus();
+        picker.FocusFilter();
     }
 }
