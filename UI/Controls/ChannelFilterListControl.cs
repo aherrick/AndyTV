@@ -23,6 +23,7 @@ public class ChannelFilterListControl : UserControl
     {
         Dock = DockStyle.Top,
         Margin = new Padding(0, 0, 0, 6),
+        PlaceholderText = "Type at least 3 characters to filter for channel...",
     };
 
     private readonly ListBox _listBox = new()
