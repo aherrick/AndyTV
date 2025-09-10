@@ -3,6 +3,20 @@ using AndyTV.Models;
 
 namespace AndyTV.UI.Controls;
 
+public static class StandardPickerFactory
+{
+    public const int PickerHeight = 220; // exact height for the header
+    public static readonly Padding PickerMargin = new(0, 0, 0, 8); // bottom breathing room
+
+    public static ChannelFilterListControl Create(List<Channel> channels)
+    {
+        var picker = new ChannelFilterListControl { Dock = DockStyle.Fill, Margin = PickerMargin };
+
+        picker.SetChannels(channels);
+        return picker;
+    }
+}
+
 public class ChannelFilterListControl : UserControl
 {
     private readonly TextBox _filterTextBox = new()
@@ -23,6 +37,9 @@ public class ChannelFilterListControl : UserControl
     private const int MIN_FILTER_LENGTH = 2;
     private const int MAX_RESULTS = 1000;
 
+    // one-shot flag (per control instance / per form)
+    private bool _keyboardShownOnce = false;
+
     public event EventHandler<Channel> ItemActivated;
 
     public ChannelFilterListControl()
@@ -40,7 +57,15 @@ public class ChannelFilterListControl : UserControl
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // list
 
         _filterTextBox.TextChanged += (_, __) => ApplyFilter();
-        _filterTextBox.GotFocus += (_, __) => UIHelper.ShowOnScreenKeyboard();
+
+        // Show OSK only once for this control's lifetime (i.e., once per form that hosts it)
+        _filterTextBox.GotFocus += (_, __) =>
+        {
+            if (_keyboardShownOnce)
+                return;
+            UIHelper.ShowOnScreenKeyboard();
+            _keyboardShownOnce = true;
+        };
 
         _listBox.DoubleClick += (_, __) => RaiseActivated();
         _listBox.KeyDown += (_, e) =>
@@ -74,7 +99,7 @@ public class ChannelFilterListControl : UserControl
     private void RaiseActivated()
     {
         var item = SelectedItem;
-        if (item != null)
+        if (item is not null)
             ItemActivated?.Invoke(this, item);
     }
 

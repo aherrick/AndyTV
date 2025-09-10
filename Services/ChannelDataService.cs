@@ -38,7 +38,7 @@ public static class ChannelDataService
         {
             string path = PathHelper.GetPath(FavoriteChannelsFile);
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
+            return JsonSerializer.Deserialize<List<Channel>>(json);
         }
         catch
         {

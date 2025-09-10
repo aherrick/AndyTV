@@ -1,17 +1,18 @@
 ﻿using AndyTV.Models;
+using AndyTV.UI.Controls;
 
 namespace AndyTV.UI;
 
 public partial class AdHocChannelForm : Form
 {
-    private readonly List<Channel> allItems;
-    private Controls.ChannelFilterListControl picker;
+    private readonly List<Channel> _allItems;
+    private ChannelFilterListControl _picker;
 
     public Channel SelectedItem { get; private set; }
 
     public AdHocChannelForm(List<Channel> items)
     {
-        allItems = items;
+        _allItems = items ?? [];
         InitializeComponent();
     }
 
@@ -19,37 +20,37 @@ public partial class AdHocChannelForm : Form
     {
         AutoScaleMode = AutoScaleMode.Dpi;
         Text = "Ad Hoc Channel Selection";
-        ClientSize = new Size(1000, 800); // match FavoriteChannelForm
+        ClientSize = new Size(1000, 800); // matches Favorites
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        var layoutPanel = new TableLayoutPanel
+        var main = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
-            RowCount = 1,
             ColumnCount = 1,
+            RowCount = 1,
         };
-        layoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        picker = new UI.Controls.ChannelFilterListControl { Dock = DockStyle.Fill };
-        // Ad-hoc wants longer list: 2+ chars, up to 1000
-        picker.SetChannels(allItems);
-        picker.ItemActivated += (_, ch) =>
+        // The header row height is fixed and matches Favorites exactly
+        main.RowStyles.Add(new RowStyle(SizeType.Absolute, StandardPickerFactory.PickerHeight));
+
+        _picker = StandardPickerFactory.Create(_allItems);
+        _picker.ItemActivated += (_, ch) =>
         {
             SelectedItem = ch;
             Close();
         };
 
-        layoutPanel.Controls.Add(picker, 0, 0);
-        Controls.Add(layoutPanel);
+        main.Controls.Add(_picker, 0, 0);
+        Controls.Add(main);
     }
 
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
-        picker.FocusFilter();
+        _picker.FocusFilter();
     }
 }

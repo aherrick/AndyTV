@@ -27,18 +27,16 @@ public partial class FavoriteChannelForm : Form
 
     public FavoriteChannelForm(List<Channel> channels)
     {
-        _allChannels = channels;
+        _allChannels = channels ?? [];
         InitializeComponent();
 
         _favoritesGrid.DataSource = _favorites;
-        _channelPicker.SetChannels(_allChannels);
-
         LoadExistingFavorites();
     }
 
     private void InitializeComponent()
     {
-        AutoScaleMode = AutoScaleMode.Dpi; // DPI-aware
+        AutoScaleMode = AutoScaleMode.Dpi;
         Text = "Favorites Manager";
         ClientSize = new Size(1000, 800);
         StartPosition = FormStartPosition.CenterScreen;
@@ -46,35 +44,31 @@ public partial class FavoriteChannelForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
 
-        // ----- Root layout -----
-        var mainLayout = new TableLayoutPanel
+        // Root layout
+        var main = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
             ColumnCount = 2,
-            RowCount = 3, // picker, grid, bottom bar
+            RowCount = 3,
         };
 
-        // Columns: left = content, right = vertical buttons
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); // slightly narrower so grid gets a bit more width
+        // Columns: content + right-side buttons
+        main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        main.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
 
-        // Rows
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 220)); // 0 Picker
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // 1 Grid
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50)); // 2 Bottom bar
+        // Rows: header picker (fixed), grid (fill), bottom bar (fixed)
+        main.RowStyles.Add(new RowStyle(SizeType.Absolute, StandardPickerFactory.PickerHeight));
+        main.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        main.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
 
-        // ----- Reusable picker (filter + list) -----
-        _channelPicker = new ChannelFilterListControl
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 0, 8),
-        };
+        // --- Top: shared picker (exactly the same as AdHoc) ---
+        _channelPicker = StandardPickerFactory.Create(_allChannels);
         _channelPicker.ItemActivated += (_, ch) => AddToFavorites(ch);
-        mainLayout.Controls.Add(_channelPicker, 0, 0);
-        mainLayout.SetColumnSpan(_channelPicker, 2);
+        main.Controls.Add(_channelPicker, 0, 0);
+        main.SetColumnSpan(_channelPicker, 2);
 
-        // ----- Favorites grid (left) -----
+        // --- Grid (left) ---
         _favoritesGrid = new DataGridView
         {
             Dock = DockStyle.Fill,
@@ -85,42 +79,41 @@ public partial class FavoriteChannelForm : Form
             MultiSelect = false,
             ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
             EditMode = DataGridViewEditMode.EditOnEnter,
-            Margin = new Padding(0, 0, 0, 0), // no gap so it’s a tad wider
+            Margin = new Padding(0),
         };
         SetupGridColumns();
         SetupCopyPaste();
-        mainLayout.Controls.Add(_favoritesGrid, 0, 1);
+        main.Controls.Add(_favoritesGrid, 0, 1);
 
-        // ----- Right-side vertical button panel (aligned with grid) -----
+        // --- Right vertical buttons (align with grid) ---
         var rightButtons = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
             Dock = DockStyle.Fill,
             AutoSize = true,
             WrapContents = false,
-            Padding = new Padding(6, 0, 0, 0), // push the stack a hair to the right
+            Padding = new Padding(6, 0, 0, 0),
             Margin = new Padding(0),
         };
 
         _moveUpButton = CreateButton("Up", MoveUpButton_Click);
         _moveDownButton = CreateButton("Down", MoveDownButton_Click);
         _removeButton = CreateButton("Remove", RemoveButton_Click);
-
         rightButtons.Controls.AddRange([_moveUpButton, _moveDownButton, _removeButton]);
-        mainLayout.Controls.Add(rightButtons, 1, 1);
 
-        // ----- Bottom bar: left (Import/Export) + right (Save) -----
-        var bottomBar = new TableLayoutPanel
+        main.Controls.Add(rightButtons, 1, 1);
+
+        // --- Bottom bar: Import/Export (left) + Save (right) ---
+        var bottom = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
             Margin = new Padding(0, 8, 0, 0),
         };
-        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer/left area
-        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // save button area
+        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-        // Left group: Import/Export
         var leftButtons = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight,
@@ -134,20 +127,19 @@ public partial class FavoriteChannelForm : Form
         _exportButton = CreateButton("Export", ExportFavorites);
         leftButtons.Controls.AddRange([_importButton, _exportButton]);
 
-        // Right: Save (primary action)
         _saveButton = CreateButton("Save", SaveButton_Click);
-        _saveButton.Width = 110; // a touch wider
+        _saveButton.Width = 110;
         _saveButton.Height = 36;
-        _saveButton.Font = new Font(_saveButton.Font, FontStyle.Bold); // feel a bit more "primary"
+        _saveButton.Font = new Font(_saveButton.Font, FontStyle.Bold);
         _saveButton.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
 
-        bottomBar.Controls.Add(leftButtons, 0, 0);
-        bottomBar.Controls.Add(_saveButton, 1, 0);
+        bottom.Controls.Add(leftButtons, 0, 0);
+        bottom.Controls.Add(_saveButton, 1, 0);
 
-        mainLayout.Controls.Add(bottomBar, 0, 2);
-        mainLayout.SetColumnSpan(bottomBar, 2);
+        main.Controls.Add(bottom, 0, 2);
+        main.SetColumnSpan(bottom, 2);
 
-        Controls.Add(mainLayout);
+        Controls.Add(main);
     }
 
     // --- helper: consistent system-style buttons ---
@@ -168,10 +160,12 @@ public partial class FavoriteChannelForm : Form
 
     private void LoadExistingFavorites()
     {
-        var existing = ChannelDataService.LoadFavoriteChannels() ?? [];
+        var existing = ChannelDataService.LoadFavoriteChannels();
         _favorites.Clear();
         foreach (var ch in existing)
+        {
             _favorites.Add(ch);
+        }
         _baseline = SnapshotString();
     }
 
@@ -181,7 +175,6 @@ public partial class FavoriteChannelForm : Form
             _favorites.Select(f => $"{f.DisplayName}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
         );
 
-    // --- Unsaved changes guard ---
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         var current = SnapshotString();
