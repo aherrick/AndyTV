@@ -256,31 +256,34 @@ public partial class FavoriteChannelForm : Form
     {
         var nameColumn = new DataGridViewTextBoxColumn
         {
-            Name = "Name",
-            HeaderText = "Name",
-            DataPropertyName = "Name",
+            Name = nameof(Channel.Name),
+            HeaderText = nameof(Channel.Name),
+            DataPropertyName = nameof(Channel.Name),
             ReadOnly = true,
             Width = 200,
         };
+
         var mappedNameColumn = new DataGridViewTextBoxColumn
         {
-            Name = "MappedName",
+            Name = nameof(Channel.MappedName),
             HeaderText = "Mapped Name",
-            DataPropertyName = "MappedName",
+            DataPropertyName = nameof(Channel.MappedName),
             Width = 200,
         };
+
         var groupColumn = new DataGridViewTextBoxColumn
         {
-            Name = "Group",
-            HeaderText = "Group",
-            DataPropertyName = "Group",
+            Name = nameof(Channel.Group),
+            HeaderText = nameof(Channel.Group),
+            DataPropertyName = nameof(Channel.Group),
             Width = 200,
         };
+
         var categoryColumn = new DataGridViewTextBoxColumn
         {
-            Name = "Category",
-            HeaderText = "Category",
-            DataPropertyName = "Category",
+            Name = nameof(Channel.Category),
+            HeaderText = nameof(Channel.Category),
+            DataPropertyName = nameof(Channel.Category),
             Width = 200,
         };
 
