@@ -80,8 +80,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 return string.Join(" ", showWords);
             }
 
-            // Group by the extracted show name
-            var grouped = matches247.GroupBy(c => ExtractShowName(c.DisplayName));
+            // Group by the extracted show name (case insensitive)
+            var grouped = matches247.GroupBy(c =>
+                ExtractShowName(c.DisplayName).ToLowerInvariant()
+            );
 
             foreach (var group in grouped.OrderBy(g => g.Key))
             {
@@ -96,8 +98,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
                 else
                 {
-                    // Multiple channels, create sub-menu
-                    var subItem = new ToolStripMenuItem(group.Key);
+                    // Multiple channels, create sub-menu with the group name from the first channel
+                    var groupName = ExtractShowName(groupChannels[0].DisplayName);
+                    var subItem = new ToolStripMenuItem(groupName);
                     foreach (var ch in groupChannels.OrderBy(c => c.DisplayName))
                     {
                         var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
