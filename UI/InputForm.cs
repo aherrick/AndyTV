@@ -83,7 +83,6 @@ public class InputForm : Form
         Shown += (_, _) =>
         {
             InputBox.Focus();
-            InputBox.SelectAll();
         };
     }
 }

@@ -121,17 +121,9 @@ public class ChannelFilterListControl : UserControl
             ];
         }
 
-        _listBox.BeginUpdate();
-        try
-        {
-            _listBox.Items.Clear();
-            _listBox.Items.AddRange([.. _filtered.Select(c => c.DisplayName)]);
-            if (_listBox.Items.Count > 0)
-                _listBox.SelectedIndex = 0;
-        }
-        finally
-        {
-            _listBox.EndUpdate();
-        }
+        _listBox.Items.Clear();
+        _listBox.Items.AddRange([.. _filtered.Select(c => c.DisplayName)]);
+        if (_listBox.Items.Count > 0)
+            _listBox.SelectedIndex = 0;
     }
 }

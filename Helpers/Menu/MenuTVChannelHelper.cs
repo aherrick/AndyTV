@@ -1,9 +1,10 @@
-﻿using AndyTV.Models;
+﻿using System.Text.RegularExpressions;
+using AndyTV.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuTVChannelHelper(ContextMenuStrip menu)
+public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 {
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
@@ -41,19 +42,70 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
     {
         var rootItem = new ToolStripMenuItem(rootTitle);
 
+        // Regex to match (XX) where X is any letter (2 characters inside parens)
+        // This is to filter out non-English markers like (AL), (DE), etc.
+        var twoCharParenPattern = MatchTwoParens();
+
         // ---- Top-level 24/7 ----
         var matches247 = Channels
-            .Where(ch => ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase))
+            .Where(ch =>
+                ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
+                && !twoCharParenPattern.IsMatch(ch.DisplayName)
+            )
             .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (matches247.Count > 0)
         {
-            foreach (var ch in matches247)
+            // Function to extract the show name
+            static string ExtractShowName(string channel)
             {
-                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                item.Click += channelClick;
-                rootItem.DropDownItems.Add(item);
+                // Assume all start with "24/7 "
+                const string prefix = "24/7 ";
+                if (!channel.StartsWith(prefix))
+                {
+                    return channel; // fallback
+                }
+                string afterPrefix = channel[prefix.Length..];
+                var words = afterPrefix.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                var showWords = new List<string>();
+                foreach (var word in words)
+                {
+                    if (word.Any(char.IsDigit))
+                    {
+                        break;
+                    }
+                    showWords.Add(word);
+                }
+                return string.Join(" ", showWords);
+            }
+
+            // Group by the extracted show name
+            var grouped = matches247.GroupBy(c => ExtractShowName(c.DisplayName));
+
+            foreach (var group in grouped.OrderBy(g => g.Key))
+            {
+                var groupChannels = group.ToList();
+                if (groupChannels.Count == 1)
+                {
+                    // Single channel, add directly
+                    var ch = groupChannels[0];
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                    item.Click += channelClick;
+                    rootItem.DropDownItems.Add(item);
+                }
+                else
+                {
+                    // Multiple channels, create sub-menu
+                    var subItem = new ToolStripMenuItem(group.Key);
+                    foreach (var ch in groupChannels.OrderBy(c => c.DisplayName))
+                    {
+                        var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                        item.Click += channelClick;
+                        subItem.DropDownItems.Add(item);
+                    }
+                    rootItem.DropDownItems.Add(subItem);
+                }
             }
         }
 
@@ -404,4 +456,7 @@ public class MenuTVChannelHelper(ContextMenuStrip menu)
                 ["TNT Sports 4"],
             ],
         };
+
+    [GeneratedRegex(@"\([A-Za-z]{2}\)", RegexOptions.Compiled)]
+    private static partial Regex MatchTwoParens();
 }
