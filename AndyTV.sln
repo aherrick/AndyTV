@@ -5,8 +5,6 @@ VisualStudioVersion = 18.0.11005.162 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV", "AndyTV.csproj", "{FC54A0B5-0737-4524-A974-40215BF9AE73}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Runner", "..\AndyTV.Runner\AndyTV.Runner.csproj", "{DAC38E29-8827-4751-A473-7B49E153A80A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
