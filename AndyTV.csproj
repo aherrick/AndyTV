@@ -9,6 +9,8 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<LangVersion>preview</LangVersion>
 		<ApplicationIcon>AndyTV.ico</ApplicationIcon>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
 	</PropertyGroup>
 
 	<ItemGroup>
