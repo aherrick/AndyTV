@@ -1,325 +1,207 @@
-﻿//using System.Diagnostics;
-//using System.Runtime.InteropServices;
-//using System.Runtime.InteropServices.Marshalling;
+﻿using System.Diagnostics;
 
-//namespace AndyTV.Helpers;
-
-//public static partial class KeyboardHelper
-//{
-//    // ── Source-generated COM interface ───────────────────────────────────────────
-//    [GeneratedComInterface]
-//    [Guid("37C994E7-432B-4834-A2F7-DCE1F13B834B")]
-//    internal partial interface ITipInvocation
-//    {
-//        void Toggle(nint hwnd);
-//    }
-
-//    private static readonly Guid CLSID_UIHostNoLaunch = new("4CE576FA-83DC-4F88-951C-9D0782B4E376");
-
-//    private static readonly Guid IID_ITipInvocation = new("37C994E7-432B-4834-A2F7-DCE1F13B834B");
-
-//    // ── P/Invoke (source-generated) ─────────────────────────────────────────────
-//    [LibraryImport(
-//        "user32.dll",
-//        EntryPoint = "FindWindowW",
-//        StringMarshalling = StringMarshalling.Utf16
-//    )]
-//    private static partial nint FindWindow(string lpClassName, nint lpWindowName);
-
-//    [LibraryImport("user32.dll")]
-//    [return: MarshalAs(UnmanagedType.Bool)]
-//    private static partial bool IsWindowVisible(nint hWnd);
-
-//    [LibraryImport("user32.dll")]
-//    [return: MarshalAs(UnmanagedType.Bool)]
-//    private static partial bool SetForegroundWindow(nint hWnd);
-
-//    [LibraryImport("user32.dll")]
-//    [return: MarshalAs(UnmanagedType.Bool)]
-//    private static partial bool ShowWindow(nint hWnd, int nCmdShow);
-
-//    [LibraryImport("ole32.dll")]
-//    private static partial int CoCreateInstance(
-//        ref Guid rclsid,
-//        nint pUnkOuter,
-//        uint dwClsContext,
-//        ref Guid riid,
-//        out nint ppv
-//    );
-
-//    private const int SW_SHOW = 5;
-
-//    private const uint CLSCTX_INPROC_SERVER = 0x1;
-//    private const uint CLSCTX_LOCAL_SERVER = 0x4;
-
-//    private static readonly string[] TabTipPaths =
-//    [
-//        @"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe",
-//        @"C:\Program Files (x86)\Common Files\microsoft shared\ink\TabTip.exe",
-//    ];
-
-//    public static void ShowOnScreenKeyboard()
-//    {
-//        Logger.Info("ShowOnScreenKeyboard: start");
-
-//        EnsureTextServices(); // ctfmon.exe
-
-//        if (!IsProcessRunning("TabTip"))
-//        {
-//            if (!TryStart("tabtip.exe", "", true, "Start TabTip via PATH"))
-//            {
-//                foreach (string path in TabTipPaths)
-//                {
-//                    if (File.Exists(path))
-//                    {
-//                        if (TryStart(path, "", true, "Start TabTip via '" + path + "'"))
-//                        {
-//                            break;
-//                        }
-//                    }
-//                    else
-//                    {
-//                        Logger.Warn("TabTip not found at '" + path + "'");
-//                    }
-//                }
-//            }
-//        }
-//        else
-//        {
-//            Logger.Info("TabTip already running.");
-//        }
-
-//        Thread.Sleep(200);
-
-//        if (!BringTabTipToFront())
-//        {
-//            Logger.Info("TabTip window not visible; invoking COM Toggle.");
-//            TryComToggle();
-//            Thread.Sleep(200);
-//            BringTabTipToFront();
-//        }
-
-//        if (!IsTabTipVisible())
-//        {
-//            Logger.Warn("TabTip still not visible; launching legacy OSK.");
-//            if (!TryStart("osk.exe", "", true, "Start OSK"))
-//            {
-//                TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false, "Start OSK via cmd");
-//            }
-//        }
-//    }
-
-//    // ── helpers ─────────────────────────────────────────────────────────────────
-//    private static bool BringTabTipToFront()
-//    {
-//        nint h = FindWindow("IPTip_Main_Window", 0);
-//        if (h == 0)
-//        {
-//            Logger.Warn("IPTip_Main_Window not found.");
-//            return false;
-//        }
-
-//        bool visible = IsWindowVisible(h);
-//        Logger.Info(
-//            "IPTip_Main_Window found: "
-//                + (visible ? "visible" : "hidden")
-//                + " (0x"
-//                + h.ToString("X")
-//                + ")"
-//        );
-//        _ = ShowWindow(h, SW_SHOW);
-//        _ = SetForegroundWindow(h);
-//        return visible;
-//    }
-
-//    private static bool IsTabTipVisible()
-//    {
-//        nint h = FindWindow("IPTip_Main_Window", 0);
-//        return h != 0 && IsWindowVisible(h);
-//    }
-
-//    private static void TryComToggle()
-//    {
-//        nint unk = 0;
-//        try
-//        {
-//            // Create COM instance of UIHostNoLaunch and request ITipInvocation
-//            Guid clsid = CLSID_UIHostNoLaunch;
-//            Guid iid = IID_ITipInvocation;
-//            int hr = CoCreateInstance(
-//                ref clsid,
-//                0,
-//                CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
-//                ref iid,
-//                out unk
-//            );
-
-//            if (hr != 0 || unk == 0)
-//            {
-//                Logger.Warn(
-//                    "CoCreateInstance(UIHostNoLaunch) failed. HRESULT=0x"
-//                        + hr.ToString("X")
-//                        + ", ptr=0x"
-//                        + unk.ToString("X")
-//                );
-//                return;
-//            }
-
-//            object obj = Marshal.GetObjectForIUnknown(unk);
-//            ITipInvocation tip = (ITipInvocation)obj;
-
-//            tip.Toggle(0);
-//            Logger.Info("ITipInvocation.Toggle called.");
-//        }
-//        catch (Exception ex)
-//        {
-//            Logger.Error(ex, "COM Toggle failed.");
-//        }
-//        finally
-//        {
-//            if (unk != 0)
-//            {
-//                try
-//                {
-//                    Marshal.Release(unk);
-//                }
-//                catch { }
-//            }
-//        }
-//    }
-
-//    private static void EnsureTextServices()
-//    {
-//        try
-//        {
-//            if (!IsProcessRunning("ctfmon"))
-//            {
-//                string ctf = Path.Combine(Environment.SystemDirectory, "ctfmon.exe");
-//                TryStart(ctf, "", true, "Start ctfmon.exe");
-//            }
-//        }
-//        catch (Exception ex)
-//        {
-//            Logger.Error(ex, "EnsureTextServices failed.");
-//        }
-//    }
-
-//    private static bool TryStart(string fileName, string arguments, bool useShell, string label)
-//    {
-//        try
-//        {
-//            var psi = new ProcessStartInfo
-//            {
-//                FileName = fileName,
-//                Arguments = arguments,
-//                UseShellExecute = useShell,
-//                CreateNoWindow = !useShell,
-//                WindowStyle = useShell ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-//            };
-
-//            Process p = Process.Start(psi);
-//            string pid = p != null ? p.Id.ToString() : "unknown";
-//            Logger.Info(label + " ok (file='" + fileName + "', pid=" + pid + ").");
-//            return true;
-//        }
-//        catch (Exception ex)
-//        {
-//            string argsForLog = string.IsNullOrEmpty(arguments) ? "<none>" : arguments;
-//            Logger.Error(ex, label + " failed (file='" + fileName + "', args=" + argsForLog + ")");
-//            return false;
-//        }
-//    }
-
-//    private static bool IsProcessRunning(string name)
-//    {
-//        try
-//        {
-//            return Process.GetProcessesByName(name).Length > 0;
-//        }
-//        catch (Exception ex)
-//        {
-//            Logger.Error(ex, "Process enumeration failed for '" + name + "'.");
-//            return false;
-//        }
-//    }
-//}
-
-using System;
-using System.Diagnostics;
-using System.IO;
-using AndyTV.Helpers;
-
-public static class KeyboardHelper
+namespace AndyTV.Helpers
 {
-    public static void ShowOnScreenKeyboard()
+    public static class KeyboardHelper
     {
-        Logger.Info("OSK: request to show");
-
-        if (IsProcessRunning("osk"))
+        public static void ShowOnScreenKeyboard()
         {
-            Logger.Info("OSK already running; not launching another instance.");
-            return;
+            Logger.Info("Keyboard: start (OSK-first, no P/Invoke)");
+
+            EnsureTextServices();
+
+            if (EnsureOskVisible(tries: 12, delayMs: 120))
+            {
+                Logger.Info("Keyboard: OSK visible.");
+                return;
+            }
+
+            Logger.Warn("Keyboard: OSK did not appear; trying TabTip fallback.");
+            if (EnsureTabTipVisible(tries: 12, delayMs: 120))
+            {
+                Logger.Info("Keyboard: TabTip visible.");
+                return;
+            }
+
+            Logger.Error("Keyboard: neither OSK nor TabTip became visible.");
         }
 
-        string windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        string oskPath = Path.Combine(windowsDir, "System32", "osk.exe");
-
-        // If 32-bit process on 64-bit OS, prefer Sysnative to get the real 64-bit osk.exe
-        if (!Environment.Is64BitProcess && Environment.Is64BitOperatingSystem)
+        // ---- OSK path (no P/Invoke) ----
+        private static bool EnsureOskVisible(int tries, int delayMs)
         {
-            string sysnativePath = Path.Combine(windowsDir, "Sysnative", "osk.exe");
-            if (File.Exists(sysnativePath))
+            if (IsProcessRunning("osk"))
             {
-                oskPath = sysnativePath;
+                Logger.Info("OSK already running.");
+                return WaitForMainWindow("osk", tries, delayMs);
+            }
+
+            string winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            string sys32 = Path.Combine(winDir, "System32", "osk.exe");
+            string sysnat = Path.Combine(winDir, "Sysnative", "osk.exe");
+
+            // 32-bit process on 64-bit OS -> prefer Sysnative to get real 64-bit osk.exe
+            if (
+                !Environment.Is64BitProcess
+                && Environment.Is64BitOperatingSystem
+                && File.Exists(sysnat)
+            )
+            {
+                if (TryStart(sysnat, "", true, "Launch OSK (Sysnative)"))
+                {
+                    return WaitForMainWindow("osk", tries, delayMs);
+                }
+            }
+
+            if (File.Exists(sys32))
+            {
+                if (TryStart(sys32, "", true, "Launch OSK (System32)"))
+                {
+                    return WaitForMainWindow("osk", tries, delayMs);
+                }
+            }
+
+            // Shell + PATH fallbacks
+            if (TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false, "Launch OSK via cmd"))
+            {
+                return WaitForMainWindow("osk", tries, delayMs);
+            }
+
+            if (TryStart("osk.exe", "", true, "Launch OSK (PATH)"))
+            {
+                return WaitForMainWindow("osk", tries, delayMs);
+            }
+
+            Logger.Warn("OSK did not start.");
+            return false;
+        }
+
+        // ---- TabTip fallback (no P/Invoke/COM) ----
+        private static bool EnsureTabTipVisible(int tries, int delayMs)
+        {
+            if (IsProcessRunning("TabTip"))
+            {
+                Logger.Info("TabTip already running.");
+                return WaitForMainWindow("TabTip", tries, delayMs);
+            }
+
+            if (TryStart("tabtip.exe", "", true, "Start TabTip (PATH)"))
+            {
+                return WaitForMainWindow("TabTip", tries, delayMs);
+            }
+
+            string path1 = @"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe";
+            string path2 = @"C:\Program Files (x86)\Common Files\microsoft shared\ink\TabTip.exe";
+
+            if (File.Exists(path1) && TryStart(path1, "", true, "Start TabTip (x64)"))
+            {
+                return WaitForMainWindow("TabTip", tries, delayMs);
+            }
+
+            if (File.Exists(path2) && TryStart(path2, "", true, "Start TabTip (x86)"))
+            {
+                return WaitForMainWindow("TabTip", tries, delayMs);
+            }
+
+            Logger.Warn("TabTip did not start.");
+            return false;
+        }
+
+        // ---- Generic helpers (no native calls) ----
+        private static bool WaitForMainWindow(string processName, int tries, int delayMs)
+        {
+            for (int i = 0; i < tries; i++)
+            {
+                Process[] procs = Process.GetProcessesByName(processName);
+                foreach (Process p in procs)
+                {
+                    try
+                    {
+                        p.Refresh();
+                        if (p.MainWindowHandle != IntPtr.Zero)
+                        {
+                            Logger.Info(
+                                processName + " main window detected (pid=" + p.Id.ToString() + ")."
+                            );
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore transient access issues
+                    }
+                }
+                Sleep(delayMs);
+            }
+
+            Logger.Warn(processName + " main window not detected after polling.");
+            return false;
+        }
+
+        private static void EnsureTextServices()
+        {
+            try
+            {
+                if (!IsProcessRunning("ctfmon"))
+                {
+                    string ctf = Path.Combine(Environment.SystemDirectory, "ctfmon.exe");
+                    TryStart(ctf, "", true, "Start ctfmon.exe");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "EnsureTextServices failed.");
             }
         }
 
-        // Fallback to PATH if the computed path isn't present
-        if (!File.Exists(oskPath))
+        private static bool TryStart(string fileName, string arguments, bool useShell, string label)
         {
-            Logger.Warn("Computed OSK path not found; falling back to 'osk.exe' on PATH.");
-            oskPath = "osk.exe";
-        }
-
-        TryStart(oskPath, "", true, "Launch OSK");
-    }
-
-    private static bool TryStart(string fileName, string arguments, bool useShell, string label)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
+            try
             {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = useShell,
-                CreateNoWindow = !useShell,
-                WindowStyle = useShell ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-            };
+                var psi = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    UseShellExecute = useShell,
+                    CreateNoWindow = !useShell,
+                    WindowStyle = useShell ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
+                };
 
-            Process p = Process.Start(psi);
-            string pid = p != null ? p.Id.ToString() : "unknown";
-            Logger.Info(label + " ok (file='" + fileName + "', pid=" + pid + ").");
-            return true;
+                Process p = Process.Start(psi);
+                string pid = p != null ? p.Id.ToString() : "unknown";
+                Logger.Info(label + " ok (file='" + fileName + "', pid=" + pid + ").");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                string argsForLog = string.IsNullOrEmpty(arguments) ? "<none>" : arguments;
+                Logger.Error(
+                    ex,
+                    label + " failed (file='" + fileName + "', args=" + argsForLog + ")"
+                );
+                return false;
+            }
         }
-        catch (Exception ex)
-        {
-            string argsForLog = string.IsNullOrEmpty(arguments) ? "<none>" : arguments;
-            Logger.Error(ex, label + " failed (file='" + fileName + "', args=" + argsForLog + ")");
-            return false;
-        }
-    }
 
-    private static bool IsProcessRunning(string name)
-    {
-        try
+        private static bool IsProcessRunning(string name)
         {
-            return Process.GetProcessesByName(name).Length > 0;
+            try
+            {
+                return Process.GetProcessesByName(name).Length > 0;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Process enumeration failed for '" + name + "'.");
+                return false;
+            }
         }
-        catch (Exception ex)
+
+        private static void Sleep(int ms)
         {
-            Logger.Error(ex, "Process enumeration failed for '" + name + "'.");
-            return false;
+            try
+            {
+                Thread.Sleep(ms);
+            }
+            catch { }
         }
     }
 }
