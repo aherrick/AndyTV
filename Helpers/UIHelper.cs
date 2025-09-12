@@ -13,60 +13,95 @@ public static class UIHelper
 
     public static void ShowOnScreenKeyboard()
     {
-        try
-        {
-            // Method 1: Direct TabTip call (simplest)
-            Process.Start("tabtip.exe");
-            return;
-        }
-        catch
-        {
-            // Try next method
-        }
+        Logger.Info("ShowOnScreenKeyboard: invoked");
 
         try
         {
-            // Method 2: Full path to TabTip
-            var tabTipPath = @"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe";
-            if (File.Exists(tabTipPath))
-            {
-                Process.Start(tabTipPath);
-                return;
-            }
-        }
-        catch
-        {
-            // Try next method
-        }
-
-        try
-        {
-            // Method 3: Use Windows Shell to open touch keyboard
-            Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c start \"\" \"osk.exe\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                }
+            Logger.Info("Attempt: launch 'tabtip.exe' via PATH");
+            var p = Process.Start("tabtip.exe");
+            Logger.Info(
+                $"Result: started 'tabtip.exe' via PATH (pid={p?.Id.ToString() ?? "unknown"})"
             );
             return;
         }
-        catch
+        catch (Exception ex)
         {
-            // Try next method
+            Logger.Error(ex, "Failure: starting 'tabtip.exe' via PATH threw an exception");
         }
 
         try
         {
-            // Method 4: Direct OSK as final fallback
-            Process.Start("osk.exe");
+            // Common 64-bit location
+            var tabTipPath = @"C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe";
+            // Also check Wow64 (32-bit on 64-bit OS) just for logging visibility
+            var tabTipPathWow64 =
+                @"C:\Program Files (x86)\Common Files\microsoft shared\ink\TabTip.exe";
+
+            Logger.Info(
+                $"Check: exists? '{tabTipPath}' => {File.Exists(tabTipPath)}; '{tabTipPathWow64}' => {File.Exists(tabTipPathWow64)}"
+            );
+
+            var launchPath = File.Exists(tabTipPath)
+                ? tabTipPath
+                : (File.Exists(tabTipPathWow64) ? tabTipPathWow64 : null);
+
+            if (launchPath is null)
+            {
+                Logger.Warn(
+                    "Skip: TabTip.exe not found in expected locations; cannot launch by full path"
+                );
+            }
+            else
+            {
+                Logger.Info($"Attempt: launch TabTip from full path '{launchPath}'");
+                var p = Process.Start(launchPath);
+                Logger.Info(
+                    $"Result: started TabTip from full path (pid={p?.Id.ToString() ?? "unknown"})"
+                );
+                return;
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // Nothing worked
+            Logger.Error(ex, "Failure: starting TabTip from full path threw an exception");
+        }
+
+        try
+        {
+            Logger.Info(
+                "Attempt: launch OSK via cmd.exe (`/c start \"\" \"osk.exe\"`) with UseShellExecute=false"
+            );
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/c start \"\" \"osk.exe\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+            var p = Process.Start(psi);
+            Logger.Info(
+                $"Result: cmd.exe invoked to start OSK (cmd pid={p?.Id.ToString() ?? "unknown"})"
+            );
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failure: launching OSK via cmd.exe threw an exception");
+        }
+
+        try
+        {
+            Logger.Info("Attempt: launch 'osk.exe' directly");
+            var p = Process.Start("osk.exe");
+            Logger.Info(
+                $"Result: started 'osk.exe' directly (pid={p?.Id.ToString() ?? "unknown"})"
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failure: starting 'osk.exe' directly threw an exception");
+            Logger.Warn("All launch attempts exhausted; on-screen keyboard did not start.");
         }
     }
 }
