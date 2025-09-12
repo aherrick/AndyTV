@@ -73,24 +73,70 @@ public partial class Form1 : Form
             _lastActivityUtc = DateTime.UtcNow;
             _isRestarting = false;
 
-            // Remove this call:
-            // SetCursorForCurrentMode();
-
-            BeginInvoke(() =>
-            {
-                SetCursorForCurrentMode();
-                _notificationService.ShowToast(_currentChannel.DisplayName);
-                RecentChannelsService.AddOrPromote(_currentChannel);
-                ChannelDataService.SaveLastChannel(_currentChannel);
-                _menuRecentChannelHelper?.RebuildRecentMenu();
-            });
+            SetCursorForCurrentMode();
+            _notificationService.ShowToast(_currentChannel.DisplayName);
+            RecentChannelsService.AddOrPromote(_currentChannel);
+            ChannelDataService.SaveLastChannel(_currentChannel);
+            _menuRecentChannelHelper?.RebuildRecentMenu();
         };
 
         // Configure VideoView with context menu and event handlers
         _videoView.ContextMenuStrip = _contextMenuStrip;
-        _videoView.MouseDoubleClick += VideoView_MouseDoubleClick;
-        _videoView.MouseUp += VideoView_MouseUp;
-        _videoView.MouseDown += VideoView_MouseDown;
+
+        _videoView.MouseDoubleClick += (_, e) =>
+        {
+            if (FormBorderStyle == FormBorderStyle.None)
+            {
+                RestoreWindow();
+            }
+            else
+            {
+                MaximizeWindow();
+            }
+        };
+
+        _videoView.MouseDown += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _mouseDownLeftPrevChannel = DateTime.Now;
+            }
+            if (e.Button == MouseButtons.Right)
+            {
+                _mouseDownRightExit = DateTime.Now;
+            }
+        };
+
+        _videoView.MouseUp += (_, e) =>
+        {
+            if (
+                e.Button == MouseButtons.Left
+                && _mouseDownLeftPrevChannel != DateTime.MinValue
+                && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
+            )
+            {
+                var prevChannel = RecentChannelsService.GetPrevious();
+                if (prevChannel != null)
+                {
+                    Play(prevChannel);
+                }
+            }
+
+            if (e.Button == MouseButtons.Middle)
+            {
+                _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+            }
+
+            if (
+                e.Button == MouseButtons.Right
+                && _mouseDownRightExit != DateTime.MinValue
+                && _mouseDownRightExit.AddSeconds(5) < DateTime.Now
+            )
+            {
+                Close();
+            }
+        };
+
         Controls.Add(_videoView);
 
         MaximizeWindow(); // start fullscreen
@@ -134,19 +180,7 @@ public partial class Form1 : Form
                 }
             }
 
-            Logger.Info("[CHANNELS] Loading from M3U...");
-            _videoView.ShowWaiting(); // Commented out to allow immediate menu access
-
-            // Load channels in background
-            _ = LoadChannelsAsync();
-
-            async Task LoadChannelsAsync()
-            {
-                await _menuTVChannelHelper
-                    .LoadAndBuildMenu(ChItem_Click, source.Url)
-                    .ConfigureAwait(false);
-                Logger.Info("[CHANNELS] Loaded");
-            }
+            _ = _menuTVChannelHelper.LoadAndBuildMenu(ChItem_Click, source.Url);
 
             // Cursor stuff can happen immediately on UI thread
             SetCursorForCurrentMode();
@@ -259,70 +293,26 @@ public partial class Form1 : Form
         _videoView.ShowDefault();
     }
 
-    private void VideoView_MouseDown(object sender, MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Left)
-        {
-            _mouseDownLeftPrevChannel = DateTime.Now;
-        }
-        if (e.Button == MouseButtons.Right)
-        {
-            _mouseDownRightExit = DateTime.Now;
-        }
-    }
-
-    private void VideoView_MouseUp(object sender, MouseEventArgs e)
-    {
-        if (
-            e.Button == MouseButtons.Left
-            && _mouseDownLeftPrevChannel != DateTime.MinValue
-            && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
-        )
-        {
-            var prevChannel = RecentChannelsService.GetPrevious();
-            if (prevChannel != null)
-            {
-                Play(prevChannel);
-            }
-        }
-
-        if (e.Button == MouseButtons.Middle)
-        {
-            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
-        }
-
-        if (
-            e.Button == MouseButtons.Right
-            && _mouseDownRightExit != DateTime.MinValue
-            && _mouseDownRightExit.AddSeconds(5) < DateTime.Now
-        )
-        {
-            Close();
-        }
-    }
-
-    private void VideoView_MouseDoubleClick(object sender, MouseEventArgs e)
-    {
-        if (FormBorderStyle == FormBorderStyle.None)
-        {
-            RestoreWindow();
-        }
-        else
-        {
-            MaximizeWindow();
-        }
-    }
-
     private void BuildSettingsMenu(string appVersionName)
     {
-        // Header
         var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName);
+        header.Click += (_, __) =>
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "https://github.com/aherrick/andytv",
+                    UseShellExecute = true,
+                }
+            );
+        };
 
         // --- Update ---
         var updateItem = new ToolStripMenuItem("Update");
         updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
         _contextMenuStrip.Items.Add(updateItem);
 
+        // --- Swap ---
         var swapItem = new ToolStripMenuItem("Swap");
         swapItem.Click += (_, __) =>
         {

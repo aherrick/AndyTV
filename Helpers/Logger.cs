@@ -4,7 +4,6 @@ namespace AndyTV.Helpers;
 
 public static class Logger
 {
-    private static readonly Lock _gate = new();
     private static readonly string _dir;
 
     static Logger()
@@ -53,11 +52,7 @@ public static class Logger
                 $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss} [{level}] "
                 + $"[T{Environment.CurrentManagedThreadId}] {message}{Environment.NewLine}";
 
-            lock (_gate)
-            {
-                Directory.CreateDirectory(_dir);
-                File.AppendAllText(CurrentFile, line, Encoding.UTF8);
-            }
+            File.AppendAllText(CurrentFile, line, Encoding.UTF8);
         }
         catch
         {

@@ -36,6 +36,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             },
             null
         );
+
+        Logger.Info("[CHANNELS] Loaded");
     }
 
     private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
@@ -58,15 +60,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         if (matches247.Count > 0)
         {
             // Function to extract the show name
-            static string ExtractShowName(string channel)
+            static string ExtractShowName(string channel, string rootTitle)
             {
-                // Assume all start with "24/7 "
-                const string prefix = "24/7 ";
-                if (!channel.StartsWith(prefix))
-                {
-                    return channel; // fallback
-                }
-                string afterPrefix = channel[prefix.Length..];
+                var afterPrefix = channel[rootTitle.Length..];
                 var words = afterPrefix.Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 var showWords = new List<string>();
                 foreach (var word in words)
@@ -82,7 +78,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
             // Group by the extracted show name (case insensitive)
             var grouped = matches247.GroupBy(c =>
-                ExtractShowName(c.DisplayName).ToLowerInvariant()
+                ExtractShowName(channel: c.DisplayName, rootTitle: rootTitle).ToLowerInvariant()
             );
 
             foreach (var group in grouped.OrderBy(g => g.Key))
@@ -99,7 +95,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 else
                 {
                     // Multiple channels, create sub-menu with the group name from the first channel
-                    var groupName = ExtractShowName(groupChannels[0].DisplayName);
+                    var groupName = ExtractShowName(
+                        channel: groupChannels[0].DisplayName,
+                        rootTitle: rootTitle
+                    );
                     var subItem = new ToolStripMenuItem(groupName);
                     foreach (var ch in groupChannels.OrderBy(c => c.DisplayName))
                     {

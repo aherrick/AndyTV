@@ -175,6 +175,12 @@ public partial class FavoriteChannelForm : Form
             _favorites.Select(f => $"{f.DisplayName}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
         );
 
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        _channelPicker.FocusFilter();
+    }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         var current = SnapshotString();

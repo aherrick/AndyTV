@@ -6,11 +6,14 @@ namespace AndyTV.UI.Controls;
 public static class StandardPickerFactory
 {
     public const int PickerHeight = 220; // exact height for the header
-    public static readonly Padding PickerMargin = new(0, 0, 0, 8); // bottom breathing room
 
     public static ChannelFilterListControl Create(List<Channel> channels)
     {
-        var picker = new ChannelFilterListControl { Dock = DockStyle.Fill, Margin = PickerMargin };
+        var picker = new ChannelFilterListControl
+        {
+            Dock = DockStyle.Fill,
+            Margin = new(0, 0, 0, 8),
+        };
 
         picker.SetChannels(channels);
         return picker;
@@ -59,15 +62,6 @@ public class ChannelFilterListControl : UserControl
 
         _filterTextBox.TextChanged += (_, __) => ApplyFilter();
 
-        // Show OSK only once for this control's lifetime (i.e., once per form that hosts it)
-        _filterTextBox.GotFocus += (_, __) =>
-        {
-            if (_keyboardShownOnce)
-                return;
-            UIHelper.ShowOnScreenKeyboard();
-            _keyboardShownOnce = true;
-        };
-
         _listBox.DoubleClick += (_, __) => RaiseActivated();
         _listBox.KeyDown += (_, e) =>
         {
@@ -90,7 +84,18 @@ public class ChannelFilterListControl : UserControl
         ApplyFilter();
     }
 
-    public void FocusFilter() => _filterTextBox.Focus();
+    public void FocusFilter()
+    {
+        if (_keyboardShownOnce)
+        {
+            return;
+        }
+
+        UIHelper.ShowOnScreenKeyboard();
+        _keyboardShownOnce = true;
+
+        _filterTextBox.Focus();
+    }
 
     public Channel SelectedItem =>
         (_listBox.SelectedIndex >= 0 && _listBox.SelectedIndex < _filtered.Count)
