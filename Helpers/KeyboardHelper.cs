@@ -43,7 +43,7 @@ public static class KeyboardHelper
         {
             if (WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
             {
-                Logger.Info("OSK visible");
+                Logger.Info("OSK visible via existing process");
                 return;
             }
         }
@@ -63,7 +63,7 @@ public static class KeyboardHelper
                 TryStart(pathSysnative, "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS)
             )
             {
-                Logger.Info("OSK visible");
+                Logger.Info("OSK visible via Sysnative");
                 return;
             }
         }
@@ -72,7 +72,7 @@ public static class KeyboardHelper
         {
             if (TryStart(pathSystem32, "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
             {
-                Logger.Info("OSK visible");
+                Logger.Info("OSK visible via System32");
                 return;
             }
         }
@@ -82,13 +82,13 @@ public static class KeyboardHelper
             && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS)
         )
         {
-            Logger.Info("OSK visible");
+            Logger.Info("OSK visible via cmd");
             return;
         }
 
         if (TryStart("osk.exe", "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
         {
-            Logger.Info("OSK visible");
+            Logger.Info("OSK visible via PATH");
             return;
         }
 
