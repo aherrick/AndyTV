@@ -11,37 +11,10 @@ public static class KeyboardHelper
     {
         Logger.Info("OSK start");
 
-        // local poll helper (used multiple times)
-        static bool WaitForOskMainWindow(int tries, int delayMs)
-        {
-            for (int i = 0; i < tries; i++)
-            {
-                try
-                {
-                    Process[] procs = Process.GetProcessesByName("osk");
-                    foreach (Process p in procs)
-                    {
-                        p.Refresh();
-                        if (p.MainWindowHandle != IntPtr.Zero)
-                        {
-                            return true;
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignore and keep polling
-                }
-
-                Thread.Sleep(delayMs);
-            }
-
-            return false;
-        }
-
+        // Already running?
         if (Process.GetProcessesByName("osk").Length > 0)
         {
-            if (WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
+            if (UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS))
             {
                 Logger.Info("OSK visible via existing process");
                 return;
@@ -60,7 +33,8 @@ public static class KeyboardHelper
         )
         {
             if (
-                TryStart(pathSysnative, "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS)
+                UtilHelper.TryStart(pathSysnative, "", true, "OSK Sysnative")
+                && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
             )
             {
                 Logger.Info("OSK visible via Sysnative");
@@ -70,7 +44,10 @@ public static class KeyboardHelper
 
         if (File.Exists(pathSystem32))
         {
-            if (TryStart(pathSystem32, "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
+            if (
+                UtilHelper.TryStart(pathSystem32, "", true, "OSK System32")
+                && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
+            )
             {
                 Logger.Info("OSK visible via System32");
                 return;
@@ -78,45 +55,23 @@ public static class KeyboardHelper
         }
 
         if (
-            TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false)
-            && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS)
+            UtilHelper.TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false, "OSK cmd")
+            && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
         )
         {
             Logger.Info("OSK visible via cmd");
             return;
         }
 
-        if (TryStart("osk.exe", "", true) && WaitForOskMainWindow(POLL_TRIES, POLL_DELAY_MS))
+        if (
+            UtilHelper.TryStart("osk.exe", "", true, "OSK PATH")
+            && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
+        )
         {
             Logger.Info("OSK visible via PATH");
             return;
         }
 
         Logger.Error("OSK did not appear");
-    }
-
-    private static bool TryStart(string fileName, string arguments, bool useShell)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = useShell,
-                CreateNoWindow = !useShell,
-                WindowStyle = useShell ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-            };
-
-            Process p = Process.Start(psi);
-            string pid = p != null ? p.Id.ToString() : "unknown";
-            Logger.Info("OSK launch ok: " + fileName + " pid=" + pid);
-            return true;
-        }
-        catch
-        {
-            Logger.Warn("OSK launch failed: " + fileName);
-            return false;
-        }
     }
 }

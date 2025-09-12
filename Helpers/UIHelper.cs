@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace AndyTV.Helpers;
+﻿namespace AndyTV.Helpers;
 
 public static class UIHelper
 {
