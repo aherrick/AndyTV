@@ -91,7 +91,7 @@ public class ChannelFilterListControl : UserControl
             return;
         }
 
-        UIHelper.ShowOnScreenKeyboard();
+        KeyboardHelper.ShowOnScreenKeyboard();
         _keyboardShownOnce = true;
 
         _filterTextBox.Focus();
