@@ -25,30 +25,18 @@ public partial class FavoriteChannelForm : Form
     private Button _exportButton;
     private Button _saveButton;
 
-    private readonly Channel _pendingAdd;
     public bool Saved { get; private set; }
 
-    public FavoriteChannelForm(List<Channel> channels, Channel addOnOpen = null)
+    public FavoriteChannelForm(List<Channel> channels, Channel channelAdd = null)
     {
         _allChannels = channels ?? [];
-        _pendingAdd = addOnOpen;
 
         InitializeComponent();
 
         _favoritesGrid.DataSource = _favorites;
         LoadExistingFavorites();
 
-        // Add pending channel right after loading
-        if (
-            _pendingAdd != null
-            && !string.IsNullOrWhiteSpace(_pendingAdd.Url)
-            && !_favorites.Any(f =>
-                string.Equals(f.Url, _pendingAdd.Url, StringComparison.OrdinalIgnoreCase)
-            )
-        )
-        {
-            _favorites.Add(_pendingAdd);
-        }
+        AddChannel(channelAdd);
     }
 
     private void InitializeComponent()
@@ -81,7 +69,7 @@ public partial class FavoriteChannelForm : Form
 
         // --- Top: shared picker (exactly the same as AdHoc) ---
         _channelPicker = StandardPickerFactory.Create(_allChannels);
-        _channelPicker.ItemActivated += (_, ch) => AddToFavorites(ch);
+        _channelPicker.ItemActivated += (_, ch) => AddChannel(ch);
         main.Controls.Add(_channelPicker, 0, 0);
         main.SetColumnSpan(_channelPicker, 2);
 
@@ -213,10 +201,7 @@ public partial class FavoriteChannelForm : Form
             switch (result)
             {
                 case DialogResult.Yes:
-                    _favoritesGrid.CurrentCell = null;
-                    _favoritesGrid.EndEdit();
-                    ChannelDataService.SaveFavoriteChannels([.. _favorites]);
-                    _baseline = SnapshotString();
+                    SaveNow(); // centralized save
                     break;
 
                 case DialogResult.Cancel:
@@ -324,9 +309,24 @@ public partial class FavoriteChannelForm : Form
         }
     }
 
-    // --- Interactions ---
-    private void AddToFavorites(Channel channel)
+    // --- Minimal refactor helpers ---
+
+    private void SaveNow()
     {
+        _favoritesGrid.CurrentCell = null;
+        _favoritesGrid.EndEdit();
+
+        ChannelDataService.SaveFavoriteChannels([.. _favorites]);
+        _baseline = SnapshotString();
+        Saved = true;
+    }
+
+    private void AddChannel(Channel channel)
+    {
+        if (channel == null || string.IsNullOrWhiteSpace(channel.Url))
+            return;
+
+        // ensure no dupes
         if (
             _favorites.Any(f =>
                 string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
@@ -344,6 +344,8 @@ public partial class FavoriteChannelForm : Form
 
         _favorites.Add(channel);
     }
+
+    // --- Interactions ---
 
     private void MoveUpButton_Click(object sender, EventArgs e)
     {
@@ -451,13 +453,7 @@ public partial class FavoriteChannelForm : Form
 
     private void SaveButton_Click(object sender, EventArgs e)
     {
-        _favoritesGrid.CurrentCell = null;
-        _favoritesGrid.EndEdit();
-
-        ChannelDataService.SaveFavoriteChannels([.. _favorites]);
-        _baseline = SnapshotString();
-
-        Saved = true;
+        SaveNow(); // centralized save
 
         MessageBox.Show(
             "Favorites saved successfully!",
