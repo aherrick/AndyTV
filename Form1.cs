@@ -295,6 +295,7 @@ public partial class Form1 : Form
 
     private void BuildSettingsMenu(string appVersionName)
     {
+        // --- Header (click opens repo) ---
         var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName);
         header.Click += (_, __) =>
         {
@@ -307,18 +308,27 @@ public partial class Form1 : Form
             );
         };
 
-        // --- Update ---
-        var updateItem = new ToolStripMenuItem("Update");
-        updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
-        _contextMenuStrip.Items.Add(updateItem);
+        // ===== Channels =====
+        var channelsMenu = new ToolStripMenuItem("Channels");
 
-        // --- Swap ---
+        var adHocItem = new ToolStripMenuItem("Ad Hoc");
+        adHocItem.Click += (_, __) =>
+        {
+            _videoView.ShowDefault();
+            using var dialog = new AdHocChannelForm(_menuTVChannelHelper.Channels);
+            dialog.ShowDialog();
+            if (dialog.SelectedItem != null)
+            {
+                Play(dialog.SelectedItem);
+            }
+        };
+        channelsMenu.DropDownItems.Add(adHocItem);
+
         var swapItem = new ToolStripMenuItem("Swap");
         swapItem.Click += (_, __) =>
         {
             string input = null;
 
-            // Prefer a valid absolute URL from clipboard if present
             if (Clipboard.ContainsText())
             {
                 var clip = Clipboard.GetText().Trim();
@@ -328,23 +338,23 @@ public partial class Form1 : Form
                 }
             }
 
-            // If no valid clipboard URL, prompt
             if (string.IsNullOrWhiteSpace(input))
             {
                 _videoView.ShowDefault();
 
-                using var dlg = new InputForm(title: "Swap Stream", prompt: "Enter media URL:");
+                using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
+                {
                     return;
+                }
 
                 input = dlg.Result;
             }
 
-            if (string.IsNullOrWhiteSpace(input))
-                return;
-
-            // Final sanity check
-            if (!Uri.IsWellFormedUriString(input, UriKind.Absolute))
+            if (
+                string.IsNullOrWhiteSpace(input)
+                || !Uri.IsWellFormedUriString(input, UriKind.Absolute)
+            )
             {
                 MessageBox.Show(
                     this,
@@ -359,20 +369,42 @@ public partial class Form1 : Form
             var ch =
                 _menuTVChannelHelper.ChannelByUrl(input)
                 ?? new Channel { Name = "Swap", Url = input };
-
             Play(ch);
         };
-        _contextMenuStrip.Items.Add(swapItem);
+        channelsMenu.DropDownItems.Add(swapItem);
 
-        // --- Mute / Unmute ---
-        var muteItem = new ToolStripMenuItem("Mute");
-        muteItem.Click += (_, __) =>
+        _contextMenuStrip.Items.Add(channelsMenu);
+
+        // ===== Favorites =====
+        var favoritesMenu = new ToolStripMenuItem("Favorites");
+
+        var favoritesManageItem = new ToolStripMenuItem("Manage");
+        favoritesManageItem.Click += (_, __) =>
         {
-            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+            _videoView.ShowDefault();
+            using Form form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
+            form.FormClosed += (_, __2) =>
+            {
+                _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                SetCursorForCurrentMode();
+            };
+            form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
         };
-        _contextMenuStrip.Items.Add(muteItem);
+        favoritesMenu.DropDownItems.Add(favoritesManageItem);
 
-        // --- Logs ---
+        var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
+        favoritesAddCurrentItem.Click += (_, __) => { };
+        favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
+
+        _contextMenuStrip.Items.Add(favoritesMenu);
+
+        // ===== App =====
+        var appMenu = new ToolStripMenuItem("App");
+
+        var updateItem = new ToolStripMenuItem("Update");
+        updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
+        appMenu.DropDownItems.Add(updateItem);
+
         var logsItem = new ToolStripMenuItem("Logs");
         logsItem.Click += (_, __) =>
         {
@@ -387,67 +419,34 @@ public partial class Form1 : Form
                 }
             );
         };
-        _contextMenuStrip.Items.Add(logsItem);
+        appMenu.DropDownItems.Add(logsItem);
 
-        // --- Favorites ---
-        var favoritesItem = new ToolStripMenuItem("Favorites");
-        favoritesItem.Click += (_, __) =>
+        var muteItem = new ToolStripMenuItem("Mute");
+        muteItem.Click += (_, __) =>
         {
-            _videoView.ShowDefault();
-
-            using Form form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
-            form.FormClosed += (_, __2) =>
-            {
-                _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-
-                Form owner = _contextMenuStrip.SourceControl.FindForm();
-                SetCursorForCurrentMode();
-            };
-
-            form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
+            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
         };
-        _contextMenuStrip.Items.Add(favoritesItem);
+        appMenu.DropDownItems.Add(muteItem);
 
-        // --- Ad Hoc ---
-        var adHocItem = new ToolStripMenuItem("Ad Hoc");
-        adHocItem.Click += (_, __) =>
-        {
-            _videoView.ShowDefault();
+        appMenu.DropDownItems.Add(new ToolStripSeparator());
 
-            using var dialog = new AdHocChannelForm(_menuTVChannelHelper.Channels);
-            dialog.ShowDialog();
-            if (dialog.SelectedItem != null)
-            {
-                Play(dialog.SelectedItem);
-            }
-        };
-
-        _contextMenuStrip.Items.Add(adHocItem);
-
-        // ---Restart---
         var restartItem = new ToolStripMenuItem("Restart");
-        restartItem.Click += (_, __) =>
-        {
-            Program.Restart();
-        };
-        _contextMenuStrip.Items.Add(restartItem);
+        restartItem.Click += (_, __) => Program.Restart();
+        appMenu.DropDownItems.Add(restartItem);
 
-        // --- Exit ---
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, __) => Application.Exit();
-        _contextMenuStrip.Items.Add(exitItem);
+        appMenu.DropDownItems.Add(exitItem);
 
-        // Context menu state hooks
+        _contextMenuStrip.Items.Add(appMenu);
+
+        // ===== Dynamic state hooks =====
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
-
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
         };
 
-        _contextMenuStrip.Closing += (_, __) =>
-        {
-            SetCursorForCurrentMode();
-        };
+        _contextMenuStrip.Closing += (_, __) => SetCursorForCurrentMode();
     }
 }

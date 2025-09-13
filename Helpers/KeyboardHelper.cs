@@ -9,9 +9,9 @@ public static class KeyboardHelper
 
     public static void ShowOnScreenKeyboard()
     {
-        Logger.Info("OSK start");
+        Logger.Info("OSK start (x64)");
 
-        // Already running?
+        // If already running and its main window is up, we're done.
         if (Process.GetProcessesByName("osk").Length > 0)
         {
             if (UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS))
@@ -21,55 +21,41 @@ public static class KeyboardHelper
             }
         }
 
-        string winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        string pathSystem32 = Path.Combine(winDir, "System32", "osk.exe");
-        string pathSysnative = Path.Combine(winDir, "Sysnative", "osk.exe");
+        // x64 path only
+        string oskPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            "System32",
+            "osk.exe"
+        );
 
-        // Prefer 64-bit OSK when running as 32-bit process on 64-bit OS
-        if (
-            !Environment.Is64BitProcess
-            && Environment.Is64BitOperatingSystem
-            && File.Exists(pathSysnative)
-        )
+        // 1) Try explicit System32 path
+        if (UtilHelper.TryStart(oskPath, "", true, "OSK System32"))
         {
-            if (
-                UtilHelper.TryStart(pathSysnative, "", true, "OSK Sysnative")
-                && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
-            )
-            {
-                Logger.Info("OSK visible via Sysnative");
-                return;
-            }
-        }
-
-        if (File.Exists(pathSystem32))
-        {
-            if (
-                UtilHelper.TryStart(pathSystem32, "", true, "OSK System32")
-                && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
-            )
+            if (UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS))
             {
                 Logger.Info("OSK visible via System32");
                 return;
             }
         }
 
-        if (
-            UtilHelper.TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false, "OSK cmd")
-            && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
-        )
+        // 2) Try just "osk.exe" on PATH
+        if (UtilHelper.TryStart("osk.exe", "", true, "OSK PATH"))
         {
-            Logger.Info("OSK visible via cmd");
-            return;
+            if (UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS))
+            {
+                Logger.Info("OSK visible via PATH");
+                return;
+            }
         }
 
-        if (
-            UtilHelper.TryStart("osk.exe", "", true, "OSK PATH")
-            && UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS)
-        )
+        // 3) Last resort: shell out to cmd start
+        if (UtilHelper.TryStart("cmd.exe", "/c start \"\" \"osk.exe\"", false, "OSK cmd"))
         {
-            Logger.Info("OSK visible via PATH");
-            return;
+            if (UtilHelper.WaitForMainWindow("osk", POLL_TRIES, POLL_DELAY_MS))
+            {
+                Logger.Info("OSK visible via cmd");
+                return;
+            }
         }
 
         Logger.Error("OSK did not appear");
