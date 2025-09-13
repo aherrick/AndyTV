@@ -378,22 +378,30 @@ public partial class Form1 : Form
         // ===== Favorites =====
         var favoritesMenu = new ToolStripMenuItem("Favorites");
 
-        var favoritesManageItem = new ToolStripMenuItem("Manage");
-        favoritesManageItem.Click += (_, __) =>
+        // local helper for both manage and add
+        void OpenFavorites(Channel addOnOpen = null)
         {
             _videoView.ShowDefault();
-            using Form form = new FavoriteChannelForm(_menuTVChannelHelper.Channels);
-            form.FormClosed += (_, __2) =>
+
+            using var form = new FavoriteChannelForm(_menuTVChannelHelper.Channels, addOnOpen);
+            form.FormClosed += (_, __) =>
             {
-                _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                if (form.Saved)
+                {
+                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                }
+
                 SetCursorForCurrentMode();
             };
             form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
-        };
+        }
+
+        var favoritesManageItem = new ToolStripMenuItem("Manage");
+        favoritesManageItem.Click += (_, __) => OpenFavorites();
         favoritesMenu.DropDownItems.Add(favoritesManageItem);
 
         var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
-        favoritesAddCurrentItem.Click += (_, __) => { };
+        favoritesAddCurrentItem.Click += (_, __) => OpenFavorites(_currentChannel);
         favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
 
         _contextMenuStrip.Items.Add(favoritesMenu);

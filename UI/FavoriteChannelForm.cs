@@ -25,13 +25,30 @@ public partial class FavoriteChannelForm : Form
     private Button _exportButton;
     private Button _saveButton;
 
-    public FavoriteChannelForm(List<Channel> channels)
+    private readonly Channel _pendingAdd;
+    public bool Saved { get; private set; }
+
+    public FavoriteChannelForm(List<Channel> channels, Channel addOnOpen = null)
     {
         _allChannels = channels ?? [];
+        _pendingAdd = addOnOpen;
+
         InitializeComponent();
 
         _favoritesGrid.DataSource = _favorites;
         LoadExistingFavorites();
+
+        // Add pending channel right after loading
+        if (
+            _pendingAdd != null
+            && !string.IsNullOrWhiteSpace(_pendingAdd.Url)
+            && !_favorites.Any(f =>
+                string.Equals(f.Url, _pendingAdd.Url, StringComparison.OrdinalIgnoreCase)
+            )
+        )
+        {
+            _favorites.Add(_pendingAdd);
+        }
     }
 
     private void InitializeComponent()
@@ -439,6 +456,8 @@ public partial class FavoriteChannelForm : Form
 
         ChannelDataService.SaveFavoriteChannels([.. _favorites]);
         _baseline = SnapshotString();
+
+        Saved = true;
 
         MessageBox.Show(
             "Favorites saved successfully!",
