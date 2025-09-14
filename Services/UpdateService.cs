@@ -9,10 +9,6 @@ public class UpdateService(VideoView videoView)
 {
     public async Task CheckForUpdates()
     {
-        var owner = videoView.FindForm();
-
-        bool IsFullscreen() => owner != null && owner.FormBorderStyle == FormBorderStyle.None;
-
         try
         {
             videoView.ShowWaiting();
@@ -33,7 +29,6 @@ public class UpdateService(VideoView videoView)
             if (info == null)
             {
                 MessageBox.Show(
-                    owner,
                     "You're already up to date.",
                     "Update",
                     MessageBoxButtons.OK,
@@ -43,7 +38,6 @@ public class UpdateService(VideoView videoView)
             }
 
             var result = MessageBox.Show(
-                owner,
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
                 "Update Available",
                 MessageBoxButtons.YesNo,
@@ -65,7 +59,6 @@ public class UpdateService(VideoView videoView)
 
             Logger.Error($"Unexpected error while checking updates: {ex}");
             MessageBox.Show(
-                owner,
                 "An error occurred while checking for updates. Please try again.",
                 "Update Error",
                 MessageBoxButtons.OK,
@@ -74,14 +67,7 @@ public class UpdateService(VideoView videoView)
         }
         finally
         {
-            if (IsFullscreen())
-            {
-                videoView.HideCursor();
-            }
-            else
-            {
-                videoView.ShowDefault();
-            }
+            videoView.SetCursorForCurrentView();
         }
     }
 }

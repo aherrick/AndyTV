@@ -58,22 +58,23 @@ public partial class Form1 : Form
 
         Icon = new Icon("AndyTV.ico");
 
-        videoView.MediaPlayer.TimeChanged += delegate
+        _videoView.MediaPlayer.TimeChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
         };
 
-        videoView.MediaPlayer.PositionChanged += delegate
+        _videoView.MediaPlayer.PositionChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
         };
 
-        videoView.MediaPlayer.Playing += delegate
+        _videoView.MediaPlayer.Playing += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
             _isRestarting = false;
 
-            SetCursorForCurrentMode();
+            _videoView.SetCursorForCurrentView();
+
             _notificationService.ShowToast(_currentChannel.DisplayName);
             RecentChannelsService.AddOrPromote(_currentChannel);
             ChannelDataService.SaveLastChannel(_currentChannel);
@@ -182,8 +183,7 @@ public partial class Form1 : Form
 
             _ = _menuTVChannelHelper.LoadAndBuildMenu(ChItem_Click, source.Url);
 
-            // Cursor stuff can happen immediately on UI thread
-            SetCursorForCurrentMode();
+            videoView.SetCursorForCurrentView();
 
             _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 }; // 1s
             _healthTimer.Tick += (_, __) =>
@@ -229,18 +229,6 @@ public partial class Form1 : Form
 
             _healthTimer.Start();
         };
-    }
-
-    private void SetCursorForCurrentMode()
-    {
-        if (FormBorderStyle == FormBorderStyle.None)
-        {
-            _videoView.HideCursor();
-        }
-        else
-        {
-            _videoView.ShowDefault();
-        }
     }
 
     private void ChItem_Click(object sender, EventArgs e)
@@ -391,7 +379,7 @@ public partial class Form1 : Form
                     _menuFavoriteChannelHelper.RebuildFavoritesMenu();
                 }
 
-                SetCursorForCurrentMode();
+                _videoView.SetCursorForCurrentView();
             };
             form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
         }
@@ -455,6 +443,6 @@ public partial class Form1 : Form
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
         };
 
-        _contextMenuStrip.Closing += (_, __) => SetCursorForCurrentMode();
+        _contextMenuStrip.Closing += (_, __) => _videoView.SetCursorForCurrentView();
     }
 }

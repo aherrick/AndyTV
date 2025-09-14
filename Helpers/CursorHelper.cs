@@ -23,4 +23,13 @@ public static class CursorExtensions
         else
             control.Cursor = cursor;
     }
+
+    public static void SetCursorForCurrentView(this Control control)
+    {
+        var form = control.FindForm();
+        if (form != null && form.FormBorderStyle == FormBorderStyle.None)
+            control.HideCursor();
+        else
+            control.ShowDefault();
+    }
 }
