@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -57,57 +58,48 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (matches247.Count > 0)
+        static string GetGroupName(string displayName, string rootTitle)
         {
-            // Function to extract the show name
-            static string ExtractShowName(string channel, string rootTitle)
+            var cleaned = displayName.Replace(" [VIP]", "");
+            var parts = cleaned.Split(' ');
+            if (parts.Length > 1)
             {
-                var afterPrefix = channel[rootTitle.Length..];
-                var words = afterPrefix.Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                var showWords = new List<string>();
-                foreach (var word in words)
-                {
-                    if (word.Any(char.IsDigit))
-                    {
-                        break;
-                    }
-                    showWords.Add(word);
-                }
-                return string.Join(" ", showWords);
+                var last = parts[^1];
+                int removeCount = (last.All(char.IsDigit) && parts.Length > 2) ? 2 : 1;
+                parts = [.. parts.Take(parts.Length - removeCount)];
             }
-
-            // Group by the extracted show name (case insensitive)
-            var grouped = matches247.GroupBy(c =>
-                ExtractShowName(channel: c.DisplayName, rootTitle: rootTitle).ToLowerInvariant()
-            );
-
-            foreach (var group in grouped.OrderBy(g => g.Key))
+            // Skip "24/7" if it's the first part to avoid grouping under "24/7"
+            if (parts.Length > 0 && parts[0] == rootTitle)
             {
-                var groupChannels = group.ToList();
-                if (groupChannels.Count == 1)
+                parts = [.. parts.Skip(1)];
+            }
+            return string.Join(" ", parts);
+        }
+
+        var groups = matches247
+            .GroupBy(e => GetGroupName(e.DisplayName, rootTitle: rootTitle))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Sort groups alphabetically by key
+        foreach (var group in groups.OrderBy(g => g.Key))
+        {
+            if (group.Value.Count > 1)
+            {
+                var rootItemGroup = new ToolStripMenuItem(group.Key);
+                foreach (var ch in group.Value)
                 {
-                    // Single channel, add directly
-                    var ch = groupChannels[0];
                     var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
                     item.Click += channelClick;
-                    rootItem.DropDownItems.Add(item);
+                    rootItemGroup.DropDownItems.Add(item);
                 }
-                else
-                {
-                    // Multiple channels, create sub-menu with the group name from the first channel
-                    var groupName = ExtractShowName(
-                        channel: groupChannels[0].DisplayName,
-                        rootTitle: rootTitle
-                    );
-                    var subItem = new ToolStripMenuItem(groupName);
-                    foreach (var ch in groupChannels.OrderBy(c => c.DisplayName))
-                    {
-                        var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                        item.Click += channelClick;
-                        subItem.DropDownItems.Add(item);
-                    }
-                    rootItem.DropDownItems.Add(subItem);
-                }
+                rootItem.DropDownItems.Add(rootItemGroup);
+            }
+            else
+            {
+                var ch = group.Value.First();
+                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                item.Click += channelClick;
+                rootItem.DropDownItems.Add(item);
             }
         }
 
