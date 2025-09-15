@@ -381,7 +381,7 @@ public partial class Form1 : Form
 
                 _videoView.SetCursorForCurrentView();
             };
-            form.ShowDialog(_contextMenuStrip.SourceControl.FindForm());
+            form.ShowDialog();
         }
 
         var favoritesManageItem = new ToolStripMenuItem("Manage");
@@ -389,7 +389,13 @@ public partial class Form1 : Form
         favoritesMenu.DropDownItems.Add(favoritesManageItem);
 
         var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
-        favoritesAddCurrentItem.Click += (_, __) => OpenFavorites(_currentChannel);
+        favoritesAddCurrentItem.Click += (_, __) =>
+        {
+            if (!MenuFavoriteChannelHelper.IsDuplicateUrlAndNotify(_currentChannel))
+            {
+                OpenFavorites(_currentChannel);
+            }
+        };
         favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
 
         _contextMenuStrip.Items.Add(favoritesMenu);

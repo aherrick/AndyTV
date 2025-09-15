@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using AndyTV.Helpers;
+using AndyTV.Helpers.Menu;
 using AndyTV.Models;
 using AndyTV.Services;
 using AndyTV.UI.Controls;
@@ -323,26 +324,10 @@ public partial class FavoriteChannelForm : Form
 
     private void AddChannel(Channel channel)
     {
-        if (channel == null || string.IsNullOrWhiteSpace(channel.Url))
-            return;
-
-        // ensure no dupes
-        if (
-            _favorites.Any(f =>
-                string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
-            )
-        )
+        if (!MenuFavoriteChannelHelper.IsDuplicateUrlAndNotify(channel))
         {
-            MessageBox.Show(
-                $"Channel '{channel.DisplayName}' is already in favorites.",
-                "Duplicate Channel",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
-            );
-            return;
+            _favorites.Add(channel);
         }
-
-        _favorites.Add(channel);
     }
 
     // --- Interactions ---

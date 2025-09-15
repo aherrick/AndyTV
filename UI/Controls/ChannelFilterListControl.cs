@@ -91,12 +91,12 @@ public class ChannelFilterListControl : UserControl
             return;
         }
 
-        _keyboardShownOnce = true; // set first to prevent races
-        _filterTextBox.Focus(); // keep UI work on the UI thread
+        _keyboardShownOnce = true;
+        _filterTextBox.Focus();
 
         Task.Run(() =>
         {
-            KeyboardHelper.ShowOnScreenKeyboard(); // heavy/slow work off-UI
+            KeyboardHelper.ShowOnScreenKeyboard();
         });
     }
 

@@ -1,21 +1,60 @@
-﻿using AndyTV.Services;
+﻿using AndyTV.Models;
+using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+public class MenuFavoriteChannelHelper
 {
-    // MenuHelper.AddHeader adds: [sep][header][sep]
-    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "FAVORITES");
+    private readonly ContextMenuStrip _menu;
+    private readonly EventHandler _clickHandler;
+    private readonly ToolStripMenuItem _header;
+
+    // static URLs for fast dupe check across the whole app
+    private static readonly HashSet<string> s_favoriteUrlsCache = new(
+        StringComparer.OrdinalIgnoreCase
+    );
+
+    public MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+    {
+        _menu = menu;
+        _clickHandler = clickHandler;
+        _header = MenuHelper.AddHeader(_menu, "FAVORITES");
+    }
+
+    public static bool IsDuplicateUrlAndNotify(Channel channel)
+    {
+        bool isDuplicate = s_favoriteUrlsCache.Contains(channel.Url.Trim());
+        if (isDuplicate)
+        {
+            MessageBox.Show(
+                $"\"{channel.DisplayName}\" is already in Favorites.",
+                "Already Added",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+        return isDuplicate;
+    }
 
     public void RebuildFavoritesMenu()
     {
-        var favorites = ChannelDataService.LoadFavoriteChannels();
+        var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
 
-        int headerIndex = menu.Items.IndexOf(_header);
+        // rebuild static URL set
+        s_favoriteUrlsCache.Clear();
+        foreach (var f in favorites)
+        {
+            if (!string.IsNullOrWhiteSpace(f.Url))
+            {
+                s_favoriteUrlsCache.Add(f.Url.Trim());
+            }
+        }
+
+        int headerIndex = _menu.Items.IndexOf(_header);
         int insertIndex = headerIndex + 2;
 
-        var leftSep = (ToolStripSeparator)menu.Items[headerIndex - 1];
-        var rightSep = (ToolStripSeparator)menu.Items[headerIndex + 1];
+        var leftSep = (ToolStripSeparator)_menu.Items[headerIndex - 1];
+        var rightSep = (ToolStripSeparator)_menu.Items[headerIndex + 1];
 
         if (favorites.Count == 0)
         {
@@ -29,9 +68,11 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
         _header.Visible = true;
         rightSep.Visible = true;
 
-        while (insertIndex < menu.Items.Count && menu.Items[insertIndex] is not ToolStripSeparator)
+        while (
+            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
+        )
         {
-            menu.Items.RemoveAt(insertIndex);
+            _menu.Items.RemoveAt(insertIndex);
         }
 
         var byCategory = favorites
@@ -47,14 +88,13 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 )
                 {
                     var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += clickHandler;
-                    menu.Items.Insert(insertIndex++, item);
+                    item.Click += _clickHandler;
+                    _menu.Items.Insert(insertIndex++, item);
                 }
-
                 continue;
             }
 
-            menu.Items.Insert(
+            _menu.Items.Insert(
                 insertIndex++,
                 new ToolStripMenuItem
                 {
@@ -72,8 +112,8 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
             )
             {
                 var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                item.Click += clickHandler;
-                menu.Items.Insert(insertIndex++, item);
+                item.Click += _clickHandler;
+                _menu.Items.Insert(insertIndex++, item);
             }
 
             var byGroup = withGroup
@@ -89,11 +129,11 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 )
                 {
                     var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    child.Click += clickHandler;
+                    child.Click += _clickHandler;
                     groupNode.DropDownItems.Add(child);
                 }
 
-                menu.Items.Insert(insertIndex++, groupNode);
+                _menu.Items.Insert(insertIndex++, groupNode);
             }
         }
     }
