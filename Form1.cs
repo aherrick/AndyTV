@@ -29,7 +29,7 @@ public partial class Form1 : Form
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
     // retry logic
-    private bool _isRestarting = false;
+    private bool _isRestartingStream = false;
 
     private const int STALL_SECONDS = 10;
     private System.Windows.Forms.Timer _healthTimer;
@@ -71,7 +71,7 @@ public partial class Form1 : Form
         _videoView.MediaPlayer.Playing += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
-            _isRestarting = false;
+            _isRestartingStream = false;
 
             _videoView.SetCursorForCurrentView();
 
@@ -198,7 +198,7 @@ public partial class Form1 : Form
 
                 if (inactive.TotalSeconds >= STALL_SECONDS)
                 {
-                    if (_isRestarting)
+                    if (_isRestartingStream)
                     {
                         Logger.Info(
                             $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s, threshold={STALL_SECONDS}s)."
@@ -206,7 +206,7 @@ public partial class Form1 : Form
                         return;
                     }
 
-                    _isRestarting = true;
+                    _isRestartingStream = true;
 
                     // Throttle next attempts so we don't fire again immediately
                     _lastActivityUtc = nowUtc;
@@ -219,7 +219,7 @@ public partial class Form1 : Form
                     Play(_currentChannel);
 
                     // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
-                    _isRestarting = false;
+                    _isRestartingStream = false;
 
                     Logger.Info(
                         "[HEALTH] Restart queued to thread pool; awaiting Playing or next health check."
@@ -247,7 +247,7 @@ public partial class Form1 : Form
         _videoView.ShowWaiting();
 
         // Cancel any pending restart cadence and give a fresh window
-        _isRestarting = false;
+        _isRestartingStream = false;
         _lastActivityUtc = DateTime.UtcNow;
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");

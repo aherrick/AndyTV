@@ -40,10 +40,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Logger.Info("[CHANNELS] Loaded");
     }
 
-    private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
+    private IEnumerable<ToolStripMenuItem> Build247(string rootTitle, EventHandler channelClick)
     {
-        var rootItem = new ToolStripMenuItem(rootTitle);
-
         // Regex to match (XX) where X is any letter (2 characters inside parens)
         // This is to filter out non-English markers like (AL), (DE), etc.
         var twoCharParenPattern = MatchTwoParens();
@@ -67,7 +65,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 int removeCount = (last.All(char.IsDigit) && parts.Length > 2) ? 2 : 1;
                 parts = [.. parts.Take(parts.Length - removeCount)];
             }
-            // Skip "24/7" if it's the first part to avoid grouping under "24/7"
+            // Skip rootTitle if it's the first part to avoid grouping under it
             if (parts.Length > 0 && parts[0] == rootTitle)
             {
                 parts = [.. parts.Skip(1)];
@@ -76,33 +74,41 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         }
 
         var groups = matches247
-            .GroupBy(e => GetGroupName(e.DisplayName, rootTitle: rootTitle))
+            .GroupBy(e => GetGroupName(e.DisplayName, rootTitle))
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Sort groups alphabetically by key
+        // Helper method to create channel items
+        ToolStripMenuItem CreateChannelItem(Channel ch)
+        {
+            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+            item.Click += channelClick;
+            return item;
+        }
+
+        var itemsToAdd = new List<ToolStripMenuItem>();
+
+        // Single loop to handle all groups
         foreach (var group in groups.OrderBy(g => g.Key))
         {
             if (group.Value.Count > 1)
             {
+                // Valid key with multiple items: create sub-menu
                 var rootItemGroup = new ToolStripMenuItem(group.Key);
                 foreach (var ch in group.Value)
                 {
-                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += channelClick;
-                    rootItemGroup.DropDownItems.Add(item);
+                    rootItemGroup.DropDownItems.Add(CreateChannelItem(ch));
                 }
-                rootItem.DropDownItems.Add(rootItemGroup);
+                itemsToAdd.Add(rootItemGroup);
             }
             else
             {
+                // Valid key with single item: add directly
                 var ch = group.Value.First();
-                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                item.Click += channelClick;
-                rootItem.DropDownItems.Add(item);
+                itemsToAdd.Add(CreateChannelItem(ch));
             }
         }
 
-        return rootItem;
+        return itemsToAdd;
     }
 
     // Synchronous builder used on a thread-pool thread; it only creates objects and wires handlers.

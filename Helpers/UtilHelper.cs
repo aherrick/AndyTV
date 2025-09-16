@@ -40,7 +40,7 @@ public static class UtilHelper
                 foreach (Process p in procs)
                 {
                     p.Refresh();
-                    if (p.MainWindowHandle != System.IntPtr.Zero)
+                    if (p.MainWindowHandle != nint.Zero)
                     {
                         return true;
                     }
