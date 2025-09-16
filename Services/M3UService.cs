@@ -13,21 +13,27 @@ public static class M3UService
     public static async Task<List<Channel>> ParseM3U(string m3uURL)
     {
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
-        var parsedM3U = M3UManager.M3UManager.ParseFromString(m3uText);
+        var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
 
-        var channels = new List<Channel>();
+        var channels = new List<Channel>(parsed.Channels.Count);
 
-        foreach (var item in parsedM3U.Channels)
-        {
-            channels.Add(
-                new Channel()
+        channels.AddRange(
+            parsed.Channels.Select(item =>
+            {
+                var name = item.TvgName ?? item.Title; // https://github.com/MahdiJamal/M3UManager/issues/26
+                if (item.TvgName is { Length: > 0 } && item.TvgName.AsSpan().IndexOf('&') >= 0)
                 {
-                    Name = item.TvgName != null ? WebUtility.HtmlDecode(item.TvgName) : item.Title, // fix "BLUE&#039;S CLUES"
+                    name = WebUtility.HtmlDecode(item.TvgName);
+                }
+
+                return new Channel
+                {
+                    Name = name,
                     Url = item.MediaUrl,
                     Group = item.GroupTitle,
-                }
-            );
-        }
+                };
+            })
+        );
 
         return channels;
     }
