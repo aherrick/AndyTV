@@ -13,9 +13,7 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-#pragma warning disable WFO5001
         Application.SetColorMode(SystemColorMode.Dark);
-#pragma warning restore WFO5001
 
         string[] args = Environment.GetCommandLineArgs();
         bool isRestart = args.Contains("--restart");

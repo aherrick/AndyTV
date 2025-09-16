@@ -40,8 +40,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Logger.Info("[CHANNELS] Loaded");
     }
 
-    private IEnumerable<ToolStripMenuItem> Build247(string rootTitle, EventHandler channelClick)
+    private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
+        var rootItem = new ToolStripMenuItem(rootTitle);
+
         // Regex to match (XX) where X is any letter (2 characters inside parens)
         // This is to filter out non-English markers like (AL), (DE), etc.
         var twoCharParenPattern = MatchTwoParens();
@@ -77,38 +79,36 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             .GroupBy(e => GetGroupName(e.DisplayName, rootTitle))
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Helper method to create channel items
-        ToolStripMenuItem CreateChannelItem(Channel ch)
+        // Helper method to create and add channel items
+        void AddChannelItem(Channel ch, ToolStripItemCollection parent)
         {
             var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
             item.Click += channelClick;
-            return item;
+            parent.Add(item);
         }
-
-        var itemsToAdd = new List<ToolStripMenuItem>();
 
         // Single loop to handle all groups
         foreach (var group in groups.OrderBy(g => g.Key))
         {
             if (group.Value.Count > 1)
             {
-                // Valid key with multiple items: create sub-menu
+                // Valid key with multiple items: create sub-menu and add to root drop-down
                 var rootItemGroup = new ToolStripMenuItem(group.Key);
                 foreach (var ch in group.Value)
                 {
-                    rootItemGroup.DropDownItems.Add(CreateChannelItem(ch));
+                    AddChannelItem(ch, rootItemGroup.DropDownItems);
                 }
-                itemsToAdd.Add(rootItemGroup);
+                rootItem.DropDownItems.Add(rootItemGroup);
             }
             else
             {
-                // Valid key with single item: add directly
+                // Valid key with single item: add directly to root drop-down
                 var ch = group.Value.First();
-                itemsToAdd.Add(CreateChannelItem(ch));
+                AddChannelItem(ch, rootItem.DropDownItems);
             }
         }
 
-        return itemsToAdd;
+        return rootItem;
     }
 
     // Synchronous builder used on a thread-pool thread; it only creates objects and wires handlers.
