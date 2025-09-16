@@ -14,11 +14,20 @@ public static class M3UService
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
         var parsedM3U = M3UManager.M3UManager.ParseFromString(m3uText);
 
+        var uckeer = parsedM3U.Channels.Where(x => x.GroupTitle.Contains("Movie")).ToList();
+
         var channels = new List<Channel>();
 
         foreach (var item in parsedM3U.Channels)
         {
-            channels.Add(new Channel() { Name = item.TvgName ?? item.Title, Url = item.MediaUrl });
+            channels.Add(
+                new Channel()
+                {
+                    Name = item.TvgName ?? item.Title,
+                    Url = item.MediaUrl,
+                    Group = item.GroupTitle,
+                }
+            );
         }
 
         return channels;

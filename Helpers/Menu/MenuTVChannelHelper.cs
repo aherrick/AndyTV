@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -16,108 +15,125 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
     {
         MenuHelper.AddHeader(menu, "TOP CHANNELS");
 
-        // Parse and sort off-thread
         var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
+
         Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
-        var us = BuildTopUs();
-        var uk = BuildTopUk();
+        var usTask = Task.Run(() => BuildTopMenuSync("US", BuildTopUs(), channelClick));
+        var ukTask = Task.Run(() => BuildTopMenuSync("UK", BuildTopUk(), channelClick));
 
-        // Build full menu trees off-thread
-        var usTask = Task.Run(() => BuildTopMenuSync("US", us, channelClick));
-        var ukTask = Task.Run(() => BuildTopMenuSync("UK", uk, channelClick));
         var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
 
-        var topItems = await Task.WhenAll(usTask, ukTask, twentyFourSevenTask);
-
-        _ui.Post(
-            _ =>
-            {
-                menu.Items.AddRange(topItems);
-            },
-            null
+        var movieVodTask = Task.Run(() => BuildVOD("Movie VOD", channelClick));
+        var tvVodTask = Task.Run(() => BuildVOD("TV VOD", channelClick));
+        var topItems = await Task.WhenAll(
+            usTask,
+            ukTask,
+            twentyFourSevenTask,
+            movieVodTask,
+            tvVodTask
         );
+        _ui.Post(_ => menu.Items.AddRange([.. topItems.Where(item => item != null)]), null);
 
         Logger.Info("[CHANNELS] Loaded");
+    }
+
+    private ToolStripMenuItem BuildVOD(string groupTitle, EventHandler channelClick)
+    {
+        var root = new ToolStripMenuItem(groupTitle);
+
+        // Get channels, filter by group, and sort alphabetically
+        var channels = Channels
+            .Where(ch => string.Equals(ch.Group, groupTitle, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase);
+
+        // Add each channel as a top-level item
+        foreach (var ch in channels)
+        {
+            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+            item.Click += channelClick;
+            root.DropDownItems.Add(item);
+        }
+
+        return root.DropDownItems.Count > 0 ? root : null;
     }
 
     private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
         var root = new ToolStripMenuItem(rootTitle);
 
-        // Inline helpers
-        ToolStripMenuItem Make(Channel ch)
+        // Clean channel name for grouping and top-level display
+        static string CleanBaseName(string name)
         {
-            var itemText = ch
-                .DisplayName.Replace("24/7", "", StringComparison.OrdinalIgnoreCase)
-                .Trim();
-            var item = new ToolStripMenuItem(itemText) { Tag = ch };
-            item.Click += channelClick;
-            return item;
+            var text = name;
+            text = TagsRegex().Replace(text, ""); // Remove [VIP], [HD], etc.
+            text = TwoFourSevenRegex().Replace(text, ""); // Remove 24/7
+            text = SeasonShortRegex().Replace(text, ""); // Remove S1, S01
+            text = SeasonLongRegex().Replace(text, ""); // Remove Season 1, Season01
+            text = NormalizeSpaceRegex().Replace(text, " ").Trim();
+            return text;
         }
 
-        static string CleanBaseTitle(string s)
+        // Extract base name and full season string (if present)
+        static (string Base, string Season) ExtractBaseAndSeason(string name)
         {
-            if (string.IsNullOrWhiteSpace(s))
-                return "";
-
-            var t = s;
-            t = TwoFourSevenRegex().Replace(t, ""); // strip 24/7
-            t = TagsRegex().Replace(t, ""); // strip [VIP], [HD], etc.
-            t = SeasonShortRegex().Replace(t, ""); // strip S1, S01, etc.
-            t = SeasonLogRegex().Replace(t, ""); // strip "Season 1"
-            t = NormalizeSpaceRegex().Replace(t, " ").Trim(); // collapse ws
-            return t;
+            var baseName = CleanBaseName(name);
+            var seasonMatch = SeasonShortRegex().Match(name);
+            if (!seasonMatch.Success)
+                seasonMatch = SeasonLongRegex().Match(name);
+            return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
         }
 
-        // filter 24/7 and exclude (DE)/(AL)/...
-        var ordered = Channels
+        // Group channels by cleaned base name
+        var grouped = Channels
             .Where(ch =>
                 ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
                 && !MatchTwoParens().IsMatch(ch.DisplayName)
             )
-            .Select(ch =>
+            .Select(ch => new { Channel = ch, Info = ExtractBaseAndSeason(ch.DisplayName) })
+            .GroupBy(x => x.Info.Base, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new
             {
-                var k = CleanBaseTitle(ch.DisplayName);
-                k = string.IsNullOrWhiteSpace(k) ? ch.DisplayName.Trim() : k;
-                return new { Channel = ch, Key = k };
+                BaseName = g.Key,
+                Items = g.OrderBy(x => x.Info.Season ?? "", StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
             })
-            .OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // single-pass render over contiguous groups
-        int i = 0;
-        while (i < ordered.Count)
+        // Build menu: ungrouped at top level, grouped as submenus
+        foreach (var group in grouped)
         {
-            string key = ordered[i].Key;
-            int start = i;
-            while (
-                i < ordered.Count
-                && string.Equals(ordered[i].Key, key, StringComparison.OrdinalIgnoreCase)
-            )
+            if (group.Items.Count == 1)
             {
-                i++;
-            }
-            int count = i - start;
-
-            if (count > 1)
-            {
-                var sub = new ToolStripMenuItem(key);
-                for (int j = start; j < i; j++)
-                    sub.DropDownItems.Add(Make(ordered[j].Channel));
-                root.DropDownItems.Add(sub);
+                // Single item: add directly to root
+                var ch = group.Items[0].Channel;
+                var item = new ToolStripMenuItem(CleanBaseName(ch.DisplayName)) { Tag = ch };
+                item.Click += channelClick;
+                root.DropDownItems.Add(item);
             }
             else
             {
-                root.DropDownItems.Add(Make(ordered[start].Channel));
+                // Grouped items: create submenu
+                var subMenu = new ToolStripMenuItem(group.BaseName);
+                foreach (var item in group.Items)
+                {
+                    var ch = item.Channel;
+                    var display = CleanBaseName(ch.DisplayName);
+                    if (!string.IsNullOrEmpty(item.Info.Season))
+                        display = $"{display} {item.Info.Season}"; // Append raw season (e.g., Season 1)
+                    var menuItem = new ToolStripMenuItem(display) { Tag = ch };
+                    menuItem.Click += channelClick;
+                    subMenu.DropDownItems.Add(menuItem);
+                }
+                root.DropDownItems.Add(subMenu);
             }
         }
 
         return root;
     }
 
-    // Synchronous builder used on a thread-pool thread; it only creates objects and wires handlers.
     private ToolStripMenuItem BuildTopMenuSync(
         string rootTitle,
         Dictionary<string, string[][]> categories,
@@ -125,7 +141,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
     )
     {
         var rootItem = new ToolStripMenuItem(rootTitle);
-
         foreach (
             var (catName, entries) in categories.OrderBy(
                 k => k.Key,
@@ -134,12 +149,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         )
         {
             var catItem = new ToolStripMenuItem(catName);
-
             foreach (var entry in entries.OrderBy(e => e[0], StringComparer.OrdinalIgnoreCase))
             {
                 var display = entry[0];
-                var terms = entry; // entry[0] is display, rest are alternates
-
+                var terms = entry;
                 var matches = Channels
                     .Where(ch =>
                         terms.Any(term =>
@@ -148,12 +161,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     )
                     .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
-
                 if (matches.Count == 0)
-                {
                     continue;
-                }
-
                 var parent = new ToolStripMenuItem(display);
                 foreach (var ch in matches)
                 {
@@ -161,20 +170,13 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     item.Click += channelClick;
                     parent.DropDownItems.Add(item);
                 }
-
                 catItem.DropDownItems.Add(parent);
             }
-
             if (catItem.DropDownItems.Count > 0)
-            {
                 rootItem.DropDownItems.Add(catItem);
-            }
         }
-
         return rootItem.DropDownItems.Count > 0 ? rootItem : null;
     }
-
-    // ---------- Utility ----------
 
     public Channel ChannelByUrl(string url)
     {
@@ -183,10 +185,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         );
     }
 
-    // ---------- Build US/UK dictionaries (data only) ----------
-
-    private static Dictionary<string, string[][]> BuildTopUs() =>
-        new(StringComparer.OrdinalIgnoreCase)
+    private static Dictionary<string, string[][]> BuildTopUs()
+    {
+        return new(StringComparer.OrdinalIgnoreCase)
         {
             ["24/7"] =
             [
@@ -209,6 +210,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 ["A&E", "AE"],
                 ["AMC"],
                 ["Bravo"],
+                ["Comedy Central"],
                 ["Discovery Channel", "Discovery"],
                 ["Disney Channel", "Disney"],
                 ["E!", "E! Entertainment"],
@@ -317,6 +319,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 ["HLN", "Headline News"],
                 ["MSNBC"],
                 ["NBC News"],
+                ["NewsNation"],
                 ["Newsmax"],
                 ["OANN", "One America News", "One America News Network"],
                 ["The Weather Channel", "Weather Channel"],
@@ -352,9 +355,11 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 ["SEC Network", "SECN"],
             ],
         };
+    }
 
-    private static Dictionary<string, string[][]> BuildTopUk() =>
-        new(StringComparer.OrdinalIgnoreCase)
+    private static Dictionary<string, string[][]> BuildTopUk()
+    {
+        return new(StringComparer.OrdinalIgnoreCase)
         {
             ["Documentary"] =
             [
@@ -367,6 +372,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             [
                 ["Alibi"],
                 ["BBC Alba"],
+                ["BritBox"],
                 ["Dave"],
                 ["Drama"],
                 ["Eden"],
@@ -438,6 +444,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             [
                 ["Al Jazeera English", "Al Jazeera"],
                 ["BBC News"],
+                ["BBC Parliament"],
                 ["Euronews"],
                 ["France 24 English", "France 24"],
                 ["GB News"],
@@ -461,22 +468,23 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 ["TNT Sports 4"],
             ],
         };
+    }
 
     [GeneratedRegex(@"\([A-Za-z]{2}\)", RegexOptions.Compiled)]
     private static partial Regex MatchTwoParens();
 
-    [GeneratedRegex(@"24\s*/\s *7", RegexOptions.IgnoreCase, "en-US")]
+    [GeneratedRegex(@"24\s*/\s*7", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex TwoFourSevenRegex();
 
-    [GeneratedRegex(@"\[[^\]]+\]", RegexOptions.IgnoreCase, "en-US")]
+    [GeneratedRegex(@"\[[^\]]+\]", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex TagsRegex();
 
-    [GeneratedRegex(@"(?<!\w)S0?\d{1,2}(?!\w)", RegexOptions.IgnoreCase, "en-US")]
+    [GeneratedRegex(@"(?<!\w)S0?\d{1,2}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SeasonShortRegex();
 
-    [GeneratedRegex(@"Season\s*0?\d{1,2}", RegexOptions.IgnoreCase, "en-US")]
-    private static partial Regex SeasonLogRegex();
+    [GeneratedRegex(@"Season\s*0?\d{1,2}", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex SeasonLongRegex();
 
-    [GeneratedRegex(@"\s+")]
+    [GeneratedRegex(@"\s+", RegexOptions.Compiled)]
     private static partial Regex NormalizeSpaceRegex();
 }
