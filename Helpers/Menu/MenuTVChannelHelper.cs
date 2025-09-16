@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using AndyTV.Models;
 using AndyTV.Services;
 
@@ -42,73 +43,78 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
-        var rootItem = new ToolStripMenuItem(rootTitle);
+        var root = new ToolStripMenuItem(rootTitle);
 
-        // Regex to match (XX) where X is any letter (2 characters inside parens)
-        // This is to filter out non-English markers like (AL), (DE), etc.
-        var twoCharParenPattern = MatchTwoParens();
+        // Inline helpers
+        ToolStripMenuItem Make(Channel ch)
+        {
+            var itemText = ch
+                .DisplayName.Replace("24/7", "", StringComparison.OrdinalIgnoreCase)
+                .Trim();
+            var item = new ToolStripMenuItem(itemText) { Tag = ch };
+            item.Click += channelClick;
+            return item;
+        }
 
-        // ---- Top-level 24/7 ----
-        var matches247 = Channels
+        static string CleanBaseTitle(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return "";
+
+            var t = s;
+            t = TwoFourSevenRegex().Replace(t, ""); // strip 24/7
+            t = TagsRegex().Replace(t, ""); // strip [VIP], [HD], etc.
+            t = SeasonShortRegex().Replace(t, ""); // strip S1, S01, etc.
+            t = SeasonLogRegex().Replace(t, ""); // strip "Season 1"
+            t = NormalizeSpaceRegex().Replace(t, " ").Trim(); // collapse ws
+            return t;
+        }
+
+        // filter 24/7 and exclude (DE)/(AL)/...
+        var ordered = Channels
             .Where(ch =>
                 ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
-                && !twoCharParenPattern.IsMatch(ch.DisplayName)
+                && !MatchTwoParens().IsMatch(ch.DisplayName)
             )
-            .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(ch =>
+            {
+                var k = CleanBaseTitle(ch.DisplayName);
+                k = string.IsNullOrWhiteSpace(k) ? ch.DisplayName.Trim() : k;
+                return new { Channel = ch, Key = k };
+            })
+            .OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        static string GetGroupName(string displayName, string rootTitle)
+        // single-pass render over contiguous groups
+        int i = 0;
+        while (i < ordered.Count)
         {
-            var cleaned = displayName.Replace(" [VIP]", "");
-            var parts = cleaned.Split(' ');
-            if (parts.Length > 1)
+            string key = ordered[i].Key;
+            int start = i;
+            while (
+                i < ordered.Count
+                && string.Equals(ordered[i].Key, key, StringComparison.OrdinalIgnoreCase)
+            )
             {
-                var last = parts[^1];
-                int removeCount = (last.All(char.IsDigit) && parts.Length > 2) ? 2 : 1;
-                parts = [.. parts.Take(parts.Length - removeCount)];
+                i++;
             }
-            // Skip rootTitle if it's the first part to avoid grouping under it
-            if (parts.Length > 0 && parts[0] == rootTitle)
+            int count = i - start;
+
+            if (count > 1)
             {
-                parts = [.. parts.Skip(1)];
-            }
-            return string.Join(" ", parts);
-        }
-
-        var groups = matches247
-            .GroupBy(e => GetGroupName(e.DisplayName, rootTitle))
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        // Helper method to create and add channel items
-        void AddChannelItem(Channel ch, ToolStripItemCollection parent)
-        {
-            var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-            item.Click += channelClick;
-            parent.Add(item);
-        }
-
-        // Single loop to handle all groups
-        foreach (var group in groups.OrderBy(g => g.Key))
-        {
-            if (group.Value.Count > 1)
-            {
-                // Valid key with multiple items: create sub-menu and add to root drop-down
-                var rootItemGroup = new ToolStripMenuItem(group.Key);
-                foreach (var ch in group.Value)
-                {
-                    AddChannelItem(ch, rootItemGroup.DropDownItems);
-                }
-                rootItem.DropDownItems.Add(rootItemGroup);
+                var sub = new ToolStripMenuItem(key);
+                for (int j = start; j < i; j++)
+                    sub.DropDownItems.Add(Make(ordered[j].Channel));
+                root.DropDownItems.Add(sub);
             }
             else
             {
-                // Valid key with single item: add directly to root drop-down
-                var ch = group.Value.First();
-                AddChannelItem(ch, rootItem.DropDownItems);
+                root.DropDownItems.Add(Make(ordered[start].Channel));
             }
         }
 
-        return rootItem;
+        return root;
     }
 
     // Synchronous builder used on a thread-pool thread; it only creates objects and wires handlers.
@@ -458,4 +464,19 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     [GeneratedRegex(@"\([A-Za-z]{2}\)", RegexOptions.Compiled)]
     private static partial Regex MatchTwoParens();
+
+    [GeneratedRegex(@"24\s*/\s *7", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex TwoFourSevenRegex();
+
+    [GeneratedRegex(@"\[[^\]]+\]", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex TagsRegex();
+
+    [GeneratedRegex(@"(?<!\w)S0?\d{1,2}(?!\w)", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex SeasonShortRegex();
+
+    [GeneratedRegex(@"Season\s*0?\d{1,2}", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex SeasonLogRegex();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex NormalizeSpaceRegex();
 }
