@@ -17,23 +17,26 @@ public static class M3UService
 
         var channels = new List<Channel>(parsed.Channels.Count);
 
-        channels.AddRange(
-            parsed.Channels.Select(item =>
-            {
-                var name = item.TvgName ?? item.Title; // https://github.com/MahdiJamal/M3UManager/issues/26
-                if (item.TvgName is { Length: > 0 } && item.TvgName.AsSpan().IndexOf('&') >= 0)
-                {
-                    name = WebUtility.HtmlDecode(item.TvgName);
-                }
+        for (int i = 0; i < parsed.Channels.Count; i++)
+        {
+            var item = parsed.Channels[i];
+            var name = item.TvgName ?? item.Title;
 
-                return new Channel
+            // decode only when TvgName exists and has '&'
+            if (item.TvgName is { Length: > 0 } && item.TvgName.AsSpan().IndexOf('&') >= 0)
+            {
+                name = WebUtility.HtmlDecode(item.TvgName);
+            }
+
+            channels.Add(
+                new Channel
                 {
                     Name = name,
                     Url = item.MediaUrl,
                     Group = item.GroupTitle,
-                };
-            })
-        );
+                }
+            );
+        }
 
         return channels;
     }
