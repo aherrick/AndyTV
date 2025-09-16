@@ -34,15 +34,17 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var usTask = Task.Run(() => BuildTopMenuSync("US", BuildTopUs(), channelClick));
         var ukTask = Task.Run(() => BuildTopMenuSync("UK", BuildTopUk(), channelClick));
         var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
-        var movieVodTask = Task.Run(() => BuildVOD("Movie VOD", channelClick));
-        var tvVodTask = Task.Run(() => BuildVOD("TV VOD", channelClick));
+
+        // TODO: consider parallelizing these if they become slow / also movie/tv
+        //var movieVodTask = Task.Run(() => BuildVOD("Movie VOD", channelClick));
+        //var tvVodTask = Task.Run(() => BuildVOD("TV VOD", channelClick));
 
         var topItems = await Task.WhenAll(
             usTask,
             ukTask,
-            twentyFourSevenTask,
-            movieVodTask,
-            tvVodTask
+            twentyFourSevenTask
+        //movieVodTask,
+        //tvVodTask
         );
 
         _ui.Post(_ => menu.Items.AddRange([.. topItems.Where(item => item != null)]), null);

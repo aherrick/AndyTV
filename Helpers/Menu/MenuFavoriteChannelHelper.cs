@@ -44,10 +44,7 @@ public class MenuFavoriteChannelHelper
         s_favoriteUrlsCache.Clear();
         foreach (var f in favorites)
         {
-            if (!string.IsNullOrWhiteSpace(f.Url))
-            {
-                s_favoriteUrlsCache.Add(f.Url.Trim());
-            }
+            s_favoriteUrlsCache.Add(f.Url.Trim());
         }
 
         int headerIndex = _menu.Items.IndexOf(_header);

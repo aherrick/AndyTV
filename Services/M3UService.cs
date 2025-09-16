@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using AndyTV.Helpers;
 using AndyTV.Models;
@@ -14,7 +15,7 @@ public static class M3UService
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
         var parsedM3U = M3UManager.M3UManager.ParseFromString(m3uText);
 
-        var uckeer = parsedM3U.Channels.Where(x => x.GroupTitle.Contains("Movie")).ToList();
+        var test = parsedM3U.Channels.Where(x => x.Title.Contains("CLUES"));
 
         var channels = new List<Channel>();
 
@@ -23,7 +24,7 @@ public static class M3UService
             channels.Add(
                 new Channel()
                 {
-                    Name = item.TvgName ?? item.Title,
+                    Name = item.TvgName != null ? WebUtility.HtmlDecode(item.TvgName) : item.Title,
                     Url = item.MediaUrl,
                     Group = item.GroupTitle,
                 }
