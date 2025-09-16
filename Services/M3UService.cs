@@ -15,8 +15,6 @@ public static class M3UService
         var m3uText = await new HttpClient().GetStringAsync(m3uURL);
         var parsedM3U = M3UManager.M3UManager.ParseFromString(m3uText);
 
-        var test = parsedM3U.Channels.Where(x => x.Title.Contains("CLUES"));
-
         var channels = new List<Channel>();
 
         foreach (var item in parsedM3U.Channels)
@@ -24,7 +22,7 @@ public static class M3UService
             channels.Add(
                 new Channel()
                 {
-                    Name = item.TvgName != null ? WebUtility.HtmlDecode(item.TvgName) : item.Title,
+                    Name = item.TvgName != null ? WebUtility.HtmlDecode(item.TvgName) : item.Title, // fix "BLUE&#039;S CLUES"
                     Url = item.MediaUrl,
                     Group = item.GroupTitle,
                 }
