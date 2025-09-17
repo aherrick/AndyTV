@@ -28,8 +28,12 @@ public static class CursorExtensions
     {
         var form = control.FindForm();
         if (form != null && form.FormBorderStyle == FormBorderStyle.None)
+        {
             control.HideCursor();
+        }
         else
+        {
             control.ShowDefault();
+        }
     }
 }
