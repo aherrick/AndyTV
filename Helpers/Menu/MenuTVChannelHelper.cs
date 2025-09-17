@@ -76,10 +76,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         static string CleanBaseName(string name)
         {
             var text = name;
-            text = TagsRegex().Replace(text, ""); // remove [VIP], [HD], etc.
-            text = TwoFourSevenRegex().Replace(text, ""); // remove 24/7
-            text = SeasonShortRegex().Replace(text, ""); // remove S1, S01
-            text = SeasonLongRegex().Replace(text, ""); // remove Season 1, Season01
+            text = TagsRegex().Replace(text, ""); // [VIP], [HD], etc.
+            text = TwoFourSevenRegex().Replace(text, ""); // 24/7
+            text = SeasonShortRegex().Replace(text, ""); // S1, S01
+            text = SeasonLongRegex().Replace(text, ""); // Season 1, Season01
             text = NormalizeSpaceRegex().Replace(text, " ").Trim();
             return text;
         }
@@ -90,17 +90,18 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             var baseName = CleanBaseName(name);
             var seasonMatch = SeasonShortRegex().Match(name);
             if (!seasonMatch.Success)
+            {
                 seasonMatch = SeasonLongRegex().Match(name);
+            }
             return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
         }
 
-        // Group channels by cleaned base name
+        // Group by cleaned base name
         var grouped = Channels
             .Where(ch =>
                 ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
-                // Filter out non-English markers like "(AL)", "(DE)"
                 && !MatchTwoParens().IsMatch(ch.DisplayName)
-            )
+            ) // filter (AL),(DE),...
             .Select(ch => new { Channel = ch, Info = ExtractBaseAndSeason(ch.DisplayName) })
             .GroupBy(x => x.Info.Base, StringComparer.OrdinalIgnoreCase)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
@@ -113,13 +114,32 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             })
             .ToList();
 
-        // Build menu: singletons at top level; multiples in a submenu under the base name
+        // Single pass: inline bucket by first char → "1-9", "A".."Z", "#"
+        string currentBucket = null;
+        ToolStripMenuItem currentMenu = null;
+
         foreach (var group in grouped)
         {
+            char c = group.BaseName.Length > 0 ? group.BaseName[0] : '#';
+            string bucket = char.IsDigit(c)
+                ? "1-9"
+                : (char.IsLetter(c) ? char.ToUpperInvariant(c).ToString() : "#");
+
+            if (!string.Equals(bucket, currentBucket, StringComparison.Ordinal))
+            {
+                if (currentMenu != null && currentMenu.DropDownItems.Count > 0)
+                {
+                    root.DropDownItems.Add(currentMenu);
+                }
+
+                currentBucket = bucket;
+                currentMenu = new ToolStripMenuItem(bucket);
+            }
+
             if (group.Items.Count == 1)
             {
                 var ch = group.Items[0].Channel;
-                AddChannelItem(root, ch, channelClick, CleanBaseName(ch.DisplayName)); // ensures "24/7" is gone
+                AddChannelItem(currentMenu, ch, channelClick, CleanBaseName(ch.DisplayName));
             }
             else
             {
@@ -129,11 +149,18 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     var ch = item.Channel;
                     var display = CleanBaseName(ch.DisplayName);
                     if (!string.IsNullOrEmpty(item.Info.Season))
-                        display = $"{display} {item.Info.Season}"; // e.g., "Seinfeld Season 2"
+                    {
+                        display = $"{display} {item.Info.Season}";
+                    }
                     AddChannelItem(subMenu, ch, channelClick, display);
                 }
-                root.DropDownItems.Add(subMenu);
+                currentMenu.DropDownItems.Add(subMenu);
             }
+        }
+
+        if (currentMenu != null && currentMenu.DropDownItems.Count > 0)
+        {
+            root.DropDownItems.Add(currentMenu);
         }
 
         return root;

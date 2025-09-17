@@ -37,7 +37,10 @@ public partial class FavoriteChannelForm : Form
         _favoritesGrid.DataSource = _favorites;
         LoadExistingFavorites();
 
-        AddChannel(channelAdd);
+        if (channelAdd is not null)
+        {
+            AddChannel(channelAdd);
+        }
     }
 
     private void InitializeComponent()
