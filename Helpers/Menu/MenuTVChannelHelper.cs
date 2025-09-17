@@ -72,19 +72,17 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
     {
         var root = new ToolStripMenuItem(rootTitle);
 
-        // Clean channel name for grouping and top-level display
         static string CleanBaseName(string name)
         {
             var text = name;
-            text = TagsRegex().Replace(text, ""); // [VIP], [HD], etc.
-            text = TwoFourSevenRegex().Replace(text, ""); // 24/7
-            text = SeasonShortRegex().Replace(text, ""); // S1, S01
-            text = SeasonLongRegex().Replace(text, ""); // Season 1, Season01
+            text = TagsRegex().Replace(text, "");
+            text = TwoFourSevenRegex().Replace(text, "");
+            text = SeasonShortRegex().Replace(text, "");
+            text = SeasonLongRegex().Replace(text, "");
             text = NormalizeSpaceRegex().Replace(text, " ").Trim();
             return text;
         }
 
-        // Extract base name and full season string (if present)
         static (string Base, string Season) ExtractBaseAndSeason(string name)
         {
             var baseName = CleanBaseName(name);
@@ -96,12 +94,11 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
         }
 
-        // Group by cleaned base name
         var grouped = Channels
             .Where(ch =>
                 ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
                 && !MatchTwoParens().IsMatch(ch.DisplayName)
-            ) // filter (AL),(DE),...
+            )
             .Select(ch => new { Channel = ch, Info = ExtractBaseAndSeason(ch.DisplayName) })
             .GroupBy(x => x.Info.Base, StringComparer.OrdinalIgnoreCase)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
@@ -114,16 +111,31 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             })
             .ToList();
 
-        // Single pass: inline bucket by first char → "1-9", "A".."Z", "#"
         string currentBucket = null;
         ToolStripMenuItem currentMenu = null;
 
         foreach (var group in grouped)
         {
-            char c = group.BaseName.Length > 0 ? group.BaseName[0] : '#';
-            string bucket = char.IsDigit(c)
-                ? "1-9"
-                : (char.IsLetter(c) ? char.ToUpperInvariant(c).ToString() : "#");
+            if (string.IsNullOrEmpty(group.BaseName))
+            {
+                continue; // skip empties
+            }
+
+            char c = group.BaseName[0];
+            string bucket;
+
+            if (char.IsDigit(c))
+            {
+                bucket = "1-9";
+            }
+            else if (char.IsLetter(c))
+            {
+                bucket = char.ToUpperInvariant(c).ToString();
+            }
+            else
+            {
+                continue; // skip anything else
+            }
 
             if (!string.Equals(bucket, currentBucket, StringComparison.Ordinal))
             {
