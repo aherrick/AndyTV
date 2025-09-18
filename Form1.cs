@@ -410,13 +410,11 @@ public partial class Form1 : Form
         var logsItem = new ToolStripMenuItem("Logs");
         logsItem.Click += (_, __) =>
         {
-            var path = PathHelper.GetPath("logs");
-            Directory.CreateDirectory(path);
             Process.Start(
                 new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
-                    Arguments = path,
+                    Arguments = Logger.LogFolder,
                     UseShellExecute = true,
                 }
             );

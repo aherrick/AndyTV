@@ -12,6 +12,11 @@ public static class Logger
         Directory.CreateDirectory(_dir);
     }
 
+    /// <summary>
+    /// The root folder where all log files are written.
+    /// </summary>
+    public static string LogFolder => _dir;
+
     private static string CurrentFile => Path.Combine(_dir, $"{DateTime.UtcNow:yyyy-MM-dd}.log");
 
     public static void Info(string message) => Write("INFO", message);
@@ -25,10 +30,8 @@ public static class Logger
 
     public static void WireGlobalHandlers()
     {
-        // UI thread exceptions
         Application.ThreadException += (_, e) => Error(e.Exception, "UI thread exception");
 
-        // Non-UI / AppDomain exceptions
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             Error(
                 e.ExceptionObject as Exception
@@ -36,7 +39,6 @@ public static class Logger
                 "Unhandled AppDomain exception"
             );
 
-        // Unobserved Task exceptions
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             Error(e.Exception, "Unobserved task exception");
@@ -56,7 +58,7 @@ public static class Logger
         }
         catch
         {
-            /* never throw from logging */
+            // never throw from logging
         }
     }
 }
