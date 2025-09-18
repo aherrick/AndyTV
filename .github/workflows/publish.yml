@@ -30,7 +30,7 @@ jobs:
 
       - name: Publish (self-contained)
         run: >
-          dotnet publish ./AndyTV.csproj
+          dotnet publish ./AndyTV/AndyTV.csproj
           --self-contained true
           -p:Version=$env:VERSION
           -o $env:PUBLISH_DIR
@@ -54,7 +54,7 @@ jobs:
           --packDir $env:PUBLISH_DIR
           --mainExe AndyTV.exe
           --packTitle "AndyTV"
-          --icon ./AndyTV.ico
+          --icon ./AndyTV/AndyTV.ico
           --channel $env:CHANNEL
 
       - name: Upload to GitHub Releases (Velopack)

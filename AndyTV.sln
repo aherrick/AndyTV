@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.0.11005.162
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV", "AndyTV.csproj", "{FC54A0B5-0737-4524-A974-40215BF9AE73}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV", "AndyTV\AndyTV.csproj", "{FC54A0B5-0737-4524-A974-40215BF9AE73}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Tests", "AndyTV.Tests\AndyTV.Tests.csproj", "{034EF32E-F4D0-497E-B314-82E91CE1FD30}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Data", "AndyTV.Data\AndyTV.Data.csproj", "{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{FC54A0B5-0737-4524-A974-40215BF9AE73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC54A0B5-0737-4524-A974-40215BF9AE73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC54A0B5-0737-4524-A974-40215BF9AE73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{034EF32E-F4D0-497E-B314-82E91CE1FD30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{034EF32E-F4D0-497E-B314-82E91CE1FD30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{034EF32E-F4D0-497E-B314-82E91CE1FD30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{034EF32E-F4D0-497E-B314-82E91CE1FD30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

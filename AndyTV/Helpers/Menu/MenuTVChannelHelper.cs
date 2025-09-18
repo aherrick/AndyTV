@@ -68,7 +68,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         return root.DropDownItems.Count > 0 ? root : null;
     }
 
-    private ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
+    public ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
         var root = new ToolStripMenuItem(rootTitle);
 
