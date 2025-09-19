@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using AndyTV.Data.Models;
 using AndyTV.Helpers;
-using AndyTV.Models;
 using AndyTV.UI;
 
 namespace AndyTV.Services;

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
+using AndyTV.Data.Models;
 using AndyTV.Helpers;
 using AndyTV.Helpers.Menu;
-using AndyTV.Models;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;

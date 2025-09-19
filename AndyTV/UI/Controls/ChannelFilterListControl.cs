@@ -1,5 +1,5 @@
-﻿using AndyTV.Helpers;
-using AndyTV.Models;
+﻿using AndyTV.Data.Models;
+using AndyTV.Helpers;
 
 namespace AndyTV.UI.Controls;
 

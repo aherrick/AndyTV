@@ -1,4 +1,4 @@
-﻿namespace AndyTV.Models;
+﻿namespace AndyTV.Data.Models;
 
 public class Channel
 {

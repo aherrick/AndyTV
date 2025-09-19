@@ -1,6 +1,6 @@
 using System.Text.Json;
+using AndyTV.Data.Models;
 using AndyTV.Helpers;
-using AndyTV.Models;
 
 namespace AndyTV.Services;
 

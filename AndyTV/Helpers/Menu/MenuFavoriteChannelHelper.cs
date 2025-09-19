@@ -1,4 +1,4 @@
-﻿using AndyTV.Models;
+﻿using AndyTV.Data.Models;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;

@@ -21,4 +21,8 @@ jobs:
 
     # Build the project
     - name: Build project
-      run: dotnet build 
+      run: dotnet build
+
+    # Run tests
+    - name: Run tests
+      run: dotnet test AndyTV/AndyTV.Tests.csproj --no-build --verbosity normal

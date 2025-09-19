@@ -27,4 +27,8 @@
 		</Content>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
+	</ItemGroup>
+
 </Project>

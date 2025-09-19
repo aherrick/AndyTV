@@ -1,5 +1,5 @@
-﻿using System.Text.RegularExpressions;
-using AndyTV.Models;
+﻿using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
@@ -68,105 +68,44 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         return root.DropDownItems.Count > 0 ? root : null;
     }
 
+    // Original Build247 method, now using ExtractMenuEntries
     public ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
         var root = new ToolStripMenuItem(rootTitle);
-
-        static string CleanBaseName(string name)
-        {
-            var text = name;
-            text = TagsRegex().Replace(text, "");
-            text = TwoFourSevenRegex().Replace(text, "");
-            text = SeasonShortRegex().Replace(text, "");
-            text = SeasonLongRegex().Replace(text, "");
-            text = NormalizeSpaceRegex().Replace(text, " ").Trim();
-            return text;
-        }
-
-        static (string Base, string Season) ExtractBaseAndSeason(string name)
-        {
-            var baseName = CleanBaseName(name);
-            var seasonMatch = SeasonShortRegex().Match(name);
-            if (!seasonMatch.Success)
-            {
-                seasonMatch = SeasonLongRegex().Match(name);
-            }
-            return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
-        }
-
-        var grouped = Channels
-            .Where(ch =>
-                ch.DisplayName.Contains(rootTitle, StringComparison.OrdinalIgnoreCase)
-                && !MatchTwoParens().IsMatch(ch.DisplayName)
-            )
-            .Select(ch => new { Channel = ch, Info = ExtractBaseAndSeason(ch.DisplayName) })
-            .GroupBy(x => x.Info.Base, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => new
-            {
-                BaseName = g.Key,
-                Items = g.OrderBy(x => x.Info.Season ?? "", StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase)
-                    .ToList(),
-            })
-            .ToList();
+        var entries = ChannelService.Get247Entries(rootTitle, Channels);
 
         string currentBucket = null;
         ToolStripMenuItem currentMenu = null;
 
-        foreach (var group in grouped)
+        foreach (var entry in entries)
         {
-            if (string.IsNullOrEmpty(group.BaseName))
-            {
-                continue; // skip empties
-            }
-
-            char c = group.BaseName[0];
-            string bucket;
-
-            if (char.IsDigit(c))
-            {
-                bucket = "1-9";
-            }
-            else if (char.IsLetter(c))
-            {
-                bucket = char.ToUpperInvariant(c).ToString();
-            }
-            else
-            {
-                continue; // skip anything else
-            }
-
-            if (!string.Equals(bucket, currentBucket, StringComparison.Ordinal))
+            if (!string.Equals(entry.Bucket, currentBucket, StringComparison.Ordinal))
             {
                 if (currentMenu != null && currentMenu.DropDownItems.Count > 0)
                 {
                     root.DropDownItems.Add(currentMenu);
                 }
-
-                currentBucket = bucket;
-                currentMenu = new ToolStripMenuItem(bucket);
+                currentBucket = entry.Bucket;
+                currentMenu = new ToolStripMenuItem(currentBucket);
             }
 
-            if (group.Items.Count == 1)
+            if (entry.GroupBase == null) // Singleton
             {
-                var ch = group.Items[0].Channel;
-                AddChannelItem(currentMenu, ch, channelClick, CleanBaseName(ch.DisplayName));
+                AddChannelItem(currentMenu, entry.Channel, channelClick, entry.DisplayText);
             }
-            else
+            else // Grouped
             {
-                var subMenu = new ToolStripMenuItem(group.BaseName);
-                foreach (var item in group.Items)
+                var subMenu = currentMenu
+                    .DropDownItems.OfType<ToolStripMenuItem>()
+                    .FirstOrDefault(m => m.Text == entry.GroupBase);
+
+                if (subMenu == null)
                 {
-                    var ch = item.Channel;
-                    var display = CleanBaseName(ch.DisplayName);
-                    if (!string.IsNullOrEmpty(item.Info.Season))
-                    {
-                        display = $"{display} {item.Info.Season}";
-                    }
-                    AddChannelItem(subMenu, ch, channelClick, display);
+                    subMenu = new ToolStripMenuItem(entry.GroupBase);
+                    currentMenu.DropDownItems.Add(subMenu);
                 }
-                currentMenu.DropDownItems.Add(subMenu);
+
+                AddChannelItem(subMenu, entry.Channel, channelClick, entry.DisplayText);
             }
         }
 
@@ -521,30 +460,4 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             ],
         };
     }
-
-    // ----------------- Regex helpers -----------------
-
-    // Matches two-letter codes inside parentheses, e.g., "(AL)", "(DE)".
-    [GeneratedRegex(@"\([A-Za-z]{2}\)", RegexOptions.Compiled)]
-    private static partial Regex MatchTwoParens();
-
-    // Matches the string "24/7" in any spacing/case form, e.g., "24/7", "24 / 7".
-    [GeneratedRegex(@"24\s*/\s*7", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex TwoFourSevenRegex();
-
-    // Matches tags wrapped in square brackets, e.g., "[HD]", "[VIP]".
-    [GeneratedRegex(@"\[[^\]]+\]", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex TagsRegex();
-
-    // Matches short season codes like "S1", "S01", "S10".
-    [GeneratedRegex(@"(?<!\w)S0?\d{1,2}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex SeasonShortRegex();
-
-    // Matches longer season tokens like "Season 1", "Season01".
-    [GeneratedRegex(@"Season\s*0?\d{1,2}", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex SeasonLongRegex();
-
-    // Matches multiple spaces/tabs/newlines to normalize into a single space.
-    [GeneratedRegex(@"\s+", RegexOptions.Compiled)]
-    private static partial Regex NormalizeSpaceRegex();
 }
