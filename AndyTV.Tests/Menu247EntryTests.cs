@@ -91,6 +91,7 @@ public class Menu247EntryTests(Menu247EntryFixture fx) : IClassFixture<Menu247En
                 )
             )
             .ToList();
+
         Assert.Collection(
             simpsons.Select(e => e.DisplayText),
             s =>
