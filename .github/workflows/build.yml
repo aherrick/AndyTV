@@ -25,4 +25,4 @@ jobs:
 
     # Run tests
     - name: Run tests
-      run: dotnet test ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --verbosity normal
+      run: dotnet test --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --verbosity normal
