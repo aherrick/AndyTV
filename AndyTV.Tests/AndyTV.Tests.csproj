@@ -5,10 +5,6 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
-
-		<!-- MTP via dotnet test is controlled by dotnet.config, not this flag.
-         Uncomment only if you want MTP for `dotnet run` too. -->
-		<!-- <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner> -->
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,15 +13,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Using Include="Xunit" />
 	</ItemGroup>
 
 </Project>
