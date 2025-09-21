@@ -327,7 +327,7 @@ public partial class FavoriteChannelForm : Form
 
     private void AddChannel(Channel channel)
     {
-        if (!MenuFavoriteChannelHelper.IsDuplicateUrlAndNotify(channel))
+        if (!MenuFavoriteChannelHelper.IsDuplicate(channel))
         {
             _favorites.Add(channel);
         }

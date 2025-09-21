@@ -31,8 +31,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
         Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
-        var usTask = Task.Run(() => BuildTopMenuSync("US", BuildTopUs(), channelClick));
-        var ukTask = Task.Run(() => BuildTopMenuSync("UK", BuildTopUk(), channelClick));
+        var usTask = Task.Run(() => BuildTopMenu("US", BuildTopUs(), channelClick));
+        var ukTask = Task.Run(() => BuildTopMenu("UK", BuildTopUk(), channelClick));
         var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
 
         // TODO: consider parallelizing these if they become slow / also movie/tv
@@ -68,7 +68,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         return root.DropDownItems.Count > 0 ? root : null;
     }
 
-    // Original Build247 method, now using ExtractMenuEntries
     public ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
     {
         var root = new ToolStripMenuItem(rootTitle);
@@ -89,7 +88,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 currentMenu = new ToolStripMenuItem(currentBucket);
             }
 
-            if (entry.GroupBase == null) // Singleton
+            if (entry.GroupBase == null) // Single
             {
                 AddChannelItem(currentMenu, entry.Channel, channelClick, entry.DisplayText);
             }
@@ -117,7 +116,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         return root;
     }
 
-    private ToolStripMenuItem BuildTopMenuSync(
+    private ToolStripMenuItem BuildTopMenu(
         string rootTitle,
         Dictionary<string, string[][]> categories,
         EventHandler channelClick

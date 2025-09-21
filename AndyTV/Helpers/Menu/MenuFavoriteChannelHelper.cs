@@ -10,7 +10,7 @@ public class MenuFavoriteChannelHelper
     private readonly ToolStripMenuItem _header;
 
     // static URLs for fast dupe check across the whole app
-    private static readonly HashSet<string> s_favoriteUrlsCache = new(
+    private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
     );
 
@@ -21,9 +21,9 @@ public class MenuFavoriteChannelHelper
         _header = MenuHelper.AddHeader(_menu, "FAVORITES");
     }
 
-    public static bool IsDuplicateUrlAndNotify(Channel channel)
+    public static bool IsDuplicate(Channel channel)
     {
-        bool isDuplicate = s_favoriteUrlsCache.Contains(channel.Url.Trim());
+        bool isDuplicate = favoritesURLCache.Contains(channel.Url.Trim());
         if (isDuplicate)
         {
             MessageBox.Show(
@@ -41,10 +41,10 @@ public class MenuFavoriteChannelHelper
         var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
 
         // rebuild static URL set
-        s_favoriteUrlsCache.Clear();
+        favoritesURLCache.Clear();
         foreach (var f in favorites)
         {
-            s_favoriteUrlsCache.Add(f.Url.Trim());
+            favoritesURLCache.Add(f.Url.Trim());
         }
 
         int headerIndex = _menu.Items.IndexOf(_header);

@@ -6,27 +6,26 @@ namespace AndyTV.Tests;
 // Shared data for this test class (constructed once per class)
 public sealed class Menu247EntryFixture
 {
-    public List<Channel> Sample { get; }
     public List<MenuEntry> Entries { get; }
 
     public Menu247EntryFixture()
     {
-        Sample =
-        [
-            new Channel { Name = "24/7 Seinfeld S01", Url = "s1" },
-            new Channel { Name = "24/7 90210", Url = "u1" },
-            new Channel { Name = "24/7 ALF", Url = "u2" },
-            new Channel { Name = "24/7 The Simpsons Season 1", Url = "sim1" },
-            new Channel { Name = "24/7 Action Movies", Url = "u3" },
-            new Channel { Name = "24/7 21 JUMP STREET", Url = "u4" },
-            new Channel { Name = "24/7 3 Ninjas Movies [VIP]", Url = "u5" },
-            new Channel { Name = "24/7 300 Movies [VIP]", Url = "u6" },
-            new Channel { Name = "24/7 Seinfeld S02", Url = "s2" },
-            new Channel { Name = "24/7 The Simpsons Season 2", Url = "sim2" },
-            new Channel { Name = "24/7 Friends (AL)", Url = "ex1" },
-        ];
-
-        Entries = ChannelService.Get247Entries("24/7", Sample);
+        Entries = ChannelService.Get247Entries(
+            "24/7",
+            [
+                new Channel { Name = "24/7 Seinfeld S01", Url = "s1" },
+                new Channel { Name = "24/7 90210", Url = "u1" },
+                new Channel { Name = "24/7 ALF", Url = "u2" },
+                new Channel { Name = "24/7 The Simpsons Season 1", Url = "sim1" },
+                new Channel { Name = "24/7 Action Movies", Url = "u3" },
+                new Channel { Name = "24/7 21 JUMP STREET", Url = "u4" },
+                new Channel { Name = "24/7 3 Ninjas Movies [VIP]", Url = "u5" },
+                new Channel { Name = "24/7 300 Movies [VIP]", Url = "u6" },
+                new Channel { Name = "24/7 Seinfeld S02", Url = "s2" },
+                new Channel { Name = "24/7 The Simpsons Season 2", Url = "sim2" },
+                new Channel { Name = "24/7 Friends (AL)", Url = "ex1" },
+            ]
+        );
     }
 }
 
@@ -41,24 +40,13 @@ public class Menu247EntryTests(Menu247EntryFixture fx) : IClassFixture<Menu247En
             .Distinct() // preserves first-seen order
             .ToList();
 
+        // Expect exactly four buckets, in this order: 1-9, A, S, T
         Assert.Collection(
             buckets,
-            b =>
-            {
-                Assert.Equal("1-9", b);
-            },
-            b =>
-            {
-                Assert.Equal("A", b);
-            },
-            b =>
-            {
-                Assert.Equal("S", b);
-            },
-            b =>
-            {
-                Assert.Equal("T", b);
-            }
+            b => Assert.Equal("1-9", b),
+            b => Assert.Equal("A", b),
+            b => Assert.Equal("S", b),
+            b => Assert.Equal("T", b)
         );
 
         // Excluded item should not be present at all

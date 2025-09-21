@@ -24,7 +24,7 @@ public class InputForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MinimizeBox = false;
         MaximizeBox = false;
-        ClientSize = new Size(400, 140);
+        ClientSize = new Size(400, 130);
     }
 
     private void CreateControls(string prompt, string defaultText)

@@ -391,7 +391,7 @@ public partial class Form1 : Form
         var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
         favoritesAddCurrentItem.Click += (_, __) =>
         {
-            if (!MenuFavoriteChannelHelper.IsDuplicateUrlAndNotify(_currentChannel))
+            if (!MenuFavoriteChannelHelper.IsDuplicate(_currentChannel))
             {
                 OpenFavorites(_currentChannel);
             }
