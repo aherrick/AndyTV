@@ -124,12 +124,6 @@ static async Task<List<Guide>> RefreshGuide()
                 {
                     shows.Add(showDb);
                 }
-                else
-                {
-                    Console.WriteLine(
-                        $"[DEBUG] Duplicate or old show skipped: {title} ({timeLine})"
-                    );
-                }
             }
 
             var added = shows.Count - countBefore;
