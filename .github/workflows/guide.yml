@@ -1,4 +1,4 @@
-name: guide-release
+name: guide
 on:
   workflow_dispatch: {}
 
