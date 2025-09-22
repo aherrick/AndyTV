@@ -7,6 +7,8 @@ var shows = await RefreshGuide();
 
 var repoRoot =
     Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") ?? Directory.GetCurrentDirectory();
+var outDir = Path.Combine(repoRoot, "out");
+Directory.CreateDirectory(outDir);
 
 var jsonPath = Path.Combine(repoRoot, "guide.json");
 var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
@@ -30,7 +32,8 @@ static async Task<List<Guide>> RefreshGuide()
     {
         await Task.Delay(1500); // polite delay
 
-        Console.WriteLine($"Scraping {tvChannelFav.ChannelName}");
+        Console.WriteLine($"Scraping {tvChannelFav.ChannelName}...");
+        var countBefore = shows.Count;
 
         var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
         var document = await context.OpenAsync(
@@ -90,8 +93,12 @@ static async Task<List<Guide>> RefreshGuide()
                 shows.Add(showDb);
             }
         }
+
+        var added = shows.Count - countBefore;
+        Console.WriteLine($" → {tvChannelFav.ChannelName}: pulled {added} shows");
     }
 
+    Console.WriteLine($"TOTAL: {shows.Count} shows across {tvChannelFavs.Count} channels");
     return shows;
 }
 
