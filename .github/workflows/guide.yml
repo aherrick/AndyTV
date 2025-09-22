@@ -15,28 +15,24 @@ jobs:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
 
-      - name: Run scraper (writes out/guide.json)
+      - name: run guide scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
 
-      - name: Verify output exists
-        run: |
-          ls -la out || true
-          test -f out/guide.json || { echo "❌ out/guide.json not found"; exit 1; }
-
-      - name: Checkout aherrick.github.io
+        #this checks out the aherrick.github.io repo, copies the guide.json file into it, commits, and pushes
+      - name: checkout aherrick.github.io
         uses: actions/checkout@v4
         with:
           repository: aherrick/aherrick.github.io
           path: site
-          token: ${{ secrets.GH_PAGES_TOKEN }}  # PAT with write access to this repo
+          token: ${{ secrets.GH_PAGES_TOKEN }}
 
-      - name: Copy guide.json and push
+      - name: commit aherrick.github.io (/andytv/guide.json)
         run: |
-          mkdir -p site/AndyTV
-          cp out/guide.json site/AndyTV/guide.json
+          cp out/guide.json site/andytv/guide.json
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add AndyTV/guide.json
-          git diff --cached --quiet || git commit -m "Update guide.json"
+          git add andytv/guide.json
+          git commit -m "Update guide.json" || echo "No changes to commit"
           git push
+

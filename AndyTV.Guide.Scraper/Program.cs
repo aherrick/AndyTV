@@ -2,17 +2,25 @@
 using AngleSharp;
 using AngleSharp.Dom;
 
-// top-level async main
+// Call RefreshGuide() asynchronously to fetch the list of shows
 var shows = await RefreshGuide();
 
+// Determine the repository root:
+// - Prefer GITHUB_WORKSPACE env var (in GitHub Actions)
+// - Otherwise, fallback to the current working directory
 var repoRoot =
     Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") ?? Directory.GetCurrentDirectory();
 
+// Build the "out" directory path under the repo root
 var outDir = Path.Combine(repoRoot, "out");
+
+// Ensure the "out" directory exists (create if missing)
 Directory.CreateDirectory(outDir);
 
+// Serialize the shows list to JSON and write it to out/guide.json
 await File.WriteAllTextAsync(Path.Combine(outDir, "guide.json"), JsonSerializer.Serialize(shows));
 
+// Print confirmation with the total show count
 Console.WriteLine($"Done. {shows.Count} shows");
 
 // use repo root if running in GitHub Actions; else current dir
@@ -23,22 +31,20 @@ static async Task<List<Guide>> RefreshGuide()
 {
     var tvChannelFavs = GetTVChannels();
     var shows = new List<Guide>();
-
     var pstTz = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
 
     foreach (
         var tvChannelFav in tvChannelFavs.Where(x => !string.IsNullOrWhiteSpace(x.StreamingTVId))
     )
     {
-        await Task.Delay(5000); // polite delay
+        await Task.Delay(10000); // polite delay
 
-        Console.WriteLine($"Scraping {tvChannelFav.ChannelName}...");
+        var url = $"https://streamingtvguides.com/Channel/{tvChannelFav.StreamingTVId}";
+        Console.WriteLine($"Scraping {tvChannelFav.ChannelName} from {url} ...");
         var countBefore = shows.Count;
 
         var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
-        var document = await context.OpenAsync(
-            $"https://streamingtvguides.com/Channel/{tvChannelFav.StreamingTVId}"
-        );
+        var document = await context.OpenAsync(url);
 
         foreach (var showHtml in document.QuerySelectorAll(".card-body"))
         {
@@ -71,7 +77,6 @@ static async Task<List<Guide>> RefreshGuide()
 
             var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
             var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
-
             var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
 
             var showDb = new Guide
@@ -88,6 +93,7 @@ static async Task<List<Guide>> RefreshGuide()
             var exists = shows.FirstOrDefault(p =>
                 p.Title == showDb.Title && p.Start == showDb.Start
             );
+
             if (exists == null && showDb.Start > DateTime.UtcNow.AddHours(-6))
             {
                 shows.Add(showDb);
