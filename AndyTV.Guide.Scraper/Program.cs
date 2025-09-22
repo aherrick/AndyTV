@@ -7,15 +7,11 @@ using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Dom;
 
-// helpers
-static string Escape(string? s) =>
-    (s ?? "").Replace("\t", " ").Replace("\r", " ").Replace("\n", " ").Trim();
-
 // top-level async main
 var shows = await RefreshGuide();
 
-// write JSON (pretty, ISO-8601 times preserved by default)
-var jsonPath = Path.Combine(AppContext.BaseDirectory, "guide.json");
+// Write JSON (pretty) to the CURRENT WORKING DIRECTORY (repo root in Actions)
+var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "guide.json");
 var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
 await File.WriteAllTextAsync(jsonPath, json);
 Console.WriteLine($"Done. {shows.Count} shows -> {jsonPath}");
