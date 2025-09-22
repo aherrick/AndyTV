@@ -31,8 +31,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
         Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
-        var usTask = Task.Run(() => BuildTopMenu("US", BuildTopUs(), channelClick));
-        var ukTask = Task.Run(() => BuildTopMenu("UK", BuildTopUk(), channelClick));
+        var usTask = Task.Run(() => BuildTopMenu("US", ChannelService.BuildTopUs(), channelClick));
+        var ukTask = Task.Run(() => BuildTopMenu("UK", ChannelService.BuildTopUk(), channelClick));
         var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
 
         // TODO: consider parallelizing these if they become slow / also movie/tv
@@ -118,7 +118,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     private ToolStripMenuItem BuildTopMenu(
         string rootTitle,
-        Dictionary<string, string[][]> categories,
+        Dictionary<string, List<ChannelTop>> categories,
         EventHandler channelClick
     )
     {
@@ -133,24 +133,36 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         {
             var catItem = new ToolStripMenuItem(catName);
 
-            foreach (var entry in entries.OrderBy(e => e[0], StringComparer.OrdinalIgnoreCase))
+            foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var display = entry[0];
-                var terms = entry;
+                var terms = new List<string> { entry.Name };
+                if (entry.AltNames != null && entry.AltNames.Count > 0)
+                {
+                    terms.AddRange(entry.AltNames);
+                }
 
+                // account for short names (<=2 chars) needing exact match
                 var matches = Channels
                     .Where(ch =>
                         terms.Any(term =>
-                            ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            term.Length <= 2
+                                ? string.Equals(
+                                    ch.DisplayName,
+                                    term,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                                : ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
                         )
                     )
                     .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 if (matches.Count == 0)
+                {
                     continue;
+                }
 
-                var parent = new ToolStripMenuItem(display);
+                var parent = new ToolStripMenuItem(entry.Name);
                 foreach (var ch in matches)
                 {
                     AddChannelItem(parent, ch, channelClick);
@@ -160,7 +172,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             }
 
             if (catItem.DropDownItems.Count > 0)
+            {
                 rootItem.DropDownItems.Add(catItem);
+            }
         }
 
         return rootItem.DropDownItems.Count > 0 ? rootItem : null;
