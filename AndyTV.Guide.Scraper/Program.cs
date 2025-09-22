@@ -37,71 +37,113 @@ static async Task<List<Guide>> RefreshGuide()
         var tvChannelFav in tvChannelFavs.Where(x => !string.IsNullOrWhiteSpace(x.StreamingTVId))
     )
     {
-        await Task.Delay(10000); // polite delay
+        await Task.Delay(15000); // polite delay
 
         var url = $"https://streamingtvguides.com/Channel/{tvChannelFav.StreamingTVId}";
         Console.WriteLine($"Scraping {tvChannelFav.ChannelName} from {url} ...");
         var countBefore = shows.Count;
 
-        var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
-        var document = await context.OpenAsync(url);
-
-        foreach (var showHtml in document.QuerySelectorAll(".card-body"))
+        try
         {
-            var title =
-                showHtml
-                    .QuerySelector("h5")
-                    ?.TextContent.Replace("Playing Now!", "", StringComparison.OrdinalIgnoreCase)
-                    .Trim() ?? "";
+            var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
+            var document = await context.OpenAsync(url);
 
-            var sub = showHtml.QuerySelector("h6")?.TextContent ?? "";
-            if (!string.IsNullOrWhiteSpace(sub))
+            var cards = document.QuerySelectorAll(".card-body").ToList();
+            if (cards.Count == 0)
             {
-                title += " - " + sub.Trim();
+                Console.WriteLine(
+                    $"[WARN] No .card-body elements found for {tvChannelFav.ChannelName}. URL: {url}"
+                );
+                Console.WriteLine("[DEBUG] Dumping first 500 chars of HTML:");
+                Console.WriteLine(
+                    document
+                        .DocumentElement
+                        ?.OuterHtml[..Math.Min(500, document.DocumentElement.OuterHtml.Length)]
+                );
             }
 
-            var timeLine = showHtml
-                .ChildNodes.OfType<IText>()
-                .Select(m => m.Text.Trim())
-                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
-                ?.Replace("\n", "")
-                ?.Replace("PST", "", StringComparison.OrdinalIgnoreCase)
-                ?.Replace("PDT", "", StringComparison.OrdinalIgnoreCase);
-
-            if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
-                continue;
-
-            var parts = timeLine.Split(" - ", StringSplitOptions.TrimEntries);
-            if (parts.Length != 2)
-                continue;
-
-            var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
-            var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
-            var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
-
-            var showDb = new Guide
+            foreach (var showHtml in cards)
             {
-                StreamingTVId = tvChannelFav.StreamingTVId,
-                ChannelName = tvChannelFav.ChannelName,
-                Category = tvChannelFav.Category,
-                Title = title,
-                Start = startUtc,
-                End = endUtc,
-                Description = desc,
-            };
+                var title =
+                    showHtml
+                        .QuerySelector("h5")
+                        ?.TextContent.Replace(
+                            "Playing Now!",
+                            "",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        .Trim() ?? "";
 
-            var exists = shows.FirstOrDefault(p =>
-                p.Title == showDb.Title && p.Start == showDb.Start
-            );
+                var sub = showHtml.QuerySelector("h6")?.TextContent ?? "";
+                if (!string.IsNullOrWhiteSpace(sub))
+                {
+                    title += " - " + sub.Trim();
+                }
 
-            if (exists == null && showDb.Start > DateTime.UtcNow.AddHours(-6))
-            {
-                shows.Add(showDb);
+                var timeLine = showHtml
+                    .ChildNodes.OfType<IText>()
+                    .Select(m => m.Text.Trim())
+                    .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                    ?.Replace("\n", "")
+                    ?.Replace("PST", "", StringComparison.OrdinalIgnoreCase)
+                    ?.Replace("PDT", "", StringComparison.OrdinalIgnoreCase);
+
+                if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
+                {
+                    Console.WriteLine($"[DEBUG] Skipping show (no timeline) → Title: {title}");
+                    continue;
+                }
+
+                var parts = timeLine.Split(" - ", StringSplitOptions.TrimEntries);
+                if (parts.Length != 2)
+                {
+                    Console.WriteLine($"[DEBUG] Invalid timeline format: '{timeLine}'");
+                    continue;
+                }
+
+                var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
+                var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
+                var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
+
+                var showDb = new Guide
+                {
+                    StreamingTVId = tvChannelFav.StreamingTVId,
+                    ChannelName = tvChannelFav.ChannelName,
+                    Category = tvChannelFav.Category,
+                    Title = title,
+                    Start = startUtc,
+                    End = endUtc,
+                    Description = desc,
+                };
+
+                var exists = shows.FirstOrDefault(p =>
+                    p.Title == showDb.Title && p.Start == showDb.Start
+                );
+
+                if (exists == null && showDb.Start > DateTime.UtcNow.AddHours(-6))
+                {
+                    shows.Add(showDb);
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"[DEBUG] Duplicate or old show skipped: {title} ({timeLine})"
+                    );
+                }
             }
+
+            var added = shows.Count - countBefore;
+            Console.WriteLine($" → {tvChannelFav.ChannelName}: pulled {added} shows");
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to scrape {tvChannelFav.ChannelName} ({url}): {ex}");
+        }
+    }
 
-        var added = shows.Count - countBefore;
-        Console.WriteLine($" → {tvChannelFav.ChannelName}: pulled {added} shows");
+    if (shows.Count == 0)
+    {
+        Console.WriteLine("[ERROR] RefreshGuide returned ZERO shows. Something is wrong.");
     }
 
     Console.WriteLine($"TOTAL: {shows.Count} shows across {tvChannelFavs.Count} channels");
