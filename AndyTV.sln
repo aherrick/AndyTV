@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Data", "AndyTV.Data\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Guide", "AndyTV.Guide\AndyTV.Guide.csproj", "{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Guide.Scraper", "AndyTV.Guide.Scraper\AndyTV.Guide.Scraper.csproj", "{E3EA8446-DEC1-43A3-9AF3-7B1ECFA99940}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3EA8446-DEC1-43A3-9AF3-7B1ECFA99940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3EA8446-DEC1-43A3-9AF3-7B1ECFA99940}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3EA8446-DEC1-43A3-9AF3-7B1ECFA99940}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3EA8446-DEC1-43A3-9AF3-7B1ECFA99940}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
