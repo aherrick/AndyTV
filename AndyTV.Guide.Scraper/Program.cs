@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -13,16 +14,11 @@ static string Escape(string? s) =>
 // top-level async main
 var shows = await RefreshGuide();
 
-var path = Path.Combine(AppContext.BaseDirectory, "guide.csv");
-using var sw = new StreamWriter(path);
-sw.WriteLine("ChannelName\tStart\tEnd\tTitle\tDescription");
-foreach (var s in shows.OrderBy(x => x.ChannelName).ThenBy(x => x.Start))
-{
-    sw.WriteLine(
-        $"{s.ChannelName}\t{s.Start:o}\t{s.End:o}\t{Escape(s.Title)}\t{Escape(s.Description)}"
-    );
-}
-Console.WriteLine($"Done. {shows.Count} rows -> {path}");
+// write JSON (pretty, ISO-8601 times preserved by default)
+var jsonPath = Path.Combine(AppContext.BaseDirectory, "guide.json");
+var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
+await File.WriteAllTextAsync(jsonPath, json);
+Console.WriteLine($"Done. {shows.Count} shows -> {jsonPath}");
 
 // ------------------- Methods -------------------
 
