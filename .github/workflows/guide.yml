@@ -6,8 +6,6 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -20,12 +18,17 @@ jobs:
       - name: Run scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
 
+      - name: Verify output exists
+        run: |
+          ls -la out || true
+          test -f out/guide.json || { echo "❌ out/guide.json not found"; exit 1; }
+
       - name: Checkout aherrick.github.io
         uses: actions/checkout@v4
         with:
           repository: aherrick/aherrick.github.io
           path: site
-          token: ${{ secrets.GH_PAGES_TOKEN }}
+          token: ${{ secrets.GH_PAGES_TOKEN }}  # PAT with write access to this repo
 
       - name: Copy guide.json and push
         run: |

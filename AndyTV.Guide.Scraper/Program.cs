@@ -7,12 +7,14 @@ var shows = await RefreshGuide();
 
 var repoRoot =
     Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") ?? Directory.GetCurrentDirectory();
+
 var outDir = Path.Combine(repoRoot, "out");
 Directory.CreateDirectory(outDir);
 
-var jsonPath = Path.Combine(repoRoot, "guide.json");
+var jsonPath = Path.Combine(outDir, "guide.json");
 var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
 await File.WriteAllTextAsync(jsonPath, json);
+
 Console.WriteLine($"Done. {shows.Count} shows -> {jsonPath}");
 
 // use repo root if running in GitHub Actions; else current dir
