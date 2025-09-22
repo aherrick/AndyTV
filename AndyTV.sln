@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Tests", "AndyTV.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Data", "AndyTV.Data\AndyTV.Data.csproj", "{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Guide", "AndyTV.Guide\AndyTV.Guide.csproj", "{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45AB5FF3-EEC3-4296-AF17-7B708DE93FFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F98B9D6-02FE-4CEC-BA80-AE7A073A43AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

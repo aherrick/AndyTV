@@ -1,0 +1,170 @@
+﻿@page "/tv-guide"
+@using Syncfusion.Blazor.Schedule
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<SfSchedule TValue="GuideEvent"
+            Height="600px"
+            SelectedDate="@_selected"
+            StartHour="@_startHour"
+            EndHour="@_endHour"
+            ShowQuickInfo="true">
+
+    <ScheduleViews>
+        <ScheduleView Option="View.TimelineDay" />
+    </ScheduleViews>
+
+    <!-- Group by Category -> Channel -->
+    <ScheduleGroup Resources="@(new[] { "Categories", "Channels" })" />
+
+    <ScheduleResources>
+        <ScheduleResource TValue="int" TItem="Category"
+                          Name="Categories"
+                          DataSource="@_categories"
+                          IdField="Id"
+                          TextField="Text" />
+        <ScheduleResource TValue="int" TItem="ChannelInfo"
+                          Name="Channels"
+                          DataSource="@_channels"
+                          IdField="Id"
+                          TextField="Text"
+                          GroupIDField="CategoryId" />
+    </ScheduleResources>
+
+    <!-- Explicit field mapping; no custom EventTemplate -->
+    <ScheduleEventSettings TValue="GuideEvent"
+                           DataSource="@_events"
+                           ResourceFields="ChannelId">
+        <ScheduleField Id="Id"
+                       Subject="Subject"
+                       StartTime="StartTime"
+                       EndTime="EndTime"
+                       Description="Description" />
+    </ScheduleEventSettings>
+
+    <!-- Quick-info popup: title, description, and a Go button -->
+    <ScheduleQuickInfoTemplates>
+        <HeaderTemplate Context="data">
+            @{
+                var ev = data as GuideEvent;
+            }
+            <div style="padding:6px 10px; font-weight:600">
+                @ev?.Subject
+            </div>
+        </HeaderTemplate>
+
+        <ContentTemplate Context="data">
+            @{
+                var ev = data as GuideEvent;
+            }
+            @if (ev is not null)
+            {
+                <div style="padding:10px;">
+                    <div style="margin-bottom:10px">@ev.Description</div>
+                    <button class="e-btn e-primary" @onclick="Go">Go</button>
+                </div>
+            }
+        </ContentTemplate>
+    </ScheduleQuickInfoTemplates>
+</SfSchedule>
+
+@code {
+    private DateTime _selected;
+    private string _startHour = "";
+    private string _endHour = "";
+
+    private readonly List<Category> _categories =
+    [
+        new Category { Id = 1, Text = "News" },
+        new Category { Id = 2, Text = "Sports" },
+        new Category { Id = 3, Text = "Entertainment" }
+    ];
+
+    private readonly List<ChannelInfo> _channels =
+    [
+        new ChannelInfo { Id = 101, Text = "NBC",         CategoryId = 1 },
+        new ChannelInfo { Id = 102, Text = "CBS",         CategoryId = 1 },
+        new ChannelInfo { Id = 103, Text = "ABC",         CategoryId = 1 },
+        new ChannelInfo { Id = 201, Text = "ESPN",        CategoryId = 2 },
+        new ChannelInfo { Id = 202, Text = "ESPN2",       CategoryId = 2 },
+        new ChannelInfo { Id = 203, Text = "FS1",         CategoryId = 2 },
+        new ChannelInfo { Id = 301, Text = "USA Network", CategoryId = 3 },
+        new ChannelInfo { Id = 302, Text = "History",     CategoryId = 3 },
+        new ChannelInfo { Id = 303, Text = "TLC",         CategoryId = 3 }
+    ];
+
+    private List<GuideEvent> _events = new();
+
+    protected override void OnInitialized()
+    {
+        // Pin to the current hour; use Local kind (scheduler ignores Unspecified)
+        var now = DateTime.Now;
+        _selected = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Local);
+        _startHour = $"{_selected:HH}:00";
+        _endHour = $"{_selected.AddHours(3):HH}:00";
+
+        var t0 = _selected;
+        var t30 = t0.AddMinutes(30);
+        var t60 = t0.AddHours(1);
+        var t90 = t0.AddMinutes(90);
+        var t120 = t0.AddHours(2);
+        var t150 = t0.AddMinutes(150);
+        var t180 = t0.AddHours(3);
+
+        _events =
+        [
+            // News (mix 60/30/30)
+            Show(101, "Morning Report", "Top headlines and weather.", t0, t60),
+            Show(101, "City Life",      "Local interviews.",         t60, t90),
+            Show(101, "Cooking Quick",  "Fast weekday recipes.",     t90, t120),
+
+            // Sports (60/30/90 etc.)
+            Show(201, "SportsCenter",   "Scores and highlights.",    t0, t60),
+            Show(201, "Chalk Talk",     "Analysis and previews.",    t60, t90),
+            Show(201, "Game Rewind",    "Condensed replay.",         t90, t180),
+
+            // Entertainment (60/60/60)
+            Show(301, "Mystery Files",  "Crime drama hour.",         t0, t60),
+            Show(301, "Blue Unit",      "Procedural drama.",         t60, t120),
+            Show(301, "Legal Lines",    "Courtroom intrigue.",       t120, t180),
+
+            // A few more rows to prove it renders across channels
+            Show(102, "Eye on News",    "Breaking news coverage.",   t0, t30),
+            Show(102, "Health Hour",    "Wellness tips.",            t30, t90),
+            Show(102, "Daily Talk",     "Celebs & culture.",         t90, t150),
+
+            Show(202, "Quick Hits",     "Highlight reel.",           t0, t30),
+            Show(202, "Inside Numbers", "Stats deep-dive.",          t30, t60),
+            Show(202, "Matchday Live",  "Previews & reactions.",     t60, t180),
+
+            Show(203, "Kickoff Live",   "Live desk updates.",        t0, t90),
+            Show(203, "Halftime Desk",  "Midday check-in.",          t90, t120),
+            Show(203, "Postgame Pulse", "Wrap-up & interviews.",     t120, t180),
+
+            Show(302, "Artifact Focus", "Objects that changed history.", t0, t30),
+            Show(302, "Ancient Roads",  "Empires and trade.",            t30, t90),
+            Show(302, "War & Peace",    "Battles and treaties.",         t90, t180),
+
+            Show(303, "Home Reno",      "Makeovers & reveals.",      t0, t60),
+            Show(303, "Bite Size Bakes","Desserts in 30.",           t60, t90),
+            Show(303, "Family Stories", "Life, love, chaos.",        t90, t180)
+        ];
+    }
+
+    private Task Go() => JS.InvokeVoidAsync("alert", "no playing").AsTask();
+
+    private static GuideEvent Show(int channelId, string title, string desc, DateTime start, DateTime end)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            Subject = title,
+            Description = desc,
+            StartTime = DateTime.SpecifyKind(start, DateTimeKind.Local),
+            EndTime = DateTime.SpecifyKind(end, DateTimeKind.Local),
+            ChannelId = channelId
+        };
+
+    public sealed class Category { public int Id { get; set; } public string Text { get; set; } = ""; }
+    public sealed class ChannelInfo { public int Id { get; set; } public string Text { get; set; } = ""; public int CategoryId { get; set; } }
+    public sealed class GuideEvent { public Guid Id { get; set; } public string Subject { get; set; } = ""; public string Description { get; set; } = ""; public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public int ChannelId { get; set; } }
+}
