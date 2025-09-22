@@ -17,10 +17,10 @@ jobs:
       - name: Run scraper (produces out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
 
-      # Push to the releases of a DIFFERENT repo (e.g., aherrick/andytv-data)
+      # Push to the releases of a DIFFERENT repo (e.g., aherrick/andytv.guide)
       - name: Upload guide.json to release (tag=guide)
         env:
           GH_TOKEN: ${{ secrets.GUIDE_RELEASES_TOKEN }}   # PAT with repo write on target repo
         run: |
-          gh release create guide -R aherrick/andytv-data || true
+          gh release create guide -R aherrick/andytv.guide || true
           gh release upload guide out/guide.json -R aherrick/andytv.guide --clobber
