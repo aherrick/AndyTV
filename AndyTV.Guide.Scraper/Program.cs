@@ -11,11 +11,9 @@ var repoRoot =
 var outDir = Path.Combine(repoRoot, "out");
 Directory.CreateDirectory(outDir);
 
-var jsonPath = Path.Combine(outDir, "guide.json");
-var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
-await File.WriteAllTextAsync(jsonPath, json);
+await File.WriteAllTextAsync(Path.Combine(outDir, "guide.json"), JsonSerializer.Serialize(shows));
 
-Console.WriteLine($"Done. {shows.Count} shows -> {jsonPath}");
+Console.WriteLine($"Done. {shows.Count} shows");
 
 // use repo root if running in GitHub Actions; else current dir
 
@@ -32,7 +30,7 @@ static async Task<List<Guide>> RefreshGuide()
         var tvChannelFav in tvChannelFavs.Where(x => !string.IsNullOrWhiteSpace(x.StreamingTVId))
     )
     {
-        await Task.Delay(1500); // polite delay
+        await Task.Delay(5000); // polite delay
 
         Console.WriteLine($"Scraping {tvChannelFav.ChannelName}...");
         var countBefore = shows.Count;
