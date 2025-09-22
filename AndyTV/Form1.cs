@@ -31,7 +31,7 @@ public partial class Form1 : Form
     // retry logic
     private bool _isRestartingStream = false;
 
-    private const int STALL_SECONDS = 10;
+    private const int STALL_SECONDS = 6;
     private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
