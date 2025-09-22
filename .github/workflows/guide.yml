@@ -1,4 +1,4 @@
-name: Scrape Guide Release
+name: guide
 
 on:
   workflow_dispatch: {}
