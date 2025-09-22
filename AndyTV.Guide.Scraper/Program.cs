@@ -1,20 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
 
 // top-level async main
 var shows = await RefreshGuide();
 
-// Write JSON (pretty) to the CURRENT WORKING DIRECTORY (repo root in Actions)
-var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "guide.json");
+var repoRoot =
+    Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") ?? Directory.GetCurrentDirectory();
+
+var jsonPath = Path.Combine(repoRoot, "guide.json");
 var json = JsonSerializer.Serialize(shows, new JsonSerializerOptions { WriteIndented = true });
 await File.WriteAllTextAsync(jsonPath, json);
 Console.WriteLine($"Done. {shows.Count} shows -> {jsonPath}");
+
+// use repo root if running in GitHub Actions; else current dir
 
 // ------------------- Methods -------------------
 
@@ -97,8 +96,7 @@ static async Task<List<Guide>> RefreshGuide()
 }
 
 static List<TVChannel> GetTVChannels() =>
-    new()
-    {
+    [
         // Sports
         new()
         {
@@ -331,7 +329,7 @@ static List<TVChannel> GetTVChannels() =>
             Category = "Movies",
             StreamingTVId = "TMC",
         },
-    };
+    ];
 
 // ------------------- Models -------------------
 
