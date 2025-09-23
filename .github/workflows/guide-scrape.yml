@@ -1,4 +1,4 @@
-name: guide
+name: guide-scrape
 on:
   workflow_dispatch: {}
   schedule:

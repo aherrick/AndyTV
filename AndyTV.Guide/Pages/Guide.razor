@@ -1,10 +1,11 @@
-﻿@using AndyTV.Data.Models
+﻿@using System.Net.Http.Json
+@using AndyTV.Data.Models
 @using Syncfusion.Blazor.Schedule
 @inject HttpClient Http
 
 <SfSchedule TValue="ShowEvent"
             Width="100%"
-            Height="100vh"
+            Height="98vh"
             @bind-SelectedDate="CurrentDate"
             @bind-CurrentView="CurrentView"
             StartHour="@StartHour"
@@ -13,7 +14,6 @@
             AllowDragAndDrop="false"
             AllowResizing="false">
 
-    <!-- Group: Category -> Channel -->
     <ScheduleGroup Resources="@GroupData" />
 
     <ScheduleResources>
@@ -36,11 +36,11 @@
     </ScheduleResources>
 
     <ScheduleViews>
-        <ScheduleView Option="View.TimelineDay" MaxEventsPerRow="1" />
+        <ScheduleView Option="View.TimelineDay" MaxEventsPerRow="2" />
     </ScheduleViews>
 
     <ScheduleQuickInfoTemplates TemplateType="TemplateType.Event">
-        <FooterTemplate Context="context">
+    @*     <FooterTemplate Context="context">
             @{
                 var ev = context as ShowEvent;
             }
@@ -48,7 +48,7 @@
             {
                 @ev.Description
             }
-        </FooterTemplate>
+        </FooterTemplate> *@
     </ScheduleQuickInfoTemplates>
 
     <ScheduleEventSettings TValue="ShowEvent"
@@ -66,62 +66,68 @@
 
     public string[] GroupData { get; set; } = { "Categories", "Channels" };
 
-    private readonly List<CategoryData> Categories = new();
-    private readonly List<ChannelData> Channels = new();
-    private readonly List<ShowEvent> Events = new();
+    private List<CategoryData> Categories = new();
+    private List<ChannelData> Channels = new();
+    private List<ShowEvent> Events = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFromJson();
-    }
+        var url = "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json";
+        var items = await Http.GetFromJsonAsync<List<Show>>(url);
+        if (items is null || items.Count == 0) return;
 
-    private async Task LoadFromJson()
-    {
-        var items = await Http.GetFromJsonAsync<List<Show>>(
-            "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
+        var cats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var chns = new Dictionary<(string Cat, string Chan), string>();
 
-        foreach (var grp in items.GroupBy(i => i.Category))
+        var newCategories = new List<CategoryData>();
+        var newChannels = new List<ChannelData>();
+        var newEvents = new List<ShowEvent>();
+
+        foreach (var s in items)
         {
-            var cat = new CategoryData
+            if (!cats.TryGetValue(s.Category, out var catId))
             {
-                Id = Guid.NewGuid().ToString(),
-                Text = grp.Key
-            };
-            Categories.Add(cat);
-
-            foreach (var chanGrp in grp.GroupBy(i => i.ChannelName))
-            {
-                var channel = new ChannelData
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Text = chanGrp.Key,
-                    CategoryId = cat.Id
-                };
-                Channels.Add(channel);
-
-                foreach (var s in chanGrp)
-                {
-                    Events.Add(new ShowEvent
-                    {
-                        StreamingTVId = s.StreamingTVId,
-                        ChannelName = s.ChannelName,
-                        Category = s.Category,
-                        Subject = s.Subject,
-                        Description = s.Description,
-                        StartTime = s.StartTime,
-                        EndTime = s.EndTime,
-                        CategoryId = cat.Id,
-                        ChannelId = channel.Id
-                    });
-                }
+                catId = Guid.NewGuid().ToString();
+                cats[s.Category] = catId;
+                newCategories.Add(new CategoryData { Id = catId, Text = s.Category });
             }
+
+            var key = (s.Category, s.ChannelName);
+            if (!chns.TryGetValue(key, out var chanId))
+            {
+                chanId = Guid.NewGuid().ToString();
+                chns[key] = chanId;
+                newChannels.Add(new ChannelData { Id = chanId, Text = s.ChannelName, CategoryId = catId });
+            }
+
+
+            var startLocal = s.StartTime.ToLocalTime(); // UTC -> browser local (EST for you)
+            var endLocal = s.EndTime.ToLocalTime();
+
+            newEvents.Add(new ShowEvent
+            {
+                StreamingTVId = s.StreamingTVId,
+                ChannelName = s.ChannelName,
+                Category = s.Category,
+                Subject = s.Subject,
+                Description = s.Description,
+                StartTime = startLocal,
+                EndTime = endLocal,
+                CategoryId = cats[s.Category],
+                ChannelId = chns[key]
+            });
         }
 
-        // Center the view on the first event's day (optional)
+        Categories = newCategories;
+        Channels = newChannels;
+        Events = newEvents;
+
+        // After swapping references (Categories/Channels/Events):
         var first = Events.OrderBy(e => e.StartTime).FirstOrDefault();
         if (first is not null)
         {
-            CurrentDate = first.StartTime.Date;
+            CurrentDate = first.StartTime.Date;                 // keep the day aligned
+            StartHour = first.StartTime.ToString("HH\\:mm");  // raw HH:mm from earliest event
         }
     }
 
