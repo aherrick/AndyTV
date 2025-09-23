@@ -135,13 +135,11 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
             foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var terms = entry.Terms;
-
                 // account for short names (<=2 chars) needing exact match
                 var matches = Channels
                     .Where(ch =>
                     {
-                        foreach (var term in terms)
+                        foreach (var term in entry.Terms)
                         {
                             var isExact = term.Length <= 2;
                             if (
@@ -160,7 +158,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                                 return true;
                             }
                         }
-
                         return false;
                     })
                     .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)

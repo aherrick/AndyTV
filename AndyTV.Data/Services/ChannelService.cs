@@ -259,7 +259,6 @@ public partial class ChannelService
                     AltNames = ["BTN"],
                     StreamingTvId = "BIGTEN",
                 },
-                new ChannelTop { Name = "BTN", StreamingTvId = "BIGTEN" },
                 new ChannelTop
                 {
                     Name = "CBS Sports Network",
