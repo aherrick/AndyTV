@@ -21,7 +21,7 @@
 	<!-- Keep only the single theme we use, this keeps us under 250MB so we can publish free to azure :D -->
 	<Target Name="RemoveUnusedSyncfusionThemes" AfterTargets="Publish">
 		<ItemGroup>
-			<FilesToRemove Include="$(PublishDir)wwwroot/_content/Syncfusion.Blazor.Themes/**" Exclude="$(PublishDir)wwwroot/_content/Syncfusion.Blazor.Themes/bootstrap5.3-dark.*" />
+			<FilesToRemove Include="$(PublishDir)wwwroot/_content/Syncfusion.Blazor.Themes/**" Exclude="$(PublishDir)wwwroot/_content/Syncfusion.Blazor.Themes/fluent-dark.*" />
 		</ItemGroup>
 		<Delete Files="@(FilesToRemove)" />
 	</Target>
