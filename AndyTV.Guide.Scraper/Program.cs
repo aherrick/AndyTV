@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json;
+﻿using System.Text.Json;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AngleSharp;
@@ -31,12 +30,16 @@ Console.WriteLine($"Done. {shows.Count} shows");
 static async Task<List<Show>> RefreshGuide()
 {
     // category -> channels
-    var top = ChannelService.TopUsGuide(); // Dictionary<string, List<ChannelTop>>
+    var top = ChannelService.TopUsGuide();
 
     var shows = new List<Show>();
     var pstTz = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
 
     var channelsWithIds = 0;
+
+    // Tracking for summary
+    var zeroResultChannels = new List<(string Category, string Name, string Url)>();
+    var noCardBodyChannels = new List<(string Category, string Name, string Url)>();
 
     foreach (var kvp in top)
     {
@@ -76,6 +79,7 @@ static async Task<List<Show>> RefreshGuide()
                             ?.OuterHtml[..Math.Min(500, document.DocumentElement.OuterHtml.Length)]
                             ?? ""
                     );
+                    noCardBodyChannels.Add((category, tvChannelFav.Name, url));
                 }
 
                 foreach (var showHtml in cards)
@@ -125,7 +129,7 @@ static async Task<List<Show>> RefreshGuide()
                     {
                         StreamingTVId = tvChannelFav.StreamingTVId,
                         ChannelName = tvChannelFav.Name,
-                        Category = category, // <-- category comes from the DICTIONARY KEY
+                        Category = category,
                         Subject = title,
                         StartTime = startUtc,
                         EndTime = endUtc,
@@ -146,12 +150,19 @@ static async Task<List<Show>> RefreshGuide()
 
                 var added = shows.Count - countBefore;
                 Console.WriteLine($" → [{category}] {tvChannelFav.Name}: pulled {added} shows");
+
+                if (added == 0)
+                {
+                    zeroResultChannels.Add((category, tvChannelFav.Name, url));
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(
                     $"[ERROR] Failed to scrape [{category}] {tvChannelFav.Name} ({url}): {ex}"
                 );
+                // Treat as zero-result for summary clarity
+                zeroResultChannels.Add((category, tvChannelFav.Name, url));
             }
         }
     }
@@ -164,5 +175,38 @@ static async Task<List<Show>> RefreshGuide()
     Console.WriteLine(
         $"TOTAL: {shows.Count} shows across {channelsWithIds} channels (with StreamingTVId)"
     );
+
+    // ----------- CLEAR SUMMARY -----------
+    Console.WriteLine();
+    Console.WriteLine("==== SUMMARY ====");
+
+    Console.WriteLine("-- Channels with 0 results (no shows added) --");
+    if (zeroResultChannels.Count == 0)
+    {
+        Console.WriteLine("  None");
+    }
+    else
+    {
+        foreach (var z in zeroResultChannels.Distinct())
+        {
+            Console.WriteLine($"  [{z.Category}] {z.Name} → {z.Url}");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("-- Channels with no `.card-body` elements --");
+    if (noCardBodyChannels.Count == 0)
+    {
+        Console.WriteLine("  None");
+    }
+    else
+    {
+        foreach (var n in noCardBodyChannels.Distinct())
+        {
+            Console.WriteLine($"  [{n.Category}] {n.Name} → {n.Url}");
+        }
+    }
+    Console.WriteLine("==== END SUMMARY ====");
+
     return shows;
 }

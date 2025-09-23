@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AndyTV.Data.Models;
+﻿namespace AndyTV.Data.Models;
 
 public class Show
 {
