@@ -81,7 +81,7 @@ public partial class ChannelService
                 {
                     Name = "National Geographic Wild",
                     AltNames = ["Nat Geo Wild"],
-                    StreamingTVId = "NGCWILD",
+                    StreamingTVId = "NGWIHD",
                 },
                 new ChannelTop { Name = "Oxygen" },
                 new ChannelTop { Name = "Paramount Network", AltNames = ["Paramount"] },
@@ -95,7 +95,7 @@ public partial class ChannelService
                 new ChannelTop { Name = "TBS", StreamingTVId = "TBS" },
                 new ChannelTop { Name = "TCM", AltNames = ["Turner Classic Movies"] },
                 new ChannelTop { Name = "TNT", StreamingTVId = "TNT" },
-                new ChannelTop { Name = "Travel Channel", StreamingTVId = "TRVL" },
+                new ChannelTop { Name = "Travel Channel", StreamingTVId = "TRAVHD" },
                 new ChannelTop { Name = "TruTV", StreamingTVId = "TRUTV" },
                 new ChannelTop { Name = "USA Network", StreamingTVId = "USA" },
                 new ChannelTop { Name = "VH1" },
