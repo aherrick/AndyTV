@@ -1,26 +1,28 @@
 name: guide
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: "0 0 * * *"   # every day at 00:00 UTC
 
 jobs:
   run:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
 
-      - name: Run scraper (produces out/guide.json)
+      - name: Run scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
 
-      # Push to the releases of a DIFFERENT repo (e.g., aherrick/andytv.guide)
-      - name: Upload guide.json to release (tag=guide)
-        env:
-          GH_TOKEN: ${{ secrets.GUIDE_RELEASES_TOKEN }}   # PAT with repo write on target repo
+      - name: Force-push guide.json to `guide` branch (single commit)
         run: |
-          gh release create guide -R aherrick/andytv.guide || true
-          gh release upload guide out/guide.json -R aherrick/andytv.guide --clobber
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan guide
+          cp out/guide.json guide.json
+          git add -f guide.json
+          git commit -m "Update guide.json $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          git push -f origin guide
