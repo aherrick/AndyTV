@@ -1,5 +1,6 @@
 ﻿@using Syncfusion.Blazor.Schedule
 @using System.Text.Json
+@inject HttpClient Http
 
 <SfSchedule TValue="ShowData"
 			Width="100%"
@@ -67,19 +68,18 @@
     private readonly List<ChannelData> Channels = new();
     private readonly List<ShowData> Events = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         CurrentDate = DateTime.Today;
         StartHour = "00:00";
         EndHour = "23:59";
 
-        LoadFromJson();
+        await LoadFromJson();
     }
 
-    private void LoadFromJson()
+    private async Task LoadFromJson()
     {
-        var json = File.ReadAllText("guide.json");
-        var items = JsonSerializer.Deserialize<List<JsonShow>>(json)!;
+        var items = await Http.GetFromJsonAsync<List<JsonShow>>("");
 
         foreach (var grp in items.GroupBy(i => i.Category))
         {
