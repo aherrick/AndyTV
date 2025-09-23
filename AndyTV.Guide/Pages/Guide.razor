@@ -1,85 +1,84 @@
-﻿@using Syncfusion.Blazor.Schedule
-@using System.Text.Json
+﻿@using AndyTV.Data.Models
+@using Syncfusion.Blazor.Schedule
 @inject HttpClient Http
 
-<SfSchedule TValue="ShowData"
-			Width="100%"
-			Height="100vh"
-			@bind-SelectedDate="CurrentDate"
-			@bind-CurrentView="CurrentView"
-			StartHour="@StartHour"
-			EndHour="@EndHour"
-			TimeFormat="h:mm tt"
-			AllowDragAndDrop="false">
+<SfSchedule TValue="ShowEvent"
+            Width="100%"
+            Height="100vh"
+            @bind-SelectedDate="CurrentDate"
+            @bind-CurrentView="CurrentView"
+            StartHour="@StartHour"
+            EndHour="@EndHour"
+            TimeFormat="h:mm tt"
+            AllowDragAndDrop="false"
+            AllowResizing="false">
 
-	<!-- Quick-info for EVENTS only -->
-	<ScheduleQuickInfoTemplates TemplateType="TemplateType.Event">
-	@* 	<FooterTemplate Context="context">
-			@{
-				var ev = context as ShowData;
-			}
-			@if (ev is not null)
-			{
-				@ev.Description
-			}
-		</FooterTemplate> *@
-	</ScheduleQuickInfoTemplates>
+    <!-- Group: Category -> Channel -->
+    <ScheduleGroup Resources="@GroupData" />
 
-	<!-- Group: Category -> Channel -->
-	<ScheduleGroup Resources="@GroupData" />
+    <ScheduleResources>
+        <ScheduleResource TItem="CategoryData" TValue="string"
+                          DataSource="@Categories"
+                          Field="CategoryId"
+                          Title="Categories"
+                          Name="Categories"
+                          TextField="Text"
+                          IdField="Id" />
 
-	<ScheduleResources>
-		<!-- IMPORTANT: Field names match properties on ShowData -->
-		<ScheduleResource TItem="CategoryData" TValue="string"
-						  DataSource="@Categories"
-						  Field="CategoryId"
-						  Title="Categories"
-						  Name="Categories"
-						  TextField="Text"
-						  IdField="Id" />
+        <ScheduleResource TItem="ChannelData" TValue="string"
+                          DataSource="@Channels"
+                          Field="ChannelId"
+                          GroupIDField="CategoryId"
+                          Title="Channels"
+                          Name="Channels"
+                          TextField="Text"
+                          IdField="Id" />
+    </ScheduleResources>
 
-		<ScheduleResource TItem="ChannelData" TValue="string"
-						  DataSource="@Channels"
-						  Field="ChannelId"
-						  GroupIDField="CategoryId"
-						  Title="Channels"
-						  Name="Channels"
-						  TextField="Text"
-						  IdField="Id" />
-	</ScheduleResources>
+    <ScheduleViews>
+        <ScheduleView Option="View.TimelineDay" MaxEventsPerRow="1" />
+    </ScheduleViews>
 
-	<ScheduleViews>
-		<ScheduleView Option="View.TimelineDay" MaxEventsPerRow="1" />
-	</ScheduleViews>
+    <ScheduleQuickInfoTemplates TemplateType="TemplateType.Event">
+        <FooterTemplate Context="context">
+            @{
+                var ev = context as ShowEvent;
+            }
+            @if (ev is not null && !string.IsNullOrWhiteSpace(ev.Description))
+            {
+                @ev.Description
+            }
+        </FooterTemplate>
+    </ScheduleQuickInfoTemplates>
 
-	<!-- No custom field mapping needed because we use Subject/StartTime/EndTime -->
-	<ScheduleEventSettings TValue="ShowData" DataSource="@Events"
-						   AllowAdding="false" AllowEditing="false" AllowDeleting="false" />
+    <ScheduleEventSettings TValue="ShowEvent"
+                           DataSource="@Events"
+                           AllowAdding="false"
+                           AllowEditing="false"
+                           AllowDeleting="false" />
 </SfSchedule>
 
 @code {
     private View CurrentView = View.TimelineDay;
-    private DateTime CurrentDate;
-    private string StartHour = "";
-    private string EndHour = "";
+    private DateTime CurrentDate = DateTime.Today;
+    private string StartHour = "00:00";
+    private string EndHour = "23:59";
+
     public string[] GroupData { get; set; } = { "Categories", "Channels" };
 
     private readonly List<CategoryData> Categories = new();
     private readonly List<ChannelData> Channels = new();
-    private readonly List<ShowData> Events = new();
+    private readonly List<ShowEvent> Events = new();
 
     protected override async Task OnInitializedAsync()
     {
-        CurrentDate = DateTime.Today;
-        StartHour = "00:00";
-        EndHour = "23:59";
-
         await LoadFromJson();
     }
 
     private async Task LoadFromJson()
     {
-        var items = await Http.GetFromJsonAsync<List<JsonShow>>("https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
+        var items = await Http.GetFromJsonAsync<List<Show>>(
+            "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
 
         foreach (var grp in items.GroupBy(i => i.Category))
         {
@@ -102,30 +101,34 @@
 
                 foreach (var s in chanGrp)
                 {
-                    Events.Add(new ShowData
+                    Events.Add(new ShowEvent
                     {
-                        Subject = s.Title,
+                        StreamingTVId = s.StreamingTVId,
+                        ChannelName = s.ChannelName,
+                        Category = s.Category,
+                        Subject = s.Subject,
                         Description = s.Description,
-                        StartTime = DateTime.Parse(s.Start),
-                        EndTime = DateTime.Parse(s.End),
-                        ChannelId = channel.Id,
-                        CategoryId = cat.Id
+                        StartTime = s.StartTime,
+                        EndTime = s.EndTime,
+                        CategoryId = cat.Id,
+                        ChannelId = channel.Id
                     });
                 }
             }
         }
+
+        // Center the view on the first event's day (optional)
+        var first = Events.OrderBy(e => e.StartTime).FirstOrDefault();
+        if (first is not null)
+        {
+            CurrentDate = first.StartTime.Date;
+        }
     }
 
-    // Models
-    public sealed class JsonShow
+    public sealed class ShowEvent : Show
     {
-        public string StreamingTVId { get; set; }
-        public string ChannelName { get; set; }
-        public string Category { get; set; }
-        public string Title { get; set; }
-        public string Start { get; set; }
-        public string End { get; set; }
-        public string Description { get; set; }
+        public string CategoryId { get; set; }
+        public string ChannelId { get; set; }
     }
 
     public sealed class CategoryData
@@ -139,39 +142,6 @@
     {
         public string Id { get; set; }
         public string Text { get; set; }
-        public string CategoryId { get; set; }
-    }
-
-	// TODO: eliminate show data and json show the same. use a shared model between server and client
-    /*
-     * public sealed class ShowData
-{
-    [JsonPropertyName("Title")]
-    public string Subject { get; set; }
-
-    [JsonPropertyName("Start")]
-    public DateTime StartTime { get; set; }
-
-    [JsonPropertyName("End")]
-    public DateTime EndTime { get; set; }
-
-    [JsonPropertyName("Description")]
-    public string Description { get; set; }
-
-    [JsonPropertyName("ChannelName")]
-    public string ChannelId { get; set; }
-
-    [JsonPropertyName("Category")]
-    public string CategoryId { get; set; }
-}
-     */
-    public sealed class ShowData
-    {
-        public string Subject { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string Description { get; set; }
-        public string ChannelId { get; set; }
         public string CategoryId { get; set; }
     }
 }

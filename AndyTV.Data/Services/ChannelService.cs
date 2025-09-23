@@ -5,7 +5,7 @@ namespace AndyTV.Data.Services;
 
 public partial class ChannelService
 {
-    public static Dictionary<string, List<ChannelTop>> BuildTopUs()
+    public static Dictionary<string, List<ChannelTop>> TopUs()
     {
         return new(StringComparer.OrdinalIgnoreCase)
         {
@@ -30,26 +30,26 @@ public partial class ChannelService
             [
                 new ChannelTop { Name = "A&E", AltNames = ["AE"] },
                 new ChannelTop { Name = "AMC" },
-                new ChannelTop { Name = "Bravo", StreamingTvId = "BRAVO" },
+                new ChannelTop { Name = "Bravo", StreamingTVId = "BRAVO" },
                 new ChannelTop { Name = "Comedy Central" },
                 new ChannelTop
                 {
                     Name = "Discovery Channel",
                     AltNames = ["Discovery"],
-                    StreamingTvId = "DSCHD",
+                    StreamingTVId = "DSCHD",
                 },
                 new ChannelTop { Name = "Disney Channel", AltNames = ["Disney"] },
                 new ChannelTop
                 {
                     Name = "E!",
                     AltNames = ["E! Entertainment"],
-                    StreamingTvId = "EHD",
+                    StreamingTVId = "EHD",
                 },
                 new ChannelTop
                 {
                     Name = "Food Network",
                     AltNames = ["Food"],
-                    StreamingTvId = "FOOD",
+                    StreamingTVId = "FOOD",
                 },
                 new ChannelTop { Name = "FX" },
                 new ChannelTop { Name = "FXX" },
@@ -62,12 +62,12 @@ public partial class ChannelService
                     Name = "Hallmark Movies & Mysteries",
                     AltNames = ["Hallmark Movies and Mysteries", "HMM"],
                 },
-                new ChannelTop { Name = "HGTV", StreamingTvId = "HGTV" },
+                new ChannelTop { Name = "HGTV", StreamingTVId = "HGTV" },
                 new ChannelTop
                 {
                     Name = "History",
                     AltNames = ["History Channel"],
-                    StreamingTvId = "HSTRYHD",
+                    StreamingTVId = "HSTRYHD",
                 },
                 new ChannelTop { Name = "IFC" },
                 new ChannelTop { Name = "Lifetime" },
@@ -75,13 +75,13 @@ public partial class ChannelService
                 {
                     Name = "National Geographic",
                     AltNames = ["Nat Geo"],
-                    StreamingTvId = "NGC",
+                    StreamingTVId = "NGC",
                 },
                 new ChannelTop
                 {
                     Name = "National Geographic Wild",
                     AltNames = ["Nat Geo Wild"],
-                    StreamingTvId = "NGCWILD",
+                    StreamingTVId = "NGCWILD",
                 },
                 new ChannelTop { Name = "Oxygen" },
                 new ChannelTop { Name = "Paramount Network", AltNames = ["Paramount"] },
@@ -89,15 +89,15 @@ public partial class ChannelService
                 {
                     Name = "Smithsonian Channel",
                     AltNames = ["Smithsonian"],
-                    StreamingTvId = "SMTHHD",
+                    StreamingTVId = "SMTHHD",
                 },
                 new ChannelTop { Name = "Syfy", AltNames = ["Sci-Fi"] },
-                new ChannelTop { Name = "TBS", StreamingTvId = "TBS" },
+                new ChannelTop { Name = "TBS", StreamingTVId = "TBS" },
                 new ChannelTop { Name = "TCM", AltNames = ["Turner Classic Movies"] },
-                new ChannelTop { Name = "TNT", StreamingTvId = "TNT" },
-                new ChannelTop { Name = "Travel Channel", StreamingTvId = "TRVL" },
-                new ChannelTop { Name = "TruTV", StreamingTvId = "TRUTV" },
-                new ChannelTop { Name = "USA Network", StreamingTvId = "USA" },
+                new ChannelTop { Name = "TNT", StreamingTVId = "TNT" },
+                new ChannelTop { Name = "Travel Channel", StreamingTVId = "TRVL" },
+                new ChannelTop { Name = "TruTV", StreamingTVId = "TRUTV" },
+                new ChannelTop { Name = "USA Network", StreamingTVId = "USA" },
                 new ChannelTop { Name = "VH1" },
                 new ChannelTop { Name = "WE TV" },
                 new ChannelTop
@@ -140,9 +140,9 @@ public partial class ChannelService
 
             ["Movies"] =
             [
-                new ChannelTop { Name = "5StarMax", StreamingTvId = "MAX" },
-                new ChannelTop { Name = "ActionMax", StreamingTvId = "MAX" },
-                new ChannelTop { Name = "Cinemax", StreamingTvId = "MAX" },
+                new ChannelTop { Name = "5StarMax", StreamingTVId = "MAX" },
+                new ChannelTop { Name = "ActionMax", StreamingTVId = "MAX" },
+                new ChannelTop { Name = "Cinemax", StreamingTVId = "MAX" },
                 new ChannelTop { Name = "Epix", AltNames = ["MGM+"] },
                 new ChannelTop { Name = "Epix 2", AltNames = ["MGM+ 2"] },
                 new ChannelTop
@@ -152,18 +152,18 @@ public partial class ChannelService
                 },
                 new ChannelTop { Name = "Epix Hits", AltNames = ["MGM+ Hits"] },
                 new ChannelTop { Name = "Flix" },
-                new ChannelTop { Name = "HBO", StreamingTvId = "HBO" },
-                new ChannelTop { Name = "HBO 2", StreamingTvId = "HBO2" },
+                new ChannelTop { Name = "HBO", StreamingTVId = "HBO" },
+                new ChannelTop { Name = "HBO 2", StreamingTVId = "HBO2" },
                 new ChannelTop { Name = "HBO Comedy" },
                 new ChannelTop { Name = "HBO Family" },
-                new ChannelTop { Name = "HBO Signature", StreamingTvId = "HBOSGHD" },
-                new ChannelTop { Name = "HBO Zone", StreamingTvId = "HBOZHD" },
-                new ChannelTop { Name = "MoreMax", StreamingTvId = "MAX" },
+                new ChannelTop { Name = "HBO Signature", StreamingTVId = "HBOSGHD" },
+                new ChannelTop { Name = "HBO Zone", StreamingTVId = "HBOZHD" },
+                new ChannelTop { Name = "MoreMax", StreamingTVId = "MAX" },
                 new ChannelTop { Name = "Showtime" },
                 new ChannelTop { Name = "Showtime 2" },
                 new ChannelTop { Name = "Showtime Extreme" },
                 new ChannelTop { Name = "Showtime Showcase" },
-                new ChannelTop { Name = "Starz", StreamingTvId = "STARZ" },
+                new ChannelTop { Name = "Starz", StreamingTVId = "STARZ" },
                 new ChannelTop { Name = "Starz Cinema" },
                 new ChannelTop { Name = "Starz Comedy" },
                 new ChannelTop { Name = "Starz Edge" },
@@ -176,13 +176,13 @@ public partial class ChannelService
                 {
                     Name = "The Movie Channel",
                     AltNames = ["TMC"],
-                    StreamingTvId = "TMC",
+                    StreamingTVId = "TMC",
                 },
                 new ChannelTop
                 {
                     Name = "The Movie Channel Xtra",
                     AltNames = ["TMC Xtra", "TMCXtra"],
-                    StreamingTvId = "TMC",
+                    StreamingTVId = "TMC",
                 },
             ],
 
@@ -201,27 +201,27 @@ public partial class ChannelService
                 new ChannelTop { Name = "ABC News" },
                 new ChannelTop { Name = "Bloomberg" },
                 new ChannelTop { Name = "CBS News" },
-                new ChannelTop { Name = "CNBC", StreamingTvId = "CNBC" },
-                new ChannelTop { Name = "CNN", StreamingTvId = "CNNHD" },
+                new ChannelTop { Name = "CNBC", StreamingTVId = "CNBC" },
+                new ChannelTop { Name = "CNN", StreamingTVId = "CNNHD" },
                 new ChannelTop { Name = "CSPAN", AltNames = ["C-SPAN"] },
                 new ChannelTop { Name = "CSPAN 2", AltNames = ["C-SPAN 2"] },
                 new ChannelTop
                 {
                     Name = "Fox Business",
                     AltNames = ["Fox Business Network"],
-                    StreamingTvId = "FBN",
+                    StreamingTVId = "FBN",
                 },
                 new ChannelTop
                 {
                     Name = "Fox News",
                     AltNames = ["Fox News Channel"],
-                    StreamingTvId = "FNCHD",
+                    StreamingTVId = "FNCHD",
                 },
                 new ChannelTop { Name = "HLN", AltNames = ["Headline News"] },
-                new ChannelTop { Name = "MSNBC", StreamingTvId = "MSNBC" },
+                new ChannelTop { Name = "MSNBC", StreamingTVId = "MSNBC" },
                 new ChannelTop { Name = "NBC News" },
                 new ChannelTop { Name = "NewsNation" },
-                new ChannelTop { Name = "Newsmax", StreamingTvId = "NEWSMXH" },
+                new ChannelTop { Name = "Newsmax", StreamingTVId = "NEWSMXH" },
                 new ChannelTop
                 {
                     Name = "OANN",
@@ -232,7 +232,7 @@ public partial class ChannelService
 
             ["Other"] =
             [
-                new ChannelTop { Name = "BBC America", StreamingTvId = "BBCA" },
+                new ChannelTop { Name = "BBC America", StreamingTVId = "BBCA" },
                 new ChannelTop { Name = "Court TV", AltNames = ["CourtTV"] },
                 new ChannelTop { Name = "GSN", AltNames = ["Game Show Network"] },
                 new ChannelTop { Name = "ION", AltNames = ["ION Television"] },
@@ -251,68 +251,94 @@ public partial class ChannelService
                 {
                     Name = "ACC Network",
                     AltNames = ["ACCN"],
-                    StreamingTvId = "ACC",
+                    StreamingTVId = "ACC",
                 },
                 new ChannelTop
                 {
                     Name = "Big Ten Network",
                     AltNames = ["BTN"],
-                    StreamingTvId = "BIGTEN",
+                    StreamingTVId = "BIGTEN",
                 },
                 new ChannelTop
                 {
                     Name = "CBS Sports Network",
                     AltNames = ["CBSSN"],
-                    StreamingTvId = "CBSSN",
+                    StreamingTVId = "CBSSN",
                 },
-                new ChannelTop { Name = "ESPN", StreamingTvId = "ESPN" },
+                new ChannelTop { Name = "ESPN", StreamingTVId = "ESPN" },
                 new ChannelTop
                 {
                     Name = "ESPN 2",
                     AltNames = ["ESPN2"],
-                    StreamingTvId = "ESPN2",
+                    StreamingTVId = "ESPN2",
                 },
                 new ChannelTop
                 {
                     Name = "ESPN News",
                     AltNames = ["ESPNews"],
-                    StreamingTvId = "ESPNEWS",
+                    StreamingTVId = "ESPNEWS",
                 },
-                new ChannelTop { Name = "ESPNU", StreamingTvId = "ESPNU" },
+                new ChannelTop { Name = "ESPNU", StreamingTVId = "ESPNU" },
                 new ChannelTop
                 {
                     Name = "Fox Sports 1",
                     AltNames = ["FS1"],
-                    StreamingTvId = "FS1",
+                    StreamingTVId = "FS1",
                 },
                 new ChannelTop
                 {
                     Name = "Fox Sports 2",
                     AltNames = ["FS2"],
-                    StreamingTvId = "FS2",
+                    StreamingTVId = "FS2",
                 },
-                new ChannelTop { Name = "Golf Channel", StreamingTvId = "GOLF" },
-                new ChannelTop { Name = "MLB Network", StreamingTvId = "MLBHD" },
+                new ChannelTop { Name = "Golf Channel", StreamingTVId = "GOLF" },
+                new ChannelTop { Name = "MLB Network", StreamingTVId = "MLBHD" },
                 new ChannelTop
                 {
                     Name = "NBA TV",
                     AltNames = ["NBATV"],
-                    StreamingTvId = "NBATVHD",
+                    StreamingTVId = "NBATVHD",
                 },
-                new ChannelTop { Name = "NFL Network", StreamingTvId = "NFLNET" },
+                new ChannelTop { Name = "NFL Network", StreamingTVId = "NFLNET" },
                 new ChannelTop { Name = "NFL RedZone", AltNames = ["RedZone"] },
                 new ChannelTop { Name = "NHL Network" },
                 new ChannelTop
                 {
                     Name = "SEC Network",
                     AltNames = ["SECN"],
-                    StreamingTvId = "SEC",
+                    StreamingTVId = "SEC",
                 },
             ],
         };
     }
 
-    public static Dictionary<string, List<ChannelTop>> BuildTopUk()
+    public static Dictionary<string, List<ChannelTop>> TopUsGuide()
+    {
+        var source = TopUs();
+        var result = new Dictionary<string, List<ChannelTop>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var kvp in source)
+        {
+            var filtered = new List<ChannelTop>();
+
+            foreach (var c in kvp.Value)
+            {
+                if (!string.IsNullOrEmpty(c.StreamingTVId))
+                {
+                    filtered.Add(c);
+                }
+            }
+
+            if (filtered.Count > 0)
+            {
+                result[kvp.Key] = filtered;
+            }
+        }
+
+        return result;
+    }
+
+    public static Dictionary<string, List<ChannelTop>> TopUk()
     {
         return new(StringComparer.OrdinalIgnoreCase)
         {

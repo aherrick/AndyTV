@@ -13,4 +13,8 @@
     <PackageReference Include="Syncfusion.Blazor.Themes" Version="31.1.20" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
+  </ItemGroup>
+
 </Project>

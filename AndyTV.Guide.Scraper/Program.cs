@@ -1,4 +1,7 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
+using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using AngleSharp;
 using AngleSharp.Dom;
 
@@ -23,115 +26,133 @@ await File.WriteAllTextAsync(Path.Combine(outDir, "guide.json"), JsonSerializer.
 // Print confirmation with the total show count
 Console.WriteLine($"Done. {shows.Count} shows");
 
-// use repo root if running in GitHub Actions; else current dir
-
 // ------------------- Methods -------------------
 
-static async Task<List<Guide>> RefreshGuide()
+static async Task<List<Show>> RefreshGuide()
 {
-    var tvChannelFavs = GetTVChannels();
-    var shows = new List<Guide>();
+    // category -> channels
+    var top = ChannelService.TopUsGuide(); // Dictionary<string, List<ChannelTop>>
+
+    var shows = new List<Show>();
     var pstTz = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
 
-    foreach (
-        var tvChannelFav in tvChannelFavs.Where(x => !string.IsNullOrWhiteSpace(x.StreamingTVId))
-    )
+    var channelsWithIds = 0;
+
+    foreach (var kvp in top)
     {
-        await Task.Delay(15000); // polite delay
+        var category = kvp.Key;
+        var channels = kvp.Value;
 
-        var url = $"https://streamingtvguides.com/Channel/{tvChannelFav.StreamingTVId}";
-        Console.WriteLine($"Scraping {tvChannelFav.ChannelName} from {url} ...");
-        var countBefore = shows.Count;
-
-        try
+        foreach (var tvChannelFav in channels)
         {
-            var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
-            var document = await context.OpenAsync(url);
-
-            var cards = document.QuerySelectorAll(".card-body").ToList();
-            if (cards.Count == 0)
+            if (string.IsNullOrWhiteSpace(tvChannelFav.StreamingTVId))
             {
-                Console.WriteLine(
-                    $"[WARN] No .card-body elements found for {tvChannelFav.ChannelName}. URL: {url}"
-                );
-                Console.WriteLine("[DEBUG] Dumping first 500 chars of HTML:");
-                Console.WriteLine(
-                    document
-                        .DocumentElement
-                        ?.OuterHtml[..Math.Min(500, document.DocumentElement.OuterHtml.Length)]
-                );
+                continue;
             }
 
-            foreach (var showHtml in cards)
+            channelsWithIds++;
+
+            await Task.Delay(15000); // polite delay
+
+            var url = $"https://streamingtvguides.com/Channel/{tvChannelFav.StreamingTVId}";
+            Console.WriteLine($"Scraping [{category}] {tvChannelFav.Name} from {url} ...");
+            var countBefore = shows.Count;
+
+            try
             {
-                var title =
-                    showHtml
-                        .QuerySelector("h5")
-                        ?.TextContent.Replace(
-                            "Playing Now!",
-                            "",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        .Trim() ?? "";
+                var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
+                var document = await context.OpenAsync(url);
 
-                var sub = showHtml.QuerySelector("h6")?.TextContent ?? "";
-                if (!string.IsNullOrWhiteSpace(sub))
+                var cards = document.QuerySelectorAll(".card-body").ToList();
+                if (cards.Count == 0)
                 {
-                    title += " - " + sub.Trim();
+                    Console.WriteLine(
+                        $"[WARN] No .card-body for [{category}] {tvChannelFav.Name}. URL: {url}"
+                    );
+                    Console.WriteLine("[DEBUG] Dumping first 500 chars of HTML:");
+                    Console.WriteLine(
+                        document
+                            .DocumentElement
+                            ?.OuterHtml[..Math.Min(500, document.DocumentElement.OuterHtml.Length)]
+                            ?? ""
+                    );
                 }
 
-                var timeLine = showHtml
-                    .ChildNodes.OfType<IText>()
-                    .Select(m => m.Text.Trim())
-                    .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
-                    ?.Replace("\n", "")
-                    ?.Replace("PST", "", StringComparison.OrdinalIgnoreCase)
-                    ?.Replace("PDT", "", StringComparison.OrdinalIgnoreCase);
-
-                if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
+                foreach (var showHtml in cards)
                 {
-                    Console.WriteLine($"[DEBUG] Skipping show (no timeline) → Title: {title}");
-                    continue;
+                    var title =
+                        showHtml
+                            .QuerySelector("h5")
+                            ?.TextContent.Replace(
+                                "Playing Now!",
+                                "",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                            .Trim() ?? "";
+
+                    var sub = showHtml.QuerySelector("h6")?.TextContent ?? "";
+                    if (!string.IsNullOrWhiteSpace(sub))
+                    {
+                        title += " - " + sub.Trim();
+                    }
+
+                    var timeLine = showHtml
+                        .ChildNodes.OfType<IText>()
+                        .Select(m => m.Text.Trim())
+                        .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                        ?.Replace("\n", "")
+                        ?.Replace("PST", "", StringComparison.OrdinalIgnoreCase)
+                        ?.Replace("PDT", "", StringComparison.OrdinalIgnoreCase);
+
+                    if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
+                    {
+                        Console.WriteLine($"[DEBUG] Skipping show (no timeline) → Title: {title}");
+                        continue;
+                    }
+
+                    var parts = timeLine.Split(" - ", StringSplitOptions.TrimEntries);
+                    if (parts.Length != 2)
+                    {
+                        Console.WriteLine($"[DEBUG] Invalid timeline format: '{timeLine}'");
+                        continue;
+                    }
+
+                    var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
+                    var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
+                    var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
+
+                    var showDb = new Show
+                    {
+                        StreamingTVId = tvChannelFav.StreamingTVId,
+                        ChannelName = tvChannelFav.Name,
+                        Category = category, // <-- category comes from the DICTIONARY KEY
+                        Subject = title,
+                        StartTime = startUtc,
+                        EndTime = endUtc,
+                        Description = desc,
+                    };
+
+                    var exists = shows.FirstOrDefault(p =>
+                        p.Subject == showDb.Subject
+                        && p.StartTime == showDb.StartTime
+                        && p.ChannelName == showDb.ChannelName
+                    );
+
+                    if (exists == null && showDb.StartTime > DateTime.UtcNow.AddHours(-6))
+                    {
+                        shows.Add(showDb);
+                    }
                 }
 
-                var parts = timeLine.Split(" - ", StringSplitOptions.TrimEntries);
-                if (parts.Length != 2)
-                {
-                    Console.WriteLine($"[DEBUG] Invalid timeline format: '{timeLine}'");
-                    continue;
-                }
-
-                var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
-                var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
-                var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
-
-                var showDb = new Guide
-                {
-                    StreamingTVId = tvChannelFav.StreamingTVId,
-                    ChannelName = tvChannelFav.ChannelName,
-                    Category = tvChannelFav.Category,
-                    Title = title,
-                    Start = startUtc,
-                    End = endUtc,
-                    Description = desc,
-                };
-
-                var exists = shows.FirstOrDefault(p =>
-                    p.Title == showDb.Title && p.Start == showDb.Start
-                );
-
-                if (exists == null && showDb.Start > DateTime.UtcNow.AddHours(-6))
-                {
-                    shows.Add(showDb);
-                }
+                var added = shows.Count - countBefore;
+                Console.WriteLine($" → [{category}] {tvChannelFav.Name}: pulled {added} shows");
             }
-
-            var added = shows.Count - countBefore;
-            Console.WriteLine($" → {tvChannelFav.ChannelName}: pulled {added} shows");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ERROR] Failed to scrape {tvChannelFav.ChannelName} ({url}): {ex}");
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"[ERROR] Failed to scrape [{category}] {tvChannelFav.Name} ({url}): {ex}"
+                );
+            }
         }
     }
 
@@ -140,262 +161,8 @@ static async Task<List<Guide>> RefreshGuide()
         Console.WriteLine("[ERROR] RefreshGuide returned ZERO shows. Something is wrong.");
     }
 
-    Console.WriteLine($"TOTAL: {shows.Count} shows across {tvChannelFavs.Count} channels");
+    Console.WriteLine(
+        $"TOTAL: {shows.Count} shows across {channelsWithIds} channels (with StreamingTVId)"
+    );
     return shows;
-}
-
-static List<TVChannel> GetTVChannels() =>
-    [
-        // Sports
-        new()
-        {
-            ChannelName = "ESPN",
-            Category = "Sports",
-            StreamingTVId = "ESPN",
-        },
-        new()
-        {
-            ChannelName = "ESPN2",
-            Category = "Sports",
-            StreamingTVId = "ESPN2",
-        },
-        new()
-        {
-            ChannelName = "ESPNews",
-            Category = "Sports",
-            StreamingTVId = "ESPNEWS",
-        },
-        new()
-        {
-            ChannelName = "ESPNU",
-            Category = "Sports",
-            StreamingTVId = "ESPNU",
-        },
-        new()
-        {
-            ChannelName = "FS1",
-            Category = "Sports",
-            StreamingTVId = "FS1",
-        },
-        new()
-        {
-            ChannelName = "FS2",
-            Category = "Sports",
-            StreamingTVId = "FS2",
-        },
-        new()
-        {
-            ChannelName = "NFL Network",
-            Category = "Sports",
-            StreamingTVId = "NFLNET",
-        },
-        new()
-        {
-            ChannelName = "NBA TV",
-            Category = "Sports",
-            StreamingTVId = "NBATVHD",
-        },
-        new()
-        {
-            ChannelName = "MLB Network",
-            Category = "Sports",
-            StreamingTVId = "MLBHD",
-        },
-        new()
-        {
-            ChannelName = "Golf Channel",
-            Category = "Sports",
-            StreamingTVId = "GOLF",
-        },
-        // News
-        new()
-        {
-            ChannelName = "Newsmax",
-            Category = "News",
-            StreamingTVId = "NEWSMXH",
-        },
-        new()
-        {
-            ChannelName = "Fox News",
-            Category = "News",
-            StreamingTVId = "FNCHD",
-        },
-        new()
-        {
-            ChannelName = "Fox Business",
-            Category = "News",
-            StreamingTVId = "FBN",
-        },
-        new()
-        {
-            ChannelName = "CNN",
-            Category = "News",
-            StreamingTVId = "CNNHD",
-        },
-        new()
-        {
-            ChannelName = "MSNBC",
-            Category = "News",
-            StreamingTVId = "MSNBC",
-        },
-        new()
-        {
-            ChannelName = "CNBC",
-            Category = "News",
-            StreamingTVId = "CNBC",
-        },
-        // Entertainment
-        new()
-        {
-            ChannelName = "BBC America",
-            Category = "Entertainment",
-            StreamingTVId = "BBCA",
-        },
-        new()
-        {
-            ChannelName = "USA Network",
-            Category = "Entertainment",
-            StreamingTVId = "USA",
-        },
-        new()
-        {
-            ChannelName = "E!",
-            Category = "Entertainment",
-            StreamingTVId = "EHD",
-        },
-        new()
-        {
-            ChannelName = "History",
-            Category = "Entertainment",
-            StreamingTVId = "HSTRYHD",
-        },
-        new()
-        {
-            ChannelName = "Discovery Channel",
-            Category = "Entertainment",
-            StreamingTVId = "DSCHD",
-        },
-        new()
-        {
-            ChannelName = "Science Channel",
-            Category = "Entertainment",
-            StreamingTVId = "SCIHD",
-        },
-        new()
-        {
-            ChannelName = "Smithsonian",
-            Category = "Entertainment",
-            StreamingTVId = "SMTHHD",
-        },
-        new()
-        {
-            ChannelName = "Travel Channel",
-            Category = "Entertainment",
-            StreamingTVId = "TRVL",
-        },
-        new()
-        {
-            ChannelName = "DIY Network",
-            Category = "Entertainment",
-            StreamingTVId = "DIY",
-        },
-        new()
-        {
-            ChannelName = "HGTV",
-            Category = "Entertainment",
-            StreamingTVId = "HGTV",
-        },
-        new()
-        {
-            ChannelName = "TLC",
-            Category = "Entertainment",
-            StreamingTVId = "TLC",
-        },
-        new()
-        {
-            ChannelName = "Bravo",
-            Category = "Entertainment",
-            StreamingTVId = "BRAVO",
-        },
-        new()
-        {
-            ChannelName = "Food Network",
-            Category = "Entertainment",
-            StreamingTVId = "FOOD",
-        },
-        new()
-        {
-            ChannelName = "truTV",
-            Category = "Entertainment",
-            StreamingTVId = "TRUTV",
-        },
-        // Movies / Premium
-        new()
-        {
-            ChannelName = "HBO",
-            Category = "Movies",
-            StreamingTVId = "HBO",
-        },
-        new()
-        {
-            ChannelName = "HBO 2",
-            Category = "Movies",
-            StreamingTVId = "HBO2",
-        },
-        new()
-        {
-            ChannelName = "HBO Signature",
-            Category = "Movies",
-            StreamingTVId = "HBOSGHD",
-        },
-        new()
-        {
-            ChannelName = "HBO Zone",
-            Category = "Movies",
-            StreamingTVId = "HBOZHD",
-        },
-        new()
-        {
-            ChannelName = "Starz",
-            Category = "Movies",
-            StreamingTVId = "STARZ",
-        },
-        new()
-        {
-            ChannelName = "Starz Encore",
-            Category = "Movies",
-            StreamingTVId = "STZENHD",
-        },
-        new()
-        {
-            ChannelName = "Cinemax",
-            Category = "Movies",
-            StreamingTVId = "MAX",
-        },
-        new()
-        {
-            ChannelName = "The Movie Channel",
-            Category = "Movies",
-            StreamingTVId = "TMC",
-        },
-    ];
-
-// ------------------- Models -------------------
-
-public class TVChannel
-{
-    public string ChannelName { get; set; } = "";
-    public string Category { get; set; } = "";
-    public string StreamingTVId { get; set; } = "";
-}
-
-public class Guide
-{
-    public string StreamingTVId { get; set; } = "";
-    public string ChannelName { get; set; } = "";
-    public string Category { get; set; } = "";
-    public string Title { get; set; } = "";
-    public DateTime Start { get; set; }
-    public DateTime End { get; set; }
-    public string Description { get; set; } = "";
 }

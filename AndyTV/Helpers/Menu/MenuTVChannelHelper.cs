@@ -31,8 +31,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
         Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
 
-        var usTask = Task.Run(() => BuildTopMenu("US", ChannelService.BuildTopUs(), channelClick));
-        var ukTask = Task.Run(() => BuildTopMenu("UK", ChannelService.BuildTopUk(), channelClick));
+        var usTask = Task.Run(() => BuildTopMenu("US", ChannelService.TopUs(), channelClick));
+        var ukTask = Task.Run(() => BuildTopMenu("UK", ChannelService.TopUk(), channelClick));
         var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
 
         // TODO: consider parallelizing these if they become slow / also movie/tv
