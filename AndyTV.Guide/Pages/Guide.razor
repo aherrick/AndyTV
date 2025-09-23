@@ -79,7 +79,7 @@
 
     private async Task LoadFromJson()
     {
-        var items = await Http.GetFromJsonAsync<List<JsonShow>>("");
+        var items = await Http.GetFromJsonAsync<List<JsonShow>>("https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
 
         foreach (var grp in items.GroupBy(i => i.Category))
         {
