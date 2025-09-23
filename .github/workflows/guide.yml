@@ -2,11 +2,14 @@ name: guide
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 0 * * *"   # every day at 00:00 UTC
+    - cron: "0 0 * * *"  # midnight UTC daily
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v5
@@ -17,11 +20,13 @@ jobs:
       - name: Run scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
 
-      - name: Force-push guide.json to `guide` branch (single commit)
+      - name: Force-push single-file branch `guide`
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout --orphan guide
+          git rm -rf . >/dev/null 2>&1 || true
+          git clean -fdx
           cp out/guide.json guide.json
           git add -f guide.json
           git commit -m "Update guide.json $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
