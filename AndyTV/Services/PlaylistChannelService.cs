@@ -44,15 +44,31 @@ public static class PlaylistChannelService
 
     public static async Task RefreshChannels()
     {
+        Logger.Info("RefreshChannels: start");
+
         var source = Load();
+        Logger.Info($"Loaded {source.Count} playlists");
+
         var http = new HttpClient();
 
         var tasks = source.Select(async p =>
         {
-            var m3uText = await http.GetStringAsync(p.Url);
+            Logger.Info($"Fetching playlist: {p.Name} ({p.Url})");
+
+            string m3uText;
+            try
+            {
+                m3uText = await http.GetStringAsync(p.Url);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed to fetch {p.Url}");
+                return (p, new List<Channel>());
+            }
 
             if (string.IsNullOrWhiteSpace(m3uText))
             {
+                Logger.Warn($"Playlist {p.Name} returned empty content");
                 return (p, new List<Channel>());
             }
 
@@ -79,6 +95,8 @@ public static class PlaylistChannelService
                 );
             }
 
+            Logger.Info($"Playlist {p.Name}: parsed {channels.Count} channels");
+
             return (p, channels);
         });
 
@@ -91,5 +109,8 @@ public static class PlaylistChannelService
                 .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First()),
         ];
+
+        Logger.Info($"RefreshChannels: total unique channels = {Channels.Count}");
+        Logger.Info("RefreshChannels: done");
     }
 }
