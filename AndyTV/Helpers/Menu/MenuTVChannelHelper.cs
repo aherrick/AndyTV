@@ -1,8 +1,4 @@
 ﻿// AndyTV/Helpers/Menu/MenuTVChannelHelper.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows.Forms;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Services;
