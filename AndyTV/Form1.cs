@@ -330,9 +330,17 @@ public partial class Form1 : Form
 
         channelsMenu.DropDownItems.Add(new ToolStripSeparator());
 
-        var playlistsItem = new ToolStripMenuItem("Manage Playlists…");
+        var playlistsItem = new ToolStripMenuItem("Manage");
         playlistsItem.Click += async (_, __) => await HandlePlaylistManager();
         channelsMenu.DropDownItems.Add(playlistsItem);
+
+        // add a "Refresh Channels" item under it
+        var refreshItem = new ToolStripMenuItem("Refresh");
+        refreshItem.Click += async (_, __) =>
+        {
+            await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
+        };
+        channelsMenu.DropDownItems.Add(refreshItem);
 
         _contextMenuStrip.Items.Add(channelsMenu);
 
