@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 
 namespace AndyTV.Helpers;
 
@@ -60,4 +61,19 @@ public static class UtilHelper
 
         return false;
     }
+
+    public static bool IsValidUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u))
+        {
+            return false;
+        }
+        return u.Scheme is "http" or "https";
+    }
+
+    public static string GenerateSnapshot<T>(T value) => JsonSerializer.Serialize(value);
 }

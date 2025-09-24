@@ -105,9 +105,9 @@ public partial class FavoriteChannelForm : Form
             Margin = new Padding(0),
         };
 
-        _moveUpButton = CreateButton("Up", MoveUpButton_Click);
-        _moveDownButton = CreateButton("Down", MoveDownButton_Click);
-        _removeButton = CreateButton("Remove", RemoveButton_Click);
+        _moveUpButton = UIHelper.CreateButton("Up", MoveUpButton_Click);
+        _moveDownButton = UIHelper.CreateButton("Down", MoveDownButton_Click);
+        _removeButton = UIHelper.CreateButton("Remove", RemoveButton_Click);
         rightButtons.Controls.AddRange([_moveUpButton, _moveDownButton, _removeButton]);
 
         main.Controls.Add(rightButtons, 1, 1);
@@ -132,11 +132,11 @@ public partial class FavoriteChannelForm : Form
             WrapContents = false,
         };
 
-        _importButton = CreateButton("Import", ImportFavorites);
-        _exportButton = CreateButton("Export", ExportFavorites);
+        _importButton = UIHelper.CreateButton("Import", ImportFavorites);
+        _exportButton = UIHelper.CreateButton("Export", ExportFavorites);
         leftButtons.Controls.AddRange([_importButton, _exportButton]);
 
-        _saveButton = CreateButton("Save", SaveButton_Click);
+        _saveButton = UIHelper.CreateButton("Save", SaveButton_Click);
         _saveButton.Width = 110;
         _saveButton.Height = 36;
         _saveButton.Font = new Font(_saveButton.Font, FontStyle.Bold);
@@ -151,22 +151,6 @@ public partial class FavoriteChannelForm : Form
         Controls.Add(main);
     }
 
-    // --- helper: consistent system-style buttons ---
-    private static Button CreateButton(string text, EventHandler onClick)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Width = 100,
-            Height = 35,
-            AutoSize = false,
-            Margin = new Padding(4),
-        };
-        btn.ApplySystemStyle();
-        btn.Click += onClick;
-        return btn;
-    }
-
     private void LoadExistingFavorites()
     {
         var existing = ChannelDataService.LoadFavoriteChannels();
@@ -175,14 +159,8 @@ public partial class FavoriteChannelForm : Form
         {
             _favorites.Add(ch);
         }
-        _baseline = SnapshotString();
+        _baseline = UtilHelper.GenerateSnapshot(_favorites);
     }
-
-    private string SnapshotString() =>
-        string.Join(
-            "|",
-            _favorites.Select(f => $"{f.DisplayName}:{f.Url}:{f.MappedName}:{f.Group}:{f.Category}")
-        );
 
     protected override void OnLoad(EventArgs e)
     {
@@ -192,7 +170,7 @@ public partial class FavoriteChannelForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        var current = SnapshotString();
+        var current = UtilHelper.GenerateSnapshot(_favorites);
         if (current != _baseline)
         {
             var result = MessageBox.Show(
@@ -321,7 +299,7 @@ public partial class FavoriteChannelForm : Form
         _favoritesGrid.EndEdit();
 
         ChannelDataService.SaveFavoriteChannels([.. _favorites]);
-        _baseline = SnapshotString();
+        _baseline = UtilHelper.GenerateSnapshot(_favorites);
         Saved = true;
     }
 
@@ -387,7 +365,7 @@ public partial class FavoriteChannelForm : Form
                 _favorites.Clear();
                 foreach (var ch in imported)
                     _favorites.Add(ch);
-                _baseline = SnapshotString();
+                _baseline = UtilHelper.GenerateSnapshot(_favorites);
                 MessageBox.Show(
                     $"Imported {_favorites.Count} favorite(s).",
                     "Import Complete",

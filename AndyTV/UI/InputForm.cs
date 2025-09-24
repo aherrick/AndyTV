@@ -5,8 +5,8 @@ namespace AndyTV.UI;
 public class InputForm : Form
 {
     public TextBox InputBox { get; } = new();
-    private readonly Button _okButton = new();
-    private readonly Button _cancelButton = new();
+    private Button _okButton;
+    private Button _cancelButton;
 
     public string Result => InputBox.Text.Trim();
 
@@ -53,24 +53,22 @@ public class InputForm : Form
         InputBox.Dock = DockStyle.Fill;
         InputBox.Text = defaultText;
 
-        // Buttons
+        // Buttons (via UIHelper)
+        _okButton = UIHelper.CreateButton("OK");
+        _okButton.DialogResult = DialogResult.OK;
+
+        _cancelButton = UIHelper.CreateButton("Cancel");
+        _cancelButton.DialogResult = DialogResult.Cancel;
+
         var buttonPanel = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.RightToLeft,
             Dock = DockStyle.Fill,
             AutoSize = true,
         };
-
-        _okButton.Text = "OK";
-        _okButton.DialogResult = DialogResult.OK;
-        _okButton.ApplySystemStyle();
-
-        _cancelButton.Text = "Cancel";
-        _cancelButton.DialogResult = DialogResult.Cancel;
-        _cancelButton.ApplySystemStyle();
-
         buttonPanel.Controls.AddRange([_cancelButton, _okButton]);
 
+        // Layout
         mainPanel.Controls.Add(promptLabel, 0, 0);
         mainPanel.Controls.Add(InputBox, 0, 1);
         mainPanel.Controls.Add(buttonPanel, 0, 2);
@@ -80,9 +78,6 @@ public class InputForm : Form
         AcceptButton = _okButton;
         CancelButton = _cancelButton;
 
-        Shown += (_, _) =>
-        {
-            InputBox.Focus();
-        };
+        Shown += (_, _) => InputBox.Focus();
     }
 }

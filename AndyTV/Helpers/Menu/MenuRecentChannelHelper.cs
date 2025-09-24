@@ -12,7 +12,7 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
 
     public void RebuildRecentMenu()
     {
-        var recents = RecentChannelsService.GetRecentChannels();
+        var recents = RecentChannelService.GetRecentChannels();
 
         _ui.Post(
             _ =>

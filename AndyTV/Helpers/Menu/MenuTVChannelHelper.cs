@@ -6,12 +6,8 @@ namespace AndyTV.Helpers.Menu;
 
 public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 {
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+    private readonly List<ToolStripItem> _added = [];
 
-    public List<Channel> Channels { get; private set; } = [];
-
-    // ---- helper to create/wire/add a channel item in one place ----
     private static void AddChannelItem(
         ToolStripMenuItem parent,
         Channel ch,
@@ -24,54 +20,54 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         parent.DropDownItems.Add(item);
     }
 
-    public async Task LoadAndBuildMenu(EventHandler channelClick, string m3uURL)
+    public async Task RebuildMenu(EventHandler channelClick)
     {
-        MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        foreach (var it in _added)
+        {
+            menu.Items.Remove(it);
+        }
+        _added.Clear();
 
-        var parsed = await Task.Run(() => M3UService.ParseM3U(m3uURL));
-        Channels = [.. parsed.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)];
+        await PlaylistChannelService.RefreshChannels();
 
-        var usTask = Task.Run(() => BuildTopMenu("US", ChannelService.TopUs(), channelClick));
-        var ukTask = Task.Run(() => BuildTopMenu("UK", ChannelService.TopUk(), channelClick));
-        var twentyFourSevenTask = Task.Run(() => Build247("24/7", channelClick));
+        // ----- TOP CHANNELS -----
+        _added.Add(MenuHelper.AddHeader(menu, "TOP CHANNELS"));
+        BuildTopMenu("US", ChannelService.TopUs(), channelClick, PlaylistChannelService.Channels);
+        BuildTopMenu("UK", ChannelService.TopUk(), channelClick, PlaylistChannelService.Channels);
+        Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
-        // TODO: consider parallelizing these if they become slow / also movie/tv
-        //var movieVodTask = Task.Run(() => BuildVOD("Movie VOD", channelClick));
-        //var tvVodTask = Task.Run(() => BuildVOD("TV VOD", channelClick));
+        // ----- PLAYLISTS -----
+        _added.Add(MenuHelper.AddHeader(menu, "PLAYLISTS"));
 
-        var topItems = await Task.WhenAll(
-            usTask,
-            ukTask,
-            twentyFourSevenTask
-        //movieVodTask,
-        //tvVodTask
+        var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
+            x.Playlist.ShowInMenu
         );
 
-        _ui.Post(_ => menu.Items.AddRange([.. topItems.Where(item => item != null)]), null);
-
-        Logger.Info("[CHANNELS] Loaded");
-    }
-
-    private ToolStripMenuItem BuildVOD(string groupTitle, EventHandler channelClick)
-    {
-        var root = new ToolStripMenuItem(groupTitle);
-
-        var channels = Channels
-            .Where(ch => string.Equals(ch.Group, groupTitle, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var ch in channels)
+        foreach (var (Playlist, Channels) in playlistChannelsMenu)
         {
-            AddChannelItem(root, ch, channelClick);
+            var root = new ToolStripMenuItem(Playlist.Name);
+
+            foreach (var channel in Channels)
+            {
+                AddChannelItem(root, channel, channelClick);
+            }
+
+            if (root.DropDownItems.Count > 0)
+            {
+                menu.Items.Add(root);
+                _added.Add(root);
+            }
         }
 
-        return root.DropDownItems.Count > 0 ? root : null;
+        Logger.Info(
+            "[CHANNELS] Menu rebuilt from PlaylistChannelsService.PlaylistChannels and .Channels"
+        );
     }
 
-    public ToolStripMenuItem Build247(string rootTitle, EventHandler channelClick)
+    public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
     {
         var root = new ToolStripMenuItem(rootTitle);
-        var entries = ChannelService.Get247Entries(rootTitle, Channels);
+        var entries = ChannelService.Get247Entries(rootTitle, channels);
 
         string currentBucket = null;
         ToolStripMenuItem currentMenu = null;
@@ -88,19 +84,20 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 currentMenu = new ToolStripMenuItem(currentBucket);
             }
 
-            if (entry.GroupBase == null) // Single
+            if (entry.GroupBase == null)
             {
                 AddChannelItem(currentMenu, entry.Channel, channelClick, entry.DisplayText);
             }
-            else // Grouped
+            else
             {
-                var subMenu = currentMenu
-                    .DropDownItems.OfType<ToolStripMenuItem>()
-                    .FirstOrDefault(m => m.Text == entry.GroupBase);
+                var subMenu =
+                    currentMenu
+                        .DropDownItems.OfType<ToolStripMenuItem>()
+                        .FirstOrDefault(m => m.Text == entry.GroupBase)
+                    ?? new ToolStripMenuItem(entry.GroupBase);
 
-                if (subMenu == null)
+                if (!currentMenu.DropDownItems.Contains(subMenu))
                 {
-                    subMenu = new ToolStripMenuItem(entry.GroupBase);
                     currentMenu.DropDownItems.Add(subMenu);
                 }
 
@@ -113,13 +110,18 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             root.DropDownItems.Add(currentMenu);
         }
 
-        return root;
+        if (root.DropDownItems.Count > 0)
+        {
+            menu.Items.Add(root);
+            _added.Add(root);
+        }
     }
 
-    private ToolStripMenuItem BuildTopMenu(
+    private void BuildTopMenu(
         string rootTitle,
         Dictionary<string, List<ChannelTop>> categories,
-        EventHandler channelClick
+        EventHandler channelClick,
+        List<Channel> channels
     )
     {
         var rootItem = new ToolStripMenuItem(rootTitle);
@@ -135,38 +137,42 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
             foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
-                // account for short names (<=2 chars) needing exact match
-                var matches = Channels
-                    .Where(ch =>
+                var matches = new List<Channel>();
+
+                foreach (var ch in channels)
+                {
+                    foreach (var term in entry.Terms)
                     {
-                        foreach (var term in entry.Terms)
-                        {
-                            var isExact = term.Length <= 2;
-                            if (
+                        var isExact = term.Length <= 2;
+
+                        if (
+                            (
                                 isExact
-                                    ? string.Equals(
-                                        ch.DisplayName,
-                                        term,
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-                                    : ch.DisplayName.Contains(
-                                        term,
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
+                                && string.Equals(
+                                    ch.DisplayName,
+                                    term,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
                             )
-                            {
-                                return true;
-                            }
+                            || (
+                                !isExact
+                                && ch.DisplayName != null
+                                && ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                            )
+                        )
+                        {
+                            matches.Add(ch);
+                            break;
                         }
-                        return false;
-                    })
-                    .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
+                    }
+                }
 
                 if (matches.Count == 0)
                 {
                     continue;
                 }
+
+                matches.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, true));
 
                 var parent = new ToolStripMenuItem(entry.Name);
                 foreach (var ch in matches)
@@ -183,13 +189,20 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             }
         }
 
-        return rootItem.DropDownItems.Count > 0 ? rootItem : null;
+        if (rootItem.DropDownItems.Count > 0)
+        {
+            menu.Items.Add(rootItem);
+            _added.Add(rootItem);
+        }
     }
 
-    public Channel ChannelByUrl(string url)
+    public static Channel ChannelByUrl(string url)
     {
-        return Channels.FirstOrDefault(ch =>
-            string.Equals(ch.Url.Trim(), url.Trim(), StringComparison.OrdinalIgnoreCase)
+        var target = (url ?? string.Empty).Trim();
+
+        return PlaylistChannelService.Channels.FirstOrDefault(ch =>
+            !string.IsNullOrWhiteSpace(ch.Url)
+            && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase)
         );
     }
 }

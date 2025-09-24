@@ -28,7 +28,6 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    // retry logic
     private bool _isRestartingStream = false;
 
     private const int STALL_SECONDS = 6;
@@ -49,20 +48,16 @@ public partial class Form1 : Form
         {
             var last = ChannelDataService.LoadLastChannel();
             if (last != null)
-            {
                 Play(last);
-            }
         };
 
         Logger.Info("Starting AndyTV...");
-
         Icon = new Icon("AndyTV.ico");
 
         _videoView.MediaPlayer.TimeChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
         };
-
         _videoView.MediaPlayer.PositionChanged += delegate
         {
             _lastActivityUtc = DateTime.UtcNow;
@@ -76,36 +71,27 @@ public partial class Form1 : Form
             _videoView.SetCursorForCurrentView();
 
             _notificationService.ShowToast(_currentChannel.DisplayName);
-            RecentChannelsService.AddOrPromote(_currentChannel);
+            RecentChannelService.AddOrPromote(_currentChannel);
             ChannelDataService.SaveLastChannel(_currentChannel);
             _menuRecentChannelHelper?.RebuildRecentMenu();
         };
 
-        // Configure VideoView with context menu and event handlers
         _videoView.ContextMenuStrip = _contextMenuStrip;
 
-        _videoView.MouseDoubleClick += (_, e) =>
+        _videoView.MouseDoubleClick += (_, __) =>
         {
             if (FormBorderStyle == FormBorderStyle.None)
-            {
                 RestoreWindow();
-            }
             else
-            {
                 MaximizeWindow();
-            }
         };
 
         _videoView.MouseDown += (_, e) =>
         {
             if (e.Button == MouseButtons.Left)
-            {
                 _mouseDownLeftPrevChannel = DateTime.Now;
-            }
             if (e.Button == MouseButtons.Right)
-            {
                 _mouseDownRightExit = DateTime.Now;
-            }
         };
 
         _videoView.MouseUp += (_, e) =>
@@ -116,11 +102,9 @@ public partial class Form1 : Form
                 && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
             )
             {
-                var prevChannel = RecentChannelsService.GetPrevious();
+                var prevChannel = RecentChannelService.GetPrevious();
                 if (prevChannel != null)
-                {
                     Play(prevChannel);
-                }
             }
 
             if (e.Button == MouseButtons.Middle)
@@ -139,24 +123,23 @@ public partial class Form1 : Form
         };
 
         Controls.Add(_videoView);
-
-        MaximizeWindow(); // start fullscreen
+        MaximizeWindow();
 
         ResizeEnd += delegate
         {
             if (WindowState == FormWindowState.Normal)
-            {
                 _manuallyAdjustedBounds = Bounds;
-            }
         };
 
-        Shown += delegate
+        Shown += async delegate
         {
+            // Prime channel cache
+            await PlaylistChannelService.RefreshChannels();
+
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
             _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
-
             BuildSettingsMenu(appVersionName);
 
             _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
@@ -168,30 +151,22 @@ public partial class Form1 : Form
             );
             _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
-            var source = M3UService.TryGetFirstSource();
-            if (source == null)
+            // If no valid playlist, open manager; if saved, refresh + rebuild
+            if (PlaylistChannelService.Load().Count == 0)
             {
-                RestoreWindow();
-                source = M3UService.PromptNewSource();
-                if (source == null)
-                {
-                    Logger.Warn("[APP] No M3U source selected. Exiting.");
-                    Close();
-                    return;
-                }
+                await HandlePlaylistManager();
             }
 
-            _ = _menuTVChannelHelper.LoadAndBuildMenu(ChItem_Click, source.Url);
+            // Initial menu build
+            await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
 
-            videoView.SetCursorForCurrentView();
+            _videoView.SetCursorForCurrentView();
 
-            _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 }; // 1s
+            _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _healthTimer.Tick += (_, __) =>
             {
                 if (_currentChannel == null)
-                {
                     return;
-                }
 
                 var nowUtc = DateTime.UtcNow;
                 var inactive = nowUtc - _lastActivityUtc;
@@ -201,29 +176,20 @@ public partial class Form1 : Form
                     if (_isRestartingStream)
                     {
                         Logger.Info(
-                            $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s, threshold={STALL_SECONDS}s)."
+                            $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s)."
                         );
                         return;
                     }
 
                     _isRestartingStream = true;
-
-                    // Throttle next attempts so we don't fire again immediately
                     _lastActivityUtc = nowUtc;
 
                     Logger.Info(
                         $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
                     );
-
-                    // LibVLC ops on the pool (no UI here)
                     Play(_currentChannel);
-
-                    // If VLC never reaches Playing, don't wedge forever — let timer try again in ~10s
                     _isRestartingStream = false;
-
-                    Logger.Info(
-                        "[HEALTH] Restart queued to thread pool; awaiting Playing or next health check."
-                    );
+                    Logger.Info("[HEALTH] Restart queued; awaiting Playing or next health check.");
                 }
             };
 
@@ -231,22 +197,32 @@ public partial class Form1 : Form
         };
     }
 
+    // Reusable: open Playlist Manager; if dlg.Saved, refresh + rebuild
+    private async Task HandlePlaylistManager()
+    {
+        _videoView.ShowDefault();
+        using (var dlg = new PlaylistManagerForm())
+        {
+            dlg.ShowDialog(this);
+            if (dlg.Saved)
+            {
+                await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
+            }
+        }
+        _videoView.SetCursorForCurrentView();
+    }
+
     private void ChItem_Click(object sender, EventArgs e)
     {
         if (sender is ToolStripMenuItem item && item.Tag is Channel ch)
-        {
             Play(ch);
-        }
     }
 
     private void Play(Channel channel)
     {
         _currentChannel = channel;
 
-        // UI feedback on UI thread
         _videoView.ShowWaiting();
-
-        // Cancel any pending restart cadence and give a fresh window
         _isRestartingStream = false;
         _lastActivityUtc = DateTime.UtcNow;
 
@@ -263,8 +239,8 @@ public partial class Form1 : Form
     private void MaximizeWindow()
     {
         FormBorderStyle = FormBorderStyle.None;
-        WindowState = FormWindowState.Normal; // Set to Normal first
-        Bounds = Screen.PrimaryScreen.Bounds; // Covers entire screen including taskbar area
+        WindowState = FormWindowState.Normal;
+        Bounds = Screen.PrimaryScreen.Bounds;
         _videoView.HideCursor();
     }
 
@@ -283,7 +259,6 @@ public partial class Form1 : Form
 
     private void BuildSettingsMenu(string appVersionName)
     {
-        // --- Header (click opens repo) ---
         var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName);
         header.Click += (_, __) =>
         {
@@ -303,12 +278,10 @@ public partial class Form1 : Form
         adHocItem.Click += (_, __) =>
         {
             _videoView.ShowDefault();
-            using var dialog = new AdHocChannelForm(_menuTVChannelHelper.Channels);
+            using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
             dialog.ShowDialog();
             if (dialog.SelectedItem != null)
-            {
                 Play(dialog.SelectedItem);
-            }
         };
         channelsMenu.DropDownItems.Add(adHocItem);
 
@@ -321,21 +294,15 @@ public partial class Form1 : Form
             {
                 var clip = Clipboard.GetText().Trim();
                 if (Uri.IsWellFormedUriString(clip, UriKind.Absolute))
-                {
                     input = clip;
-                }
             }
 
             if (string.IsNullOrWhiteSpace(input))
             {
                 _videoView.ShowDefault();
-
                 using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
-                {
                     return;
-                }
-
                 input = dlg.Result;
             }
 
@@ -355,30 +322,31 @@ public partial class Form1 : Form
             }
 
             var ch =
-                _menuTVChannelHelper.ChannelByUrl(input)
+                MenuTVChannelHelper.ChannelByUrl(input)
                 ?? new Channel { Name = "Swap", Url = input };
             Play(ch);
         };
         channelsMenu.DropDownItems.Add(swapItem);
+
+        channelsMenu.DropDownItems.Add(new ToolStripSeparator());
+
+        var playlistsItem = new ToolStripMenuItem("Manage Playlists…");
+        playlistsItem.Click += async (_, __) => await HandlePlaylistManager();
+        channelsMenu.DropDownItems.Add(playlistsItem);
 
         _contextMenuStrip.Items.Add(channelsMenu);
 
         // ===== Favorites =====
         var favoritesMenu = new ToolStripMenuItem("Favorites");
 
-        // local helper for both manage and add
         void OpenFavorites(Channel addOnOpen = null)
         {
             _videoView.ShowDefault();
-
-            using var form = new FavoriteChannelForm(_menuTVChannelHelper.Channels, addOnOpen);
+            using var form = new FavoriteChannelForm(PlaylistChannelService.Channels, addOnOpen);
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)
-                {
                     _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-                }
-
                 _videoView.SetCursorForCurrentView();
             };
             form.ShowDialog();
@@ -440,7 +408,6 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Items.Add(appMenu);
 
-        // ===== Dynamic state hooks =====
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
