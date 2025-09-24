@@ -2,23 +2,20 @@
 
 public static class MenuHelper
 {
-    // Return all created items so callers can track & remove them later.
-    public static ToolStripItem[] AddHeader(ContextMenuStrip menu, string text)
+    public static ToolStripMenuItem AddHeader(ContextMenuStrip menu, string text)
     {
-        var before = new ToolStripSeparator();
+        menu.Items.Add(new ToolStripSeparator());
 
-        var header = new ToolStripMenuItem
+        var topHeader = new ToolStripMenuItem
         {
             Text = text,
             Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
+            //  Enabled = false,
         };
+        menu.Items.Add(topHeader);
 
-        var after = new ToolStripSeparator();
+        menu.Items.Add(new ToolStripSeparator());
 
-        menu.Items.Add(before);
-        menu.Items.Add(header);
-        menu.Items.Add(after);
-
-        return [before, header, after];
+        return topHeader;
     }
 }

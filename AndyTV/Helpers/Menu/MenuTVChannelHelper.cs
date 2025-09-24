@@ -23,9 +23,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task RebuildMenu(EventHandler channelClick)
     {
-        // Remove everything we previously added (including header separators).
+        // Remove everything we previously added
         foreach (var it in _added)
         {
+            RemoveHeaderTrioIfNeeded(menu, it);
             menu.Items.Remove(it);
         }
         _added.Clear();
@@ -33,18 +34,20 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         await PlaylistChannelService.RefreshChannels();
 
         // ----- TOP CHANNELS -----
-        _added.AddRange(MenuHelper.AddHeader(menu, "TOP CHANNELS"));
+        var topHeader = MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        _added.Add(topHeader);
+
         BuildTopMenu("US", ChannelService.TopUs(), channelClick, PlaylistChannelService.Channels);
         BuildTopMenu("UK", ChannelService.TopUk(), channelClick, PlaylistChannelService.Channels);
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
         // ----- PLAYLISTS -----
-        _added.AddRange(MenuHelper.AddHeader(menu, "PLAYLISTS"));
+        var playlistsHeader = MenuHelper.AddHeader(menu, "PLAYLISTS");
+        _added.Add(playlistsHeader);
 
         var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
-        {
-            return x.Playlist.ShowInMenu;
-        });
+            x.Playlist.ShowInMenu
+        );
 
         foreach (var (Playlist, Channels) in playlistChannelsMenu)
         {
@@ -65,6 +68,23 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Logger.Info(
             "[CHANNELS] Menu rebuilt from PlaylistChannelsService.PlaylistChannels and .Channels"
         );
+    }
+
+    // Remove the left/right separators surrounding a header, if present.
+    private static void RemoveHeaderTrioIfNeeded(ContextMenuStrip menu, ToolStripItem item)
+    {
+        if (item is not ToolStripMenuItem)
+            return;
+
+        int idx = menu.Items.IndexOf(item);
+        if (idx < 0)
+            return;
+
+        if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
+            menu.Items.RemoveAt(idx + 1);
+
+        if (idx > 0 && menu.Items[idx - 1] is ToolStripSeparator)
+            menu.Items.RemoveAt(idx - 1);
     }
 
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
@@ -171,9 +191,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (matches.Count == 0)
-                {
                     continue;
-                }
 
                 matches.Sort(
                     (a, b) =>
@@ -211,9 +229,8 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var target = (url ?? string.Empty).Trim();
 
         return PlaylistChannelService.Channels.FirstOrDefault(ch =>
-        {
-            return !string.IsNullOrWhiteSpace(ch.Url)
-                && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase);
-        });
+            !string.IsNullOrWhiteSpace(ch.Url)
+            && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase)
+        );
     }
 }
