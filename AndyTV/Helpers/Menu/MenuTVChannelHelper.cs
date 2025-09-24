@@ -1,4 +1,9 @@
-﻿using AndyTV.Data.Models;
+﻿// AndyTV/Helpers/Menu/MenuTVChannelHelper.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
+using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Services;
 
@@ -22,6 +27,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task RebuildMenu(EventHandler channelClick)
     {
+        // Remove everything we previously added (including header separators).
         foreach (var it in _added)
         {
             menu.Items.Remove(it);
@@ -31,17 +37,18 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         await PlaylistChannelService.RefreshChannels();
 
         // ----- TOP CHANNELS -----
-        _added.Add(MenuHelper.AddHeader(menu, "TOP CHANNELS"));
+        _added.AddRange(MenuHelper.AddHeader(menu, "TOP CHANNELS"));
         BuildTopMenu("US", ChannelService.TopUs(), channelClick, PlaylistChannelService.Channels);
         BuildTopMenu("UK", ChannelService.TopUk(), channelClick, PlaylistChannelService.Channels);
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
         // ----- PLAYLISTS -----
-        _added.Add(MenuHelper.AddHeader(menu, "PLAYLISTS"));
+        _added.AddRange(MenuHelper.AddHeader(menu, "PLAYLISTS"));
 
         var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
-            x.Playlist.ShowInMenu
-        );
+        {
+            return x.Playlist.ShowInMenu;
+        });
 
         foreach (var (Playlist, Channels) in playlistChannelsMenu)
         {
@@ -172,7 +179,14 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     continue;
                 }
 
-                matches.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, true));
+                matches.Sort(
+                    (a, b) =>
+                        string.Compare(
+                            a.DisplayName,
+                            b.DisplayName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                );
 
                 var parent = new ToolStripMenuItem(entry.Name);
                 foreach (var ch in matches)
@@ -201,8 +215,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         var target = (url ?? string.Empty).Trim();
 
         return PlaylistChannelService.Channels.FirstOrDefault(ch =>
-            !string.IsNullOrWhiteSpace(ch.Url)
-            && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase)
-        );
+        {
+            return !string.IsNullOrWhiteSpace(ch.Url)
+                && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase);
+        });
     }
 }
