@@ -44,60 +44,53 @@ public static class PlaylistChannelService
 
     public static async Task RefreshChannels()
     {
-        Logger.Info("RefreshChannels: start");
+        Logger.Info("Refreshing channels...");
 
         var source = Load();
-        Logger.Info($"Loaded {source.Count} playlists");
+        Logger.Info($"Playlists: {source.Count}");
 
         var http = new HttpClient();
 
         var tasks = source.Select(async p =>
         {
-            Logger.Info($"Fetching playlist: {p.Name} ({p.Url})");
-
-            string m3uText;
             try
             {
-                m3uText = await http.GetStringAsync(p.Url);
+                var m3uText = await http.GetStringAsync(p.Url);
+                if (string.IsNullOrWhiteSpace(m3uText))
+                {
+                    Logger.Warn($"Empty playlist: {p.Name}");
+                    return (p, new List<Channel>());
+                }
+
+                var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
+                var channels = new List<Channel>(parsed.Channels.Count);
+
+                foreach (var item in parsed.Channels)
+                {
+                    var name = item.TvgName ?? item.Title;
+                    if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
+                    {
+                        name = WebUtility.HtmlDecode(item.TvgName);
+                    }
+
+                    channels.Add(
+                        new Channel
+                        {
+                            Name = name,
+                            Url = item.MediaUrl,
+                            Group = item.GroupTitle,
+                        }
+                    );
+                }
+
+                Logger.Info($"Playlist {p.Name}: {channels.Count} channels");
+                return (p, channels);
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Failed to fetch {p.Url}");
+                Logger.Error(ex, $"Failed: {p.Name} ({p.Url})");
                 return (p, new List<Channel>());
             }
-
-            if (string.IsNullOrWhiteSpace(m3uText))
-            {
-                Logger.Warn($"Playlist {p.Name} returned empty content");
-                return (p, new List<Channel>());
-            }
-
-            var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
-            var channels = new List<Channel>(parsed.Channels.Count);
-
-            for (int i = 0; i < parsed.Channels.Count; i++)
-            {
-                var item = parsed.Channels[i];
-                var name = item.TvgName ?? item.Title;
-
-                if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
-                {
-                    name = WebUtility.HtmlDecode(item.TvgName);
-                }
-
-                channels.Add(
-                    new Channel
-                    {
-                        Name = name,
-                        Url = item.MediaUrl,
-                        Group = item.GroupTitle,
-                    }
-                );
-            }
-
-            Logger.Info($"Playlist {p.Name}: parsed {channels.Count} channels");
-
-            return (p, channels);
         });
 
         PlaylistChannels = [.. await Task.WhenAll(tasks)];
@@ -110,7 +103,6 @@ public static class PlaylistChannelService
                 .Select(g => g.First()),
         ];
 
-        Logger.Info($"RefreshChannels: total unique channels = {Channels.Count}");
-        Logger.Info("RefreshChannels: done");
+        Logger.Info($"Unique channels: {Channels.Count}");
     }
 }
