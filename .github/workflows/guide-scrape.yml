@@ -2,7 +2,7 @@ name: guide-scrape
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 0 * * *"  # midnight UTC daily
+    - cron: "0 10 * * *"  # 6 AM US/Eastern (10:00 UTC)
 
 jobs:
   run:

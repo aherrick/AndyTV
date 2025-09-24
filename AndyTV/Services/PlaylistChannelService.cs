@@ -50,8 +50,13 @@ public static class PlaylistChannelService
         var tasks = source.Select(async p =>
         {
             var m3uText = await http.GetStringAsync(p.Url);
-            var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
 
+            if (string.IsNullOrWhiteSpace(m3uText))
+            {
+                return (p, new List<Channel>());
+            }
+
+            var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
             var channels = new List<Channel>(parsed.Channels.Count);
 
             for (int i = 0; i < parsed.Channels.Count; i++)
@@ -59,7 +64,7 @@ public static class PlaylistChannelService
                 var item = parsed.Channels[i];
                 var name = item.TvgName ?? item.Title;
 
-                if (item.TvgName is { Length: > 0 } && item.TvgName.AsSpan().IndexOf('&') >= 0)
+                if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
                 {
                     name = WebUtility.HtmlDecode(item.TvgName);
                 }
