@@ -195,7 +195,7 @@ public sealed class PlaylistManagerForm : Form
         _grid.EndEdit();
         Validate();
 
-        if (!_data.Any(x => UtilHelper.IsValidUrl(x.Url)))
+        if (!_data.All(x => UtilHelper.IsValidUrl(x.Url)))
         {
             MessageBox.Show(
                 this,
