@@ -68,11 +68,13 @@ public static class UtilHelper
         {
             return false;
         }
+
         if (!Uri.TryCreate(url, UriKind.Absolute, out var u))
         {
             return false;
         }
-        return u.Scheme is "http" or "https";
+
+        return (u.Scheme is "http" or "https") && !string.IsNullOrEmpty(u.Host);
     }
 
     public static string GenerateSnapshot<T>(T value) => JsonSerializer.Serialize(value);

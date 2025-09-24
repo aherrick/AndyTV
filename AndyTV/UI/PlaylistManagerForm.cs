@@ -37,7 +37,6 @@ public sealed class PlaylistManagerForm : Form
         _btnDelete = UIHelper.CreateButton("Delete", OnDelete);
         _btnSave = UIHelper.CreateButton("Save", (_, __) => Save());
 
-        // optional: tighten margins between left buttons
         _btnAdd.Margin = new Padding(0, 0, 8, 0);
         _btnDelete.Margin = new Padding(0, 0, 8, 0);
         _btnSave.Margin = new Padding(0);
@@ -49,6 +48,8 @@ public sealed class PlaylistManagerForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.AllowUserToDeleteRows = false;
         _grid.RowHeadersVisible = false;
+        _grid.AllowUserToResizeRows = false; // 👈 disable row resizing
+        _grid.RowTemplate.Height = 28; // 👈 enforce fixed row height
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect = false;
 
@@ -79,8 +80,7 @@ public sealed class PlaylistManagerForm : Form
             }
         );
 
-        // ---- Bottom bar that never hangs off ----
-        // Left:  [Add] [Delete]    |spacer|    Right: [Save]
+        // ---- Bottom bar ----
         var bottom = new TableLayoutPanel
         {
             Dock = DockStyle.Bottom,
@@ -92,7 +92,7 @@ public sealed class PlaylistManagerForm : Form
             Margin = new Padding(0),
         };
         bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // spacer
+        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
         var left = new FlowLayoutPanel
@@ -118,7 +118,7 @@ public sealed class PlaylistManagerForm : Form
         right.Controls.Add(_btnSave);
 
         bottom.Controls.Add(left, 0, 0);
-        bottom.Controls.Add(new Panel { Dock = DockStyle.Fill, Height = 0 }, 1, 0); // stretch spacer
+        bottom.Controls.Add(new Panel { Dock = DockStyle.Fill, Height = 0 }, 1, 0);
         bottom.Controls.Add(right, 2, 0);
 
         Controls.Add(_grid);
@@ -145,9 +145,7 @@ public sealed class PlaylistManagerForm : Form
 
     private void OnDelete(object sender, EventArgs e)
     {
-        if (_grid.CurrentRow is null)
-            return;
-        if (_grid.CurrentRow.DataBoundItem is not Playlist p)
+        if (_grid.CurrentRow?.DataBoundItem is not Playlist p)
             return;
 
         var ok = MessageBox.Show(
@@ -158,10 +156,10 @@ public sealed class PlaylistManagerForm : Form
             MessageBoxIcon.Question
         );
 
-        if (ok != DialogResult.Yes)
-            return;
-
-        _data.Remove(p);
+        if (ok == DialogResult.Yes)
+        {
+            _data.Remove(p);
+        }
     }
 
     private void OnFormClosing(object sender, FormClosingEventArgs e)
@@ -219,5 +217,13 @@ public sealed class PlaylistManagerForm : Form
         PlaylistChannelService.Save([.. _data]);
         _snapshot = UtilHelper.GenerateSnapshot(_data);
         Saved = true;
+
+        MessageBox.Show(
+            this,
+            "Save successful.",
+            "Playlists",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information
+        );
     }
 }
