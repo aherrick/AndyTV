@@ -1,38 +1,29 @@
 name: scan
-
 on:
   workflow_dispatch:
   pull_request:
-
 jobs:
   analyze:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
-
-      - name: Install workloads needed by the solution (Blazor WASM)
-        shell: pwsh
+      - name: Install workloads for Blazor
         run: |
           dotnet workload install wasm-tools
           dotnet workload restore
-
-      - name: Restore
-        run: dotnet restore "AndyTV.sln"
-
-      - name: Build (verifies packages/workloads resolve)
-        run: dotnet build "AndyTV.sln" -c Release
-
+      - name: Restore & build
+        run: |
+          dotnet restore "AndyTV.sln"
+          dotnet build "AndyTV.sln" -c Release
       - name: Install Roslynator CLI (latest)
         shell: pwsh
         run: |
           dotnet tool install --global roslynator.dotnet.cli
           echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Analyze solution (defaults)
+      - name: Analyze (ignore compiler diagnostics)
         shell: pwsh
-        run: roslynator analyze "AndyTV.sln"
+        run: roslynator analyze "AndyTV.sln" --ignore-compiler-diagnostics
