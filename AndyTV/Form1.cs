@@ -151,6 +151,7 @@ public partial class Form1 : Form
                 _contextMenuStrip,
                 ChItem_Click
             );
+            _menuFavoriteChannelHelper.EnsureAnchors(); // <-- one-time call to ensure anchors are present for easy rebuild/remove of favs
             _menuFavoriteChannelHelper.ShowFavorites(true);
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
