@@ -382,9 +382,11 @@ public partial class Form1 : Form
         var favoritesToggleItem = new ToolStripMenuItem("Hide Favorites");
         favoritesToggleItem.Click += (_, __) =>
         {
-            //_favoritesShown = !_favoritesShown;
+            _favoritesShown = !_favoritesShown;
 
-            //// Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
+            _menuFavoriteChannelHelper.RebuildFavoritesMenu(_favoritesShown);
+
+            // Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
             //_contextMenuStrip.Close(ToolStripDropDownCloseReason.ItemClicked);
             //_contextMenuStrip.BeginInvoke(
             //    new Action(() =>

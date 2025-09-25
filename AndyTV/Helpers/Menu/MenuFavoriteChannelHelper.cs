@@ -9,7 +9,6 @@ public class MenuFavoriteChannelHelper
     private readonly EventHandler _clickHandler;
     private readonly ToolStripMenuItem _header;
 
-    // static URLs for fast dupe check across the whole app
     private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
     );
@@ -36,22 +35,37 @@ public class MenuFavoriteChannelHelper
         return isDuplicate;
     }
 
-    public void RebuildFavoritesMenu()
+    public void RebuildFavoritesMenu(bool show = true)
     {
-        var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
-
-        // rebuild static URL set
-        favoritesURLCache.Clear();
-        foreach (var f in favorites)
-        {
-            favoritesURLCache.Add(f.Url.Trim());
-        }
-
         int headerIndex = _menu.Items.IndexOf(_header);
-        int insertIndex = headerIndex + 2;
+        if (headerIndex < 0)
+            return;
 
+        int insertIndex = headerIndex + 2;
         var leftSep = (ToolStripSeparator)_menu.Items[headerIndex - 1];
         var rightSep = (ToolStripSeparator)_menu.Items[headerIndex + 1];
+
+        // always clear items under header
+        while (
+            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
+        )
+        {
+            _menu.Items.RemoveAt(insertIndex);
+        }
+
+        if (!show)
+        {
+            leftSep.Visible = false;
+            _header.Visible = false;
+            rightSep.Visible = false;
+            return;
+        }
+
+        var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
+
+        favoritesURLCache.Clear();
+        foreach (var f in favorites)
+            favoritesURLCache.Add(f.Url.Trim());
 
         if (favorites.Count == 0)
         {
@@ -64,13 +78,6 @@ public class MenuFavoriteChannelHelper
         leftSep.Visible = true;
         _header.Visible = true;
         rightSep.Visible = true;
-
-        while (
-            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
-        )
-        {
-            _menu.Items.RemoveAt(insertIndex);
-        }
 
         var byCategory = favorites
             .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
