@@ -15,7 +15,7 @@ jobs:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
 
-      - name: Restore & build (prove solution compiles)
+      - name: Restore & build
         run: |
           dotnet restore "AndyTV.sln"
           dotnet build "AndyTV.sln" -c Release
@@ -26,15 +26,21 @@ jobs:
           dotnet tool install --global roslynator.dotnet.cli
           echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      # ↓ add analyzers WITHOUT touching your csproj
-      - name: Fetch analyzers
+      - name: Fetch Roslynator analyzers (no csproj changes)
         shell: pwsh
         run: |
           nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
-          $an = Resolve-Path 'analyzers/Roslynator.Analyzers/analyzers/dotnet/cs'
+          # handle either versioned or unversioned folder names + fallback to NuGet cache
+          $local = Get-ChildItem -Directory "analyzers" | Where-Object { $_.Name -like "Roslynator.Analyzers*" } | Select-Object -First 1
+          $cand = @()
+          if ($local) {
+            $cand += (Join-Path $local.FullName "analyzers\dotnet\cs")
+          }
+          $cand += (Get-ChildItem -Directory "$env:USERPROFILE\.nuget\packages\roslynator.analyzers\*\analyzers\dotnet\cs" -ErrorAction SilentlyContinue | Select-Object -Last 1 | ForEach-Object { $_.FullName })
+          $an = $cand | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if (-not $an) { Write-Error "Could not locate Roslynator.Analyzers 'analyzers\\dotnet\\cs' folder"; exit 1 }
           "ANALYZER_PATH=$an" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Analyze (now with rules)
         shell: pwsh
-        run: |
-          roslynator analyze "AndyTV.sln" --analyzer-assemblies "$env:ANALYZER_PATH" --severity-level info
+        run: roslynator analyze "AndyTV.sln" --analyzer-assemblies "$env:ANALYZER_PATH"
