@@ -287,7 +287,9 @@ public partial class Form1 : Form
                 using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
                 dialog.ShowDialog(this);
                 if (dialog.SelectedItem != null)
+                {
                     Play(dialog.SelectedItem);
+                }
             }
         );
 
@@ -310,7 +312,9 @@ public partial class Form1 : Form
                     _videoView.ShowDefault();
                     using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                     if (dlg.ShowDialog(this) != DialogResult.OK)
+                    {
                         return;
+                    }
                     input = dlg.Result;
                 }
 
