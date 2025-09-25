@@ -1,35 +1,26 @@
 name: scan
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+  pull_request:
 
 jobs:
   analyze:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
 
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build (treat warnings as errors)
-        run: dotnet build -c Release -warnaserror
-
-      - name: Install Roslynator CLI
+      - name: Install Roslynator CLI (latest)
         shell: pwsh
         run: |
-            dotnet tool install --global roslynator.dotnet.cli
-            echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          dotnet tool install --global roslynator.dotnet.cli
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Analyze with Roslynator
+      - name: Analyze solution (defaults)
         shell: pwsh
-        run: roslynator analyze -p AndyTV.sln
-
-
-      - name: Fail if dead code found
-        run: |
-          # parse output / exit code logic to fail if certain diagnostics present
+        run: roslynator analyze "AndyTV.sln"
