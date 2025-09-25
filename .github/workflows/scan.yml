@@ -3,6 +3,8 @@ name: scan
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    branches: ['**']  # run on check-in to any branch
 
 jobs:
   analyze:
