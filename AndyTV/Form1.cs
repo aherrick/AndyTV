@@ -151,7 +151,7 @@ public partial class Form1 : Form
                 _contextMenuStrip,
                 ChItem_Click
             );
-            // _menuFavoriteChannelHelper.EnsureAnchors(); // <-- one-time call to ensure anchors are present for easy rebuild/remove of favs
+
             _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
@@ -384,16 +384,7 @@ public partial class Form1 : Form
         {
             _favoritesShown = !_favoritesShown;
 
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu(_favoritesShown);
-
-            // Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
-            //_contextMenuStrip.Close(ToolStripDropDownCloseReason.ItemClicked);
-            //_contextMenuStrip.BeginInvoke(
-            //    new Action(() =>
-            //    {
-            //        _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
-            //    })
-            //);
+            _menuFavoriteChannelHelper.RebuildFavoritesMenu(show: _favoritesShown);
         };
         favoritesMenu.DropDownItems.Add(favoritesToggleItem);
 
@@ -446,7 +437,7 @@ public partial class Form1 : Form
             _videoView.ShowDefault();
             // Single source of truth for dynamic labels
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
-            favoritesToggleItem.Text = _favoritesShown ? "Hide Favorites" : "Show Favorites";
+            favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
         };
 
         _contextMenuStrip.Closing += (_, __) => _videoView.SetCursorForCurrentView();
