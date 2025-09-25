@@ -5,18 +5,18 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    // track everything we add so we can nuke it cleanly
     private readonly List<ToolStripItem> _added = [];
 
-    // static URLs for fast dupe check across the whole app
     private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
     );
 
-    public static bool IsDuplicate(Channel channel)
+    public static bool IsDuplicate(Channel channel, bool showMessageBox = true)
     {
-        bool isDuplicate = favoritesURLCache.Contains(channel.Url.Trim());
-        if (isDuplicate)
+        var key = channel.Url?.Trim() ?? "";
+        bool isDuplicate = key.Length > 0 && favoritesURLCache.Contains(key);
+
+        if (isDuplicate && showMessageBox)
         {
             MessageBox.Show(
                 $"\"{channel.DisplayName}\" is already in Favorites.",
@@ -25,36 +25,31 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 MessageBoxIcon.Information
             );
         }
+
         return isDuplicate;
     }
 
-    public void RebuildFavoritesMenu()
+    // just a one-liner entry point
+    public void ShowFavorites(bool show)
     {
-        // Clear out anything we previously added
-        foreach (var it in _added)
-        {
-            if (menu.Items.Contains(it))
-            {
-                menu.Items.Remove(it);
-            }
-        }
-        _added.Clear();
+        RemoveAdded();
+
+        if (!show)
+            return;
 
         var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
 
-        // rebuild static URL set
         favoritesURLCache.Clear();
         foreach (var f in favorites)
         {
-            favoritesURLCache.Add(f.Url.Trim());
+            var key = f.Url?.Trim();
+            if (!string.IsNullOrEmpty(key))
+                favoritesURLCache.Add(key);
         }
 
         if (favorites.Count == 0)
-        {
-            return; // nothing to add
-        }
+            return;
 
-        // ----- FAVORITES HEADER -----
         var (_, allHeaderItems) = MenuHelper.AddHeader(menu, "FAVORITES");
         _added.AddRange(allHeaderItems);
 
@@ -118,5 +113,20 @@ public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler click
                 }
             }
         }
+    }
+
+    private void RemoveAdded()
+    {
+        if (_added.Count == 0)
+            return;
+
+        for (int i = _added.Count - 1; i >= 0; i--)
+        {
+            var it = _added[i];
+            if (menu.Items.Contains(it))
+                menu.Items.Remove(it);
+        }
+
+        _added.Clear();
     }
 }

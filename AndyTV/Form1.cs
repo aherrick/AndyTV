@@ -34,6 +34,8 @@ public partial class Form1 : Form
     private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
+    private bool _favoritesShown = true;
+
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
         _libVLC = libVLC;
@@ -149,7 +151,7 @@ public partial class Form1 : Form
                 _contextMenuStrip,
                 ChItem_Click
             );
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+            _menuFavoriteChannelHelper.ShowFavorites(true);
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
@@ -280,7 +282,7 @@ public partial class Form1 : Form
         {
             _videoView.ShowDefault();
             using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
-            dialog.ShowDialog();
+            dialog.ShowDialog(this);
             if (dialog.SelectedItem != null)
                 Play(dialog.SelectedItem);
         };
@@ -291,26 +293,19 @@ public partial class Form1 : Form
         {
             string input = null;
 
-            // Try clipboard first
             if (Clipboard.ContainsText())
             {
                 var clip = Clipboard.GetText().Trim();
                 if (UtilHelper.IsValidUrl(clip))
-                {
                     input = clip;
-                }
             }
 
-            // Prompt until user cancels or enters a valid URL
             while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
             {
                 _videoView.ShowDefault();
-
                 using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
-                {
-                    return; // user cancelled
-                }
+                    return;
 
                 input = dlg.Result;
             }
@@ -318,9 +313,7 @@ public partial class Form1 : Form
             var ch =
                 MenuTVChannelHelper.ChannelByUrl(input)
                 ?? new Channel { Name = "Swap", Url = input };
-
             Logger.Info($"[SWAP] Playing input: {input}");
-
             Play(ch);
         };
         channelsMenu.DropDownItems.Add(swapItem);
@@ -331,11 +324,10 @@ public partial class Form1 : Form
         playlistsItem.Click += async (_, __) => await HandlePlaylistManager();
         channelsMenu.DropDownItems.Add(playlistsItem);
 
-        // add a "Refresh Channels" item under it
         var refreshItem = new ToolStripMenuItem("Refresh");
         refreshItem.Click += async (_, __) =>
         {
-            await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
+            await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // RebuildMenu handles refresh internally
         };
         channelsMenu.DropDownItems.Add(refreshItem);
 
@@ -351,10 +343,12 @@ public partial class Form1 : Form
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)
-                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                {
+                    _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+                }
                 _videoView.SetCursorForCurrentView();
             };
-            form.ShowDialog();
+            form.ShowDialog(this);
         }
 
         var favoritesManageItem = new ToolStripMenuItem("Manage");
@@ -364,12 +358,24 @@ public partial class Form1 : Form
         var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
         favoritesAddCurrentItem.Click += (_, __) =>
         {
-            if (!MenuFavoriteChannelHelper.IsDuplicate(_currentChannel))
-            {
+            if (
+                _currentChannel is not null
+                && !MenuFavoriteChannelHelper.IsDuplicate(_currentChannel)
+            )
                 OpenFavorites(_currentChannel);
-            }
         };
         favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
+
+        favoritesMenu.DropDownItems.Add(new ToolStripSeparator());
+
+        // Toggle favorites visibility — no inline text change; Opening handler will set it
+        var favoritesToggleItem = new ToolStripMenuItem("Hide Favorites");
+        favoritesToggleItem.Click += (_, __) =>
+        {
+            _favoritesShown = !_favoritesShown;
+            _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+        };
+        favoritesMenu.DropDownItems.Add(favoritesToggleItem);
 
         _contextMenuStrip.Items.Add(favoritesMenu);
 
@@ -398,6 +404,7 @@ public partial class Form1 : Form
         muteItem.Click += (_, __) =>
         {
             _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+            // No text update here; Opening will set it
         };
         appMenu.DropDownItems.Add(muteItem);
 
@@ -413,10 +420,14 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Items.Add(appMenu);
 
+        // ===== Context menu open/close behavior =====
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
+
+            // single source of truth for dynamic labels
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
+            favoritesToggleItem.Text = _favoritesShown ? "Hide Favorites" : "Show Favorites";
         };
 
         _contextMenuStrip.Closing += (_, __) => _videoView.SetCursorForCurrentView();
