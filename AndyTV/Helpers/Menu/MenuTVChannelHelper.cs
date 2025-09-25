@@ -35,6 +35,38 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
         // ----- PLAYLISTS -----
+        BuildPlaylistsSection(channelClick);
+
+        Logger.Info("[CHANNELS] Menu rebuilt");
+    }
+
+    private void ClearAddedItems()
+    {
+        foreach (var it in _added)
+        {
+            int idx = menu.Items.IndexOf(it);
+            if (idx >= 0)
+            {
+                // remove right separator if directly after
+                if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
+                {
+                    menu.Items.RemoveAt(idx + 1);
+                }
+
+                // remove left separator if directly before
+                if (idx - 1 >= 0 && menu.Items[idx - 1] is ToolStripSeparator)
+                {
+                    menu.Items.RemoveAt(idx - 1);
+                }
+
+                menu.Items.RemoveAt(idx);
+            }
+        }
+        _added.Clear();
+    }
+
+    private void BuildPlaylistsSection(EventHandler channelClick)
+    {
         var playlistsHeader = MenuHelper.AddHeader(menu, "PLAYLISTS");
         _added.Add(playlistsHeader);
 
@@ -57,29 +89,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 _added.Add(root);
             }
         }
-
-        Logger.Info("[CHANNELS] Menu rebuilt");
-    }
-
-    private void ClearAddedItems()
-    {
-        foreach (var it in _added)
-        {
-            int idx = menu.Items.IndexOf(it);
-            if (idx >= 0)
-            {
-                // remove right separator if directly after
-                if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
-                    menu.Items.RemoveAt(idx + 1);
-
-                // remove left separator if directly before
-                if (idx - 1 >= 0 && menu.Items[idx - 1] is ToolStripSeparator)
-                    menu.Items.RemoveAt(idx - 1);
-
-                menu.Items.RemoveAt(idx);
-            }
-        }
-        _added.Clear();
     }
 
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
@@ -186,7 +195,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 }
 
                 if (matches.Count == 0)
+                {
                     continue;
+                }
 
                 matches.Sort(
                     (a, b) =>
