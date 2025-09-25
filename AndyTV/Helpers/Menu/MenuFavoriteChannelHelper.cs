@@ -9,6 +9,7 @@ public class MenuFavoriteChannelHelper
     private readonly EventHandler _clickHandler;
     private readonly ToolStripMenuItem _header;
 
+    // static URLs for fast de-dupe check across the whole app
     private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
     );
@@ -39,13 +40,15 @@ public class MenuFavoriteChannelHelper
     {
         int headerIndex = _menu.Items.IndexOf(_header);
         if (headerIndex < 0)
-            return;
+            return; // header not found, nothing to rebuild
 
-        int insertIndex = headerIndex + 2;
+        int insertIndex = headerIndex + 2; // position right after [header] and its right separator
         var leftSep = (ToolStripSeparator)_menu.Items[headerIndex - 1];
         var rightSep = (ToolStripSeparator)_menu.Items[headerIndex + 1];
 
-        // always clear items under header
+        // --- Clear any existing favorites block ---
+        // Start at the first item after the header/separator
+        // Keep removing until we hit the next separator (the end of this section)
         while (
             insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
         )
@@ -53,6 +56,7 @@ public class MenuFavoriteChannelHelper
             _menu.Items.RemoveAt(insertIndex);
         }
 
+        // If hiding, just collapse the header + separators and bail
         if (!show)
         {
             leftSep.Visible = false;
@@ -61,12 +65,15 @@ public class MenuFavoriteChannelHelper
             return;
         }
 
+        // Load persisted favorites
         var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
 
+        // rebuild static URL set for quick duplicate checks
         favoritesURLCache.Clear();
         foreach (var f in favorites)
             favoritesURLCache.Add(f.Url.Trim());
 
+        // No favorites saved → hide the whole header section
         if (favorites.Count == 0)
         {
             leftSep.Visible = false;
@@ -75,10 +82,12 @@ public class MenuFavoriteChannelHelper
             return;
         }
 
+        // Favorites exist → make the header and separators visible again
         leftSep.Visible = true;
         _header.Visible = true;
         rightSep.Visible = true;
 
+        // --- Rebuild visible favorites items ---
         var byCategory = favorites
             .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
@@ -87,6 +96,7 @@ public class MenuFavoriteChannelHelper
         {
             if (catGroup.Key is null)
             {
+                // Favorites without a category → flat list
                 foreach (
                     var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
@@ -98,6 +108,7 @@ public class MenuFavoriteChannelHelper
                 continue;
             }
 
+            // Category header (bold, disabled)
             _menu.Items.Insert(
                 insertIndex++,
                 new ToolStripMenuItem
@@ -111,6 +122,7 @@ public class MenuFavoriteChannelHelper
             var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
             var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
 
+            // Favorites with no subgroup
             foreach (
                 var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             )
@@ -120,6 +132,7 @@ public class MenuFavoriteChannelHelper
                 _menu.Items.Insert(insertIndex++, item);
             }
 
+            // Favorites grouped under a "Group" label
             var byGroup = withGroup
                 .GroupBy(ch => ch.Group!.Trim())
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
