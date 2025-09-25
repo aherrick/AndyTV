@@ -1,5 +1,4 @@
-﻿// AndyTV/Helpers/Menu/MenuTVChannelHelper.cs
-using AndyTV.Data.Models;
+﻿using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Services;
 
@@ -23,13 +22,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public async Task RebuildMenu(EventHandler channelClick)
     {
-        // Remove everything we previously added
-        foreach (var it in _added)
-        {
-            RemoveHeaderTrioIfNeeded(menu, it);
-            menu.Items.Remove(it);
-        }
-        _added.Clear();
+        ClearAddedItems();
 
         await PlaylistChannelService.RefreshChannels();
 
@@ -65,26 +58,28 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             }
         }
 
-        Logger.Info(
-            "[CHANNELS] Menu rebuilt from PlaylistChannelsService.PlaylistChannels and .Channels"
-        );
+        Logger.Info("[CHANNELS] Menu rebuilt");
     }
 
-    // Remove the left/right separators surrounding a header, if present.
-    private static void RemoveHeaderTrioIfNeeded(ContextMenuStrip menu, ToolStripItem item)
+    private void ClearAddedItems()
     {
-        if (item is not ToolStripMenuItem)
-            return;
+        foreach (var it in _added)
+        {
+            int idx = menu.Items.IndexOf(it);
+            if (idx >= 0)
+            {
+                // remove right separator if directly after
+                if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
+                    menu.Items.RemoveAt(idx + 1);
 
-        int idx = menu.Items.IndexOf(item);
-        if (idx < 0)
-            return;
+                // remove left separator if directly before
+                if (idx - 1 >= 0 && menu.Items[idx - 1] is ToolStripSeparator)
+                    menu.Items.RemoveAt(idx - 1);
 
-        if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
-            menu.Items.RemoveAt(idx + 1);
-
-        if (idx > 0 && menu.Items[idx - 1] is ToolStripSeparator)
-            menu.Items.RemoveAt(idx - 1);
+                menu.Items.RemoveAt(idx);
+            }
+        }
+        _added.Clear();
     }
 
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)

@@ -10,7 +10,6 @@ public static class MenuHelper
         {
             Text = text,
             Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
-            //  Enabled = false,
         };
         menu.Items.Add(topHeader);
 
