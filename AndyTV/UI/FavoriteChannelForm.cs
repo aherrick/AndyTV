@@ -344,7 +344,9 @@ public partial class FavoriteChannelForm : Form
     private void RemoveButton_Click(object sender, EventArgs e)
     {
         if (_favoritesGrid.CurrentRow?.Index is int index && index >= 0)
+        {
             _favorites.RemoveAt(index);
+        }
     }
 
     // --- Import / Export / Save ---
@@ -364,7 +366,10 @@ public partial class FavoriteChannelForm : Form
                 var imported = ChannelDataService.ImportFavoriteChannels(ofd.FileName) ?? [];
                 _favorites.Clear();
                 foreach (var ch in imported)
+                {
                     _favorites.Add(ch);
+                }
+
                 _baseline = UtilHelper.GenerateSnapshot(_favorites);
                 MessageBox.Show(
                     $"Imported {_favorites.Count} favorite(s).",

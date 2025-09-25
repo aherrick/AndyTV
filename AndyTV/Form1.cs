@@ -278,65 +278,66 @@ public partial class Form1 : Form
         // ===== Channels =====
         var channelsMenu = new ToolStripMenuItem("Channels");
 
-        var adHocItem = new ToolStripMenuItem("Ad Hoc");
-        adHocItem.Click += (_, __) =>
-        {
-            _videoView.ShowDefault();
-            using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
-            dialog.ShowDialog(this);
-            if (dialog.SelectedItem != null)
-            {
-                Play(dialog.SelectedItem);
-            }
-        };
-        channelsMenu.DropDownItems.Add(adHocItem);
-
-        var swapItem = new ToolStripMenuItem("Swap");
-        swapItem.Click += (_, __) =>
-        {
-            string input = null;
-
-            if (Clipboard.ContainsText())
-            {
-                var clip = Clipboard.GetText().Trim();
-                if (UtilHelper.IsValidUrl(clip))
-                {
-                    input = clip;
-                }
-            }
-
-            while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
+        MenuHelper.AddMenuItem(
+            channelsMenu,
+            "Ad Hoc",
+            (_, __) =>
             {
                 _videoView.ShowDefault();
-                using var dlg = new InputForm("Swap Stream", "Enter media URL:");
-                if (dlg.ShowDialog(this) != DialogResult.OK)
+                using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
+                dialog.ShowDialog(this);
+                if (dialog.SelectedItem != null)
+                    Play(dialog.SelectedItem);
+            }
+        );
+
+        MenuHelper.AddMenuItem(
+            channelsMenu,
+            "Swap",
+            (_, __) =>
+            {
+                string input = null;
+
+                if (Clipboard.ContainsText())
                 {
-                    return;
+                    var clip = Clipboard.GetText().Trim();
+                    if (UtilHelper.IsValidUrl(clip))
+                        input = clip;
                 }
 
-                input = dlg.Result;
+                while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
+                {
+                    _videoView.ShowDefault();
+                    using var dlg = new InputForm("Swap Stream", "Enter media URL:");
+                    if (dlg.ShowDialog(this) != DialogResult.OK)
+                        return;
+                    input = dlg.Result;
+                }
+
+                var ch =
+                    MenuTVChannelHelper.ChannelByUrl(input)
+                    ?? new Channel { Name = "Swap", Url = input };
+                Logger.Info($"[SWAP] Playing input: {input}");
+                Play(ch);
             }
+        );
 
-            var ch =
-                MenuTVChannelHelper.ChannelByUrl(input)
-                ?? new Channel { Name = "Swap", Url = input };
-            Logger.Info($"[SWAP] Playing input: {input}");
-            Play(ch);
-        };
-        channelsMenu.DropDownItems.Add(swapItem);
+        MenuHelper.AddSeparator(channelsMenu);
 
-        channelsMenu.DropDownItems.Add(new ToolStripSeparator());
+        MenuHelper.AddMenuItem(
+            channelsMenu,
+            "Manage",
+            async (_, __) => await HandlePlaylistManager()
+        );
 
-        var playlistsItem = new ToolStripMenuItem("Manage");
-        playlistsItem.Click += async (_, __) => await HandlePlaylistManager();
-        channelsMenu.DropDownItems.Add(playlistsItem);
-
-        var refreshItem = new ToolStripMenuItem("Refresh");
-        refreshItem.Click += async (_, __) =>
-        {
-            await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // Rebuild handles refresh
-        };
-        channelsMenu.DropDownItems.Add(refreshItem);
+        MenuHelper.AddMenuItem(
+            channelsMenu,
+            "Refresh",
+            async (_, __) =>
+            {
+                await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // Rebuild handles refresh
+            }
+        );
 
         _contextMenuStrip.Items.Add(channelsMenu);
 
@@ -350,84 +351,83 @@ public partial class Form1 : Form
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)
-                {
-                    // Safe: menu is already closed after clicking "Manage"
                     _menuFavoriteChannelHelper.RebuildFavoritesMenu();
-                }
                 _videoView.SetCursorForCurrentView();
             };
             form.ShowDialog(this);
         }
 
-        var favoritesManageItem = new ToolStripMenuItem("Manage");
-        favoritesManageItem.Click += (_, __) => OpenFavorites();
-        favoritesMenu.DropDownItems.Add(favoritesManageItem);
+        MenuHelper.AddMenuItem(favoritesMenu, "Manage", (_, __) => OpenFavorites());
 
-        var favoritesAddCurrentItem = new ToolStripMenuItem("Add Playing");
-        favoritesAddCurrentItem.Click += (_, __) =>
-        {
-            if (
-                _currentChannel is not null
-                && !MenuFavoriteChannelHelper.IsDuplicate(_currentChannel)
-            )
+        MenuHelper.AddMenuItem(
+            favoritesMenu,
+            "Add Playing",
+            (_, __) =>
             {
-                OpenFavorites(_currentChannel);
+                if (
+                    _currentChannel is not null
+                    && !MenuFavoriteChannelHelper.IsDuplicate(_currentChannel)
+                )
+                {
+                    OpenFavorites(_currentChannel);
+                }
             }
-        };
-        favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
+        );
 
-        favoritesMenu.DropDownItems.Add(new ToolStripSeparator());
+        MenuHelper.AddSeparator(favoritesMenu);
 
-        // Toggle favorites visibility WITHOUT mutating the menu while it's open.
-        var favoritesToggleItem = new ToolStripMenuItem("Hide Favorites");
-        favoritesToggleItem.Click += (_, __) =>
-        {
-            _favoritesShown = !_favoritesShown;
-
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu(show: _favoritesShown);
-        };
-        favoritesMenu.DropDownItems.Add(favoritesToggleItem);
+        var favoritesToggleItem = MenuHelper.AddMenuItem(
+            favoritesMenu,
+            "Hide",
+            (_, __) =>
+            {
+                _favoritesShown = !_favoritesShown;
+                _menuFavoriteChannelHelper.RebuildFavoritesMenu(show: _favoritesShown);
+                // Label normalized on Opening
+            }
+        );
 
         _contextMenuStrip.Items.Add(favoritesMenu);
 
         // ===== App =====
         var appMenu = new ToolStripMenuItem("App");
 
-        var updateItem = new ToolStripMenuItem("Update");
-        updateItem.Click += async (_, __) => await _updateService.CheckForUpdates();
-        appMenu.DropDownItems.Add(updateItem);
+        MenuHelper.AddMenuItem(
+            appMenu,
+            "Update",
+            async (_, __) => await _updateService.CheckForUpdates()
+        );
 
-        var logsItem = new ToolStripMenuItem("Logs");
-        logsItem.Click += (_, __) =>
-        {
-            Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = Logger.LogFolder,
-                    UseShellExecute = true,
-                }
-            );
-        };
-        appMenu.DropDownItems.Add(logsItem);
+        MenuHelper.AddMenuItem(
+            appMenu,
+            "Logs",
+            (_, __) =>
+            {
+                Process.Start(
+                    new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = Logger.LogFolder,
+                        UseShellExecute = true,
+                    }
+                );
+            }
+        );
 
-        var muteItem = new ToolStripMenuItem("Mute");
-        muteItem.Click += (_, __) =>
-        {
-            _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
-            // No text update here; Opening will set it
-        };
-        appMenu.DropDownItems.Add(muteItem);
+        var muteItem = MenuHelper.AddMenuItem(
+            appMenu,
+            "Mute",
+            (_, __) =>
+            {
+                _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+                // text normalized on Opening
+            }
+        );
 
-        appMenu.DropDownItems.Add(new ToolStripSeparator());
+        MenuHelper.AddSeparator(appMenu);
 
-        var restartItem = new ToolStripMenuItem("Restart");
-        restartItem.Click += (_, __) => Program.Restart();
-        appMenu.DropDownItems.Add(restartItem);
-
-        var exitItem = new ToolStripMenuItem("Exit");
-        exitItem.Click += (_, __) => Application.Exit();
-        appMenu.DropDownItems.Add(exitItem);
+        MenuHelper.AddMenuItem(appMenu, "Restart", (_, __) => Program.Restart());
+        MenuHelper.AddMenuItem(appMenu, "Exit", (_, __) => Application.Exit());
 
         _contextMenuStrip.Items.Add(appMenu);
 
@@ -435,7 +435,6 @@ public partial class Form1 : Form
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
-            // Single source of truth for dynamic labels
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
             favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
         };

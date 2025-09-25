@@ -32,12 +32,12 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
         // ----- PLAYLISTS -----
-        BuildPlaylistsSection(channelClick);
+        BuildPlaylistSection(channelClick);
 
         Logger.Info("[CHANNELS] Menu rebuilt");
     }
 
-    private void BuildPlaylistsSection(EventHandler channelClick)
+    private void BuildPlaylistSection(EventHandler channelClick)
     {
         var (_, playlistsAll) = MenuHelper.AddHeader(menu, "PLAYLISTS");
         _added.AddRange(playlistsAll);

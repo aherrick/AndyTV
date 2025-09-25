@@ -20,24 +20,6 @@ public static class MenuHelper
         return (header, new ToolStripItem[] { sepBefore, header, sepAfter });
     }
 
-    // NEW: Insert the full header trio at a specific index.
-    public static (ToolStripMenuItem Header, ToolStripItem[] All) AddHeaderAt(
-        ContextMenuStrip menu,
-        int index,
-        string text
-    )
-    {
-        var sepBefore = new ToolStripSeparator();
-        var header = new ToolStripMenuItem(text);
-        var sepAfter = new ToolStripSeparator();
-
-        menu.Items.Insert(index++, sepBefore);
-        menu.Items.Insert(index++, header);
-        menu.Items.Insert(index++, sepAfter);
-
-        return (header, new ToolStripItem[] { sepBefore, header, sepAfter });
-    }
-
     // NEW: Category/label header at index (bold/disabled by default).
     public static ToolStripMenuItem AddCategoryHeaderAt(
         ContextMenuStrip menu,
@@ -54,27 +36,6 @@ public static class MenuHelper
             Enabled = enabled,
         };
         menu.Items.Insert(index, item);
-        return item;
-    }
-
-    // Optional: plain separator at index.
-    public static ToolStripSeparator AddSeparatorAt(ContextMenuStrip menu, int index)
-    {
-        var sep = new ToolStripSeparator();
-        menu.Items.Insert(index, sep);
-        return sep;
-    }
-
-    public static ToolStripMenuItem AddChannelItem(
-        ContextMenuStrip menu,
-        Channel ch,
-        EventHandler clickHandler,
-        string displayText = null
-    )
-    {
-        var item = new ToolStripMenuItem(displayText ?? ch.DisplayName) { Tag = ch };
-        item.Click += clickHandler;
-        menu.Items.Add(item);
         return item;
     }
 
@@ -103,5 +64,27 @@ public static class MenuHelper
         item.Click += clickHandler;
         menu.Items.Insert(index, item);
         return item;
+    }
+
+    public static ToolStripMenuItem AddMenuItem(
+        ToolStripMenuItem parent,
+        string text,
+        EventHandler clickHandler = null
+    )
+    {
+        var item = new ToolStripMenuItem(text);
+        if (clickHandler is not null)
+        {
+            item.Click += clickHandler;
+        }
+        parent.DropDownItems.Add(item);
+        return item;
+    }
+
+    public static ToolStripSeparator AddSeparator(ToolStripMenuItem parent)
+    {
+        var sep = new ToolStripSeparator();
+        parent.DropDownItems.Add(sep);
+        return sep;
     }
 }
