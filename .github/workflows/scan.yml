@@ -19,11 +19,16 @@ jobs:
       - name: Build (treat warnings as errors)
         run: dotnet build -c Release -warnaserror
 
-      - name: Run Unused-Code CLI (if using)
+      - name: Install Roslynator CLI
+        shell: pwsh
         run: |
-          dotnet tool install -g Roslynator.CommandLine
-          roslynator analyze -p AndyTV.sln
-        # or run another custom CLI that detects unused code
+            dotnet tool install --global roslynator.dotnet.cli
+            echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Analyze with Roslynator
+        shell: pwsh
+        run: roslynator analyze -p AndyTV.sln
+
 
       - name: Fail if dead code found
         run: |
