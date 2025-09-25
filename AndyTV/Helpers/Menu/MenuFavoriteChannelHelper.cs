@@ -3,23 +3,15 @@ using AndyTV.Services;
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuFavoriteChannelHelper
+public class MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    private readonly ContextMenuStrip _menu;
-    private readonly EventHandler _clickHandler;
-    private readonly ToolStripMenuItem _header;
+    // track everything we add so we can nuke it cleanly
+    private readonly List<ToolStripItem> _added = [];
 
     // static URLs for fast dupe check across the whole app
     private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
     );
-
-    public MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
-    {
-        _menu = menu;
-        _clickHandler = clickHandler;
-        _header = MenuHelper.AddHeader(_menu, "FAVORITES");
-    }
 
     public static bool IsDuplicate(Channel channel)
     {
@@ -38,6 +30,16 @@ public class MenuFavoriteChannelHelper
 
     public void RebuildFavoritesMenu()
     {
+        // Clear out anything we previously added
+        foreach (var it in _added)
+        {
+            if (menu.Items.Contains(it))
+            {
+                menu.Items.Remove(it);
+            }
+        }
+        _added.Clear();
+
         var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
 
         // rebuild static URL set
@@ -47,30 +49,14 @@ public class MenuFavoriteChannelHelper
             favoritesURLCache.Add(f.Url.Trim());
         }
 
-        int headerIndex = _menu.Items.IndexOf(_header);
-        int insertIndex = headerIndex + 2;
-
-        var leftSep = (ToolStripSeparator)_menu.Items[headerIndex - 1];
-        var rightSep = (ToolStripSeparator)_menu.Items[headerIndex + 1];
-
         if (favorites.Count == 0)
         {
-            leftSep.Visible = false;
-            _header.Visible = false;
-            rightSep.Visible = false;
-            return;
+            return; // nothing to add
         }
 
-        leftSep.Visible = true;
-        _header.Visible = true;
-        rightSep.Visible = true;
-
-        while (
-            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
-        )
-        {
-            _menu.Items.RemoveAt(insertIndex);
-        }
+        // ----- FAVORITES HEADER -----
+        var (_, allHeaderItems) = MenuHelper.AddHeader(menu, "FAVORITES");
+        _added.AddRange(allHeaderItems);
 
         var byCategory = favorites
             .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
@@ -84,53 +70,52 @@ public class MenuFavoriteChannelHelper
                     var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += _clickHandler;
-                    _menu.Items.Insert(insertIndex++, item);
+                    var item = MenuHelper.AddChannelItem(menu, ch, clickHandler);
+                    _added.Add(item);
                 }
-                continue;
             }
-
-            _menu.Items.Insert(
-                insertIndex++,
-                new ToolStripMenuItem
+            else
+            {
+                var catHeader = new ToolStripMenuItem
                 {
                     Text = catGroup.Key.ToUpperInvariant(),
                     Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
                     Enabled = false,
-                }
-            );
+                };
+                menu.Items.Add(catHeader);
+                _added.Add(catHeader);
 
-            var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
-            var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
-
-            foreach (
-                var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
-            )
-            {
-                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                item.Click += _clickHandler;
-                _menu.Items.Insert(insertIndex++, item);
-            }
-
-            var byGroup = withGroup
-                .GroupBy(ch => ch.Group!.Trim())
-                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var grp in byGroup)
-            {
-                var groupNode = new ToolStripMenuItem(grp.Key);
+                var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
+                var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
 
                 foreach (
-                    var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    child.Click += _clickHandler;
-                    groupNode.DropDownItems.Add(child);
+                    var item = MenuHelper.AddChannelItem(menu, ch, clickHandler);
+                    _added.Add(item);
                 }
 
-                _menu.Items.Insert(insertIndex++, groupNode);
+                var byGroup = withGroup
+                    .GroupBy(ch => ch.Group!.Trim())
+                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var grp in byGroup)
+                {
+                    var groupNode = new ToolStripMenuItem(grp.Key);
+
+                    foreach (
+                        var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    )
+                    {
+                        var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                        child.Click += clickHandler;
+                        groupNode.DropDownItems.Add(child);
+                    }
+
+                    menu.Items.Add(groupNode);
+                    _added.Add(groupNode);
+                }
             }
         }
     }

@@ -4,7 +4,7 @@ namespace AndyTV.Helpers.Menu;
 
 public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
 {
-    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT");
+    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT").Header;
 
     // NEW: capture UI context once
     private readonly SynchronizationContext _ui =

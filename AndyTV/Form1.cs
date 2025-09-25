@@ -154,6 +154,7 @@ public partial class Form1 : Form
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
             {
+                RestoreWindow();
                 await HandlePlaylistManager();
             }
 
@@ -259,7 +260,7 @@ public partial class Form1 : Form
 
     private void BuildSettingsMenu(string appVersionName)
     {
-        var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName);
+        var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName).Header;
         header.Click += (_, __) =>
         {
             Process.Start(
@@ -290,40 +291,36 @@ public partial class Form1 : Form
         {
             string input = null;
 
+            // Try clipboard first
             if (Clipboard.ContainsText())
             {
                 var clip = Clipboard.GetText().Trim();
-                if (Uri.IsWellFormedUriString(clip, UriKind.Absolute))
+                if (UtilHelper.IsValidUrl(clip))
+                {
                     input = clip;
+                }
             }
 
-            if (string.IsNullOrWhiteSpace(input))
+            // Prompt until user cancels or enters a valid URL
+            while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
             {
                 _videoView.ShowDefault();
+
                 using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
-                    return;
-                input = dlg.Result;
-            }
+                {
+                    return; // user cancelled
+                }
 
-            if (
-                string.IsNullOrWhiteSpace(input)
-                || !Uri.IsWellFormedUriString(input, UriKind.Absolute)
-            )
-            {
-                MessageBox.Show(
-                    this,
-                    "Please enter a valid absolute URL.",
-                    "Invalid URL",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                );
-                return;
+                input = dlg.Result;
             }
 
             var ch =
                 MenuTVChannelHelper.ChannelByUrl(input)
                 ?? new Channel { Name = "Swap", Url = input };
+
+            Logger.Info($"[SWAP] Playing input: {input}");
+
             Play(ch);
         };
         channelsMenu.DropDownItems.Add(swapItem);

@@ -44,65 +44,69 @@ public static class PlaylistChannelService
 
     public static async Task RefreshChannels()
     {
-        Logger.Info("Refreshing channels...");
-
-        var source = Load();
-        Logger.Info($"Playlists: {source.Count}");
-
-        var http = new HttpClient();
-
-        var tasks = source.Select(async p =>
+        // freezes the ui without task run
+        await Task.Run(async () =>
         {
-            try
+            Logger.Info("Refreshing channels...");
+
+            var source = Load();
+            Logger.Info($"Playlists: {source.Count}");
+
+            var http = new HttpClient();
+
+            var tasks = source.Select(async p =>
             {
-                var m3uText = await http.GetStringAsync(p.Url);
-                if (string.IsNullOrWhiteSpace(m3uText))
+                try
                 {
-                    Logger.Warn($"Empty playlist: {p.Name}");
-                    return (p, new List<Channel>());
-                }
-
-                var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
-                var channels = new List<Channel>(parsed.Channels.Count);
-
-                foreach (var item in parsed.Channels)
-                {
-                    var name = item.TvgName ?? item.Title;
-                    if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
+                    var m3uText = await http.GetStringAsync(p.Url);
+                    if (string.IsNullOrWhiteSpace(m3uText))
                     {
-                        name = WebUtility.HtmlDecode(item.TvgName);
+                        Logger.Warn($"Empty playlist: {p.Name}");
+                        return (p, new List<Channel>());
                     }
 
-                    channels.Add(
-                        new Channel
+                    var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
+                    var channels = new List<Channel>(parsed.Channels.Count);
+
+                    foreach (var item in parsed.Channels)
+                    {
+                        var name = item.TvgName ?? item.Title;
+                        if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
                         {
-                            Name = name,
-                            Url = item.MediaUrl,
-                            Group = item.GroupTitle,
+                            name = WebUtility.HtmlDecode(item.TvgName);
                         }
-                    );
+
+                        channels.Add(
+                            new Channel
+                            {
+                                Name = name,
+                                Url = item.MediaUrl,
+                                Group = item.GroupTitle,
+                            }
+                        );
+                    }
+
+                    Logger.Info($"Playlist {p.Name}: {channels.Count} channels");
+                    return (p, channels);
                 }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Failed: {p.Name} ({p.Url})");
+                    return (p, new List<Channel>());
+                }
+            });
 
-                Logger.Info($"Playlist {p.Name}: {channels.Count} channels");
-                return (p, channels);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Failed: {p.Name} ({p.Url})");
-                return (p, new List<Channel>());
-            }
+            PlaylistChannels = [.. await Task.WhenAll(tasks)];
+
+            Channels =
+            [
+                .. PlaylistChannels
+                    .SelectMany(x => x.Channels)
+                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First()),
+            ];
+
+            Logger.Info($"Unique channels: {Channels.Count}");
         });
-
-        PlaylistChannels = [.. await Task.WhenAll(tasks)];
-
-        Channels =
-        [
-            .. PlaylistChannels
-                .SelectMany(x => x.Channels)
-                .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First()),
-        ];
-
-        Logger.Info($"Unique channels: {Channels.Count}");
     }
 }

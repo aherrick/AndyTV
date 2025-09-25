@@ -8,30 +8,27 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 {
     private readonly List<ToolStripItem> _added = [];
 
-    private static void AddChannelItem(
-        ToolStripMenuItem parent,
-        Channel ch,
-        EventHandler channelClick,
-        string displayText = null
-    )
-    {
-        var item = new ToolStripMenuItem(displayText ?? ch.DisplayName) { Tag = ch };
-        item.Click += channelClick;
-        parent.DropDownItems.Add(item);
-    }
-
     public async Task RebuildMenu(EventHandler channelClick)
     {
-        ClearAddedItems();
+        foreach (var it in _added)
+        {
+            if (menu.Items.Contains(it))
+            {
+                menu.Items.Remove(it);
+            }
+        }
+        _added.Clear();
 
         await PlaylistChannelService.RefreshChannels();
 
         // ----- TOP CHANNELS -----
-        var topHeader = MenuHelper.AddHeader(menu, "TOP CHANNELS");
-        _added.Add(topHeader);
+        var (_, topAll) = MenuHelper.AddHeader(menu, "TOP CHANNELS");
+        _added.AddRange(topAll);
 
         BuildTopMenu("US", ChannelService.TopUs(), channelClick, PlaylistChannelService.Channels);
         BuildTopMenu("UK", ChannelService.TopUk(), channelClick, PlaylistChannelService.Channels);
+
+        // ----- 24/7 -----
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
         // ----- PLAYLISTS -----
@@ -40,35 +37,10 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         Logger.Info("[CHANNELS] Menu rebuilt");
     }
 
-    private void ClearAddedItems()
-    {
-        foreach (var it in _added)
-        {
-            int idx = menu.Items.IndexOf(it);
-            if (idx >= 0)
-            {
-                // remove right separator if directly after
-                if (idx + 1 < menu.Items.Count && menu.Items[idx + 1] is ToolStripSeparator)
-                {
-                    menu.Items.RemoveAt(idx + 1);
-                }
-
-                // remove left separator if directly before
-                if (idx - 1 >= 0 && menu.Items[idx - 1] is ToolStripSeparator)
-                {
-                    menu.Items.RemoveAt(idx - 1);
-                }
-
-                menu.Items.RemoveAt(idx);
-            }
-        }
-        _added.Clear();
-    }
-
     private void BuildPlaylistsSection(EventHandler channelClick)
     {
-        var playlistsHeader = MenuHelper.AddHeader(menu, "PLAYLISTS");
-        _added.Add(playlistsHeader);
+        var (_, playlistsAll) = MenuHelper.AddHeader(menu, "PLAYLISTS");
+        _added.AddRange(playlistsAll);
 
         var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
             x.Playlist.ShowInMenu
@@ -80,7 +52,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
             foreach (var channel in Channels)
             {
-                AddChannelItem(root, channel, channelClick);
+                MenuHelper.AddChildChannelItem(root, channel, channelClick);
             }
 
             if (root.DropDownItems.Count > 0)
@@ -107,13 +79,19 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                 {
                     root.DropDownItems.Add(currentMenu);
                 }
+
                 currentBucket = entry.Bucket;
                 currentMenu = new ToolStripMenuItem(currentBucket);
             }
 
             if (entry.GroupBase == null)
             {
-                AddChannelItem(currentMenu, entry.Channel, channelClick, entry.DisplayText);
+                MenuHelper.AddChildChannelItem(
+                    currentMenu,
+                    entry.Channel,
+                    channelClick,
+                    entry.DisplayText
+                );
             }
             else
             {
@@ -128,7 +106,12 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
                     currentMenu.DropDownItems.Add(subMenu);
                 }
 
-                AddChannelItem(subMenu, entry.Channel, channelClick, entry.DisplayText);
+                MenuHelper.AddChildChannelItem(
+                    subMenu,
+                    entry.Channel,
+                    channelClick,
+                    entry.DisplayText
+                );
             }
         }
 
@@ -164,54 +147,24 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
             foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var matches = new List<Channel>();
-
-                foreach (var ch in channels)
-                {
-                    foreach (var term in entry.Terms)
-                    {
-                        var isExact = term.Length <= 2;
-
-                        if (
-                            (
-                                isExact
-                                && string.Equals(
-                                    ch.DisplayName,
-                                    term,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
-                            )
-                            || (
-                                !isExact
-                                && ch.DisplayName != null
-                                && ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
-                            )
+                var matches = channels
+                    .Where(ch =>
+                        entry.Terms.Any(term =>
+                            ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
                         )
-                        {
-                            matches.Add(ch);
-                            break;
-                        }
-                    }
-                }
+                    )
+                    .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
                 if (matches.Count == 0)
                 {
                     continue;
                 }
 
-                matches.Sort(
-                    (a, b) =>
-                        string.Compare(
-                            a.DisplayName,
-                            b.DisplayName,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                );
-
                 var parent = new ToolStripMenuItem(entry.Name);
                 foreach (var ch in matches)
                 {
-                    AddChannelItem(parent, ch, channelClick);
+                    MenuHelper.AddChildChannelItem(parent, ch, channelClick);
                 }
 
                 catItem.DropDownItems.Add(parent);
@@ -232,11 +185,9 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
 
     public static Channel ChannelByUrl(string url)
     {
-        var target = (url ?? string.Empty).Trim();
-
         return PlaylistChannelService.Channels.FirstOrDefault(ch =>
             !string.IsNullOrWhiteSpace(ch.Url)
-            && string.Equals(ch.Url.Trim(), target, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(ch.Url.Trim(), url.Trim(), StringComparison.OrdinalIgnoreCase)
         );
     }
 }
