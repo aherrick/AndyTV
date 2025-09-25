@@ -285,7 +285,9 @@ public partial class Form1 : Form
             using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
             dialog.ShowDialog(this);
             if (dialog.SelectedItem != null)
+            {
                 Play(dialog.SelectedItem);
+            }
         };
         channelsMenu.DropDownItems.Add(adHocItem);
 
@@ -298,7 +300,9 @@ public partial class Form1 : Form
             {
                 var clip = Clipboard.GetText().Trim();
                 if (UtilHelper.IsValidUrl(clip))
+                {
                     input = clip;
+                }
             }
 
             while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
@@ -306,7 +310,9 @@ public partial class Form1 : Form
                 _videoView.ShowDefault();
                 using var dlg = new InputForm("Swap Stream", "Enter media URL:");
                 if (dlg.ShowDialog(this) != DialogResult.OK)
+                {
                     return;
+                }
 
                 input = dlg.Result;
             }
@@ -328,7 +334,7 @@ public partial class Form1 : Form
         var refreshItem = new ToolStripMenuItem("Refresh");
         refreshItem.Click += async (_, __) =>
         {
-            await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // RebuildMenu handles refresh internally
+            await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // Rebuild handles refresh
         };
         channelsMenu.DropDownItems.Add(refreshItem);
 
@@ -345,6 +351,7 @@ public partial class Form1 : Form
             {
                 if (form.Saved)
                 {
+                    // Safe: menu is already closed after clicking "Manage"
                     _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
                 }
                 _videoView.SetCursorForCurrentView();
@@ -363,18 +370,28 @@ public partial class Form1 : Form
                 _currentChannel is not null
                 && !MenuFavoriteChannelHelper.IsDuplicate(_currentChannel)
             )
+            {
                 OpenFavorites(_currentChannel);
+            }
         };
         favoritesMenu.DropDownItems.Add(favoritesAddCurrentItem);
 
         favoritesMenu.DropDownItems.Add(new ToolStripSeparator());
 
-        // Toggle favorites visibility — no inline text change; Opening handler will set it
+        // Toggle favorites visibility WITHOUT mutating the menu while it's open.
         var favoritesToggleItem = new ToolStripMenuItem("Hide Favorites");
         favoritesToggleItem.Click += (_, __) =>
         {
             _favoritesShown = !_favoritesShown;
-            _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+
+            // Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
+            _contextMenuStrip.Close(ToolStripDropDownCloseReason.ItemClicked);
+            _contextMenuStrip.BeginInvoke(
+                new Action(() =>
+                {
+                    _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+                })
+            );
         };
         favoritesMenu.DropDownItems.Add(favoritesToggleItem);
 
@@ -425,8 +442,7 @@ public partial class Form1 : Form
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
-
-            // single source of truth for dynamic labels
+            // Single source of truth for dynamic labels
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
             favoritesToggleItem.Text = _favoritesShown ? "Hide Favorites" : "Show Favorites";
         };
