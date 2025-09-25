@@ -46,4 +46,18 @@ public static class MenuHelper
         parent.DropDownItems.Add(item);
         return item;
     }
+
+    public static ToolStripMenuItem AddChannelItemAt(
+        ContextMenuStrip menu,
+        int index,
+        Channel ch,
+        EventHandler clickHandler,
+        string displayText = null
+    )
+    {
+        var item = new ToolStripMenuItem(displayText ?? ch.DisplayName) { Tag = ch };
+        item.Click += clickHandler;
+        menu.Items.Insert(index, item);
+        return item;
+    }
 }

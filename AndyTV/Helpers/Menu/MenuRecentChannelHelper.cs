@@ -2,13 +2,28 @@
 
 namespace AndyTV.Helpers.Menu;
 
-public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+public class MenuRecentChannelHelper
 {
-    private readonly ToolStripMenuItem _header = MenuHelper.AddHeader(menu, "RECENT").Header;
+    private readonly ContextMenuStrip _menu;
+    private readonly EventHandler _clickHandler;
 
-    // NEW: capture UI context once
+    // keep only the right separator to anchor insert position
+    private readonly ToolStripSeparator _rightSep;
+
+    // track only the items we add after the header
+    private readonly List<ToolStripItem> _added = [];
+
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
+    public MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+    {
+        _menu = menu;
+        _clickHandler = clickHandler;
+
+        var (_, all) = MenuHelper.AddHeader(_menu, "RECENT");
+        _rightSep = (ToolStripSeparator)all[2]; // left = all[0], header = all[1], right = all[2]
+    }
 
     public void RebuildRecentMenu()
     {
@@ -17,22 +32,23 @@ public class MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHa
         _ui.Post(
             _ =>
             {
-                int headerIndex = menu.Items.IndexOf(_header);
-                int insertIndex = headerIndex + 2;
-
-                while (
-                    insertIndex < menu.Items.Count
-                    && menu.Items[insertIndex] is not ToolStripSeparator
-                )
+                // remove previously added items (header stays fixed)
+                foreach (var it in _added)
                 {
-                    menu.Items.RemoveAt(insertIndex);
+                    if (_menu.Items.Contains(it))
+                    {
+                        _menu.Items.Remove(it);
+                    }
                 }
+                _added.Clear();
+
+                // insert immediately after the right separator of the header trio
+                int insertIndex = _menu.Items.IndexOf(_rightSep) + 1;
 
                 foreach (var ch in recents)
                 {
-                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
-                    item.Click += clickHandler;
-                    menu.Items.Insert(insertIndex++, item);
+                    var item = MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+                    _added.Add(item);
                 }
             },
             null
