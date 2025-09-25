@@ -151,8 +151,8 @@ public partial class Form1 : Form
                 _contextMenuStrip,
                 ChItem_Click
             );
-            _menuFavoriteChannelHelper.EnsureAnchors(); // <-- one-time call to ensure anchors are present for easy rebuild/remove of favs
-            _menuFavoriteChannelHelper.ShowFavorites(true);
+            // _menuFavoriteChannelHelper.EnsureAnchors(); // <-- one-time call to ensure anchors are present for easy rebuild/remove of favs
+            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
@@ -352,7 +352,7 @@ public partial class Form1 : Form
                 if (form.Saved)
                 {
                     // Safe: menu is already closed after clicking "Manage"
-                    _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
                 }
                 _videoView.SetCursorForCurrentView();
             };
@@ -382,16 +382,16 @@ public partial class Form1 : Form
         var favoritesToggleItem = new ToolStripMenuItem("Hide Favorites");
         favoritesToggleItem.Click += (_, __) =>
         {
-            _favoritesShown = !_favoritesShown;
+            //_favoritesShown = !_favoritesShown;
 
-            // Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
-            _contextMenuStrip.Close(ToolStripDropDownCloseReason.ItemClicked);
-            _contextMenuStrip.BeginInvoke(
-                new Action(() =>
-                {
-                    _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
-                })
-            );
+            //// Close the menu first to avoid reflow/scroll reset, then update on the UI queue.
+            //_contextMenuStrip.Close(ToolStripDropDownCloseReason.ItemClicked);
+            //_contextMenuStrip.BeginInvoke(
+            //    new Action(() =>
+            //    {
+            //        _menuFavoriteChannelHelper.ShowFavorites(_favoritesShown);
+            //    })
+            //);
         };
         favoritesMenu.DropDownItems.Add(favoritesToggleItem);
 

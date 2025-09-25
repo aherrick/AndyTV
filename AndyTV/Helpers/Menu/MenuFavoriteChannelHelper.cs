@@ -1,147 +1,137 @@
 ﻿using AndyTV.Data.Models;
 using AndyTV.Services;
 
-namespace AndyTV.Helpers.Menu
+namespace AndyTV.Helpers.Menu;
+
+public class MenuFavoriteChannelHelper
 {
-    public class MenuFavoriteChannelHelper
+    private readonly ContextMenuStrip _menu;
+    private readonly EventHandler _clickHandler;
+    private readonly ToolStripMenuItem _header;
+
+    // static URLs for fast dupe check across the whole app
+    private static readonly HashSet<string> favoritesURLCache = new(
+        StringComparer.OrdinalIgnoreCase
+    );
+
+    public MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
     {
-        private readonly ContextMenuStrip _menu;
-        private readonly EventHandler _clickHandler;
+        _menu = menu;
+        _clickHandler = clickHandler;
+        _header = MenuHelper.AddHeader(_menu, "FAVORITES").Header;
+    }
 
-        private ToolStripSeparator _anchorStart;
-        private ToolStripSeparator _anchorEnd;
-
-        private static readonly HashSet<string> _favoritesUrlCache = new(
-            StringComparer.OrdinalIgnoreCase
-        );
-
-        public MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+    public static bool IsDuplicate(Channel channel)
+    {
+        bool isDuplicate = favoritesURLCache.Contains(channel.Url.Trim());
+        if (isDuplicate)
         {
-            _menu = menu;
-            _clickHandler = clickHandler;
+            MessageBox.Show(
+                $"\"{channel.DisplayName}\" is already in Favorites.",
+                "Already Added",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+        return isDuplicate;
+    }
+
+    public void RebuildFavoritesMenu()
+    {
+        var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
+
+        // rebuild static URL set
+        favoritesURLCache.Clear();
+        foreach (var f in favorites)
+        {
+            favoritesURLCache.Add(f.Url.Trim());
         }
 
-        // Call once from Form1 to create the invisible "slot".
-        public void EnsureAnchors()
-        {
-            _anchorStart = new ToolStripSeparator { Tag = "FAV_ANCHOR_START", Visible = false };
-            _anchorEnd = new ToolStripSeparator { Tag = "FAV_ANCHOR_END", Visible = false };
+        int headerIndex = _menu.Items.IndexOf(_header);
+        int insertIndex = headerIndex + 2;
 
-            _menu.Items.Add(_anchorStart);
-            _menu.Items.Add(_anchorEnd);
+        var leftSep = (ToolStripSeparator)_menu.Items[headerIndex - 1];
+        var rightSep = (ToolStripSeparator)_menu.Items[headerIndex + 1];
+
+        if (favorites.Count == 0)
+        {
+            leftSep.Visible = false;
+            _header.Visible = false;
+            rightSep.Visible = false;
+            return;
         }
 
-        // Assumes anchors exist (no guards by design).
-        public void ShowFavorites(bool show)
+        leftSep.Visible = true;
+        _header.Visible = true;
+        rightSep.Visible = true;
+
+        while (
+            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
+        )
         {
-            int s = _menu.Items.IndexOf(_anchorStart);
-            int e = _menu.Items.IndexOf(_anchorEnd);
+            _menu.Items.RemoveAt(insertIndex);
+        }
 
-            // Clear everything between anchors inline
-            for (int i = e - 1; i > s; i--)
+        var byCategory = favorites
+            .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var catGroup in byCategory)
+        {
+            if (catGroup.Key is null)
             {
-                _menu.Items.RemoveAt(i);
+                foreach (
+                    var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                )
+                {
+                    var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                    item.Click += _clickHandler;
+                    _menu.Items.Insert(insertIndex++, item);
+                }
+                continue;
             }
 
-            if (!show)
-                return;
+            _menu.Items.Insert(
+                insertIndex++,
+                new ToolStripMenuItem
+                {
+                    Text = catGroup.Key.ToUpperInvariant(),
+                    Font = new Font(SystemFonts.MenuFont, FontStyle.Bold),
+                    Enabled = false,
+                }
+            );
 
-            var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
+            var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
+            var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
 
-            _favoritesUrlCache.Clear();
-            foreach (var f in favorites)
+            foreach (
+                var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+            )
             {
-                var key = f.Url?.Trim();
-                if (!string.IsNullOrEmpty(key))
-                    _favoritesUrlCache.Add(key);
+                var item = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                item.Click += _clickHandler;
+                _menu.Items.Insert(insertIndex++, item);
             }
 
-            if (favorites.Count == 0)
-                return;
-
-            int at = s + 1;
-
-            // FAVORITES header trio at index using helper
-            var (Header, All) = MenuHelper.AddHeaderAt(_menu, at, "FAVORITES");
-            at += All.Length; // sep + header + sep
-
-            // Build by Category; null/empty category first
-            var byCategory = favorites
-                .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
+            var byGroup = withGroup
+                .GroupBy(ch => ch.Group!.Trim())
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
-            foreach (var catGroup in byCategory)
+            foreach (var grp in byGroup)
             {
-                if (catGroup.Key is null)
+                var groupNode = new ToolStripMenuItem(grp.Key);
+
+                foreach (
+                    var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                )
                 {
-                    // Ungrouped category: just items
-                    foreach (
-                        var ch in catGroup.OrderBy(
-                            c => c.DisplayName,
-                            StringComparer.OrdinalIgnoreCase
-                        )
-                    )
-                    {
-                        MenuHelper.AddChannelItemAt(_menu, at++, ch, _clickHandler);
-                    }
+                    var child = new ToolStripMenuItem(ch.DisplayName) { Tag = ch };
+                    child.Click += _clickHandler;
+                    groupNode.DropDownItems.Add(child);
                 }
-                else
-                {
-                    // Category header (bold, disabled) at index using helper
-                    MenuHelper.AddCategoryHeaderAt(_menu, at++, catGroup.Key!.ToUpperInvariant());
 
-                    var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
-                    var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
-
-                    // Ungrouped items first
-                    foreach (
-                        var ch in noGroup.OrderBy(
-                            c => c.DisplayName,
-                            StringComparer.OrdinalIgnoreCase
-                        )
-                    )
-                    {
-                        MenuHelper.AddChannelItemAt(_menu, at++, ch, _clickHandler);
-                    }
-
-                    // Grouped items by Group label
-                    var byGroup = withGroup
-                        .GroupBy(ch => ch.Group!.Trim())
-                        .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var grp in byGroup)
-                    {
-                        var groupNode = new ToolStripMenuItem(grp.Key);
-                        foreach (
-                            var ch in grp.OrderBy(
-                                c => c.DisplayName,
-                                StringComparer.OrdinalIgnoreCase
-                            )
-                        )
-                        {
-                            MenuHelper.AddChildChannelItem(groupNode, ch, _clickHandler);
-                        }
-                        _menu.Items.Insert(at++, groupNode);
-                    }
-                }
+                _menu.Items.Insert(insertIndex++, groupNode);
             }
-        }
-
-        public static bool IsDuplicate(Channel channel, bool showMessageBox = true)
-        {
-            var key = channel.Url?.Trim() ?? string.Empty;
-            bool isDuplicate = key.Length > 0 && _favoritesUrlCache.Contains(key);
-
-            if (isDuplicate && showMessageBox)
-            {
-                MessageBox.Show(
-                    $"\"{channel.DisplayName}\" is already in Favorites.",
-                    "Already Added",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
-            }
-            return isDuplicate;
         }
     }
 }
