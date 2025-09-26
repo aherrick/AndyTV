@@ -33,7 +33,7 @@ public partial class Form1 : Form
 
     private bool _isRestartingStream = false;
 
-    private const int STALL_SECONDS = 5;
+    private const int STALL_SECONDS = 4;
     private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
