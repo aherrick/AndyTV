@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Windows.Forms;
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
 using AndyTV.Menu;
@@ -21,6 +22,8 @@ public partial class Form1 : Form
     private MenuRecent _menuRecent;
     private MenuFavorite _menuFavorite;
     private MenuTopPlaylist _menuTopPlaylist; // top + playlist
+    private readonly MenuTop _menuTop;
+    private readonly MenuPlaylist _menuPlaylist;
 
     private Channel _currentChannel = null;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
@@ -43,6 +46,9 @@ public partial class Form1 : Form
         _videoView = videoView;
 
         InitializeComponent();
+
+        _menuTop = new MenuTop(_contextMenuStrip);
+        _menuPlaylist = new MenuPlaylist(_contextMenuStrip);
 
         _notificationService = new NotificationService(this);
 
@@ -149,10 +155,7 @@ public partial class Form1 : Form
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
             _menuFavorite.Rebuild();
 
-            _menuTopPlaylist = new MenuTopPlaylist(
-                top: new MenuTop(_contextMenuStrip),
-                playlist: new MenuPlaylist(_contextMenuStrip)
-            );
+            _menuTopPlaylist = new MenuTopPlaylist(_menuTop, _menuPlaylist);
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
