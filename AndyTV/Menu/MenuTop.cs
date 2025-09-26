@@ -1,14 +1,16 @@
-﻿using AndyTV.Data.Models;
+﻿// AndyTV/Menu/MenuTop.cs
+using AndyTV.Data.Models;
 using AndyTV.Data.Services;
+using AndyTV.Helpers;
 using AndyTV.Services;
 
-namespace AndyTV.Helpers.Menu;
+namespace AndyTV.Menu;
 
-public partial class MenuTVChannelHelper(ContextMenuStrip menu)
+public partial class MenuTop(ContextMenuStrip menu)
 {
     private readonly List<ToolStripItem> _added = [];
 
-    public async Task RebuildMenu(EventHandler channelClick)
+    public void Rebuild(EventHandler channelClick)
     {
         foreach (var it in _added)
         {
@@ -18,8 +20,6 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
             }
         }
         _added.Clear();
-
-        await PlaylistChannelService.RefreshChannels();
 
         // ----- TOP CHANNELS -----
         var (_, topAll) = MenuHelper.AddHeader(menu, "TOP CHANNELS");
@@ -31,36 +31,7 @@ public partial class MenuTVChannelHelper(ContextMenuStrip menu)
         // ----- 24/7 -----
         Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
-        // ----- PLAYLISTS -----
-        BuildPlaylistSection(channelClick);
-
-        Logger.Info("[CHANNELS] Menu rebuilt");
-    }
-
-    private void BuildPlaylistSection(EventHandler channelClick)
-    {
-        var (_, playlistsAll) = MenuHelper.AddHeader(menu, "PLAYLISTS");
-        _added.AddRange(playlistsAll);
-
-        var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
-            x.Playlist.ShowInMenu
-        );
-
-        foreach (var (Playlist, Channels) in playlistChannelsMenu)
-        {
-            var root = new ToolStripMenuItem(Playlist.Name);
-
-            foreach (var channel in Channels)
-            {
-                MenuHelper.AddChildChannelItem(root, channel, channelClick);
-            }
-
-            if (root.DropDownItems.Count > 0)
-            {
-                menu.Items.Add(root);
-                _added.Add(root);
-            }
-        }
+        Logger.Info("[CHANNELS] Menu rebuilt (Top + 24/7)");
     }
 
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)

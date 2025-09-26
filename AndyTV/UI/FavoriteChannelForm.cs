@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
-using AndyTV.Helpers.Menu;
+using AndyTV.Menu;
 using AndyTV.Services;
 using AndyTV.UI.Controls;
 
@@ -305,7 +305,7 @@ public partial class FavoriteChannelForm : Form
 
     private void AddChannel(Channel channel)
     {
-        if (!MenuFavoriteChannelHelper.IsDuplicate(channel))
+        if (!MenuFavorite.IsDuplicate(channel))
         {
             _favorites.Add(channel);
         }

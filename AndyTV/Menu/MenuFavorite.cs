@@ -1,9 +1,9 @@
 ﻿using AndyTV.Data.Models;
 using AndyTV.Services;
 
-namespace AndyTV.Helpers.Menu;
+namespace AndyTV.Menu;
 
-public class MenuFavoriteChannelHelper
+public class MenuFavorite
 {
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
@@ -15,14 +15,14 @@ public class MenuFavoriteChannelHelper
         StringComparer.OrdinalIgnoreCase
     );
 
-    public MenuFavoriteChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+    public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler)
     {
         _menu = menu;
         _clickHandler = clickHandler;
 
-        var trio = MenuHelper.AddHeader(_menu, "FAVORITES");
-        _header = trio.Header;
-        _trio = trio.All;
+        var (Header, All) = MenuHelper.AddHeader(_menu, "FAVORITES");
+        _header = Header;
+        _trio = All;
     }
 
     public static bool IsDuplicate(Channel channel)
@@ -40,7 +40,7 @@ public class MenuFavoriteChannelHelper
         return isDuplicate;
     }
 
-    public void RebuildFavoritesMenu(bool show = true)
+    public void Rebuild(bool show = true)
     {
         int headerIndex = _menu.Items.IndexOf(_header);
         if (headerIndex < 0)

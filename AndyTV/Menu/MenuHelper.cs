@@ -1,6 +1,6 @@
 ﻿using AndyTV.Data.Models;
 
-namespace AndyTV.Helpers.Menu;
+namespace AndyTV.Menu;
 
 public static class MenuHelper
 {

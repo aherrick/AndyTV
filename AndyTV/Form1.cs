@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
-using AndyTV.Helpers.Menu;
+using AndyTV.Menu;
+using AndyTV.Menu.Helpers;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
@@ -18,9 +19,9 @@ public partial class Form1 : Form
 
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
-    private MenuRecentChannelHelper _menuRecentChannelHelper;
-    private MenuTVChannelHelper _menuTVChannelHelper;
-    private MenuFavoriteChannelHelper _menuFavoriteChannelHelper;
+    private MenuRecent _menuRecent;
+    private MenuFavorite _menuFavorite;
+    private MenuRebuilder _menuRebuilder; // top + playlist
 
     private Channel _currentChannel = null;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
@@ -75,7 +76,7 @@ public partial class Form1 : Form
             _notificationService.ShowToast(_currentChannel.DisplayName);
             RecentChannelService.AddOrPromote(_currentChannel);
             ChannelDataService.SaveLastChannel(_currentChannel);
-            _menuRecentChannelHelper?.RebuildRecentMenu();
+            _menuRecent?.Rebuild();
         };
 
         _videoView.ContextMenuStrip = _contextMenuStrip;
@@ -141,18 +142,18 @@ public partial class Form1 : Form
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
-            _menuTVChannelHelper = new MenuTVChannelHelper(_contextMenuStrip);
             BuildSettingsMenu(appVersionName);
 
-            _menuRecentChannelHelper = new MenuRecentChannelHelper(_contextMenuStrip, ChItem_Click);
-            _menuRecentChannelHelper.RebuildRecentMenu();
+            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click);
+            _menuRecent.Rebuild();
 
-            _menuFavoriteChannelHelper = new MenuFavoriteChannelHelper(
-                _contextMenuStrip,
-                ChItem_Click
+            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
+            _menuFavorite.Rebuild();
+
+            _menuRebuilder = new MenuRebuilder(
+                top: new MenuTop(_contextMenuStrip),
+                playlist: new MenuPlaylist(_contextMenuStrip)
             );
-
-            _menuFavoriteChannelHelper.RebuildFavoritesMenu();
 
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
@@ -161,8 +162,7 @@ public partial class Form1 : Form
                 await HandlePlaylistManager();
             }
 
-            // Initial menu build
-            await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
+            await _menuRebuilder.RebuildAll(ChItem_Click);
 
             _videoView.SetCursorForCurrentView();
 
@@ -210,7 +210,7 @@ public partial class Form1 : Form
             dlg.ShowDialog(this);
             if (dlg.Saved)
             {
-                await _menuTVChannelHelper.RebuildMenu(ChItem_Click);
+                await _menuRebuilder.RebuildAll(ChItem_Click);
             }
         }
         _videoView.SetCursorForCurrentView();
@@ -318,9 +318,7 @@ public partial class Form1 : Form
                     input = dlg.Result;
                 }
 
-                var ch =
-                    MenuTVChannelHelper.ChannelByUrl(input)
-                    ?? new Channel { Name = "Swap", Url = input };
+                var ch = MenuTop.ChannelByUrl(input) ?? new Channel { Name = "Swap", Url = input };
                 Logger.Info($"[SWAP] Playing input: {input}");
                 Play(ch);
             }
@@ -339,7 +337,7 @@ public partial class Form1 : Form
             "Refresh",
             async (_, __) =>
             {
-                await _menuTVChannelHelper.RebuildMenu(ChItem_Click); // Rebuild handles refresh
+                await _menuRebuilder.RebuildAll(ChItem_Click);
             }
         );
 
@@ -355,7 +353,7 @@ public partial class Form1 : Form
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)
-                    _menuFavoriteChannelHelper.RebuildFavoritesMenu();
+                    _menuFavorite.Rebuild();
                 _videoView.SetCursorForCurrentView();
             };
             form.ShowDialog(this);
@@ -368,10 +366,7 @@ public partial class Form1 : Form
             "Add Playing",
             (_, __) =>
             {
-                if (
-                    _currentChannel is not null
-                    && !MenuFavoriteChannelHelper.IsDuplicate(_currentChannel)
-                )
+                if (_currentChannel is not null && !MenuFavorite.IsDuplicate(_currentChannel))
                 {
                     OpenFavorites(_currentChannel);
                 }
@@ -386,7 +381,7 @@ public partial class Form1 : Form
             (_, __) =>
             {
                 _favoritesShown = !_favoritesShown;
-                _menuFavoriteChannelHelper.RebuildFavoritesMenu(show: _favoritesShown);
+                _menuFavorite.Rebuild(show: _favoritesShown);
                 // Label normalized on Opening
             }
         );

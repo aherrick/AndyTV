@@ -1,8 +1,8 @@
 ﻿using AndyTV.Services;
 
-namespace AndyTV.Helpers.Menu;
+namespace AndyTV.Menu;
 
-public class MenuRecentChannelHelper
+public class MenuRecent
 {
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
@@ -16,7 +16,7 @@ public class MenuRecentChannelHelper
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
-    public MenuRecentChannelHelper(ContextMenuStrip menu, EventHandler clickHandler)
+    public MenuRecent(ContextMenuStrip menu, EventHandler clickHandler)
     {
         _menu = menu;
         _clickHandler = clickHandler;
@@ -25,7 +25,7 @@ public class MenuRecentChannelHelper
         _rightSep = (ToolStripSeparator)all[2]; // left = all[0], header = all[1], right = all[2]
     }
 
-    public void RebuildRecentMenu()
+    public void Rebuild()
     {
         var recents = RecentChannelService.GetRecentChannels();
 

@@ -4,20 +4,15 @@ namespace AndyTV.Helpers;
 
 public static class Logger
 {
-    private static readonly string _dir;
-
     static Logger()
     {
-        _dir = PathHelper.GetPath("logs");
-        Directory.CreateDirectory(_dir);
+        Directory.CreateDirectory(LogFolder);
     }
 
-    /// <summary>
-    /// The root folder where all log files are written.
-    /// </summary>
-    public static string LogFolder => _dir;
+    public static string LogFolder { get; } = PathHelper.GetPath("logs");
 
-    private static string CurrentFile => Path.Combine(_dir, $"{DateTime.UtcNow:yyyy-MM-dd}.log");
+    private static string CurrentFile =>
+        Path.Combine(LogFolder, $"{DateTime.UtcNow:yyyy-MM-dd}.log");
 
     public static void Info(string message) => Write("INFO", message);
 

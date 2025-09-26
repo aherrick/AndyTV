@@ -500,25 +500,21 @@ public partial class ChannelService
             return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
         }
 
-        // ---- Select candidates: must contain the rootTitle (e.g., "24/7") and not match the (AA) marker ----
+        // ---- Select candidates: must START with "24/7" and not match the (AA) marker ----
         var candidates = channels
             .Where(ch =>
             {
                 if (ch is null || string.IsNullOrWhiteSpace(ch.DisplayName))
-                {
                     return false;
-                }
 
-                // Match "24/7 ..." (or whatever rootTitle is) and filter out "(AA)"-style two-letter markers
-                if (ch.DisplayName.IndexOf(rootTitle, StringComparison.OrdinalIgnoreCase) < 0)
-                {
+                if (!StartsWith247Regex().IsMatch(ch.DisplayName))
                     return false;
-                }
+
+                if (ch.DisplayName.IndexOf("Not 24/7", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return false;
 
                 if (MatchTwoParens().IsMatch(ch.DisplayName))
-                {
                     return false;
-                }
 
                 return true;
             })
@@ -619,4 +615,7 @@ public partial class ChannelService
 
     [GeneratedRegex(@"\s+", RegexOptions.Compiled)]
     private static partial Regex NormalizeSpaceRegex();
+
+    [GeneratedRegex(@"^\s*24\s*/\s*7\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex StartsWith247Regex();
 }
