@@ -1,5 +1,4 @@
-﻿// AndyTV/Menu/MenuTop.cs
-using AndyTV.Data.Models;
+﻿using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Helpers;
 using AndyTV.Services;
@@ -10,8 +9,18 @@ public partial class MenuTop(ContextMenuStrip menu)
 {
     private readonly List<ToolStripItem> _added = [];
 
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public void Rebuild(EventHandler channelClick)
     {
+        // Marshal to UI thread if we're not already on it
+        if (!ReferenceEquals(SynchronizationContext.Current, _ui))
+        {
+            _ui.Post(_ => Rebuild(channelClick), null);
+            return;
+        }
+
         foreach (var it in _added)
         {
             if (menu.Items.Contains(it))

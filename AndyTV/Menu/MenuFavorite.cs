@@ -15,6 +15,10 @@ public class MenuFavorite
         StringComparer.OrdinalIgnoreCase
     );
 
+    // Capture UI context once
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler)
     {
         _menu = menu;
@@ -27,7 +31,8 @@ public class MenuFavorite
 
     public static bool IsDuplicate(Channel channel)
     {
-        bool isDuplicate = favoritesURLCache.Contains(channel.Url.Trim());
+        var url = channel.Url?.Trim();
+        bool isDuplicate = !string.IsNullOrWhiteSpace(url) && favoritesURLCache.Contains(url);
         if (isDuplicate)
         {
             MessageBox.Show(
@@ -42,14 +47,23 @@ public class MenuFavorite
 
     public void Rebuild(bool show = true)
     {
+        // Marshal to UI thread if we're not already on it
+        if (!ReferenceEquals(SynchronizationContext.Current, _ui))
+        {
+            _ui.Post(_ => Rebuild(show), null);
+            return;
+        }
+
         int headerIndex = _menu.Items.IndexOf(_header);
         if (headerIndex < 0)
         {
             return;
         }
 
+        // Insert position: right after the right separator in the header trio
         int insertIndex = headerIndex + 2;
 
+        // Clear items between header trio and next separator (keeps header anchored)
         while (
             insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
         )
@@ -67,7 +81,11 @@ public class MenuFavorite
         favoritesURLCache.Clear();
         foreach (var f in favorites)
         {
-            favoritesURLCache.Add(f.Url.Trim());
+            var url = f.Url?.Trim();
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                favoritesURLCache.Add(url);
+            }
         }
 
         if (favorites.Count == 0)
@@ -114,14 +132,12 @@ public class MenuFavorite
             foreach (var grp in byGroup)
             {
                 var groupNode = new ToolStripMenuItem(grp.Key);
-
                 foreach (
                     var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
                     MenuHelper.AddChildChannelItem(groupNode, ch, _clickHandler);
                 }
-
                 _menu.Items.Insert(insertIndex++, groupNode);
             }
         }

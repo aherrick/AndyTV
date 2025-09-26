@@ -13,6 +13,7 @@ public class MenuRecent
     // track only the items we add after the header
     private readonly List<ToolStripItem> _added = [];
 
+    // capture UI context once
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
@@ -29,29 +30,30 @@ public class MenuRecent
     {
         var recents = RecentChannelService.GetRecentChannels();
 
-        _ui.Post(
-            _ =>
+        // Marshal to UI thread only if we're not already on it
+        if (!ReferenceEquals(SynchronizationContext.Current, _ui))
+        {
+            _ui.Post(_ => Rebuild(), null);
+            return;
+        }
+
+        // remove previously added items (header stays fixed)
+        foreach (var it in _added)
+        {
+            if (_menu.Items.Contains(it))
             {
-                // remove previously added items (header stays fixed)
-                foreach (var it in _added)
-                {
-                    if (_menu.Items.Contains(it))
-                    {
-                        _menu.Items.Remove(it);
-                    }
-                }
-                _added.Clear();
+                _menu.Items.Remove(it);
+            }
+        }
+        _added.Clear();
 
-                // insert immediately after the right separator of the header trio
-                int insertIndex = _menu.Items.IndexOf(_rightSep) + 1;
+        // insert immediately after the right separator of the header trio
+        int insertIndex = _menu.Items.IndexOf(_rightSep) + 1;
 
-                foreach (var ch in recents)
-                {
-                    var item = MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
-                    _added.Add(item);
-                }
-            },
-            null
-        );
+        foreach (var ch in recents)
+        {
+            var item = MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+            _added.Add(item);
+        }
     }
 }

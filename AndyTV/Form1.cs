@@ -2,7 +2,6 @@
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
 using AndyTV.Menu;
-using AndyTV.Menu.Helpers;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
@@ -21,7 +20,7 @@ public partial class Form1 : Form
 
     private MenuRecent _menuRecent;
     private MenuFavorite _menuFavorite;
-    private MenuRebuilder _menuRebuilder; // top + playlist
+    private MenuTopPlaylist _menuTopPlaylist; // top + playlist
 
     private Channel _currentChannel = null;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
@@ -150,7 +149,7 @@ public partial class Form1 : Form
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
             _menuFavorite.Rebuild();
 
-            _menuRebuilder = new MenuRebuilder(
+            _menuTopPlaylist = new MenuTopPlaylist(
                 top: new MenuTop(_contextMenuStrip),
                 playlist: new MenuPlaylist(_contextMenuStrip)
             );
@@ -162,7 +161,7 @@ public partial class Form1 : Form
                 await HandlePlaylistManager();
             }
 
-            await _menuRebuilder.RebuildAll(ChItem_Click);
+            await _menuTopPlaylist.RebuildAll(ChItem_Click);
 
             _videoView.SetCursorForCurrentView();
 
@@ -210,7 +209,7 @@ public partial class Form1 : Form
             dlg.ShowDialog(this);
             if (dlg.Saved)
             {
-                await _menuRebuilder.RebuildAll(ChItem_Click);
+                await _menuTopPlaylist.RebuildAll(ChItem_Click);
             }
         }
         _videoView.SetCursorForCurrentView();
@@ -337,7 +336,7 @@ public partial class Form1 : Form
             "Refresh",
             async (_, __) =>
             {
-                await _menuRebuilder.RebuildAll(ChItem_Click);
+                await _menuTopPlaylist.RebuildAll(ChItem_Click);
             }
         );
 

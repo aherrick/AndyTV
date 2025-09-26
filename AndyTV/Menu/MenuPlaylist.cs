@@ -1,5 +1,4 @@
-﻿// AndyTV/Menu/MenuPlaylists.cs
-using AndyTV.Services;
+﻿using AndyTV.Services;
 
 namespace AndyTV.Menu;
 
@@ -7,8 +6,18 @@ public sealed class MenuPlaylist(ContextMenuStrip menu)
 {
     private readonly List<ToolStripItem> _added = [];
 
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     public void Rebuild(EventHandler channelClick)
     {
+        // Marshal to UI thread if needed
+        if (!ReferenceEquals(SynchronizationContext.Current, _ui))
+        {
+            _ui.Post(_ => Rebuild(channelClick), null);
+            return;
+        }
+
         // remove previously added items for a clean rebuild
         foreach (var it in _added)
         {

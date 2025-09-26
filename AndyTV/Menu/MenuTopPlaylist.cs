@@ -1,9 +1,8 @@
-﻿// AndyTV/Menu/MenuRebuilder.cs
-using AndyTV.Services;
+﻿using AndyTV.Services;
 
-namespace AndyTV.Menu.Helpers;
+namespace AndyTV.Menu;
 
-public class MenuRebuilder(MenuTop top, MenuPlaylist playlist)
+public class MenuTopPlaylist(MenuTop top, MenuPlaylist playlist)
 {
     public async Task RebuildAll(EventHandler channelClick)
     {
