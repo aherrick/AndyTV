@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
 using AndyTV.Menu;
+using AndyTV.Models;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
@@ -21,7 +22,6 @@ public partial class Form1 : Form
 
     private MenuRecent _menuRecent;
     private MenuFavorite _menuFavorite;
-    private MenuTopPlaylist _menuTopPlaylist; // top + playlist
     private readonly MenuTop _menuTop;
     private readonly MenuPlaylist _menuPlaylist;
 
@@ -155,8 +155,6 @@ public partial class Form1 : Form
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
             _menuFavorite.Rebuild();
 
-            _menuTopPlaylist = new MenuTopPlaylist(_menuTop, _menuPlaylist);
-
             // If no valid playlist, open manager; if saved, refresh + rebuild
             if (PlaylistChannelService.Load().Count == 0)
             {
@@ -164,7 +162,7 @@ public partial class Form1 : Form
                 await HandlePlaylistManager();
             }
 
-            await _menuTopPlaylist.RebuildAll(ChItem_Click);
+            await RefreshMenuTopPlaylist();
 
             _videoView.SetCursorForCurrentView();
 
@@ -204,6 +202,15 @@ public partial class Form1 : Form
     }
 
     // Reusable: open Playlist Manager; if dlg.Saved, refresh + rebuild
+
+    private async Task RefreshMenuTopPlaylist()
+    {
+        await Task.Run(PlaylistChannelService.RefreshChannels);
+
+        _menuTop.Rebuild(ChItem_Click);
+        _menuPlaylist.Rebuild(ChItem_Click);
+    }
+
     private async Task HandlePlaylistManager()
     {
         _videoView.ShowDefault();
@@ -212,7 +219,7 @@ public partial class Form1 : Form
             dlg.ShowDialog(this);
             if (dlg.Saved)
             {
-                await _menuTopPlaylist.RebuildAll(ChItem_Click);
+                await RefreshMenuTopPlaylist();
             }
         }
         _videoView.SetCursorForCurrentView();
@@ -339,7 +346,7 @@ public partial class Form1 : Form
             "Refresh",
             async (_, __) =>
             {
-                await _menuTopPlaylist.RebuildAll(ChItem_Click);
+                await RefreshMenuTopPlaylist();
             }
         );
 
