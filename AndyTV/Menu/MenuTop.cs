@@ -12,8 +12,6 @@ public partial class MenuTop(ContextMenuStrip menu)
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
-    private CancellationTokenSource _cts;
-
     // Wrapper for legacy callers; prefer awaiting RebuildAsync.
     public void Rebuild(EventHandler channelClick)
     {
@@ -126,14 +124,14 @@ public partial class MenuTop(ContextMenuStrip menu)
                     {
                         var catItem = new ToolStripMenuItem(cat.Key);
                         foreach (
-                            var grp in cat.OrderBy(
+                            var (CatName, ParentName, Matches) in cat.OrderBy(
                                 e => e.ParentName,
                                 StringComparer.OrdinalIgnoreCase
                             )
                         )
                         {
-                            var parent = new ToolStripMenuItem(grp.ParentName);
-                            foreach (var ch in grp.Matches)
+                            var parent = new ToolStripMenuItem(ParentName);
+                            foreach (var ch in Matches)
                             {
                                 MenuHelper.AddChildChannelItem(parent, ch, click);
                             }
