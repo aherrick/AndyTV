@@ -14,33 +14,42 @@ public partial class MenuTop(ContextMenuStrip menu)
 
     public void Rebuild(EventHandler channelClick)
     {
-        // Marshal to UI thread if we're not already on it
-        if (!ReferenceEquals(SynchronizationContext.Current, _ui))
-        {
-            _ui.Post(_ => Rebuild(channelClick), null);
-            return;
-        }
-
-        foreach (var it in _added)
-        {
-            if (menu.Items.Contains(it))
+        _ui.Post(
+            _ =>
             {
-                menu.Items.Remove(it);
-            }
-        }
-        _added.Clear();
+                foreach (var it in _added)
+                {
+                    if (menu.Items.Contains(it))
+                    {
+                        menu.Items.Remove(it);
+                    }
+                }
+                _added.Clear();
 
-        // ----- TOP CHANNELS -----
-        var (_, topAll) = MenuHelper.AddHeader(menu, "TOP CHANNELS");
-        _added.AddRange(topAll);
+                // ----- TOP CHANNELS -----
+                var (_, topAll) = MenuHelper.AddHeader(menu, "TOP CHANNELS");
+                _added.AddRange(topAll);
 
-        BuildTopMenu("US", ChannelService.TopUs(), channelClick, PlaylistChannelService.Channels);
-        BuildTopMenu("UK", ChannelService.TopUk(), channelClick, PlaylistChannelService.Channels);
+                BuildTopMenu(
+                    "US",
+                    ChannelService.TopUs(),
+                    channelClick,
+                    PlaylistChannelService.Channels
+                );
+                BuildTopMenu(
+                    "UK",
+                    ChannelService.TopUk(),
+                    channelClick,
+                    PlaylistChannelService.Channels
+                );
 
-        // ----- 24/7 -----
-        Build247("24/7", channelClick, PlaylistChannelService.Channels);
+                // ----- 24/7 -----
+                Build247("24/7", channelClick, PlaylistChannelService.Channels);
 
-        Logger.Info("[CHANNELS] Menu rebuilt (Top + 24/7)");
+                Logger.Info("[CHANNELS] Menu rebuilt (Top + 24/7)");
+            },
+            null
+        );
     }
 
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
