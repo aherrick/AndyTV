@@ -72,7 +72,10 @@ public class Menu247EntryTests(Menu247EntryFixture fx) : IClassFixture<Menu247En
         Assert.Collection(
             seinfeld.Select(e => e.DisplayText),
             s => Assert.Equal("Seinfeld S01", s),
-            s => Assert.Equal("Seinfeld S02", s)
+            s =>
+            {
+                Assert.Equal("Seinfeld S02", s);
+            }
         );
 
         var simpsons = fx
