@@ -71,14 +71,8 @@ public class Menu247EntryTests(Menu247EntryFixture fx) : IClassFixture<Menu247En
         var seinfeld = fx.Entries.Where(e => e.GroupBase == "Seinfeld").ToList();
         Assert.Collection(
             seinfeld.Select(e => e.DisplayText),
-            s =>
-            {
-                Assert.Equal("Seinfeld S01", s);
-            },
-            s =>
-            {
-                Assert.Equal("Seinfeld S02", s);
-            }
+            s => Assert.Equal("Seinfeld S01", s),
+            s => Assert.Equal("Seinfeld S02", s)
         );
 
         var simpsons = fx
@@ -93,14 +87,8 @@ public class Menu247EntryTests(Menu247EntryFixture fx) : IClassFixture<Menu247En
 
         Assert.Collection(
             simpsons.Select(e => e.DisplayText),
-            s =>
-            {
-                Assert.Equal("The Simpsons Season 1", s);
-            },
-            s =>
-            {
-                Assert.Equal("The Simpsons Season 2", s);
-            }
+            s => Assert.Equal("The Simpsons Season 1", s),
+            s => Assert.Equal("The Simpsons Season 2", s)
         );
     }
 
