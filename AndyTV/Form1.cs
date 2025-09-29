@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Windows.Forms;
 using AndyTV.Data.Models;
 using AndyTV.Helpers;
 using AndyTV.Menu;
-using AndyTV.Models;
 using AndyTV.Services;
 using AndyTV.UI;
 using LibVLCSharp.Shared;
@@ -38,6 +36,8 @@ public partial class Form1 : Form
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
     private bool _favoritesShown = true;
+
+    private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
     {
@@ -141,21 +141,16 @@ public partial class Form1 : Form
 
         Shown += async delegate
         {
-            // Prime channel cache
-            await PlaylistChannelService.RefreshChannels();
-
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
             BuildSettingsMenu(appVersionName);
 
             _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click);
-            _menuRecent.Rebuild();
-
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
-            _menuFavorite.Rebuild();
 
-            // If no valid playlist, open manager; if saved, refresh + rebuild
+            await RefreshMenuTopPlaylist();
+
             if (PlaylistChannelService.Load().Count == 0)
             {
                 RestoreWindow();
@@ -196,17 +191,17 @@ public partial class Form1 : Form
                     Logger.Info("[HEALTH] Restart queued; awaiting Playing or next health check.");
                 }
             };
-
             _healthTimer.Start();
+
+            _hourlyRefreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 60 * 1000 };
+            _hourlyRefreshTimer.Tick += async (_, __) => await RefreshMenuTopPlaylist();
+            _hourlyRefreshTimer.Start();
         };
     }
-
-    // Reusable: open Playlist Manager; if dlg.Saved, refresh + rebuild
 
     private async Task RefreshMenuTopPlaylist()
     {
         await Task.Run(PlaylistChannelService.RefreshChannels);
-
         _menuTop.Rebuild(ChItem_Click);
         _menuPlaylist.Rebuild(ChItem_Click);
     }
@@ -284,7 +279,6 @@ public partial class Form1 : Form
             );
         };
 
-        // ===== Channels =====
         var channelsMenu = new ToolStripMenuItem("Channels");
 
         MenuHelper.AddMenuItem(
@@ -352,7 +346,6 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Items.Add(channelsMenu);
 
-        // ===== Favorites =====
         var favoritesMenu = new ToolStripMenuItem("Favorites");
 
         void OpenFavorites(Channel addOnOpen = null)
@@ -391,13 +384,11 @@ public partial class Form1 : Form
             {
                 _favoritesShown = !_favoritesShown;
                 _menuFavorite.Rebuild(show: _favoritesShown);
-                // Label normalized on Opening
             }
         );
 
         _contextMenuStrip.Items.Add(favoritesMenu);
 
-        // ===== App =====
         var appMenu = new ToolStripMenuItem("App");
 
         MenuHelper.AddMenuItem(
@@ -428,7 +419,6 @@ public partial class Form1 : Form
             (_, __) =>
             {
                 _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
-                // text normalized on Opening
             }
         );
 
@@ -439,7 +429,6 @@ public partial class Form1 : Form
 
         _contextMenuStrip.Items.Add(appMenu);
 
-        // ===== Context menu open/close behavior =====
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
