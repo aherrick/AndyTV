@@ -1,6 +1,8 @@
 name: scan
 
 on:
+  workflow_dispatch:
+  pull_request:
   push:
 
 jobs:
@@ -18,10 +20,13 @@ jobs:
         run: dotnet tool update -g roslynator.dotnet.cli
 
       - name: Fetch Roslynator analyzers
-        run: dotnet add package Roslynator.Analyzers --package-directory analyzers
+        run: |
+          wget https://www.nuget.org/api/v2/package/Roslynator.Analyzers -O roslynator.zip
+          unzip -q roslynator.zip -d analyzers/Roslynator.Analyzers
+          rm roslynator.zip
 
       - name: Run analysis
         run: >
           roslynator analyze AndyTV.sln
-          --analyzer-assemblies analyzers/roslynator.analyzers/*/analyzers/dotnet/cs
+          --analyzer-assemblies analyzers/Roslynator.Analyzers/analyzers/dotnet/cs
           --ignore-compiler-diagnostics
