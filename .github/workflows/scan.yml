@@ -27,9 +27,4 @@ jobs:
         run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Analyze
-        shell: pwsh
-        run: |
-          roslynator analyze "AndyTV.sln" `
-            --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" `
-            --ignore-compiler-diagnostics `
-            --severity-level warning
+        run: roslynator analyze AndyTV.sln --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
