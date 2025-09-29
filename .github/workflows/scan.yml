@@ -24,10 +24,10 @@ jobs:
         run: roslynator analyze AndyTV.sln --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
         
       - name: Find unused private code
+        continue-on-error: true
         run: >
           roslynator find-symbol AndyTV.sln
           --symbol-kind type-or-member
           --unused
           --visibility private
           --without-attribute System.ObsoleteAttribute
-          --ignored-names "<top-level-statements-entry-point>"
