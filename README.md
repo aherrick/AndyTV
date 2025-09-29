@@ -3,7 +3,6 @@
 [![Build](https://github.com/aherrick/AndyTV/actions/workflows/build.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/build.yml)
 [![Publish](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/publish.yml)
 [![Scan](https://github.com/aherrick/AndyTV/actions/workflows/scan.yml/badge.svg)](https://github.com/aherrick/AndyTV/actions/workflows/scan.yml)
-[![Visitors](https://api.visitorbadge.io/api/VisitorHit?user=aherrick&repo=AndyTV&label=VISITORS&labelColor=%23222222&countColor=%23007ec6)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2Faherrick%2FAndyTV)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -59,5 +58,7 @@ AndyTV is built with a modern .NET toolchain and a few carefully chosen librarie
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
+
+[![Visitors](https://api.visitorbadge.io/api/VisitorHit?user=aherrick&repo=AndyTV&label=VISITORS&labelColor=%23222222&countColor=%23007ec6)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2Faherrick%2FAndyTV)  
 
 Made with ❤️ for the Windows community.
