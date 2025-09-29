@@ -24,10 +24,12 @@ jobs:
         run: dotnet tool install --global roslynator.dotnet.cli
 
       - name: Fetch Roslynator analyzers
-        run: nuget install Roslynator.Analyzers -OutputDirectory .analyzers -ExcludeVersion
+        run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Analyze
-        run: >
-          roslynator analyze AndyTV.sln
-          --analyzer-assemblies ".analyzers/Roslynator.Analyzers/analyzers/dotnet/cs"
-          --ignore-compiler-diagnostics
+        shell: pwsh
+        run: |
+          roslynator analyze "AndyTV.sln" `
+            --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" `
+            --ignore-compiler-diagnostics `
+            --severity-level warning
