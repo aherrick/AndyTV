@@ -18,10 +18,10 @@ jobs:
         run: dotnet tool update -g roslynator.dotnet.cli
 
       - name: Fetch Roslynator analyzers
-        run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
+        run: dotnet add package Roslynator.Analyzers --package-directory analyzers
 
       - name: Run analysis
         run: >
           roslynator analyze AndyTV.sln
-          --analyzer-assemblies analyzers/Roslynator.Analyzers/analyzers/dotnet/cs
+          --analyzer-assemblies analyzers/roslynator.analyzers/*/analyzers/dotnet/cs
           --ignore-compiler-diagnostics
