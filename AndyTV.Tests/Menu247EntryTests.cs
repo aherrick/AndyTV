@@ -12,7 +12,6 @@ public sealed class Menu247EntryFixture
     public Menu247EntryFixture()
     {
         Entries = ChannelService.Get247Entries(
-            "24/7",
             [
                 new Channel { Name = "24/7 Seinfeld S01", Url = "s1" },
                 new Channel { Name = "24/7 90210", Url = "u1" },
