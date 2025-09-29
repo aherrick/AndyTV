@@ -7,7 +7,7 @@ on:
 
 jobs:
   analyze:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -20,11 +20,7 @@ jobs:
         run: dotnet tool update -g roslynator.dotnet.cli
 
       - name: Fetch Roslynator analyzers
-        run: |
-          wget https://www.nuget.org/api/v2/package/Roslynator.Analyzers -O roslynator.zip
-          mkdir -p analyzers/Roslynator.Analyzers
-          unzip -q roslynator.zip -d analyzers/Roslynator.Analyzers
-          rm roslynator.zip
+        run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Run analysis
         run: >
