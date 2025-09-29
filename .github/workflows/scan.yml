@@ -17,36 +17,17 @@ jobs:
           dotnet-version: '10.0.x'
           dotnet-quality: preview
 
-      - name: Restore & build (sanity)
-        run: |
-          dotnet restore "AndyTV.sln"
-          dotnet build "AndyTV.sln" -c Release
+      - name: Restore solution
+        run: dotnet restore AndyTV.sln
 
-      - name: Install Roslynator CLI (latest)
-        shell: pwsh
-        run: |
-          dotnet tool install --global roslynator.dotnet.cli
-          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Roslynator CLI
+        run: dotnet tool install --global roslynator.dotnet.cli
 
-      # Fetch analyzers WITHOUT touching your project files
-      - name: Fetch Roslynator.Analyzers
-        shell: pwsh
-        run: |
-          nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
-          # Prefer locally-extracted package; otherwise, fall back to NuGet cache
-          $localPkg = Get-ChildItem -Directory "analyzers" | Where-Object { $_.Name -like "Roslynator.Analyzers*" } | Select-Object -First 1
-          if ($localPkg) {
-            $root = Join-Path $localPkg.FullName "analyzers"
-          } else {
-            $cached = Get-ChildItem -Directory "$env:USERPROFILE\.nuget\packages\roslynator.analyzers\*" | Select-Object -Last 1
-            $root = Join-Path $cached.FullName "analyzers"
-          }
-          if (-not (Test-Path $root)) { Write-Error "Could not locate 'analyzers' root in Roslynator.Analyzers"; exit 1 }
-          "ANALYZERS_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Fetch Roslynator analyzers
+        run: nuget install Roslynator.Analyzers -OutputDirectory .analyzers -ExcludeVersion
 
-      - name: Analyze (recursively load analyzers)
-        shell: pwsh
-        run: |
-          roslynator analyze "AndyTV.sln" `
-            --analyzer-assemblies "$env:ANALYZERS_ROOT" `
-            --ignore-compiler-diagnostics
+      - name: Analyze
+        run: >
+          roslynator analyze AndyTV.sln
+          --analyzer-assemblies ".analyzers/Roslynator.Analyzers/analyzers/dotnet/cs"
+          --ignore-compiler-diagnostics
