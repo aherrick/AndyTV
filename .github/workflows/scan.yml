@@ -22,3 +22,6 @@ jobs:
 
       - name: Analyze
         run: roslynator analyze AndyTV.sln --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+        
+      - name: Find all unused code
+        run: roslynator find-symbol AndyTV.sln --symbol-kind type,member,namespace,parameter,local,type-parameter --unused --without-attribute System.ObsoleteAttribute
