@@ -202,8 +202,9 @@ public partial class Form1 : Form
     private async Task RefreshMenuTopPlaylist()
     {
         await Task.Run(PlaylistChannelService.RefreshChannels);
-        _menuTop.Rebuild(ChItem_Click);
+
         _menuPlaylist.Rebuild(ChItem_Click);
+        _menuTop.Rebuild(ChItem_Click);
     }
 
     private async Task HandlePlaylistManager()
@@ -338,10 +339,7 @@ public partial class Form1 : Form
         MenuHelper.AddMenuItem(
             channelsMenu,
             "Refresh",
-            async (_, __) =>
-            {
-                await RefreshMenuTopPlaylist();
-            }
+            async (_, __) => await RefreshMenuTopPlaylist()
         );
 
         _contextMenuStrip.Items.Add(channelsMenu);
@@ -416,10 +414,7 @@ public partial class Form1 : Form
         var muteItem = MenuHelper.AddMenuItem(
             appMenu,
             "Mute",
-            (_, __) =>
-            {
-                _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
-            }
+            (_, __) => _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute
         );
 
         MenuHelper.AddSeparator(appMenu);
