@@ -94,10 +94,7 @@ public class ChannelFilterListControl : UserControl
         _keyboardShownOnce = true;
         _filterTextBox.Focus();
 
-        Task.Run(() =>
-        {
-            KeyboardHelper.ShowOnScreenKeyboard();
-        });
+        Task.Run(KeyboardHelper.ShowOnScreenKeyboard);
     }
 
     public Channel SelectedItem =>

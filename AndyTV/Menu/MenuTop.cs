@@ -55,7 +55,7 @@ public partial class MenuTop(ContextMenuStrip menu)
     public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
     {
         var root = new ToolStripMenuItem(rootTitle);
-        var entries = ChannelService.Get247Entries(rootTitle, channels);
+        var entries = ChannelService.Get247Entries(channels);
 
         string currentBucket = null;
         ToolStripMenuItem currentMenu = null;
@@ -64,7 +64,7 @@ public partial class MenuTop(ContextMenuStrip menu)
         {
             if (!string.Equals(entry.Bucket, currentBucket, StringComparison.Ordinal))
             {
-                if (currentMenu != null && currentMenu.DropDownItems.Count > 0)
+                if (currentMenu?.DropDownItems.Count > 0)
                 {
                     root.DropDownItems.Add(currentMenu);
                 }
@@ -104,7 +104,7 @@ public partial class MenuTop(ContextMenuStrip menu)
             }
         }
 
-        if (currentMenu != null && currentMenu.DropDownItems.Count > 0)
+        if (currentMenu?.DropDownItems.Count > 0)
         {
             root.DropDownItems.Add(currentMenu);
         }

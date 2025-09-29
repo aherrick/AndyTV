@@ -279,11 +279,7 @@ public partial class FavoriteChannelForm : Form
 
     private void PasteToSelectedCell()
     {
-        if (
-            _favoritesGrid.CurrentCell != null
-            && _favoritesGrid.CurrentCell.ColumnIndex > 0
-            && Clipboard.ContainsText()
-        )
+        if (_favoritesGrid.CurrentCell?.ColumnIndex > 0 && Clipboard.ContainsText())
         {
             var text = Clipboard.GetText();
             _favoritesGrid.CurrentCell.Value = text;

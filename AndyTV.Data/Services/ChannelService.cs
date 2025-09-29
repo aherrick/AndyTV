@@ -467,7 +467,7 @@ public partial class ChannelService
     }
 
     // Pure/static version for tests
-    public static List<MenuEntry> Get247Entries(string rootTitle, IEnumerable<Channel> channels)
+    public static List<MenuEntry> Get247Entries(IEnumerable<Channel> channels)
     {
         // ---- Local helpers ----
         static string CleanBaseName(string name)
@@ -510,7 +510,7 @@ public partial class ChannelService
                 if (!StartsWith247Regex().IsMatch(ch.DisplayName))
                     return false;
 
-                if (ch.DisplayName.IndexOf("Not 24/7", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (ch.DisplayName.Contains("Not 24/7", StringComparison.OrdinalIgnoreCase))
                     return false;
 
                 if (MatchTwoParens().IsMatch(ch.DisplayName))

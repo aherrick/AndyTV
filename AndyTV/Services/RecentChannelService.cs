@@ -6,7 +6,7 @@ namespace AndyTV.Services;
 
 public static class RecentChannelService
 {
-    private static readonly int MaxRecent = 5;
+    private const int MaxRecent = 5;
     private const string RecentChannelsFile = "recents.json";
 
     public static void AddOrPromote(Channel channel)
