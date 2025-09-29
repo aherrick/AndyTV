@@ -1,13 +1,11 @@
 name: scan
 
 on:
-  workflow_dispatch:
-  pull_request:
   push:
 
 jobs:
   analyze:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -17,18 +15,13 @@ jobs:
           dotnet-quality: preview
 
       - name: Install Roslynator CLI
-        run: dotnet tool install --global roslynator.dotnet.cli
+        run: dotnet tool update -g roslynator.dotnet.cli
 
       - name: Fetch Roslynator analyzers
-        shell: pwsh
-        run: |
-          nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
-          $analyzerPath = "analyzers\Roslynator.Analyzers\analyzers"
-          if (-not (Test-Path $analyzerPath)) { 
-            Write-Error "Analyzers not found at $analyzerPath"
-            exit 1 
-          }
-          "ANALYZERS_ROOT=$analyzerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Run analysis
-        run: roslynator analyze "AndyTV.sln" --analyzer-assemblies "$env:ANALYZERS_ROOT" --ignore-compiler-diagnostics
+        run: >
+          roslynator analyze AndyTV.sln
+          --analyzer-assemblies analyzers/Roslynator.Analyzers/analyzers/dotnet/cs
+          --ignore-compiler-diagnostics
