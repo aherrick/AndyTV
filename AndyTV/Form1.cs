@@ -284,6 +284,20 @@ public partial class Form1 : Form
 
         MenuHelper.AddMenuItem(
             channelsMenu,
+            "Guide",
+            (_, __) =>
+            {
+                _videoView.ShowDefault();
+                using var guideForm = new UI.GuideForm();
+                guideForm.ShowDialog(this);
+                _videoView.SetCursorForCurrentView();
+            }
+        );
+
+        MenuHelper.AddSeparator(channelsMenu);
+
+        MenuHelper.AddMenuItem(
+            channelsMenu,
             "Ad Hoc",
             (_, __) =>
             {

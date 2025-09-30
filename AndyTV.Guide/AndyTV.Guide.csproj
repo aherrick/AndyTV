@@ -16,6 +16,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
+		<ProjectReference Include="..\AndyTV.Guide.Shared\AndyTV.Guide.Shared.csproj" />
 	</ItemGroup>
 
 	<!-- Keep only the single theme we use, this keeps us under 250MB so we can publish free to azure :D -->
