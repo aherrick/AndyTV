@@ -30,8 +30,8 @@ public sealed class PlaylistManagerForm : Form
 
         Text = "Playlists";
         StartPosition = FormStartPosition.CenterParent;
-        Width = 720;
-        Height = 500;
+        MinimumSize = new Size(600, 400);
+        Size = new Size(720, 500);
 
         _btnAdd = UIHelper.CreateButton("Add", OnAdd);
         _btnDelete = UIHelper.CreateButton("Delete", OnDelete);
@@ -48,10 +48,11 @@ public sealed class PlaylistManagerForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.AllowUserToDeleteRows = false;
         _grid.RowHeadersVisible = false;
-        _grid.AllowUserToResizeRows = false; // 👈 disable row resizing
-        _grid.RowTemplate.Height = 28; // 👈 enforce fixed row height
+        _grid.AllowUserToResizeRows = false;
+        _grid.RowTemplate.Height = 28;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect = false;
+        _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
         _grid.Columns.Add(
             new DataGridViewTextBoxColumn
@@ -76,7 +77,9 @@ public sealed class PlaylistManagerForm : Form
             {
                 DataPropertyName = nameof(Playlist.ShowInMenu),
                 HeaderText = "Show in Menu",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 Width = 120,
+                FillWeight = 10,
             }
         );
 
@@ -88,7 +91,7 @@ public sealed class PlaylistManagerForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             ColumnCount = 3,
             RowCount = 1,
-            Padding = new Padding(8),
+            Padding = new Padding(12),
             Margin = new Padding(0),
         };
         bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));

@@ -7,9 +7,9 @@ public static class UIHelper
         var btn = new Button
         {
             Text = text,
-            Width = 100,
-            Height = 35,
-            AutoSize = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(12, 6, 12, 6), // Give text some breathing room
             Margin = new Padding(4),
             FlatStyle = FlatStyle.System,
             UseVisualStyleBackColor = true,
