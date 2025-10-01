@@ -148,6 +148,7 @@ public partial class Form1 : Form
 
             _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click);
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
+            _menuFavorite.Rebuild();
 
             await RefreshMenuTopPlaylist();
 

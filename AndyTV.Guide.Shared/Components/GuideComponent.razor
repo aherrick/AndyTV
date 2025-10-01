@@ -126,7 +126,7 @@
         var first = Events.OrderBy(e => e.StartTime).FirstOrDefault();
         if (first is not null)
         {
-            CurrentDate = DateTime.Now.Date;              
+            CurrentDate = DateTime.Now;              
             StartHour = first.StartTime.ToString("HH\\:mm");  // raw HH:mm from earliest event
         }
     }
