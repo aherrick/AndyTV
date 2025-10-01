@@ -16,6 +16,11 @@ public partial class GuideForm : Form
         Height = 900;
         StartPosition = FormStartPosition.CenterScreen;
 
+        // Allow users to maximize if they want
+        MaximizeBox = true;
+        MinimizeBox = true;
+        FormBorderStyle = FormBorderStyle.Sizable;
+
         // Register Syncfusion license
         SyncfusionLicenseProvider.RegisterLicense(
             "Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXZccnVVR2ldVE1/W0tWYEg="
@@ -38,14 +43,5 @@ public partial class GuideForm : Form
         _blazorWebView.RootComponents.Add<Guide.Shared.Components.GuideComponent>("#app");
 
         Controls.Add(_blazorWebView);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _blazorWebView?.Dispose();
-        }
-        base.Dispose(disposing);
     }
 }
