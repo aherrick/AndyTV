@@ -16,8 +16,8 @@
 		<PackageReference Include="M3UManager" Version="1.0.5.9" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.0-rc.1.25452.6" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-rc.1.25451.107" />
-		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.1.22" />
-		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.1.22" />
+		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.1.23" />
+		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.1.23" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
 
