@@ -31,7 +31,7 @@ public partial class GuideForm : Form
         services.AddSyncfusionBlazor();
 
         // Register HttpClient for the guide component
-        services.AddScoped(sp => new HttpClient());
+        services.AddScoped(_ => new HttpClient());
 
         _blazorWebView = new BlazorWebView
         {
