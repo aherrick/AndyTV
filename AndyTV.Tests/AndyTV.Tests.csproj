@@ -5,11 +5,14 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
+		<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" Version="3.2.0-pre.10" />
-		
+		<!--<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.0.0-preview.25465.3" />-->
+
 	</ItemGroup>
 
 	<ItemGroup>
