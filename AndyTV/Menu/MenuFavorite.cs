@@ -113,7 +113,8 @@ public class MenuFavorite
                 continue;
             }
 
-            MenuHelper.AddCategoryHeaderAt(_menu, insertIndex++, catGroup.Key.ToUpperInvariant());
+            var (header, itemsInserted) = MenuHelper.AddCategoryHeaderAt(_menu, insertIndex, catGroup.Key.ToUpperInvariant());
+            insertIndex += itemsInserted;
 
             var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
             var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));

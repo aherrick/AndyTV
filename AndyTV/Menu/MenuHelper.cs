@@ -20,7 +20,7 @@ public static class MenuHelper
         return (header, new ToolStripItem[] { sepBefore, header, sepAfter });
     }
 
-    public static ToolStripMenuItem AddCategoryHeaderAt(
+    public static (ToolStripMenuItem Header, int ItemsInserted) AddCategoryHeaderAt(
         ContextMenuStrip menu,
         int index,
         string text,
@@ -35,25 +35,32 @@ public static class MenuHelper
             Enabled = enabled,
         };
 
-        // Insert header
-        menu.Items.Insert(index, header);
+        int itemsInserted = 0;
 
-        // Check if there’s already a separator directly above or below
-        bool hasAbove = index - 1 >= 0 && menu.Items[index - 1] is ToolStripSeparator;
-        bool hasBelow = index + 1 < menu.Items.Count && menu.Items[index + 1] is ToolStripSeparator;
+        // Check if separators are needed above and below the insertion point
+        bool needsSepAbove = index == 0 || !(menu.Items[index - 1] is ToolStripSeparator);
+        bool needsSepBelow = index == menu.Items.Count || !(menu.Items[index] is ToolStripSeparator);
 
-        // Add missing ones
-        if (!hasBelow)
-        {
-            menu.Items.Insert(index + 1, new ToolStripSeparator());
-        }
-
-        if (!hasAbove)
+        // Insert separator above if needed
+        if (needsSepAbove)
         {
             menu.Items.Insert(index, new ToolStripSeparator());
+            index++; // Adjust insertion point
+            itemsInserted++;
         }
 
-        return header;
+        // Insert header
+        menu.Items.Insert(index, header);
+        itemsInserted++;
+
+        // Insert separator below if needed
+        if (needsSepBelow)
+        {
+            menu.Items.Insert(index + 1, new ToolStripSeparator());
+            itemsInserted++;
+        }
+
+        return (header, itemsInserted);
     }
 
     public static ToolStripMenuItem AddChildChannelItem(
