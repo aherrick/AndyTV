@@ -25,4 +25,4 @@ jobs:
 
     # Run tests
     - name: Run tests
-      run: dotnet test --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --no-restore
+      run: dotnet run --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --no-restore
