@@ -26,9 +26,12 @@ public partial class MenuTop(ContextMenuStrip menu)
                 }
                 _added.Clear();
 
-                // ----- TOP CHANNELS -----
-                var (_, topAll) = MenuHelper.AddHeader(menu, "TOP CHANNELS");
+                // ----- CHANNELS -----
+                var (_, topAll) = MenuHelper.AddHeader(menu, "CHANNELS");
                 _added.AddRange(topAll);
+
+                // Add playlists first (before US/UK)
+                BuildPlaylistMenu(channelClick);
 
                 BuildTopMenu(
                     "US",
@@ -169,6 +172,29 @@ public partial class MenuTop(ContextMenuStrip menu)
         {
             menu.Items.Add(rootItem);
             _added.Add(rootItem);
+        }
+    }
+
+    private void BuildPlaylistMenu(EventHandler channelClick)
+    {
+        var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
+            x.Playlist.ShowInMenu
+        );
+
+        foreach (var (Playlist, Channels) in playlistChannelsMenu)
+        {
+            var root = new ToolStripMenuItem(Playlist.Name);
+
+            foreach (var ch in Channels)
+            {
+                MenuHelper.AddChildChannelItem(root, ch, channelClick);
+            }
+
+            if (root.DropDownItems.Count > 0)
+            {
+                menu.Items.Add(root);
+                _added.Add(root);
+            }
         }
     }
 

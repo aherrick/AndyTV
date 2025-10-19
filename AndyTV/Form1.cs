@@ -21,7 +21,6 @@ public partial class Form1 : Form
     private MenuRecent _menuRecent;
     private MenuFavorite _menuFavorite;
     private readonly MenuTop _menuTop;
-    private readonly MenuPlaylist _menuPlaylist;
 
     private Channel _currentChannel = null;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
@@ -48,7 +47,6 @@ public partial class Form1 : Form
         InitializeComponent();
 
         _menuTop = new MenuTop(_contextMenuStrip);
-        _menuPlaylist = new MenuPlaylist(_contextMenuStrip);
 
         _notificationService = new NotificationService(this);
 
@@ -204,7 +202,6 @@ public partial class Form1 : Form
     {
         await Task.Run(PlaylistChannelService.RefreshChannels);
 
-        _menuPlaylist.Rebuild(ChItem_Click);
         _menuTop.Rebuild(ChItem_Click);
     }
 

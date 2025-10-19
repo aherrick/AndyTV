@@ -63,11 +63,21 @@ public class MenuFavorite
         // Insert position: right after the right separator in the header trio
         int insertIndex = headerIndex + 2;
 
-        // Clear items between header trio and next separator (keeps header anchored)
-        while (
-            insertIndex < _menu.Items.Count && _menu.Items[insertIndex] is not ToolStripSeparator
-        )
+        // Clear items between header trio and the next major section header
+        while (insertIndex < _menu.Items.Count)
         {
+            var item = _menu.Items[insertIndex];
+            
+            // Stop if we hit a major section header (all caps text, not part of favorites)
+            if (item is ToolStripMenuItem menuItem && 
+                menuItem.Text == menuItem.Text.ToUpperInvariant() && 
+                menuItem.Text.Length > 3 && // Avoid short headers
+                !string.IsNullOrEmpty(menuItem.Text) &&
+                insertIndex > headerIndex + 2) // Ensure it's after our header
+            {
+                break;
+            }
+            
             _menu.Items.RemoveAt(insertIndex);
         }
 
