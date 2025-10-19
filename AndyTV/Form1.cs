@@ -31,6 +31,10 @@ public partial class Form1 : Form
     private bool _isRestartingStream = false;
 
     private const int STALL_SECONDS = 4;
+    private const int MOUSE_LEFT_DOUBLE_CLICK_SECONDS = 1;
+    private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
+    private const int HOURLY_REFRESH_MILLISECONDS = 60 * 60 * 1000;
+    private const int HEALTH_CHECK_MILLISECONDS = 1000;
     private System.Windows.Forms.Timer _healthTimer;
     private DateTime _lastActivityUtc = DateTime.UtcNow;
 
@@ -107,7 +111,7 @@ public partial class Form1 : Form
             if (
                 e.Button == MouseButtons.Left
                 && _mouseDownLeftPrevChannel != DateTime.MinValue
-                && _mouseDownLeftPrevChannel.AddSeconds(1) < DateTime.Now
+                && _mouseDownLeftPrevChannel.AddSeconds(MOUSE_LEFT_DOUBLE_CLICK_SECONDS) < DateTime.Now
             )
             {
                 var prevChannel = RecentChannelService.GetPrevious();
@@ -123,7 +127,7 @@ public partial class Form1 : Form
             if (
                 e.Button == MouseButtons.Right
                 && _mouseDownRightExit != DateTime.MinValue
-                && _mouseDownRightExit.AddSeconds(5) < DateTime.Now
+                && _mouseDownRightExit.AddSeconds(MOUSE_RIGHT_EXIT_SECONDS) < DateTime.Now
             )
             {
                 Close();
@@ -159,12 +163,9 @@ public partial class Form1 : Form
                 await HandlePlaylistManager();
             }
 
-            // Another refresh? Perhaps remove the second one, as it's redundant.
-            // await RefreshMenuTopPlaylist();
-
             _videoView.SetCursorForCurrentView();
 
-            _healthTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            _healthTimer = new System.Windows.Forms.Timer { Interval = HEALTH_CHECK_MILLISECONDS };
             _healthTimer.Tick += (_, __) =>
             {
                 if (_currentChannel == null)
@@ -196,7 +197,7 @@ public partial class Form1 : Form
             };
             _healthTimer.Start();
 
-            _hourlyRefreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 60 * 1000 };
+            _hourlyRefreshTimer = new System.Windows.Forms.Timer { Interval = HOURLY_REFRESH_MILLISECONDS };
             _hourlyRefreshTimer.Tick += (_, __) => StartChannelRefresh();
             _hourlyRefreshTimer.Start();
         };
