@@ -129,13 +129,14 @@ public class MenuFavorite
                 continue;
             }
 
-            var (header, itemsInserted) = MenuHelper.AddCategoryHeaderAt(
+            var (header, allItems) = MenuHelper.AddCategoryHeaderAt(
                 _menu,
                 insertIndex,
                 catGroup.Key.ToUpperInvariant()
             );
-            _favoritesItems.Add(header);
-            insertIndex += itemsInserted;
+            // Track all inserted items (header + separators)
+            _favoritesItems.AddRange(allItems);
+            insertIndex += allItems.Length;
 
             var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
             var noGroup = catGroup.Where(ch => string.IsNullOrWhiteSpace(ch.Group));
