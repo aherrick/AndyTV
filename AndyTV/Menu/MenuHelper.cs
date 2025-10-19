@@ -38,8 +38,9 @@ public static class MenuHelper
         var insertedItems = new List<ToolStripItem>();
 
         // Check if separators are needed above and below the insertion point
-        bool needsSepAbove = index == 0 || !(menu.Items[index - 1] is ToolStripSeparator);
-        bool needsSepBelow = index == menu.Items.Count || !(menu.Items[index] is ToolStripSeparator);
+        bool needsSepAbove = index == 0 || menu.Items[index - 1] is not ToolStripSeparator;
+        bool needsSepBelow =
+            index == menu.Items.Count || menu.Items[index] is not ToolStripSeparator;
 
         // Insert separator above if needed
         if (needsSepAbove)
