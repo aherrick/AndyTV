@@ -36,6 +36,8 @@ public partial class Form1 : Form
 
     private bool _favoritesShown = true;
 
+    private readonly SynchronizationContext _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
     private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
     public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
@@ -148,7 +150,8 @@ public partial class Form1 : Form
             _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
             _menuFavorite.Rebuild();
 
-            await RefreshMenuTopPlaylist();
+            // Initial refresh
+            StartChannelRefresh();
 
             if (PlaylistChannelService.Load().Count == 0)
             {
@@ -156,7 +159,8 @@ public partial class Form1 : Form
                 await HandlePlaylistManager();
             }
 
-            await RefreshMenuTopPlaylist();
+            // Another refresh? Perhaps remove the second one, as it's redundant.
+            // await RefreshMenuTopPlaylist();
 
             _videoView.SetCursorForCurrentView();
 
@@ -193,16 +197,36 @@ public partial class Form1 : Form
             _healthTimer.Start();
 
             _hourlyRefreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 60 * 1000 };
-            _hourlyRefreshTimer.Tick += async (_, __) => await RefreshMenuTopPlaylist();
+            _hourlyRefreshTimer.Tick += (_, __) => StartChannelRefresh();
             _hourlyRefreshTimer.Start();
         };
     }
 
-    private async Task RefreshMenuTopPlaylist()
-    {
-        await Task.Run(PlaylistChannelService.RefreshChannels);
+    private bool _isRefreshingChannels;
 
-        _menuTop.Rebuild(ChItem_Click);
+    private void StartChannelRefresh()
+    {
+        if (_isRefreshingChannels)
+            return;
+
+        _isRefreshingChannels = true;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await PlaylistChannelService.RefreshChannels();
+                _ui.Post(_ => _menuTop.Rebuild(ChItem_Click), null);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to refresh channels");
+            }
+            finally
+            {
+                _isRefreshingChannels = false;
+            }
+        });
     }
 
     private async Task HandlePlaylistManager()
@@ -213,7 +237,7 @@ public partial class Form1 : Form
             dlg.ShowDialog(this);
             if (dlg.Saved)
             {
-                await RefreshMenuTopPlaylist();
+                StartChannelRefresh();
             }
         }
         _videoView.SetCursorForCurrentView();
@@ -351,7 +375,7 @@ public partial class Form1 : Form
         MenuHelper.AddMenuItem(
             channelsMenu,
             "Refresh",
-            async (_, __) => await RefreshMenuTopPlaylist()
+            (_, __) => StartChannelRefresh()
         );
 
         _contextMenuStrip.Items.Add(channelsMenu);
