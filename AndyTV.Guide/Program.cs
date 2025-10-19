@@ -1,7 +1,7 @@
+using AndyTV.Guide.Pages;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Syncfusion.Blazor;
 using Syncfusion.Licensing;
-using AndyTV.Guide.Pages;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

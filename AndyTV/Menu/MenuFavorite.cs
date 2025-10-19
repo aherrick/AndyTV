@@ -11,6 +11,7 @@ public class MenuFavorite
 
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripItem[] _trio; // [leftSep, header, rightSep]
+    private readonly List<ToolStripItem> _favoritesItems = [];
 
     private static readonly HashSet<string> favoritesURLCache = new(
         StringComparer.OrdinalIgnoreCase
@@ -52,39 +53,37 @@ public class MenuFavorite
             return;
         }
 
-        int headerIndex = _menu.Items.IndexOf(_header);
-        if (headerIndex < 0)
+        // Always clear the favorites section first
+        ClearFavoritesSection();
+
+        if (show)
         {
-            return;
+            ShowFavoritesSection();
         }
+    }
 
-        // Insert position: right after the right separator in the header trio
-        int insertIndex = headerIndex + 2;
-
-        // Clear items between header trio and the next major section header
-        while (insertIndex < _menu.Items.Count)
+    private void ClearFavoritesSection()
+    {
+        // Remove all favorites items from menu
+        foreach (var item in _favoritesItems)
         {
-            var item = _menu.Items[insertIndex];
-
-            // Stop if we hit a major section header (all caps text, not part of favorites)
-            if (item is ToolStripMenuItem menuItem &&
-                string.Equals(menuItem.Text, menuItem.Text.ToUpperInvariant(), StringComparison.Ordinal) &&
-                menuItem.Text.Length > 3 && // Avoid short headers
-                !string.IsNullOrEmpty(menuItem.Text) &&
-                insertIndex > headerIndex + 2) // Ensure it's after our header
+            if (_menu.Items.Contains(item))
             {
-                break;
+                _menu.Items.Remove(item);
             }
-
-            _menu.Items.RemoveAt(insertIndex);
         }
+        _favoritesItems.Clear();
 
-        if (!show)
+        // Hide the header trio
+        foreach (var item in _trio)
         {
-            HeaderVisible(false);
-            return;
+            item.Visible = false;
         }
+    }
 
+    private void ShowFavoritesSection()
+    {
+        // Load favorites
         var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
         favoritesURLCache.Clear();
         foreach (var f in favorites)
@@ -98,12 +97,20 @@ public class MenuFavorite
 
         if (favorites.Count == 0)
         {
-            HeaderVisible(false);
-            return;
+            return; // Header trio already hidden by ClearFavoritesSection
         }
 
-        HeaderVisible(true);
+        // Show the header trio
+        foreach (var item in _trio)
+        {
+            item.Visible = true;
+        }
 
+        // Get insertion position (after header trio)
+        int headerIndex = _menu.Items.IndexOf(_header);
+        int insertIndex = headerIndex + 2;
+
+        // Add favorites content
         var byCategory = favorites
             .GroupBy(ch => string.IsNullOrWhiteSpace(ch.Category) ? null : ch.Category.Trim())
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
@@ -116,12 +123,18 @@ public class MenuFavorite
                     var ch in catGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+                    var item = MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+                    _favoritesItems.Add(item);
                 }
                 continue;
             }
 
-            var (header, itemsInserted) = MenuHelper.AddCategoryHeaderAt(_menu, insertIndex, catGroup.Key.ToUpperInvariant());
+            var (header, itemsInserted) = MenuHelper.AddCategoryHeaderAt(
+                _menu,
+                insertIndex,
+                catGroup.Key.ToUpperInvariant()
+            );
+            _favoritesItems.Add(header);
             insertIndex += itemsInserted;
 
             var withGroup = catGroup.Where(ch => !string.IsNullOrWhiteSpace(ch.Group));
@@ -131,7 +144,8 @@ public class MenuFavorite
                 var ch in noGroup.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             )
             {
-                MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+                var item = MenuHelper.AddChannelItemAt(_menu, insertIndex++, ch, _clickHandler);
+                _favoritesItems.Add(item);
             }
 
             var byGroup = withGroup
@@ -141,6 +155,7 @@ public class MenuFavorite
             foreach (var grp in byGroup)
             {
                 var groupNode = new ToolStripMenuItem(grp.Key);
+                _favoritesItems.Add(groupNode);
                 foreach (
                     var ch in grp.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                 )
@@ -149,14 +164,6 @@ public class MenuFavorite
                 }
                 _menu.Items.Insert(insertIndex++, groupNode);
             }
-        }
-    }
-
-    private void HeaderVisible(bool visible)
-    {
-        foreach (var it in _trio)
-        {
-            it.Visible = visible;
         }
     }
 }
