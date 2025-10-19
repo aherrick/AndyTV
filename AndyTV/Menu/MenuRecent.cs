@@ -6,6 +6,7 @@ public class MenuRecent
 {
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
+    private readonly SynchronizationContext _ui;
 
     // keep only the right separator to anchor insert position
     private readonly ToolStripSeparator _rightSep;
@@ -13,14 +14,11 @@ public class MenuRecent
     // track only the items we add after the header
     private readonly List<ToolStripItem> _added = [];
 
-    // capture UI context once
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
-    public MenuRecent(ContextMenuStrip menu, EventHandler clickHandler)
+    public MenuRecent(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui)
     {
         _menu = menu;
         _clickHandler = clickHandler;
+        _ui = ui;
 
         var (_, all) = MenuHelper.AddHeader(_menu, "RECENT");
         _rightSep = (ToolStripSeparator)all[2]; // left = all[0], header = all[1], right = all[2]

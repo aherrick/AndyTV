@@ -5,12 +5,10 @@ using AndyTV.Services;
 
 namespace AndyTV.Menu;
 
-public partial class MenuTop(ContextMenuStrip menu)
+public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
 {
+    private readonly SynchronizationContext _ui = ui;
     private readonly List<ToolStripItem> _added = [];
-
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
     public void Rebuild(EventHandler channelClick)
     {

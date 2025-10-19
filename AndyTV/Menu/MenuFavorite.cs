@@ -7,6 +7,7 @@ public class MenuFavorite
 {
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
+    private readonly SynchronizationContext _ui;
 
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripItem[] _trio; // [leftSep, header, rightSep]
@@ -15,14 +16,11 @@ public class MenuFavorite
         StringComparer.OrdinalIgnoreCase
     );
 
-    // Capture UI context once
-    private readonly SynchronizationContext _ui =
-        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-
-    public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler)
+    public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui)
     {
         _menu = menu;
         _clickHandler = clickHandler;
+        _ui = ui;
 
         var (Header, All) = MenuHelper.AddHeader(_menu, "FAVORITES");
         _header = Header;
@@ -67,17 +65,17 @@ public class MenuFavorite
         while (insertIndex < _menu.Items.Count)
         {
             var item = _menu.Items[insertIndex];
-            
+
             // Stop if we hit a major section header (all caps text, not part of favorites)
-            if (item is ToolStripMenuItem menuItem && 
-                menuItem.Text == menuItem.Text.ToUpperInvariant() && 
+            if (item is ToolStripMenuItem menuItem &&
+                string.Equals(menuItem.Text, menuItem.Text.ToUpperInvariant(), StringComparison.Ordinal) &&
                 menuItem.Text.Length > 3 && // Avoid short headers
                 !string.IsNullOrEmpty(menuItem.Text) &&
                 insertIndex > headerIndex + 2) // Ensure it's after our header
             {
                 break;
             }
-            
+
             _menu.Items.RemoveAt(insertIndex);
         }
 

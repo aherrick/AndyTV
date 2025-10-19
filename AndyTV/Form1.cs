@@ -40,7 +40,8 @@ public partial class Form1 : Form
 
     private bool _favoritesShown = true;
 
-    private readonly SynchronizationContext _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
     private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
@@ -52,7 +53,7 @@ public partial class Form1 : Form
 
         InitializeComponent();
 
-        _menuTop = new MenuTop(_contextMenuStrip);
+        _menuTop = new MenuTop(_contextMenuStrip, _ui);
 
         _notificationService = new NotificationService(this);
 
@@ -111,7 +112,8 @@ public partial class Form1 : Form
             if (
                 e.Button == MouseButtons.Left
                 && _mouseDownLeftPrevChannel != DateTime.MinValue
-                && _mouseDownLeftPrevChannel.AddSeconds(MOUSE_LEFT_DOUBLE_CLICK_SECONDS) < DateTime.Now
+                && _mouseDownLeftPrevChannel.AddSeconds(MOUSE_LEFT_DOUBLE_CLICK_SECONDS)
+                    < DateTime.Now
             )
             {
                 var prevChannel = RecentChannelService.GetPrevious();
@@ -150,8 +152,8 @@ public partial class Form1 : Form
 
             BuildSettingsMenu(appVersionName);
 
-            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click);
-            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click);
+            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click, _ui);
+            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click, _ui);
             _menuFavorite.Rebuild();
 
             // Initial refresh
@@ -197,7 +199,10 @@ public partial class Form1 : Form
             };
             _healthTimer.Start();
 
-            _hourlyRefreshTimer = new System.Windows.Forms.Timer { Interval = HOURLY_REFRESH_MILLISECONDS };
+            _hourlyRefreshTimer = new System.Windows.Forms.Timer
+            {
+                Interval = HOURLY_REFRESH_MILLISECONDS,
+            };
             _hourlyRefreshTimer.Tick += (_, __) => StartChannelRefresh();
             _hourlyRefreshTimer.Start();
         };
@@ -373,11 +378,7 @@ public partial class Form1 : Form
             async (_, __) => await HandlePlaylistManager()
         );
 
-        MenuHelper.AddMenuItem(
-            channelsMenu,
-            "Refresh",
-            (_, __) => StartChannelRefresh()
-        );
+        MenuHelper.AddMenuItem(channelsMenu, "Refresh", (_, __) => StartChannelRefresh());
 
         _contextMenuStrip.Items.Add(channelsMenu);
 
