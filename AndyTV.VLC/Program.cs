@@ -1,7 +1,7 @@
 using AndyTV.VLC.Services;
-using MudBlazor.Services;
 using M3UManager; // for future extension/save operations
 using M3UManager.Models;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddMudServices();
-builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<VlcService>();
 

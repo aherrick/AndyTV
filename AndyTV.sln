@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Guide.Scraper", "And
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.Guide.Shared", "AndyTV.Guide.Shared\AndyTV.Guide.Shared.csproj", "{C885B3A5-848A-4CA3-A095-8818CCE0DBB5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AndyTV.VLC", "AndyTV.VLC\AndyTV.VLC.csproj", "{A84ACFB1-118D-087B-441E-527E6F0626CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{C885B3A5-848A-4CA3-A095-8818CCE0DBB5}.Release|x64.Build.0 = Release|Any CPU
 		{C885B3A5-848A-4CA3-A095-8818CCE0DBB5}.Release|x86.ActiveCfg = Release|Any CPU
 		{C885B3A5-848A-4CA3-A095-8818CCE0DBB5}.Release|x86.Build.0 = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|x64.Build.0 = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Debug|x86.Build.0 = Debug|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|x64.ActiveCfg = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|x64.Build.0 = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|x86.ActiveCfg = Release|Any CPU
+		{A84ACFB1-118D-087B-441E-527E6F0626CC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

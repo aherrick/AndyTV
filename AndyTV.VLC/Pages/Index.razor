@@ -7,8 +7,7 @@
     <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_loading || string.IsNullOrWhiteSpace(_playlistUrl)" OnClick="LoadPlaylistAsync">Load Playlist</MudButton>
     <MudTextField @bind-Value="_search" Label="Search Channels" Placeholder="Type to filter" Variant="Variant.Outlined" Class="mt-4 mb-2" Immediate="true" OnInput="RefreshTable" />
-
-    <MudTable ServerData="LoadServerData" Filter="TableFilter" Hover="true" Dense="true" Bordered="true" Breakpoint="Breakpoint.Sm" @ref="_table">
+    <MudTable ServerData="LoadServerData" Hover="true" Dense="true" Bordered="true" Breakpoint="Breakpoint.Sm" @ref="_table" RowsPerPage="25">
         <HeaderContent>
             <MudTh>Logo</MudTh>
             <MudTh>Name</MudTh>
@@ -47,10 +46,10 @@
 
 @code {
     private string _playlistUrl = string.Empty;
-    private string _search = string.Empty;
     private bool _loading = false;
+    private string _search = string.Empty;
     private List<Channel> _channels = new();
-    private MudTable<Channel>? _table;
+    private MudTable<Channel> _table;
 
     private async Task LoadPlaylistAsync()
     {
@@ -69,7 +68,7 @@
         finally
         {
             _loading = false;
-            await _table!.ReloadServerData();
+            await _table.ReloadServerData();
         }
     }
 
@@ -78,18 +77,20 @@
         IEnumerable<Channel> query = _channels;
         if (!string.IsNullOrWhiteSpace(_search))
         {
-            query = query.Where(c => (c.Title?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) || (c.GroupTitle?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+            var term = _search.Trim();
+            query = query.Where(c =>
+                (!string.IsNullOrEmpty(c.Title) && c.Title.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.GroupTitle) && c.GroupTitle.Contains(term, StringComparison.OrdinalIgnoreCase))
+            );
         }
         var total = query.Count();
         query = query.Skip(state.Page * state.PageSize).Take(state.PageSize);
         return await Task.FromResult(new TableData<Channel> { Items = query.ToList(), TotalItems = total });
     }
 
-    private bool TableFilter(Channel channel) => true; // We handle filtering manually in LoadServerData
-
     private void RefreshTable(ChangeEventArgs args)
     {
-        _ = _table?.ReloadServerData();
+        _ = _table.ReloadServerData();
     }
 
     private void PlayChannel(Channel c)
