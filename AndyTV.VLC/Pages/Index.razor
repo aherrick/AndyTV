@@ -1,10 +1,11 @@
 @page "/"
 @inject VlcService Vlc
 @inject ISnackbar Snackbar
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 
 <MudPaper Class="pa-4" Elevation="1">
     <MudText Typo="Typo.h5" Class="mb-3">IPTV Playlist Loader</MudText>
-    <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" />
+    <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" OnBlur="OnPlaylistUrlBlur" />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_loading || string.IsNullOrWhiteSpace(_playlistUrl)" OnClick="LoadPlaylistAsync">Load Playlist</MudButton>
     <MudTextField @bind-Value="_search" Label="Search Channels" Placeholder="Type to filter" Variant="Variant.Outlined" Class="mt-4 mb-2" Immediate="true" OnInput="RefreshTable" />
     <MudTable ServerData="LoadServerData" Hover="true" Dense="true" Bordered="true" Breakpoint="Breakpoint.Sm" @ref="_table" RowsPerPage="25">
@@ -50,6 +51,12 @@
     private string _search = string.Empty;
     private List<Channel> _channels = new();
     private MudTable<Channel> _table;
+    protected override async Task OnInitializedAsync()
+    {
+        var saved = await SessionStorage.GetItemAsync<string>("andytv.vlc.playlistUrl");
+        if (!string.IsNullOrWhiteSpace(saved))
+            _playlistUrl = saved;
+    }
 
     private async Task LoadPlaylistAsync()
     {
@@ -57,6 +64,9 @@
         StateHasChanged();
         try
         {
+            // Persist current URL before load
+            if (!string.IsNullOrWhiteSpace(_playlistUrl))
+                await SessionStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
             var parsed = await M3UManager.ParseFromUrlAsync(_playlistUrl);
             _channels = parsed.Channels.ToList();
             Snackbar.Add($"Loaded {_channels.Count} channels", Severity.Success);
@@ -91,6 +101,13 @@
     private void RefreshTable(ChangeEventArgs args)
     {
         _ = _table.ReloadServerData();
+    }
+
+    // Optional: user changes URL without loading yet
+    private async Task OnPlaylistUrlBlur()
+    {
+        if (!string.IsNullOrWhiteSpace(_playlistUrl))
+            await SessionStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
     }
 
     private void PlayChannel(Channel c)

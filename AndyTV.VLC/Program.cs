@@ -1,4 +1,5 @@
 using AndyTV.VLC.Services;
+using Blazored.SessionStorage;
 using M3UManager; // for future extension/save operations
 using M3UManager.Models;
 using MudBlazor.Services;
@@ -11,6 +12,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddMudServices();
 
 builder.Services.AddSingleton<VlcService>();
+builder.Services.AddBlazoredSessionStorage();
 
 var app = builder.Build();
 
