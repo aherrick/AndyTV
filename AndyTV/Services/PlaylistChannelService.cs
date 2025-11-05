@@ -70,16 +70,10 @@ public static class PlaylistChannelService
 
                     foreach (var item in parsed.Channels)
                     {
-                        var name = item.TvgName ?? item.Title;
-                        if (!string.IsNullOrEmpty(item.TvgName) && item.TvgName.Contains('&'))
-                        {
-                            name = WebUtility.HtmlDecode(item.TvgName);
-                        }
-
                         channels.Add(
                             new Channel
                             {
-                                Name = name,
+                                Name = item.TvgName,
                                 Url = item.MediaUrl,
                                 Group = item.GroupTitle,
                             }
