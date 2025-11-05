@@ -5,7 +5,7 @@
 
 <MudPaper Class="pa-4" Elevation="1">
     <MudText Typo="Typo.h5" Class="mb-3">IPTV Playlist Loader</MudText>
-    <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" OnBlur="OnPlaylistUrlBlur" />
+    <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_loading || string.IsNullOrWhiteSpace(_playlistUrl)" OnClick="LoadPlaylistAsync">Load Playlist</MudButton>
     @if (_loading)
     {
@@ -76,11 +76,19 @@
     private string _search = string.Empty;
     private List<Channel> _channels = new();
 
-    protected override async Task OnInitializedAsync()
+    // Moved storage access to OnAfterRenderAsync because JS interop is not available during prerender.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender)
+            return;
+
         var saved = await LocalStorage.GetItemAsync<string>("andytv.vlc.playlistUrl");
         if (!string.IsNullOrWhiteSpace(saved))
+        {
             _playlistUrl = saved;
+            StateHasChanged();
+            await LoadPlaylistAsync();
+        }
     }
 
     private async Task LoadPlaylistAsync()
@@ -113,13 +121,6 @@
 
         return (item.Title?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true) ||
                (item.GroupTitle?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true);
-    }
-
-    // Optional: user changes URL without loading yet
-    private async Task OnPlaylistUrlBlur()
-    {
-        if (!string.IsNullOrWhiteSpace(_playlistUrl))
-            await LocalStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
     }
 
     private void PlayChannel(Channel c)
