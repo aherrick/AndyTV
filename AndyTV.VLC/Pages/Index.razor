@@ -86,20 +86,24 @@
         if (!string.IsNullOrWhiteSpace(saved))
         {
             _playlistUrl = saved;
-            StateHasChanged();
+            // Trigger load after initial render without intermediate StateHasChanged
             await LoadPlaylistAsync();
         }
     }
 
     private async Task LoadPlaylistAsync()
     {
+        if (_loading)
+            return; // guard against double-click / duplicate auto-load
+
         _loading = true;
-        StateHasChanged();
+        _channels.Clear();
+        await InvokeAsync(StateHasChanged);
         try
         {
-            // Persist current URL before load
             if (!string.IsNullOrWhiteSpace(_playlistUrl))
                 await LocalStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
+
             var parsed = await M3UManager.ParseFromUrlAsync(_playlistUrl);
             _channels = parsed.Channels.ToList();
             Snackbar.Add($"Loaded {_channels.Count} channels", Severity.Success);
@@ -111,6 +115,7 @@
         finally
         {
             _loading = false;
+            await InvokeAsync(StateHasChanged); // ensure grid re-renders with data
         }
     }
 
