@@ -1,7 +1,7 @@
 @page "/"
 @inject VlcService Vlc
 @inject ISnackbar Snackbar
-@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <MudPaper Class="pa-4" Elevation="1">
     <MudText Typo="Typo.h5" Class="mb-3">IPTV Playlist Loader</MudText>
@@ -53,7 +53,7 @@
     private MudTable<Channel> _table;
     protected override async Task OnInitializedAsync()
     {
-        var saved = await SessionStorage.GetItemAsync<string>("andytv.vlc.playlistUrl");
+        var saved = await LocalStorage.GetItemAsync<string>("andytv.vlc.playlistUrl");
         if (!string.IsNullOrWhiteSpace(saved))
             _playlistUrl = saved;
     }
@@ -66,7 +66,7 @@
         {
             // Persist current URL before load
             if (!string.IsNullOrWhiteSpace(_playlistUrl))
-                await SessionStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
+                await LocalStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
             var parsed = await M3UManager.ParseFromUrlAsync(_playlistUrl);
             _channels = parsed.Channels.ToList();
             Snackbar.Add($"Loaded {_channels.Count} channels", Severity.Success);
@@ -107,7 +107,7 @@
     private async Task OnPlaylistUrlBlur()
     {
         if (!string.IsNullOrWhiteSpace(_playlistUrl))
-            await SessionStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
+            await LocalStorage.SetItemAsync("andytv.vlc.playlistUrl", _playlistUrl.Trim());
     }
 
     private void PlayChannel(Channel c)
