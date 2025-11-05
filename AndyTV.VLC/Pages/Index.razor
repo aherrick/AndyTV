@@ -7,66 +7,72 @@
     <MudText Typo="Typo.h5" Class="mb-3">IPTV Playlist Loader</MudText>
     <MudTextField @bind-Value="_playlistUrl" Label="M3U URL" Placeholder="https://.../playlist.m3u" Variant="Variant.Outlined" Class="mb-2" />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_loading || string.IsNullOrWhiteSpace(_playlistUrl)" OnClick="LoadPlaylistAsync">Load Playlist</MudButton>
-    @if (_loading)
-    {
-        <MudProgressCircular Indeterminate="true" Class="mt-3" />
-    }
-    else if (_channels.Any())
-    {
-        <MudDataGrid T="Channel"
-                     Items="_channels"
-                     QuickFilter="QuickFilterFunc"
-                     SortMode="SortMode.None"
-                     Dense="true"
-                     RowsPerPage="25"
-                     Class="mt-4"
-                     Style="max-width: 800px;">
-            <ToolBarContent>
-                <MudTextField @bind-Value="_search"
-                              Placeholder="Search channels..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              Immediate="true"
-                              DebounceInterval="200" />
-            </ToolBarContent>
-            <Columns>
-                <TemplateColumn Title="Logo" Sortable="false" CellStyle="width: 50px;">
-                    <CellTemplate>
-                        @if (!string.IsNullOrWhiteSpace(context.Item.Logo))
-                        {
-                            <MudAvatar Size="Size.Small">
-                                <MudImage Src="@context.Item.Logo" Alt="@context.Item.Title" />
-                            </MudAvatar>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Tv" Size="Size.Small" />
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <PropertyColumn Property="@(x => x.Title)" Title="Channel" />
-                <PropertyColumn Property="@(x => x.GroupTitle)" Title="Group" />
-                <TemplateColumn Title="Play" CellStyle="width: 100px;">
-                    <CellTemplate>
-                        <MudButton Size="Size.Small"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Tv"
-                                   OnClick="(() => PlayChannel(context.Item))">
-                            Play
-                        </MudButton>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="Channel" />
-            </PagerContent>
-        </MudDataGrid>
-    }
-    else if (_channels.Count == 0 && !_loading && !string.IsNullOrWhiteSpace(_playlistUrl))
-    {
-        <MudAlert Severity="Severity.Warning" Class="mt-4">No channels found in playlist</MudAlert>
-    }
+    <div class="mt-4" style="min-height:220px;">
+        @if (_loading)
+        {
+            <div style="display:flex;justify-content:center;align-items:center;min-height:180px;">
+                <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+            </div>
+        }
+        else if (_channels.Any())
+        {
+            <MudDataGrid T="Channel"
+                         Items="_channels"
+                         QuickFilter="QuickFilterFunc"
+                         SortMode="SortMode.None"
+                         Dense="true"
+                         RowsPerPage="25"
+                         Class="mt-2"
+                         Style="max-width:800px;margin:0 auto;">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="_search"
+                                  Placeholder="Search channels..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true"
+                                  DebounceInterval="200" />
+                </ToolBarContent>
+                <Columns>
+                    <TemplateColumn Title="Logo" Sortable="false" CellStyle="width: 50px;">
+                        <CellTemplate>
+                            @if (!string.IsNullOrWhiteSpace(context.Item.Logo))
+                            {
+                                <MudAvatar Size="Size.Small">
+                                    <MudImage Src="@context.Item.Logo" Alt="@context.Item.Title" />
+                                </MudAvatar>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Tv" Size="Size.Small" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(x => x.Title)" Title="Channel" />
+                    <PropertyColumn Property="@(x => x.GroupTitle)" Title="Group" />
+                    <TemplateColumn Title="Play" CellStyle="width: 100px;">
+                        <CellTemplate>
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Tv"
+                                       OnClick="(() => PlayChannel(context.Item))">
+                                Play
+                            </MudButton>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="Channel" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+        else if (!_loading && !string.IsNullOrWhiteSpace(_playlistUrl))
+        {
+            <div style="max-width:800px;margin:0 auto;">
+                <MudAlert Severity="Severity.Warning" Class="mt-2">No channels found in playlist</MudAlert>
+            </div>
+        }
+    </div>
 
 </MudPaper>
 
