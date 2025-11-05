@@ -1,0 +1,20 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true">
+        <MudText Typo="Typo.h6" Class="ml-2">AndyTV VLC</MudText>
+        <MudSpacer />
+        <MudSwitch T="bool" @bind-Value="_isDarkMode" Color="Color.Primary" Class="mr-2" />
+    </MudAppBar>
+    <MudMainContent Class="pa-4 mt-6">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _isDarkMode = true; // start in dark mode
+}

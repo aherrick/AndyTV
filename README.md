@@ -54,6 +54,35 @@ AndyTV is built with a modern .NET toolchain and a few carefully chosen librarie
 - 🗂️ **System.Text.Json** — lightweight and fast JSON handling  
 - 🛠️ **GitHub Actions** — CI/CD for build, test, and publish workflows  
 
+## ▶️ AndyTV.VLC (Companion)
+`AndyTV.VLC` is a lightweight Blazor Server companion that lets you browse an IPTV playlist and launch any channel directly in VLC. Use it when you prefer VLC's player or want fast filtering/grouping.
+
+**Highlights**
+- Parse M3U (Title, Logo, Group, Stream URL)
+- Instant search + paging (MudBlazor table)
+- Dark mode
+- One‑click launch in VLC
+
+**Requires**
+- .NET 10 SDK (or change target to `net8.0`)
+- VLC installed (`C:/Program Files/VideoLAN/VLC/vlc.exe` default)
+
+**Configure VLC path** (`appsettings.json`):
+```json
+"VLC": { "Path": "D:/Apps/VLC/vlc.exe" }
+```
+
+**Run locally**
+```powershell
+cd AndyTV.VLC
+dotnet restore
+dotnet run
+```
+Open https://localhost:5001 and paste your M3U URL.
+
+> Security: Only the selected stream URL is passed to VLC; keep usage local/private.
+
+
 ## 📜 License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
