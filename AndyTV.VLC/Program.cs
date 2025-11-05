@@ -8,7 +8,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder
+    .Services.AddServerSideBlazor()
+    .AddCircuitOptions(o =>
+    {
+        o.DetailedErrors = builder.Environment.IsDevelopment();
+        // optional: o.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(5);
+    });
+
 builder.Services.AddMudServices();
 
 builder.Services.AddSingleton<VlcService>();
