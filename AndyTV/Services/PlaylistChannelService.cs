@@ -73,7 +73,7 @@ public static class PlaylistChannelService
                         channels.Add(
                             new Channel
                             {
-                                Name = item.TvgName,
+                                Name = item.Title,
                                 Url = item.MediaUrl,
                                 Group = item.GroupTitle,
                             }
