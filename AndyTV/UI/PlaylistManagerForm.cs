@@ -27,11 +27,13 @@ public sealed class PlaylistManagerForm : Form
     public PlaylistManagerForm()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96F, 96F);
 
         Text = "Playlists";
         StartPosition = FormStartPosition.CenterParent;
         MinimumSize = new Size(600, 400);
         Size = new Size(720, 500);
+        Padding = new Padding(12);
 
         _btnAdd = UIHelper.CreateButton("Add", OnAdd);
         _btnDelete = UIHelper.CreateButton("Delete", OnDelete);
@@ -124,8 +126,21 @@ public sealed class PlaylistManagerForm : Form
         bottom.Controls.Add(new Panel { Dock = DockStyle.Fill, Height = 0 }, 1, 0);
         bottom.Controls.Add(right, 2, 0);
 
-        Controls.Add(_grid);
-        Controls.Add(bottom);
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+        };
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        layout.Controls.Add(_grid, 0, 0);
+        layout.Controls.Add(bottom, 0, 1);
+
+        Controls.Add(layout);
 
         FormClosing += OnFormClosing;
     }

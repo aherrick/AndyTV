@@ -13,6 +13,7 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+        Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
 
         string[] args = Environment.GetCommandLineArgs();

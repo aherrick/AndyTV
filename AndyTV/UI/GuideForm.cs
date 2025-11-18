@@ -11,10 +11,13 @@ public partial class GuideForm : Form
 
     public GuideForm()
     {
+        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "AndyTV Guide";
         Width = 1400;
         Height = 900;
         StartPosition = FormStartPosition.CenterScreen;
+        MinimumSize = new Size(1024, 720);
 
         // Allow users to maximize if they want
         MaximizeBox = true;

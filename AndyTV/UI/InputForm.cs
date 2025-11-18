@@ -13,6 +13,7 @@ public class InputForm : Form
     public InputForm(string title, string prompt, string defaultText = "")
     {
         AutoScaleMode = AutoScaleMode.Dpi; // ✅ DPI-aware
+        AutoScaleDimensions = new SizeF(96F, 96F);
         InitializeForm(title);
         CreateControls(prompt, defaultText);
     }
@@ -24,7 +25,8 @@ public class InputForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MinimizeBox = false;
         MaximizeBox = false;
-        ClientSize = new Size(400, 130);
+        ClientSize = new Size(420, 150);
+        MinimumSize = new Size(420, 170);
     }
 
     private void CreateControls(string prompt, string defaultText)
@@ -35,10 +37,11 @@ public class InputForm : Form
             Padding = new Padding(10),
             RowCount = 3,
             ColumnCount = 1,
+            AutoSize = true,
         };
         mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Prompt
         mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // TextBox
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45)); // Buttons
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Buttons
 
         // Prompt label
         var promptLabel = new Label
@@ -63,15 +66,30 @@ public class InputForm : Form
         var buttonPanel = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.RightToLeft,
-            Dock = DockStyle.Fill,
             AutoSize = true,
+            WrapContents = false,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
         };
         buttonPanel.Controls.AddRange([_cancelButton, _okButton]);
+
+        var buttonRow = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            RowCount = 1,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+        };
+        buttonRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        buttonRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        buttonRow.Controls.Add(new Panel { Dock = DockStyle.Fill }, 0, 0);
+        buttonRow.Controls.Add(buttonPanel, 1, 0);
 
         // Layout
         mainPanel.Controls.Add(promptLabel, 0, 0);
         mainPanel.Controls.Add(InputBox, 0, 1);
-        mainPanel.Controls.Add(buttonPanel, 0, 2);
+        mainPanel.Controls.Add(buttonRow, 0, 2);
 
         Controls.Add(mainPanel);
 

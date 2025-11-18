@@ -19,11 +19,13 @@ public partial class AdHocChannelForm : Form
     private void InitializeComponent()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "Ad Hoc Channel Selection";
         ClientSize = new Size(1000, 800); // matches Favorites
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
+        MinimumSize = new Size(800, 600);
         StartPosition = FormStartPosition.CenterParent;
 
         var main = new TableLayoutPanel
@@ -35,7 +37,7 @@ public partial class AdHocChannelForm : Form
         };
 
         // The header row height is fixed and matches Favorites exactly
-        main.RowStyles.Add(new RowStyle(SizeType.Absolute, StandardPickerFactory.PickerHeight));
+        main.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         _picker = StandardPickerFactory.Create(_allItems);
         _picker.ItemActivated += (_, ch) =>

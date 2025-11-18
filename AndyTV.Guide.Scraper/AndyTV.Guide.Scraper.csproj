@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.4.0-beta.496" />
+    <PackageReference Include="AngleSharp" Version="1.4.1-beta.502" />
   </ItemGroup>
 
   <ItemGroup>
