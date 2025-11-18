@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Text.Json;
+﻿using System.Text.Json;
 using AndyTV.Data.Models;
 using AndyTV.Helpers; // PathHelper
 using AndyTV.Models;

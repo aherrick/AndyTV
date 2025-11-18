@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using System;
 
 namespace AndyTV.VLC.Services;
 
@@ -17,7 +15,8 @@ public class VlcService
 
     public bool Launch(string streamUrl)
     {
-        if (string.IsNullOrWhiteSpace(streamUrl)) return false;
+        if (string.IsNullOrWhiteSpace(streamUrl))
+            return false;
         if (!File.Exists(_vlcPath))
         {
             if (_logger.IsEnabled(LogLevel.Warning))
@@ -32,7 +31,7 @@ public class VlcService
             {
                 FileName = _vlcPath,
                 Arguments = $"\"{streamUrl}\"",
-                UseShellExecute = true
+                UseShellExecute = true,
             };
             Process.Start(psi);
             return true;

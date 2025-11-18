@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using AndyTV.VLC.Services;
 using Blazored.LocalStorage;
-using M3UManager; // for future extension/save operations
-using M3UManager.Models;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,7 +40,7 @@ if (!app.Environment.IsDevelopment())
     {
         try
         {
-            var targetUrl = "https://localhost:5001/"; // prefer HTTPS in Release
+            const string targetUrl = "https://localhost:5001/"; // prefer HTTPS in Release
             Process.Start(new ProcessStartInfo { FileName = targetUrl, UseShellExecute = true });
         }
         catch
