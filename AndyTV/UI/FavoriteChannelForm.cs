@@ -46,12 +46,14 @@ public partial class FavoriteChannelForm : Form
     private void InitializeComponent()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "Favorites Manager";
         ClientSize = new Size(1000, 800);
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
+        MinimumSize = new Size(900, 700);
 
         // Root layout
         var main = new TableLayoutPanel
@@ -64,12 +66,12 @@ public partial class FavoriteChannelForm : Form
 
         // Columns: content + right-side buttons
         main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        main.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        main.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
         // Rows: header picker (fixed), grid (fill), bottom bar (fixed)
-        main.RowStyles.Add(new RowStyle(SizeType.Absolute, StandardPickerFactory.PickerHeight));
+        main.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         main.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        main.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        main.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         // --- Top: shared picker (exactly the same as AdHoc) ---
         _channelPicker = StandardPickerFactory.Create(_allChannels);
@@ -100,6 +102,7 @@ public partial class FavoriteChannelForm : Form
             FlowDirection = FlowDirection.TopDown,
             Dock = DockStyle.Fill,
             AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             WrapContents = false,
             Padding = new Padding(6, 0, 0, 0),
             Margin = new Padding(0),
@@ -119,17 +122,22 @@ public partial class FavoriteChannelForm : Form
             ColumnCount = 2,
             RowCount = 1,
             Margin = new Padding(0, 8, 0, 0),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
         };
         bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        bottom.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var leftButtons = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight,
             Dock = DockStyle.Fill,
             AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(0),
             WrapContents = false,
+            Padding = new Padding(0),
         };
 
         _importButton = UIHelper.CreateButton("Import", ImportFavorites);
@@ -137,8 +145,6 @@ public partial class FavoriteChannelForm : Form
         leftButtons.Controls.AddRange([_importButton, _exportButton]);
 
         _saveButton = UIHelper.CreateButton("Save", SaveButton_Click);
-        _saveButton.Width = 110;
-        _saveButton.Height = 36;
         _saveButton.Font = new Font(_saveButton.Font, FontStyle.Bold);
         _saveButton.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
 
@@ -149,6 +155,7 @@ public partial class FavoriteChannelForm : Form
         main.SetColumnSpan(bottom, 2);
 
         Controls.Add(main);
+        AcceptButton = _saveButton;
     }
 
     private void LoadExistingFavorites()

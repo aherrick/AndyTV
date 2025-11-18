@@ -195,12 +195,4 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
             }
         }
     }
-
-    public static Channel ChannelByUrl(string url)
-    {
-        return PlaylistChannelService.Channels.FirstOrDefault(ch =>
-            !string.IsNullOrWhiteSpace(ch.Url)
-            && string.Equals(ch.Url.Trim(), url.Trim(), StringComparison.OrdinalIgnoreCase)
-        );
-    }
 }

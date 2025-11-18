@@ -322,8 +322,6 @@ public partial class Form1 : Form
             }
         );
 
-        MenuHelper.AddSeparator(channelsMenu);
-
         MenuHelper.AddMenuItem(
             channelsMenu,
             "Ad Hoc",
@@ -336,37 +334,6 @@ public partial class Form1 : Form
                 {
                     Play(dialog.SelectedItem);
                 }
-            }
-        );
-
-        MenuHelper.AddMenuItem(
-            channelsMenu,
-            "Swap",
-            (_, __) =>
-            {
-                string input = null;
-
-                if (Clipboard.ContainsText())
-                {
-                    var clip = Clipboard.GetText().Trim();
-                    if (UtilHelper.IsValidUrl(clip))
-                        input = clip;
-                }
-
-                while (string.IsNullOrWhiteSpace(input) || !UtilHelper.IsValidUrl(input))
-                {
-                    _videoView.ShowDefault();
-                    using var dlg = new InputForm("Swap Stream", "Enter media URL:");
-                    if (dlg.ShowDialog(this) != DialogResult.OK)
-                    {
-                        return;
-                    }
-                    input = dlg.Result;
-                }
-
-                var ch = MenuTop.ChannelByUrl(input) ?? new Channel { Name = "Swap", Url = input };
-                Logger.Info($"[SWAP] Playing input: {input}");
-                Play(ch);
             }
         );
 
