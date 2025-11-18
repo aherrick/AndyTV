@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace AndyTV.VLC.Services;
 
@@ -18,7 +20,10 @@ public class VlcService
         if (string.IsNullOrWhiteSpace(streamUrl)) return false;
         if (!File.Exists(_vlcPath))
         {
-            _logger.LogWarning("VLC executable not found at {Path}", _vlcPath);
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("VLC executable not found at {Path}", _vlcPath);
+            }
             return false;
         }
         try
@@ -34,7 +39,10 @@ public class VlcService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to launch VLC for {Url}", streamUrl);
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Failed to launch VLC for {Url}", streamUrl);
+            }
             return false;
         }
     }

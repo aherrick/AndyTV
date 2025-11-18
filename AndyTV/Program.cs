@@ -9,6 +9,7 @@ internal static class Program
 {
     private static Mutex _mutex;
     private const string MutexName = @"Global\AndyTV_SingleInstance";
+    private const string RestartArg = "--restart";
 
     [STAThread]
     private static void Main()
@@ -17,7 +18,7 @@ internal static class Program
         Application.SetColorMode(SystemColorMode.Dark);
 
         string[] args = Environment.GetCommandLineArgs();
-        bool isRestart = args.Contains("--restart");
+        bool isRestart = args.Contains(RestartArg);
 
         _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
         if (!isNew && !isRestart)
@@ -43,7 +44,7 @@ internal static class Program
             new ProcessStartInfo
             {
                 FileName = Environment.ProcessPath ?? Application.ExecutablePath,
-                Arguments = "--restart",
+                Arguments = RestartArg,
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
             }
