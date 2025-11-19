@@ -6,6 +6,16 @@ public class NotificationService(Form parentForm)
     {
         void Show()
         {
+            var baseFont = new Font("Segoe UI", 14, FontStyle.Bold);
+
+            // Measure text to determine appropriate toast size
+            var textSize = TextRenderer.MeasureText(message, baseFont);
+            const int horizontalPadding = 40; // total extra width
+            const int verticalPadding = 20;   // total extra height
+
+            var toastWidth = textSize.Width + horizontalPadding;
+            var toastHeight = textSize.Height + verticalPadding;
+
             var toast = new Form
             {
                 FormBorderStyle = FormBorderStyle.None,
@@ -13,7 +23,7 @@ public class NotificationService(Form parentForm)
                 BackColor = Color.White,
                 ShowInTaskbar = false,
                 TopMost = true,
-                Size = new Size(350, 60),
+                Size = new Size(toastWidth, toastHeight),
                 Opacity = 0.95,
             };
 
@@ -24,15 +34,16 @@ public class NotificationService(Form parentForm)
                 TextAlign = ContentAlignment.MiddleCenter,
                 ForeColor = Color.Red,
                 BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Font = baseFont,
             };
 
             toast.Controls.Add(label);
 
             var formPos = parentForm.PointToScreen(Point.Empty);
+            const int margin = 40;
             toast.Location = new Point(
-                formPos.X + parentForm.ClientSize.Width - toast.Width - 40,
-                formPos.Y + parentForm.ClientSize.Height - toast.Height - 40
+                formPos.X + parentForm.ClientSize.Width - toast.Width - margin,
+                formPos.Y + parentForm.ClientSize.Height - toast.Height - margin
             );
 
             toast.Shown += async (_, __) =>
