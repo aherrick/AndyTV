@@ -92,6 +92,8 @@ public partial class FavoriteChannelForm : Form
             EditMode = DataGridViewEditMode.EditOnEnter,
             Margin = new Padding(0),
         };
+        _favoritesGrid.RowTemplate.Height = 28;
+        _favoritesGrid.RowHeadersVisible = false;
         SetupGridColumns();
         SetupCopyPaste();
         main.Controls.Add(_favoritesGrid, 0, 1);
@@ -173,6 +175,8 @@ public partial class FavoriteChannelForm : Form
     {
         base.OnLoad(e);
         _channelPicker.FocusFilter();
+
+        GridHelper.ApplyStandardRowHeight(_favoritesGrid);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -222,7 +226,7 @@ public partial class FavoriteChannelForm : Form
             Name = nameof(Channel.MappedName),
             HeaderText = "Mapped Name",
             DataPropertyName = nameof(Channel.MappedName),
-            Width = 200,
+            Width = 220,
         };
 
         var groupColumn = new DataGridViewTextBoxColumn
@@ -238,7 +242,7 @@ public partial class FavoriteChannelForm : Form
             Name = nameof(Channel.Category),
             HeaderText = nameof(Channel.Category),
             DataPropertyName = nameof(Channel.Category),
-            Width = 200,
+            Width = 220,
         };
 
         _favoritesGrid.Columns.AddRange(

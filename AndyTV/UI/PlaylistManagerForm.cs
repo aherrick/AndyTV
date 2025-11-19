@@ -51,7 +51,6 @@ public sealed class PlaylistManagerForm : Form
         _grid.AllowUserToDeleteRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AllowUserToResizeRows = false;
-        _grid.RowTemplate.Height = 28;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -143,6 +142,13 @@ public sealed class PlaylistManagerForm : Form
         Controls.Add(layout);
 
         FormClosing += OnFormClosing;
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+
+        GridHelper.ApplyStandardRowHeight(_grid);
     }
 
     private void OnAdd(object sender, EventArgs e)
