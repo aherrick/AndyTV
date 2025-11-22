@@ -269,9 +269,9 @@ public partial class ChannelService
                 {
                     Name = "ESPN",
                     StreamingTVId = "ESPN",
-                    ExcludeTerms = ["ESPN+", "ESPN Plus"],
+                    ExcludeTerms = ["ESPN+", "ESPN Plus", "ESPNPLUS"],
                 },
-                new ChannelTop { Name = "ESPN+", AltNames = ["ESPN Plus"] },
+                new ChannelTop { Name = "ESPN+", AltNames = ["ESPN Plus", "ESPNPLUS"] },
                 new ChannelTop
                 {
                     Name = "ESPN 2",
