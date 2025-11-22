@@ -142,6 +142,12 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
                         entry.Terms.Any(term =>
                             ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
                         )
+                        && (
+                            entry.ExcludeTerms == null
+                            || !entry.ExcludeTerms.Any(ex =>
+                                ch.DisplayName.Contains(ex, StringComparison.OrdinalIgnoreCase)
+                            )
+                        )
                     )
                     .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase)
                     .ToList();

@@ -4,6 +4,7 @@ public class ChannelTop
 {
     public string Name { get; set; }
     public List<string> AltNames { get; set; }
+    public List<string> ExcludeTerms { get; set; }
     public string StreamingTVId { get; set; }
 
     public IEnumerable<string> Terms

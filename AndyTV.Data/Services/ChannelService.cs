@@ -265,7 +265,13 @@ public partial class ChannelService
                     AltNames = ["CBSSN"],
                     StreamingTVId = "CBSSN",
                 },
-                new ChannelTop { Name = "ESPN", StreamingTVId = "ESPN" },
+                new ChannelTop
+                {
+                    Name = "ESPN",
+                    StreamingTVId = "ESPN",
+                    ExcludeTerms = ["ESPN+", "ESPN Plus"],
+                },
+                new ChannelTop { Name = "ESPN+", AltNames = ["ESPN Plus"] },
                 new ChannelTop
                 {
                     Name = "ESPN 2",
