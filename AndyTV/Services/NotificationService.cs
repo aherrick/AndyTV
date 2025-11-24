@@ -9,9 +9,12 @@ public class NotificationService(Form parentForm)
             var baseFont = new Font("Segoe UI", 14, FontStyle.Bold);
 
             // Measure text to determine appropriate toast size
+            // Use TextFormatFlags to ensure accurate measurement for GDI rendering
             var textSize = TextRenderer.MeasureText(message, baseFont);
-            const int horizontalPadding = 40; // total extra width
-            const int verticalPadding = 20;   // total extra height
+            
+            // Increased padding to prevent cutoff and improve look
+            const int horizontalPadding = 60; 
+            const int verticalPadding = 30;   
 
             var toastWidth = textSize.Width + horizontalPadding;
             var toastHeight = textSize.Height + verticalPadding;
@@ -27,6 +30,9 @@ public class NotificationService(Form parentForm)
                 Opacity = 0.95,
             };
 
+            // Add a border for a cleaner look
+            toast.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, toast.ClientRectangle, Color.Silver, ButtonBorderStyle.Solid);
+
             var label = new Label
             {
                 Text = message,
@@ -35,6 +41,8 @@ public class NotificationService(Form parentForm)
                 ForeColor = Color.Red,
                 BackColor = Color.Transparent,
                 Font = baseFont,
+                // Critical: Matches TextRenderer.MeasureText (GDI) to prevent text cutoff
+                UseCompatibleTextRendering = true 
             };
 
             toast.Controls.Add(label);
