@@ -11,10 +11,10 @@ public class NotificationService(Form parentForm)
             // Measure text to determine appropriate toast size
             // Use TextFormatFlags to ensure accurate measurement for GDI rendering
             var textSize = TextRenderer.MeasureText(message, baseFont);
-            
+
             // Increased padding to prevent cutoff and improve look
-            const int horizontalPadding = 60; 
-            const int verticalPadding = 30;   
+            const int horizontalPadding = 60;
+            const int verticalPadding = 30;
 
             var toastWidth = textSize.Width + horizontalPadding;
             var toastHeight = textSize.Height + verticalPadding;
@@ -42,7 +42,7 @@ public class NotificationService(Form parentForm)
                 BackColor = Color.Transparent,
                 Font = baseFont,
                 // Critical: Matches TextRenderer.MeasureText (GDI) to prevent text cutoff
-                UseCompatibleTextRendering = true 
+                UseCompatibleTextRendering = true
             };
 
             toast.Controls.Add(label);
