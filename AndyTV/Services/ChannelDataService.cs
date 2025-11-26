@@ -34,16 +34,13 @@ public static class ChannelDataService
     // --- Favorites (app data path) ---
     public static List<Channel> LoadFavoriteChannels()
     {
-        try
-        {
-            string path = PathHelper.GetPath(FavoriteChannelsFile);
-            string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<List<Channel>>(json);
-        }
-        catch
-        {
+        string path = PathHelper.GetPath(FavoriteChannelsFile);
+
+        if (!File.Exists(path))
             return [];
-        }
+
+        string json = File.ReadAllText(path);
+        return JsonSerializer.Deserialize<List<Channel>>(json);
     }
 
     public static void SaveFavoriteChannels(IEnumerable<Channel> channels)

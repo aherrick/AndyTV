@@ -4,6 +4,7 @@
 @inject HttpClient Http
 
 <SfSchedule TValue="ShowEvent"
+            @ref="ScheduleRef"
             Width="100%"
             Height="98vh"
             @bind-SelectedDate="CurrentDate"
@@ -59,6 +60,7 @@
 </SfSchedule>
 
 @code {
+    private SfSchedule<ShowEvent> ScheduleRef;
     private View CurrentView = View.TimelineDay;
     private DateTime CurrentDate = DateTime.Today;
     private string StartHour = "00:00";
@@ -122,10 +124,10 @@
         Channels = newChannels;
         Events = newEvents;
 
-        // Set the current date and start hour to the previous full hour
+        // Set the current date and start hour to the current hour
         CurrentDate = DateTime.Now;
-        var previousHour = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, 0, 0).AddHours(-1);
-        StartHour = previousHour.ToString("HH\\:mm");
+        var currentHour = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, 0, 0);
+        StartHour = currentHour.ToString("HH\\:mm");
     }
 
     public sealed class ShowEvent : Show
