@@ -77,7 +77,17 @@ public sealed class PlaylistManagerForm : Form
             new DataGridViewCheckBoxColumn
             {
                 DataPropertyName = nameof(Playlist.ShowInMenu),
-                HeaderText = "Show in Menu",
+                HeaderText = "In Menu",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                Width = 120,
+                FillWeight = 10,
+            }
+        );
+        _grid.Columns.Add(
+            new DataGridViewCheckBoxColumn
+            {
+                DataPropertyName = nameof(Playlist.GroupByFirstChar),
+                HeaderText = "Group",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 Width = 120,
                 FillWeight = 10,
@@ -159,6 +169,7 @@ public sealed class PlaylistManagerForm : Form
                 Name = "New Playlist",
                 Url = "https://",
                 ShowInMenu = true,
+                GroupByFirstChar = false,
             }
         );
 
