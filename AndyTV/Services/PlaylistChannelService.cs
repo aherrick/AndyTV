@@ -69,11 +69,48 @@ public static class PlaylistChannelService
 
                     foreach (var item in parsed.Channels)
                     {
+                        var url = item.MediaUrl;
+
+                        // Apply regex transformation if pattern is provided
+                        if (!string.IsNullOrWhiteSpace(p.UrlRegex))
+                        {
+                            try
+                            {
+                                // Parse s/pattern/replacement/ syntax
+                                var match = System.Text.RegularExpressions.Regex.Match(
+                                    p.UrlRegex,
+                                    @"^s/(.+?)/(.*)/$"
+                                );
+                                if (match.Success)
+                                {
+                                    var pattern = match.Groups[1].Value;
+                                    var replacement = match.Groups[2].Value;
+                                    url = System.Text.RegularExpressions.Regex.Replace(
+                                        url,
+                                        pattern,
+                                        replacement
+                                    );
+                                }
+                                else
+                                {
+                                    Logger.Warn(
+                                        $"Invalid regex format for {p.Name}. Expected: s/pattern/replacement/"
+                                    );
+                                }
+                            }
+                            catch (Exception regexEx)
+                            {
+                                Logger.Warn(
+                                    $"Regex failed for {p.Name}: {regexEx.Message}"
+                                );
+                            }
+                        }
+
                         channels.Add(
                             new Channel
                             {
                                 Name = item.Title,
-                                Url = item.MediaUrl,
+                                Url = url,
                                 Group = item.GroupTitle,
                             }
                         );

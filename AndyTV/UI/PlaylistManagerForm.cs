@@ -93,6 +93,15 @@ public sealed class PlaylistManagerForm : Form
                 FillWeight = 10,
             }
         );
+        _grid.Columns.Add(
+            new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(Playlist.UrlRegex),
+                HeaderText = "URL Regex",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 30,
+            }
+        );
 
         // ---- Bottom bar ----
         var bottom = new TableLayoutPanel
