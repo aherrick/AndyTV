@@ -96,10 +96,19 @@ public sealed class PlaylistManagerForm : Form
         _grid.Columns.Add(
             new DataGridViewTextBoxColumn
             {
-                DataPropertyName = nameof(Playlist.UrlRegex),
-                HeaderText = "URL Regex",
+                DataPropertyName = nameof(Playlist.UrlFind),
+                HeaderText = "Find",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
-                FillWeight = 30,
+                FillWeight = 15,
+            }
+        );
+        _grid.Columns.Add(
+            new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(Playlist.UrlReplace),
+                HeaderText = "Replace",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 15,
             }
         );
 

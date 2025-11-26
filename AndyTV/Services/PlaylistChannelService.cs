@@ -71,33 +71,16 @@ public static class PlaylistChannelService
                     {
                         var url = item.MediaUrl;
 
-                        // Apply regex transformation if pattern is provided
-                        if (!string.IsNullOrWhiteSpace(p.UrlRegex))
+                        // Apply regex replacement if both pattern and replacement are provided
+                        if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
                         {
                             try
                             {
-                                // Parse s/pattern/replacement/ syntax, handling escaped forward slashes
-                                var match = System.Text.RegularExpressions.Regex.Match(
-                                    p.UrlRegex,
-                                    @"^s/((?:[^\\/]|\\.)*)/((?:[^\\/]|\\.)*)/?"
+                                url = System.Text.RegularExpressions.Regex.Replace(
+                                    url,
+                                    p.UrlFind,
+                                    p.UrlReplace
                                 );
-                                if (match.Success)
-                                {
-                                    // Unescape the captured values (\/ becomes /)
-                                    var pattern = match.Groups[1].Value.Replace("\\/", "/");
-                                    var replacement = match.Groups[2].Value.Replace("\\/", "/");
-                                    url = System.Text.RegularExpressions.Regex.Replace(
-                                        url,
-                                        pattern,
-                                        replacement
-                                    );
-                                }
-                                else
-                                {
-                                    Logger.Warn(
-                                        $"Invalid regex format for {p.Name}. Expected: s/pattern/replacement/"
-                                    );
-                                }
                             }
                             catch (Exception regexEx)
                             {
