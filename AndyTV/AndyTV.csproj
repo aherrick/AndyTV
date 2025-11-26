@@ -14,10 +14,10 @@
 	<ItemGroup>
 		<PackageReference Include="LibVLCSharp.WinForms" Version="3.9.4" />
 		<PackageReference Include="M3UManager" Version="1.0.6" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.10" />
-		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.10" />
+		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.15" />
+		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.15" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
 

@@ -122,13 +122,10 @@
         Channels = newChannels;
         Events = newEvents;
 
-        // After swapping references (Categories/Channels/Events):
-        var first = Events.OrderBy(e => e.StartTime).FirstOrDefault();
-        if (first is not null)
-        {
-            CurrentDate = DateTime.Now;              
-            StartHour = first.StartTime.ToString("HH\\:mm");  // raw HH:mm from earliest event
-        }
+        // Set the current date and start hour to the previous full hour
+        CurrentDate = DateTime.Now;
+        var previousHour = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, 0, 0).AddHours(-1);
+        StartHour = previousHour.ToString("HH\\:mm");
     }
 
     public sealed class ShowEvent : Show
