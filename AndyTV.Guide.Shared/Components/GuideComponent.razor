@@ -126,8 +126,7 @@
 
         // Set the current date and start hour to the current hour
         CurrentDate = DateTime.Now;
-        var currentHour = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, 0, 0);
-        StartHour = currentHour.ToString("HH\\:mm");
+        StartHour = $"{DateTime.Now.Hour:D2}:00";
     }
 
     public sealed class ShowEvent : Show
