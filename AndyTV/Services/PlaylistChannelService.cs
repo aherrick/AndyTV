@@ -76,15 +76,16 @@ public static class PlaylistChannelService
                         {
                             try
                             {
-                                // Parse s/pattern/replacement/ syntax
+                                // Parse s/pattern/replacement/ syntax, handling escaped forward slashes
                                 var match = System.Text.RegularExpressions.Regex.Match(
                                     p.UrlRegex,
-                                    @"^s/(.+?)/(.*)/$"
+                                    @"^s/((?:[^\\/]|\\.)*)/((?:[^\\/]|\\.)*)/?"
                                 );
                                 if (match.Success)
                                 {
-                                    var pattern = match.Groups[1].Value;
-                                    var replacement = match.Groups[2].Value;
+                                    // Unescape the captured values (\/ becomes /)
+                                    var pattern = match.Groups[1].Value.Replace("\\/", "/");
+                                    var replacement = match.Groups[2].Value.Replace("\\/", "/");
                                     url = System.Text.RegularExpressions.Regex.Replace(
                                         url,
                                         pattern,
