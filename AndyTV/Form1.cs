@@ -208,14 +208,12 @@ public partial class Form1 : Form
         };
     }
 
-    private bool _isRefreshingChannels;
+    private int _isRefreshingChannels;
 
     private void StartChannelRefresh()
     {
-        if (_isRefreshingChannels)
+        if (Interlocked.CompareExchange(ref _isRefreshingChannels, 1, 0) != 0)
             return;
-
-        _isRefreshingChannels = true;
 
         _ = Task.Run(async () =>
         {
@@ -230,7 +228,7 @@ public partial class Form1 : Form
             }
             finally
             {
-                _isRefreshingChannels = false;
+                Interlocked.Exchange(ref _isRefreshingChannels, 0);
             }
         });
     }

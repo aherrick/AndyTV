@@ -54,6 +54,8 @@ public class NotificationService(Form parentForm)
                 formPos.Y + parentForm.ClientSize.Height - toast.Height - margin
             );
 
+            toast.FormClosed += (_, __) => baseFont.Dispose();
+
             toast.Shown += async (_, __) =>
             {
                 await Task.Delay(durationMs);

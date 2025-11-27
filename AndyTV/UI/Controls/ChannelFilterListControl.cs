@@ -5,8 +5,6 @@ namespace AndyTV.UI.Controls;
 
 public static class StandardPickerFactory
 {
-    public const int PickerHeight = 220; // exact height for the header
-
     public static ChannelFilterListControl Create(List<Channel> channels)
     {
         var picker = new ChannelFilterListControl

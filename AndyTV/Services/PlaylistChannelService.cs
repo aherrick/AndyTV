@@ -8,6 +8,7 @@ namespace AndyTV.Services;
 public static class PlaylistChannelService
 {
     private const string FileName = "playlists.json";
+    private static readonly HttpClient _httpClient = new();
 
     private static string GetFilePath()
     {
@@ -43,84 +44,78 @@ public static class PlaylistChannelService
 
     public static async Task RefreshChannels()
     {
-        // freezes the ui without task run
-        await Task.Run(async () =>
+        Logger.Info("Refreshing channels...");
+
+        var source = Load();
+        Logger.Info($"Playlists: {source.Count}");
+
+        var tasks = source.Select(async p =>
         {
-            Logger.Info("Refreshing channels...");
-
-            var source = Load();
-            Logger.Info($"Playlists: {source.Count}");
-
-            var http = new HttpClient();
-
-            var tasks = source.Select(async p =>
+            try
             {
-                try
+                var m3uText = await _httpClient.GetStringAsync(p.Url);
+                if (string.IsNullOrWhiteSpace(m3uText))
                 {
-                    var m3uText = await http.GetStringAsync(p.Url);
-                    if (string.IsNullOrWhiteSpace(m3uText))
-                    {
-                        Logger.Warn($"Empty playlist: {p.Name}");
-                        return (p, new List<Channel>());
-                    }
-
-                    var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
-                    var channels = new List<Channel>(parsed.Channels.Count);
-
-                    foreach (var item in parsed.Channels)
-                    {
-                        var url = item.MediaUrl;
-
-                        // Apply regex replacement if both pattern and replacement are provided
-                        if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
-                        {
-                            try
-                            {
-                                url = System.Text.RegularExpressions.Regex.Replace(
-                                    url,
-                                    p.UrlFind,
-                                    p.UrlReplace
-                                );
-                            }
-                            catch (Exception regexEx)
-                            {
-                                Logger.Warn(
-                                    $"Regex failed for {p.Name}: {regexEx.Message}"
-                                );
-                            }
-                        }
-
-                        channels.Add(
-                            new Channel
-                            {
-                                Name = item.Title,
-                                Url = url,
-                                Group = item.GroupTitle,
-                            }
-                        );
-                    }
-
-                    Logger.Info($"Playlist {p.Name}: {channels.Count} channels");
-                    return (p, channels);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, $"Failed: {p.Name} ({p.Url})");
+                    Logger.Warn($"Empty playlist: {p.Name}");
                     return (p, new List<Channel>());
                 }
-            });
 
-            PlaylistChannels = [.. await Task.WhenAll(tasks)];
+                var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
+                var channels = new List<Channel>(parsed.Channels.Count);
 
-            Channels =
-            [
-                .. PlaylistChannels
-                    .SelectMany(x => x.Channels)
-                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                    .Select(g => g.First()),
-            ];
+                foreach (var item in parsed.Channels)
+                {
+                    var url = item.MediaUrl;
 
-            Logger.Info($"Unique channels: {Channels.Count}");
+                    // Apply regex replacement if both pattern and replacement are provided
+                    if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
+                    {
+                        try
+                        {
+                            url = System.Text.RegularExpressions.Regex.Replace(
+                                url,
+                                p.UrlFind,
+                                p.UrlReplace
+                            );
+                        }
+                        catch (Exception regexEx)
+                        {
+                            Logger.Warn(
+                                $"Regex failed for {p.Name}: {regexEx.Message}"
+                            );
+                        }
+                    }
+
+                    channels.Add(
+                        new Channel
+                        {
+                            Name = item.Title,
+                            Url = url,
+                            Group = item.GroupTitle,
+                        }
+                    );
+                }
+
+                Logger.Info($"Playlist {p.Name}: {channels.Count} channels");
+                return (p, channels);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed: {p.Name} ({p.Url})");
+                return (p, new List<Channel>());
+            }
         });
+
+        PlaylistChannels = [.. await Task.WhenAll(tasks)];
+
+        Channels =
+        [
+            .. PlaylistChannels
+                .SelectMany(x => x.Channels)
+                .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First()),
+        ];
+
+        Logger.Info($"Unique channels: {Channels.Count}");
     }
 }
