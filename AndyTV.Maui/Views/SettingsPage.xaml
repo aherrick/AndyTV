@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+             x:Class="AndyTV.Maui.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="Settings">
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="15">
+            
+            <Label Text="Playlist Settings" 
+                   FontSize="24" 
+                   FontAttributes="Bold" />
+
+            <Label Text="Name" />
+            <Entry Text="{Binding PlaylistName}" 
+                   Placeholder="My Playlist" />
+
+            <Label Text="URL" />
+            <Entry Text="{Binding PlaylistUrl}" 
+                   Placeholder="https://example.com/playlist.m3u"
+                   Keyboard="Url" />
+
+            <Button Text="Save" 
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                    Margin="0,20,0,0" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" 
+                               IsVisible="{Binding IsBusy}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

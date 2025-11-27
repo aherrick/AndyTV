@@ -1,3 +1,4 @@
+using AndyTV.Data.Services;
 using AndyTV.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
@@ -29,6 +30,10 @@ public static class ServiceConfiguration
                 },
             };
         });
+
+        // Shared services
+        services.AddSingleton<IStorageProvider, WinFormsStorageProvider>();
+        services.AddSingleton<PlaylistService>();
 
         // App services
         services.AddSingleton<UpdateService>();

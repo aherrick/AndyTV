@@ -1,12 +1,15 @@
 ﻿using System.ComponentModel;
+using AndyTV.Data.Helpers;
+using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using AndyTV.Helpers;
-using AndyTV.Models;
-using AndyTV.Services;
 
 namespace AndyTV.UI;
 
 public sealed class PlaylistManagerForm : Form
 {
+    private readonly PlaylistService _playlistService;
+
     public bool Saved { get; private set; } = false;
 
     private bool HasChanges => UtilHelper.GenerateSnapshot(_data) != _snapshot;
@@ -24,8 +27,10 @@ public sealed class PlaylistManagerForm : Form
     private readonly BindingList<Playlist> _data = [];
     private string _snapshot = "";
 
-    public PlaylistManagerForm()
+    public PlaylistManagerForm(PlaylistService playlistService)
     {
+        _playlistService = playlistService;
+
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96F, 96F);
 
@@ -43,7 +48,7 @@ public sealed class PlaylistManagerForm : Form
         _btnDelete.Margin = new Padding(0, 0, 8, 0);
         _btnSave.Margin = new Padding(0);
 
-        _data = new BindingList<Playlist>(PlaylistChannelService.Load());
+        _data = new BindingList<Playlist>(_playlistService.LoadPlaylists());
         _snapshot = UtilHelper.GenerateSnapshot(_data);
 
         _grid.DataSource = _data;
@@ -248,7 +253,7 @@ public sealed class PlaylistManagerForm : Form
         _grid.EndEdit();
         Validate();
 
-        if (!_data.All(x => UtilHelper.IsValidUrl(x.Url)))
+        if (!_data.All(x => UrlHelper.IsValidUrl(x.Url)))
         {
             MessageBox.Show(
                 this,
@@ -267,7 +272,7 @@ public sealed class PlaylistManagerForm : Form
             return;
         }
 
-        PlaylistChannelService.Save([.. _data]);
+        _playlistService.SavePlaylists([.. _data]);
         _snapshot = UtilHelper.GenerateSnapshot(_data);
         Saved = true;
 

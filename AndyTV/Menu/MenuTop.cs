@@ -1,11 +1,10 @@
 ﻿using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Helpers;
-using AndyTV.Services;
 
 namespace AndyTV.Menu;
 
-public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
+public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, PlaylistService playlistService)
 {
     private readonly SynchronizationContext _ui = ui;
     private readonly List<ToolStripItem> _added = [];
@@ -35,17 +34,17 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
                     "US",
                     ChannelService.TopUs(),
                     channelClick,
-                    PlaylistChannelService.Channels
+                    playlistService.Channels
                 );
                 BuildTopMenu(
                     "UK",
                     ChannelService.TopUk(),
                     channelClick,
-                    PlaylistChannelService.Channels
+                    playlistService.Channels
                 );
 
                 // ----- 24/7 -----
-                Build247("24/7", channelClick, PlaylistChannelService.Channels);
+                Build247("24/7", channelClick, playlistService.Channels);
 
                 Logger.Info("[CHANNELS] Menu rebuilt (Top + 24/7)");
             },
@@ -178,7 +177,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui)
 
     private void BuildPlaylistMenu(EventHandler channelClick)
     {
-        var playlistChannelsMenu = PlaylistChannelService.PlaylistChannels.Where(x =>
+        var playlistChannelsMenu = playlistService.PlaylistChannels.Where(x =>
             x.Playlist.ShowInMenu
         );
 

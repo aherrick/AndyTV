@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+             x:Class="AndyTV.Maui.Views.PlayerPage"
+             x:DataType="vm:PlayerViewModel"
+             Title="{Binding ChannelName}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid BackgroundColor="Black">
+        <toolkit:MediaElement x:Name="MediaElement"
+                              ShouldAutoPlay="True"
+                              ShouldShowPlaybackControls="True"
+                              HorizontalOptions="Fill"
+                              VerticalOptions="Fill" />
+
+        <Button Text="Back" 
+                Command="{Binding GoBackCommand}"
+                HorizontalOptions="Start"
+                VerticalOptions="Start"
+                Margin="20"
+                Opacity="0.7" />
+    </Grid>
+
+</ContentPage>

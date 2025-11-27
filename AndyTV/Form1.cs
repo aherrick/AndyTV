@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using AndyTV.Helpers;
 using AndyTV.Menu;
 using AndyTV.Services;
@@ -15,6 +16,7 @@ public partial class Form1 : Form
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
     private readonly VideoView _videoView;
+    private readonly PlaylistService _playlistService;
 
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
@@ -45,15 +47,16 @@ public partial class Form1 : Form
 
     private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
-    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView)
+    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView, PlaylistService playlistService)
     {
         _libVLC = libVLC;
         _updateService = updateService;
         _videoView = videoView;
+        _playlistService = playlistService;
 
         InitializeComponent();
 
-        _menuTop = new MenuTop(_contextMenuStrip, _ui);
+        _menuTop = new MenuTop(_contextMenuStrip, _ui, _playlistService);
 
         _notificationService = new NotificationService(this);
 
@@ -159,7 +162,7 @@ public partial class Form1 : Form
             // Initial refresh
             StartChannelRefresh();
 
-            if (PlaylistChannelService.Load().Count == 0)
+            if (_playlistService.LoadPlaylists().Count == 0)
             {
                 RestoreWindow();
                 await HandlePlaylistManager();
@@ -219,7 +222,7 @@ public partial class Form1 : Form
         {
             try
             {
-                await PlaylistChannelService.RefreshChannels();
+                await _playlistService.RefreshChannelsAsync();
                 _ui.Post(_ => _menuTop.Rebuild(ChItem_Click), null);
             }
             catch (Exception ex)
@@ -236,7 +239,7 @@ public partial class Form1 : Form
     private async Task HandlePlaylistManager()
     {
         _videoView.ShowDefault();
-        using (var dlg = new PlaylistManagerForm())
+        using (var dlg = new PlaylistManagerForm(_playlistService))
         {
             dlg.ShowDialog(this);
             if (dlg.Saved)
@@ -326,7 +329,7 @@ public partial class Form1 : Form
             (_, __) =>
             {
                 _videoView.ShowDefault();
-                using var dialog = new AdHocChannelForm(PlaylistChannelService.Channels);
+                using var dialog = new AdHocChannelForm(_playlistService.Channels);
                 dialog.ShowDialog(this);
                 if (dialog.SelectedItem != null)
                 {
@@ -352,7 +355,7 @@ public partial class Form1 : Form
         void OpenFavorites(Channel addOnOpen = null)
         {
             _videoView.ShowDefault();
-            using var form = new FavoriteChannelForm(PlaylistChannelService.Channels, addOnOpen);
+            using var form = new FavoriteChannelForm(_playlistService.Channels, addOnOpen);
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)

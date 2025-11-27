@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+             xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
+             x:Class="AndyTV.Maui.Views.ChannelsPage"
+             x:DataType="vm:ChannelsViewModel"
+             Title="Channels">
+
+    <Grid RowDefinitions="Auto,*">
+        
+        <HorizontalStackLayout Grid.Row="0" Padding="10" Spacing="10">
+            <Button Text="Refresh" Command="{Binding LoadChannelsCommand}" />
+            <Label Text="{Binding StatusMessage}" VerticalOptions="Center" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+        </HorizontalStackLayout>
+
+        <CollectionView Grid.Row="1" 
+                        ItemsSource="{Binding ChannelGroups}"
+                        IsGrouped="True">
+
+            <CollectionView.GroupHeaderTemplate>
+                <DataTemplate x:DataType="vm:ChannelGroup">
+                    <Label Text="{Binding Name}" 
+                           FontAttributes="Bold"
+                           FontSize="18"
+                           Padding="10,5"
+                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Channel">
+                    <Grid Padding="15,10">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer 
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=SelectChannelCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        
+                        <VerticalStackLayout>
+                            <Label Text="{Binding DisplayName}" FontSize="16" />
+                            <Label Text="{Binding Group}" FontSize="12" TextColor="Gray" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

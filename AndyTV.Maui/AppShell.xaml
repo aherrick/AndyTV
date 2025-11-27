@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="AndyTV.Maui.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:AndyTV.Maui.Views"
+    Title="AndyTV">
+
+    <TabBar>
+        <ShellContent Title="Channels" 
+                      Icon="dotnet_bot.png"
+                      ContentTemplate="{DataTemplate views:ChannelsPage}" 
+                      Route="channels" />
+        
+        <ShellContent Title="Settings" 
+                      Icon="dotnet_bot.png"
+                      ContentTemplate="{DataTemplate views:SettingsPage}" 
+                      Route="settings" />
+    </TabBar>
+
+</Shell>
