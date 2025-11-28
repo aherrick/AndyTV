@@ -1,11 +1,13 @@
 using AndyTV.Maui.ViewModels;
-using CommunityToolkit.Maui.Views;
+using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
 public partial class PlayerPage : ContentPage
 {
     private readonly PlayerViewModel _viewModel;
+    private LibVLC _libVLC;
+    private LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
 
     public PlayerPage(PlayerViewModel viewModel)
     {
@@ -19,14 +21,20 @@ public partial class PlayerPage : ContentPage
 
         if (!string.IsNullOrEmpty(_viewModel.Url))
         {
-            MediaElement.Source = MediaSource.FromUri(_viewModel.Url);
+            _libVLC = new LibVLC();
+            _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
+
+            var media = new Media(_libVLC, new Uri(_viewModel.Url));
+            _mediaPlayer.Play(media);
         }
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        MediaElement.Stop();
-        MediaElement.Handler?.DisconnectHandler();
+        
+        _mediaPlayer?.Stop();
+        _mediaPlayer?.Dispose();
+        _libVLC?.Dispose();
     }
 }

@@ -3,6 +3,7 @@ using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
 using CommunityToolkit.Maui;
+using LibVLCSharp.MAUI;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Maui;
@@ -25,6 +26,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseLibVLCSharp()
             .UseMauiCommunityToolkitMediaElement()
             .ConfigureFonts(fonts =>
             {
