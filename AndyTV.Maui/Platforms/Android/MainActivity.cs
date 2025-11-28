@@ -15,4 +15,5 @@ namespace AndyTV.Maui;
         | ConfigChanges.Density
 )]
 public class MainActivity : MauiAppCompatActivity
-{ }
+{
+}
