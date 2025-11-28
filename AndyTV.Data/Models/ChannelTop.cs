@@ -2,7 +2,7 @@
 
 public class ChannelTop
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public List<string> AltNames { get; set; }
     public List<string> ExcludeTerms { get; set; }
     public string StreamingTVId { get; set; }

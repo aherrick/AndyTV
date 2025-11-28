@@ -33,7 +33,10 @@ public static class ServiceConfiguration
 
         // Shared services
         services.AddSingleton<IStorageProvider, WinFormsStorageProvider>();
-        services.AddSingleton<PlaylistService>();
+        services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IRecentChannelService, RecentChannelService>();
+        services.AddSingleton<ILastChannelService, LastChannelService>();
+        services.AddSingleton<IFavoriteChannelService, FavoriteChannelService>();
 
         // App services
         services.AddSingleton<UpdateService>();

@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
+using System.Text.Json;
+using AndyTV.Data.Helpers;
 using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using AndyTV.Helpers;
-using AndyTV.Menu;
-using AndyTV.Services;
 using AndyTV.UI.Controls;
 
 namespace AndyTV.UI;
@@ -11,6 +12,7 @@ public partial class FavoriteChannelForm : Form
 {
     // Data
     private readonly List<Channel> _allChannels;
+    private readonly IFavoriteChannelService _favoriteChannelService;
 
     private readonly BindingList<Channel> _favorites = [];
     private string _baseline = "";
@@ -28,9 +30,10 @@ public partial class FavoriteChannelForm : Form
 
     public bool Saved { get; private set; }
 
-    public FavoriteChannelForm(List<Channel> channels, Channel channelAdd = null)
+    public FavoriteChannelForm(List<Channel> channels, IFavoriteChannelService favoriteChannelService, Channel channelAdd = null)
     {
         _allChannels = channels ?? [];
+        _favoriteChannelService = favoriteChannelService;
 
         InitializeComponent();
 
@@ -162,13 +165,13 @@ public partial class FavoriteChannelForm : Form
 
     private void LoadExistingFavorites()
     {
-        var existing = ChannelDataService.LoadFavoriteChannels();
+        var existing = _favoriteChannelService.LoadFavoriteChannels();
         _favorites.Clear();
         foreach (var ch in existing)
         {
             _favorites.Add(ch);
         }
-        _baseline = UtilHelper.GenerateSnapshot(_favorites);
+        _baseline = JsonHelper.GenerateSnapshot(_favorites);
     }
 
     protected override void OnLoad(EventArgs e)
@@ -181,7 +184,7 @@ public partial class FavoriteChannelForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        var current = UtilHelper.GenerateSnapshot(_favorites);
+        var current = JsonHelper.GenerateSnapshot(_favorites);
         if (current != _baseline)
         {
             var result = MessageBox.Show(
@@ -305,17 +308,33 @@ public partial class FavoriteChannelForm : Form
         _favoritesGrid.CurrentCell = null;
         _favoritesGrid.EndEdit();
 
-        ChannelDataService.SaveFavoriteChannels([.. _favorites]);
-        _baseline = UtilHelper.GenerateSnapshot(_favorites);
+        _favoriteChannelService.SaveFavoriteChannels([.. _favorites]);
+        _baseline = JsonHelper.GenerateSnapshot(_favorites);
         Saved = true;
     }
 
     private void AddChannel(Channel channel)
     {
-        if (!MenuFavorite.IsDuplicate(channel))
+        if (channel == null || string.IsNullOrWhiteSpace(channel.Url))
+            return;
+
+        // Check if already in current unsaved list OR in saved favorites
+        bool isDuplicate = _favorites.Any(f => 
+            string.Equals(f.Url?.Trim(), channel.Url?.Trim(), StringComparison.OrdinalIgnoreCase))
+            || _favoriteChannelService.IsFavorite(channel);
+        
+        if (isDuplicate)
         {
-            _favorites.Add(channel);
+            MessageBox.Show(
+                $"\"{channel.DisplayName}\" is already in Favorites.",
+                "Already Added",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+            return;
         }
+
+        _favorites.Add(channel);
     }
 
     // --- Interactions ---
@@ -357,27 +376,30 @@ public partial class FavoriteChannelForm : Form
     }
 
     // --- Import / Export / Save ---
+    private const string FavoriteChannelsFile = "favorite_channels.json";
+
     private void ImportFavorites(object sender, EventArgs e)
     {
         using var ofd = new OpenFileDialog
         {
             Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Import Favorite Channels",
-            FileName = ChannelDataService.FavoriteChannelsFile,
+            FileName = FavoriteChannelsFile,
         };
 
         if (ofd.ShowDialog() == DialogResult.OK)
         {
             try
             {
-                var imported = ChannelDataService.ImportFavoriteChannels(ofd.FileName) ?? [];
+                var json = File.ReadAllText(ofd.FileName);
+                var imported = JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
                 _favorites.Clear();
                 foreach (var ch in imported)
                 {
                     _favorites.Add(ch);
                 }
 
-                _baseline = UtilHelper.GenerateSnapshot(_favorites);
+                _baseline = JsonHelper.GenerateSnapshot(_favorites);
                 MessageBox.Show(
                     $"Imported {_favorites.Count} favorite(s).",
                     "Import Complete",
@@ -414,12 +436,13 @@ public partial class FavoriteChannelForm : Form
         {
             Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Export Favorite Channels",
-            FileName = ChannelDataService.FavoriteChannelsFile,
+            FileName = FavoriteChannelsFile,
         };
 
         if (sfd.ShowDialog() == DialogResult.OK)
         {
-            ChannelDataService.ExportFavoriteChannels(_favorites, sfd.FileName);
+            var json = JsonSerializer.Serialize(_favorites.ToList());
+            File.WriteAllText(sfd.FileName, json);
             MessageBox.Show(
                 $"Exported {_favorites.Count} favorite(s).",
                 "Export Complete",

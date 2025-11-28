@@ -1,15 +1,21 @@
 using System.Text.Json;
 using AndyTV.Data.Models;
-using AndyTV.Helpers;
 
-namespace AndyTV.Services;
+namespace AndyTV.Data.Services;
 
-public static class RecentChannelService
+public class RecentChannelService : IRecentChannelService
 {
     private const int MaxRecent = 5;
     private const string RecentChannelsFile = "recents.json";
 
-    public static void AddOrPromote(Channel channel)
+    private readonly IStorageProvider _storageProvider;
+
+    public RecentChannelService(IStorageProvider storageProvider)
+    {
+        _storageProvider = storageProvider;
+    }
+
+    public void AddOrPromote(Channel channel)
     {
         if (channel == null || string.IsNullOrWhiteSpace(channel.Url))
             return;
@@ -26,24 +32,26 @@ public static class RecentChannelService
         SaveListToDisk(list);
     }
 
-    public static Channel GetPrevious()
+    public Channel GetPrevious()
     {
         var list = LoadListFromDisk().Take(MaxRecent).ToList();
         return list.ElementAtOrDefault(1);
     }
 
-    public static List<Channel> GetRecentChannels()
+    public List<Channel> GetRecentChannels()
     {
         return [.. LoadListFromDisk().Take(MaxRecent)];
     }
 
-    private static List<Channel> LoadListFromDisk()
+    private List<Channel> LoadListFromDisk()
     {
         try
         {
-            var fileName = PathHelper.GetPath(RecentChannelsFile);
-            var json = File.ReadAllText(fileName);
-            return JsonSerializer.Deserialize<List<Channel>>(json);
+            if (!_storageProvider.FileExists(RecentChannelsFile))
+                return [];
+
+            var json = _storageProvider.ReadText(RecentChannelsFile);
+            return JsonSerializer.Deserialize<List<Channel>>(json) ?? [];
         }
         catch
         {
@@ -51,9 +59,9 @@ public static class RecentChannelService
         }
     }
 
-    private static void SaveListToDisk(List<Channel> list)
+    private void SaveListToDisk(List<Channel> list)
     {
-        var fileName = PathHelper.GetPath(RecentChannelsFile);
-        File.WriteAllText(fileName, JsonSerializer.Serialize(list.Take(MaxRecent)));
+        var json = JsonSerializer.Serialize(list.Take(MaxRecent));
+        _storageProvider.WriteText(RecentChannelsFile, json);
     }
 }

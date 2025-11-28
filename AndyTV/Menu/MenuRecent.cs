@@ -1,4 +1,4 @@
-﻿using AndyTV.Services;
+﻿using AndyTV.Data.Services;
 
 namespace AndyTV.Menu;
 
@@ -7,6 +7,7 @@ public class MenuRecent
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
     private readonly SynchronizationContext _ui;
+    private readonly IRecentChannelService _recentChannelService;
 
     // keep only the right separator to anchor insert position
     private readonly ToolStripSeparator _rightSep;
@@ -14,11 +15,12 @@ public class MenuRecent
     // track only the items we add after the header
     private readonly List<ToolStripItem> _added = [];
 
-    public MenuRecent(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui)
+    public MenuRecent(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui, IRecentChannelService recentChannelService)
     {
         _menu = menu;
         _clickHandler = clickHandler;
         _ui = ui;
+        _recentChannelService = recentChannelService;
 
         var (_, all) = MenuHelper.AddHeader(_menu, "RECENT");
         _rightSep = (ToolStripSeparator)all[2]; // left = all[0], header = all[1], right = all[2]
@@ -26,7 +28,7 @@ public class MenuRecent
 
     public void Rebuild()
     {
-        var recents = RecentChannelService.GetRecentChannels();
+        var recents = _recentChannelService.GetRecentChannels();
 
         // Marshal to UI thread only if we're not already on it
         if (!ReferenceEquals(SynchronizationContext.Current, _ui))

@@ -1,5 +1,5 @@
 ﻿using AndyTV.Data.Models;
-using AndyTV.Services;
+using AndyTV.Data.Services;
 
 namespace AndyTV.Menu;
 
@@ -8,30 +8,27 @@ public class MenuFavorite
     private readonly ContextMenuStrip _menu;
     private readonly EventHandler _clickHandler;
     private readonly SynchronizationContext _ui;
+    private readonly IFavoriteChannelService _favoriteChannelService;
 
     private readonly ToolStripMenuItem _header;
     private readonly ToolStripItem[] _trio; // [leftSep, header, rightSep]
     private readonly List<ToolStripItem> _favoritesItems = [];
 
-    private static readonly HashSet<string> favoritesURLCache = new(
-        StringComparer.OrdinalIgnoreCase
-    );
-
-    public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui)
+    public MenuFavorite(ContextMenuStrip menu, EventHandler clickHandler, SynchronizationContext ui, IFavoriteChannelService favoriteChannelService)
     {
         _menu = menu;
         _clickHandler = clickHandler;
         _ui = ui;
+        _favoriteChannelService = favoriteChannelService;
 
         var (Header, All) = MenuHelper.AddHeader(_menu, "FAVORITES");
         _header = Header;
         _trio = All;
     }
 
-    public static bool IsDuplicate(Channel channel)
+    public bool IsDuplicate(Channel channel)
     {
-        var url = channel.Url?.Trim();
-        bool isDuplicate = !string.IsNullOrWhiteSpace(url) && favoritesURLCache.Contains(url);
+        bool isDuplicate = _favoriteChannelService.IsFavorite(channel);
         if (isDuplicate)
         {
             MessageBox.Show(
@@ -83,17 +80,9 @@ public class MenuFavorite
 
     private void ShowFavoritesSection()
     {
-        // Load favorites
-        var favorites = ChannelDataService.LoadFavoriteChannels() ?? [];
-        favoritesURLCache.Clear();
-        foreach (var f in favorites)
-        {
-            var url = f.Url?.Trim();
-            if (!string.IsNullOrWhiteSpace(url))
-            {
-                favoritesURLCache.Add(url);
-            }
-        }
+        // Refresh and get cached favorites
+        _favoriteChannelService.RefreshFavorites();
+        var favorites = _favoriteChannelService.Favorites;
 
         if (favorites.Count == 0)
         {

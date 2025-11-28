@@ -11,6 +11,17 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine($"AppDomain.UnhandledException: {e.ExceptionObject}");
+        };
+
+        TaskScheduler.UnobservedTaskException += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine($"TaskScheduler.UnobservedTaskException: {e.Exception}");
+            e.SetObserved();
+        };
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -24,6 +35,9 @@ public static class MauiProgram
         // Services
         builder.Services.AddSingleton<IStorageProvider, MauiStorageProvider>();
         builder.Services.AddSingleton<IPlaylistService, PlaylistService>();
+        builder.Services.AddSingleton<IRecentChannelService, RecentChannelService>();
+        builder.Services.AddSingleton<ILastChannelService, LastChannelService>();
+        builder.Services.AddSingleton<IFavoriteChannelService, FavoriteChannelService>();
 
         // ViewModels
         builder.Services.AddTransient<SettingsViewModel>();

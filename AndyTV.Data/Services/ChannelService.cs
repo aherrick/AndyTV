@@ -573,11 +573,6 @@ public partial class ChannelService
             }
             else
             {
-                bucket = null;
-            }
-
-            if (bucket is null)
-            {
                 continue; // skip non-letter, non-digit groups
             }
 

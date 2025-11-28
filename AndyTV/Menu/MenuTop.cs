@@ -4,7 +4,7 @@ using AndyTV.Helpers;
 
 namespace AndyTV.Menu;
 
-public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, PlaylistService playlistService)
+public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, IPlaylistService playlistService)
 {
     private readonly SynchronizationContext _ui = ui;
     private readonly List<ToolStripItem> _added = [];

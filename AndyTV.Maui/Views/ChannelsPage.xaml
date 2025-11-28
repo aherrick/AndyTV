@@ -16,18 +16,7 @@
         </HorizontalStackLayout>
 
         <CollectionView Grid.Row="1" 
-                        ItemsSource="{Binding ChannelGroups}"
-                        IsGrouped="True">
-
-            <CollectionView.GroupHeaderTemplate>
-                <DataTemplate x:DataType="vm:ChannelGroup">
-                    <Label Text="{Binding Name}" 
-                           FontAttributes="Bold"
-                           FontSize="18"
-                           Padding="10,5"
-                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
-                </DataTemplate>
-            </CollectionView.GroupHeaderTemplate>
+                        ItemsSource="{Binding Channels}">
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
@@ -39,8 +28,8 @@
                         </Grid.GestureRecognizers>
                         
                         <VerticalStackLayout>
-                            <Label Text="{Binding DisplayName}" FontSize="16" />
-                            <Label Text="{Binding Group}" FontSize="12" TextColor="Gray" />
+                            <Label Text="{Binding Name}" FontSize="16" />
+                            <Label Text="{Binding Category}" FontSize="12" TextColor="Gray" />
                         </VerticalStackLayout>
                     </Grid>
                 </DataTemplate>

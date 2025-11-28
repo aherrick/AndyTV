@@ -4,30 +4,28 @@ using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
 
-public class PlaylistService : IPlaylistService
+public class PlaylistService(IStorageProvider storage) : IPlaylistService
 {
     private const string PlaylistsFileName = "playlists.json";
     private static readonly HttpClient _httpClient = new();
 
-    private readonly IStorageProvider _storage;
-
     // Cached channel data
-    public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels { get; private set; } = [];
-    public List<Channel> Channels { get; private set; } = [];
-
-    public PlaylistService(IStorageProvider storage)
+    public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels
     {
-        _storage = storage;
-    }
+        get;
+        private set;
+    } = [];
+
+    public List<Channel> Channels { get; private set; } = [];
 
     public List<Playlist> LoadPlaylists()
     {
         try
         {
-            if (!_storage.FileExists(PlaylistsFileName))
+            if (!storage.FileExists(PlaylistsFileName))
                 return [];
 
-            var json = _storage.ReadText(PlaylistsFileName);
+            var json = storage.ReadText(PlaylistsFileName);
             return JsonSerializer.Deserialize<List<Playlist>>(json) ?? [];
         }
         catch
@@ -39,24 +37,34 @@ public class PlaylistService : IPlaylistService
     public void SavePlaylists(List<Playlist> playlists)
     {
         var json = JsonSerializer.Serialize(playlists);
-        _storage.WriteText(PlaylistsFileName, json);
+        storage.WriteText(PlaylistsFileName, json);
     }
 
     public async Task RefreshChannelsAsync()
     {
-        var playlists = LoadPlaylists();
-        PlaylistChannels = await LoadChannelsAsync(playlists);
+        try
+        {
+            var playlists = LoadPlaylists();
+            PlaylistChannels = await LoadChannelsAsync(playlists);
 
-        Channels =
-        [
-            .. PlaylistChannels
-                .SelectMany(x => x.Channels)
-                .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First()),
-        ];
+            Channels =
+            [
+                .. PlaylistChannels
+                    .SelectMany(x => x.Channels)
+                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First()),
+            ];
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in RefreshChannelsAsync: {ex}");
+            throw;
+        }
     }
 
-    public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(List<Playlist> playlists)
+    public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
+        List<Playlist> playlists
+    )
     {
         var tasks = playlists.Select(async p =>
         {
@@ -87,12 +95,14 @@ public class PlaylistService : IPlaylistService
                         }
                     }
 
-                    channels.Add(new Channel
-                    {
-                        Name = item.Title,
-                        Url = url,
-                        Group = item.GroupTitle,
-                    });
+                    channels.Add(
+                        new Channel
+                        {
+                            Name = item.Title,
+                            Url = url,
+                            Group = item.GroupTitle,
+                        }
+                    );
                 }
 
                 return (p, channels);

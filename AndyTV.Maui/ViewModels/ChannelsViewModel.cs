@@ -9,6 +9,7 @@ namespace AndyTV.Maui.ViewModels;
 public partial class ChannelsViewModel : ObservableObject
 {
     private readonly IPlaylistService _playlistService;
+    private readonly IRecentChannelService _recentChannelService;
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
@@ -16,11 +17,12 @@ public partial class ChannelsViewModel : ObservableObject
     [ObservableProperty]
     public partial string StatusMessage { get; set; }
 
-    public ObservableCollection<ChannelGroup> ChannelGroups { get; } = [];
+    public ObservableCollection<Channel> Channels { get; } = [];
 
-    public ChannelsViewModel(IPlaylistService playlistService)
+    public ChannelsViewModel(IPlaylistService playlistService, IRecentChannelService recentChannelService)
     {
         _playlistService = playlistService;
+        _recentChannelService = recentChannelService;
         StatusMessage = "Loading channels...";
     }
 
@@ -34,40 +36,66 @@ public partial class ChannelsViewModel : ObservableObject
 
         try
         {
-            ChannelGroups.Clear();
+            Channels.Clear();
 
-            // Load from Top US channels
+            // Load all data first
+            var recentChannels = _recentChannelService.GetRecentChannels();
             var topUs = ChannelService.TopUs();
+            await _playlistService.RefreshChannelsAsync();
+
+            // Build a flat list
+            var allChannels = new List<Channel>();
+
+            // Add Recent
+            foreach (var ch in recentChannels)
+            {
+                ch.Category = "Recent";
+                allChannels.Add(ch);
+            }
+
+            // Add Top US
             foreach (var category in topUs.OrderBy(c => c.Key))
             {
-                var group = new ChannelGroup(category.Key);
                 foreach (var channelTop in category.Value.OrderBy(c => c.Name))
                 {
-                    group.Add(new Channel
+                    allChannels.Add(new Channel
                     {
                         Name = channelTop.Name,
                         Category = category.Key
                     });
                 }
-                ChannelGroups.Add(group);
             }
 
-            // Refresh and use cached playlist channels
-            await _playlistService.RefreshChannelsAsync();
-            
+            // Add Playlists
             foreach (var (playlist, channels) in _playlistService.PlaylistChannels)
             {
-                if (channels.Count == 0) continue;
+                if (channels == null || channels.Count == 0)
+                    continue;
 
-                var group = new ChannelGroup(playlist.Name);
-                foreach (var ch in channels.Take(100)) // Limit for performance
+                foreach (var ch in channels.Take(100))
                 {
-                    group.Add(ch);
+                    if (ch == null)
+                        continue;
+
+                    if (string.IsNullOrWhiteSpace(ch.Name) && string.IsNullOrWhiteSpace(ch.Url))
+                        continue;
+
+                    if (string.IsNullOrWhiteSpace(ch.Name))
+                        ch.Name = "Channel";
+
+                    ch.Category = playlist.Name ?? "Playlist";
+                    allChannels.Add(ch);
                 }
-                ChannelGroups.Add(group);
             }
 
-            StatusMessage = $"Loaded {ChannelGroups.Sum(g => g.Count)} channels";
+            // Add all at once
+            foreach (var ch in allChannels)
+            {
+                Channels.Add(ch);
+            }
+
+
+            StatusMessage = $"Loaded {Channels.Count} channels";
         }
         catch (Exception ex)
         {
@@ -83,6 +111,9 @@ public partial class ChannelsViewModel : ObservableObject
     private async Task SelectChannelAsync(Channel channel)
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url)) return;
+
+        // Add to recent channels
+        _recentChannelService.AddOrPromote(channel);
 
         await Shell.Current.GoToAsync($"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}");
     }

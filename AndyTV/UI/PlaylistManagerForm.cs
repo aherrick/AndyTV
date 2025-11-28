@@ -8,11 +8,11 @@ namespace AndyTV.UI;
 
 public sealed class PlaylistManagerForm : Form
 {
-    private readonly PlaylistService _playlistService;
+    private readonly IPlaylistService _playlistService;
 
     public bool Saved { get; private set; } = false;
 
-    private bool HasChanges => UtilHelper.GenerateSnapshot(_data) != _snapshot;
+    private bool HasChanges => JsonHelper.GenerateSnapshot(_data) != _snapshot;
 
     private readonly DataGridView _grid = new()
     {
@@ -27,7 +27,7 @@ public sealed class PlaylistManagerForm : Form
     private readonly BindingList<Playlist> _data = [];
     private string _snapshot = "";
 
-    public PlaylistManagerForm(PlaylistService playlistService)
+    public PlaylistManagerForm(IPlaylistService playlistService)
     {
         _playlistService = playlistService;
 
@@ -49,7 +49,7 @@ public sealed class PlaylistManagerForm : Form
         _btnSave.Margin = new Padding(0);
 
         _data = new BindingList<Playlist>(_playlistService.LoadPlaylists());
-        _snapshot = UtilHelper.GenerateSnapshot(_data);
+        _snapshot = JsonHelper.GenerateSnapshot(_data);
 
         _grid.DataSource = _data;
         _grid.AllowUserToAddRows = false;
@@ -273,7 +273,7 @@ public sealed class PlaylistManagerForm : Form
         }
 
         _playlistService.SavePlaylists([.. _data]);
-        _snapshot = UtilHelper.GenerateSnapshot(_data);
+        _snapshot = JsonHelper.GenerateSnapshot(_data);
         Saved = true;
 
         MessageBox.Show(

@@ -16,7 +16,10 @@ public partial class Form1 : Form
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
     private readonly VideoView _videoView;
-    private readonly PlaylistService _playlistService;
+    private readonly IPlaylistService _playlistService;
+    private readonly IRecentChannelService _recentChannelService;
+    private readonly ILastChannelService _lastChannelService;
+    private readonly IFavoriteChannelService _favoriteChannelService;
 
     private readonly ContextMenuStrip _contextMenuStrip = new();
 
@@ -47,12 +50,15 @@ public partial class Form1 : Form
 
     private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
-    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView, PlaylistService playlistService)
+    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView, IPlaylistService playlistService, IRecentChannelService recentChannelService, ILastChannelService lastChannelService, IFavoriteChannelService favoriteChannelService)
     {
         _libVLC = libVLC;
         _updateService = updateService;
         _videoView = videoView;
         _playlistService = playlistService;
+        _recentChannelService = recentChannelService;
+        _lastChannelService = lastChannelService;
+        _favoriteChannelService = favoriteChannelService;
 
         InitializeComponent();
 
@@ -62,7 +68,7 @@ public partial class Form1 : Form
 
         HandleCreated += delegate
         {
-            var last = ChannelDataService.LoadLastChannel();
+            var last = _lastChannelService.LoadLastChannel();
             if (last != null)
                 Play(last);
         };
@@ -87,8 +93,8 @@ public partial class Form1 : Form
             _videoView.SetCursorForCurrentView();
 
             _notificationService.ShowToast(_currentChannel.DisplayName);
-            RecentChannelService.AddOrPromote(_currentChannel);
-            ChannelDataService.SaveLastChannel(_currentChannel);
+            _recentChannelService.AddOrPromote(_currentChannel);
+            _lastChannelService.SaveLastChannel(_currentChannel);
             _menuRecent?.Rebuild();
         };
 
@@ -119,7 +125,7 @@ public partial class Form1 : Form
                     < DateTime.Now
             )
             {
-                var prevChannel = RecentChannelService.GetPrevious();
+                var prevChannel = _recentChannelService.GetPrevious();
                 if (prevChannel != null)
                     Play(prevChannel);
             }
@@ -155,8 +161,8 @@ public partial class Form1 : Form
 
             BuildSettingsMenu(appVersionName);
 
-            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click, _ui);
-            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click, _ui);
+            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click, _ui, _recentChannelService);
+            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click, _ui, _favoriteChannelService);
             _menuFavorite.Rebuild();
 
             // Initial refresh
@@ -355,7 +361,7 @@ public partial class Form1 : Form
         void OpenFavorites(Channel addOnOpen = null)
         {
             _videoView.ShowDefault();
-            using var form = new FavoriteChannelForm(_playlistService.Channels, addOnOpen);
+            using var form = new FavoriteChannelForm(_playlistService.Channels, _favoriteChannelService, addOnOpen);
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)
@@ -372,7 +378,7 @@ public partial class Form1 : Form
             "Add Playing",
             (_, __) =>
             {
-                if (_currentChannel is not null && !MenuFavorite.IsDuplicate(_currentChannel))
+                if (_currentChannel is not null && !_menuFavorite.IsDuplicate(_currentChannel))
                 {
                     OpenFavorites(_currentChannel);
                 }

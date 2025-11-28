@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
 
 namespace AndyTV.Helpers;
 
@@ -61,6 +60,4 @@ public static class UtilHelper
 
         return false;
     }
-
-    public static string GenerateSnapshot<T>(T value) => JsonSerializer.Serialize(value);
 }
