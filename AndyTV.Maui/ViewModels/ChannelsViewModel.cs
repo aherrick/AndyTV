@@ -11,52 +11,13 @@ public partial class ChannelsViewModel(
     IRecentChannelService recentChannelService
 ) : ObservableObject
 {
-    private readonly List<Channel> _allChannels = [];
-
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Loading channels...";
 
-    [ObservableProperty]
-    public partial string SearchText { get; set; } = string.Empty;
-
     public ObservableCollection<Channel> Channels { get; } = [];
-
-    private partial void OnSearchTextChanged(string value)
-    {
-        FilterChannels();
-    }
-
-    private void FilterChannels()
-    {
-        Channels.Clear();
-
-        var filtered = _allChannels;
-
-        // Only filter if 2+ characters
-        if (!string.IsNullOrWhiteSpace(SearchText) && SearchText.Length >= 2)
-        {
-            var search = SearchText.Trim().ToLowerInvariant();
-            filtered =
-            [
-                .. _allChannels.Where(c =>
-                    (c.Name ?? string.Empty).Contains(
-                        search,
-                        StringComparison.InvariantCultureIgnoreCase
-                    )
-                ),
-            ];
-        }
-
-        foreach (var ch in filtered)
-        {
-            Channels.Add(ch);
-        }
-
-        StatusMessage = $"Showing {Channels.Count} of {_allChannels.Count} channels";
-    }
 
     [RelayCommand]
     private async Task LoadChannelsAsync()
@@ -69,7 +30,7 @@ public partial class ChannelsViewModel(
 
         try
         {
-            _allChannels.Clear();
+            Channels.Clear();
 
             // Load playlist channels
             await playlistService.RefreshChannelsAsync();
@@ -79,7 +40,7 @@ public partial class ChannelsViewModel(
             foreach (var ch in recentChannels)
             {
                 ch.Category = "Recent";
-                _allChannels.Add(ch);
+                Channels.Add(ch);
             }
 
             // Add Playlists
@@ -100,12 +61,11 @@ public partial class ChannelsViewModel(
                         ch.Name = "Channel";
 
                     ch.Category = playlist.Name ?? "Playlist";
-                    _allChannels.Add(ch);
+                    Channels.Add(ch);
                 }
             }
 
-            // Apply filter (or show all)
-            FilterChannels();
+            StatusMessage = $"Loaded {Channels.Count} channels";
         }
         catch (Exception ex)
         {

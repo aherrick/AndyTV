@@ -7,14 +7,16 @@
     Title="AndyTV">
 
     <TabBar>
-        <ShellContent Title="Channels"
-                      Icon="dotnet_bot.png"
-                      ContentTemplate="{DataTemplate views:ChannelsPage}"
-                      Route="channels" />
+        <ShellContent
+            Title="Channels"
+            ContentTemplate="{DataTemplate views:ChannelsPage}"
+            Icon="dotnet_bot.png"
+            Route="channels" />
 
-        <ShellContent Title="Settings"
-                      Icon="dotnet_bot.png"
-                      ContentTemplate="{DataTemplate views:SettingsPage}"
-                      Route="settings" />
+        <ShellContent
+            Title="Settings"
+            ContentTemplate="{DataTemplate views:SettingsPage}"
+            Icon="dotnet_bot.png"
+            Route="settings" />
     </TabBar>
 </Shell>

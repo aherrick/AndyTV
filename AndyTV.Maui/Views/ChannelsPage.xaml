@@ -1,40 +1,40 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
-             xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
-             x:Class="AndyTV.Maui.Views.ChannelsPage"
-             x:DataType="vm:ChannelsViewModel"
-             Title="Channels">
+<ContentPage
+    x:Class="AndyTV.Maui.Views.ChannelsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    Title="Channels"
+    x:DataType="vm:ChannelsViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,*">
 
-        <HorizontalStackLayout Grid.Row="0" Padding="10" Spacing="10">
-            <Button Text="Refresh" Command="{Binding LoadChannelsCommand}" />
+        <HorizontalStackLayout
+            Grid.Row="0"
+            Padding="10"
+            Spacing="10">
+            <Button Command="{Binding LoadChannelsCommand}" Text="Refresh" />
             <Label Text="{Binding StatusMessage}" VerticalOptions="Center" />
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
         </HorizontalStackLayout>
 
-        <Entry Grid.Row="1"
-               Text="{Binding SearchText}"
-               Placeholder="Search channels (min 2 chars)..."
-               Margin="10,0" />
-
-        <CollectionView Grid.Row="2"
-                        ItemsSource="{Binding Channels}">
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Channels}">
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
                     <Grid Padding="15,10">
                         <Grid.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=SelectChannelCommand}"
-                                CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=SelectChannelCommand}" CommandParameter="{Binding .}" />
                         </Grid.GestureRecognizers>
 
                         <VerticalStackLayout>
-                            <Label Text="{Binding Name}" FontSize="16" />
-                            <Label Text="{Binding Category}" FontSize="12" TextColor="Gray" />
+                            <Label FontSize="16" Text="{Binding Name}" />
+                            <Label
+                                FontSize="12"
+                                Text="{Binding Category}"
+                                TextColor="Gray" />
                         </VerticalStackLayout>
                     </Grid>
                 </DataTemplate>
