@@ -2,7 +2,6 @@
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
-using CommunityToolkit.Maui;
 using LibVLCSharp.MAUI;
 using Microsoft.Extensions.Logging;
 
@@ -12,22 +11,10 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-        {
-            System.Diagnostics.Debug.WriteLine($"AppDomain.UnhandledException: {e.ExceptionObject}");
-        };
-
-        TaskScheduler.UnobservedTaskException += (s, e) =>
-        {
-            System.Diagnostics.Debug.WriteLine($"TaskScheduler.UnobservedTaskException: {e.Exception}");
-            e.SetObserved();
-        };
-
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
             .UseLibVLCSharp()
-            .UseMauiCommunityToolkitMediaElement()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

@@ -8,10 +8,10 @@ public class FavoriteChannelService : IFavoriteChannelService
     private const string FavoriteChannelsFile = "favorite_channels.json";
 
     private readonly IStorageProvider _storageProvider;
-    
+
     // Cached favorites list
     public List<Channel> Favorites { get; private set; } = [];
-    
+
     // Fast lookup cache for URLs
     private readonly HashSet<string> _urlCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -20,13 +20,13 @@ public class FavoriteChannelService : IFavoriteChannelService
         _storageProvider = storageProvider;
         RefreshFavorites();
     }
-    
+
     public void RefreshFavorites()
     {
         Favorites = LoadFavoriteChannels();
         RebuildUrlCache();
     }
-    
+
     private void RebuildUrlCache()
     {
         _urlCache.Clear();
@@ -82,7 +82,9 @@ public class FavoriteChannelService : IFavoriteChannelService
             return;
 
         var favorites = LoadFavoriteChannels();
-        favorites.RemoveAll(f => string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase));
+        favorites.RemoveAll(f =>
+            string.Equals(f.Url, channel.Url, StringComparison.OrdinalIgnoreCase)
+        );
         SaveFavoriteChannels(favorites);
     }
 

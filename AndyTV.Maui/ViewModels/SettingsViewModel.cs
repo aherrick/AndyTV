@@ -1,38 +1,39 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
-using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel(IPlaylistService playlistService) : ObservableObject
 {
-    private readonly IPlaylistService _playlistService;
+    [ObservableProperty]
+    public partial string PlaylistName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string PlaylistName { get; set; }
-
-    [ObservableProperty]
-    public partial string PlaylistUrl { get; set; }
+    public partial string PlaylistUrl { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    [ObservableProperty]
+    public partial bool IsLoaded { get; set; }
+
     public ObservableCollection<Playlist> Playlists { get; } = [];
 
-    public SettingsViewModel(IPlaylistService playlistService)
+    public void Initialize()
     {
-        _playlistService = playlistService;
-        PlaylistName = string.Empty;
-        PlaylistUrl = string.Empty;
+        if (IsLoaded)
+            return;
         LoadPlaylists();
+        IsLoaded = true;
     }
 
     private void LoadPlaylists()
     {
         Playlists.Clear();
-        var playlists = _playlistService.LoadPlaylists();
+        var playlists = playlistService.LoadPlaylists();
         foreach (var p in playlists)
         {
             Playlists.Add(p);
@@ -56,12 +57,12 @@ public partial class SettingsViewModel : ObservableObject
             {
                 Name = PlaylistName.Trim(),
                 Url = PlaylistUrl.Trim(),
-                ShowInMenu = true
+                ShowInMenu = true,
             };
 
-            var existing = _playlistService.LoadPlaylists();
+            var existing = playlistService.LoadPlaylists();
             existing.Add(playlist);
-            _playlistService.SavePlaylists(existing);
+            playlistService.SavePlaylists(existing);
 
             // Clear form and reload list
             PlaylistName = string.Empty;
@@ -79,14 +80,21 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteAsync(Playlist playlist)
     {
-        if (playlist == null) return;
+        if (playlist == null)
+            return;
 
-        var confirm = await Shell.Current.DisplayAlertAsync("Delete", $"Delete '{playlist.Name}'?", "Yes", "No");
-        if (!confirm) return;
+        var confirm = await Shell.Current.DisplayAlertAsync(
+            "Delete",
+            $"Delete '{playlist.Name}'?",
+            "Yes",
+            "No"
+        );
+        if (!confirm)
+            return;
 
-        var existing = _playlistService.LoadPlaylists();
+        var existing = playlistService.LoadPlaylists();
         existing.RemoveAll(p => p.Url == playlist.Url);
-        _playlistService.SavePlaylists(existing);
+        playlistService.SavePlaylists(existing);
 
         LoadPlaylists();
     }

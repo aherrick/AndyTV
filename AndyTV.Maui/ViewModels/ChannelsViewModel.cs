@@ -131,8 +131,3 @@ public partial class ChannelsViewModel(
         );
     }
 }
-
-public partial class ChannelGroup(string name) : ObservableCollection<Channel>
-{
-    public string Name { get; } = name;
-}

@@ -50,7 +50,15 @@ public partial class Form1 : Form
 
     private System.Windows.Forms.Timer _hourlyRefreshTimer;
 
-    public Form1(LibVLC libVLC, UpdateService updateService, VideoView videoView, IPlaylistService playlistService, IRecentChannelService recentChannelService, ILastChannelService lastChannelService, IFavoriteChannelService favoriteChannelService)
+    public Form1(
+        LibVLC libVLC,
+        UpdateService updateService,
+        VideoView videoView,
+        IPlaylistService playlistService,
+        IRecentChannelService recentChannelService,
+        ILastChannelService lastChannelService,
+        IFavoriteChannelService favoriteChannelService
+    )
     {
         _libVLC = libVLC;
         _updateService = updateService;
@@ -161,8 +169,18 @@ public partial class Form1 : Form
 
             BuildSettingsMenu(appVersionName);
 
-            _menuRecent = new MenuRecent(_contextMenuStrip, ChItem_Click, _ui, _recentChannelService);
-            _menuFavorite = new MenuFavorite(_contextMenuStrip, ChItem_Click, _ui, _favoriteChannelService);
+            _menuRecent = new MenuRecent(
+                _contextMenuStrip,
+                ChItem_Click,
+                _ui,
+                _recentChannelService
+            );
+            _menuFavorite = new MenuFavorite(
+                _contextMenuStrip,
+                ChItem_Click,
+                _ui,
+                _favoriteChannelService
+            );
             _menuFavorite.Rebuild();
 
             // Initial refresh
@@ -361,7 +379,11 @@ public partial class Form1 : Form
         void OpenFavorites(Channel addOnOpen = null)
         {
             _videoView.ShowDefault();
-            using var form = new FavoriteChannelForm(_playlistService.Channels, _favoriteChannelService, addOnOpen);
+            using var form = new FavoriteChannelForm(
+                _playlistService.Channels,
+                _favoriteChannelService,
+                addOnOpen
+            );
             form.FormClosed += (_, __) =>
             {
                 if (form.Saved)

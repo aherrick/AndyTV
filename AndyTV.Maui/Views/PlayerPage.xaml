@@ -13,12 +13,11 @@
                        HorizontalOptions="Fill"
                        VerticalOptions="Fill" />
 
-        <Button Text="Back" 
+        <Button Text="Back"
                 Command="{Binding GoBackCommand}"
                 HorizontalOptions="Start"
                 VerticalOptions="Start"
                 Margin="20"
                 Opacity="0.7" />
     </Grid>
-
 </ContentPage>

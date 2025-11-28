@@ -12,6 +12,7 @@ public partial class FavoriteChannelForm : Form
 {
     // Data
     private readonly List<Channel> _allChannels;
+
     private readonly IFavoriteChannelService _favoriteChannelService;
 
     private readonly BindingList<Channel> _favorites = [];
@@ -30,7 +31,11 @@ public partial class FavoriteChannelForm : Form
 
     public bool Saved { get; private set; }
 
-    public FavoriteChannelForm(List<Channel> channels, IFavoriteChannelService favoriteChannelService, Channel channelAdd = null)
+    public FavoriteChannelForm(
+        List<Channel> channels,
+        IFavoriteChannelService favoriteChannelService,
+        Channel channelAdd = null
+    )
     {
         _allChannels = channels ?? [];
         _favoriteChannelService = favoriteChannelService;
@@ -319,10 +324,15 @@ public partial class FavoriteChannelForm : Form
             return;
 
         // Check if already in current unsaved list OR in saved favorites
-        bool isDuplicate = _favorites.Any(f => 
-            string.Equals(f.Url?.Trim(), channel.Url?.Trim(), StringComparison.OrdinalIgnoreCase))
-            || _favoriteChannelService.IsFavorite(channel);
-        
+        bool isDuplicate =
+            _favorites.Any(f =>
+                string.Equals(
+                    f.Url?.Trim(),
+                    channel.Url?.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            ) || _favoriteChannelService.IsFavorite(channel);
+
         if (isDuplicate)
         {
             MessageBox.Show(

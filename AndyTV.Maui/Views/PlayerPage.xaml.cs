@@ -24,6 +24,9 @@ public partial class PlayerPage : ContentPage
             _libVLC = new LibVLC();
             _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
 
+            // Assign the MediaPlayer to the VideoView so video embeds in the page
+            VideoView.MediaPlayer = _mediaPlayer;
+
             var media = new Media(_libVLC, new Uri(_viewModel.Url));
             _mediaPlayer.Play(media);
         }
@@ -32,8 +35,9 @@ public partial class PlayerPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
+
         _mediaPlayer?.Stop();
+        VideoView.MediaPlayer = null;
         _mediaPlayer?.Dispose();
         _libVLC?.Dispose();
     }

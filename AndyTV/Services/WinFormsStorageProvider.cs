@@ -9,5 +9,6 @@ public class WinFormsStorageProvider : IStorageProvider
 
     public string ReadText(string fileName) => File.ReadAllText(PathHelper.GetPath(fileName));
 
-    public void WriteText(string fileName, string content) => File.WriteAllText(PathHelper.GetPath(fileName), content);
+    public void WriteText(string fileName, string content) =>
+        File.WriteAllText(PathHelper.GetPath(fileName), content);
 }
