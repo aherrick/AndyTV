@@ -2,35 +2,68 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+             xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
              x:Class="AndyTV.Maui.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
              Title="Settings">
 
-    <ScrollView Padding="20">
-        <VerticalStackLayout Spacing="15">
+    <Grid RowDefinitions="Auto,*" Padding="20">
+        
+        <!-- Add Playlist Form -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
             
-            <Label Text="Playlist Settings" 
-                   FontSize="24" 
+            <Label Text="Add Playlist" 
+                   FontSize="20" 
                    FontAttributes="Bold" />
 
-            <Label Text="Name" />
             <Entry Text="{Binding PlaylistName}" 
-                   Placeholder="My Playlist" />
+                   Placeholder="Playlist Name" />
 
-            <Label Text="URL" />
             <Entry Text="{Binding PlaylistUrl}" 
                    Placeholder="https://example.com/playlist.m3u"
                    Keyboard="Url" />
 
-            <Button Text="Save" 
-                    Command="{Binding SaveCommand}"
-                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                    Margin="0,20,0,0" />
+            <Button Text="Add Playlist" 
+                    Command="{Binding AddCommand}" />
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" 
                                IsVisible="{Binding IsBusy}" />
 
+            <BoxView HeightRequest="1" Color="Gray" Margin="0,10" />
+
+            <Label Text="My Playlists" 
+                   FontSize="20" 
+                   FontAttributes="Bold" />
+
         </VerticalStackLayout>
-    </ScrollView>
+
+        <!-- Playlist List -->
+        <CollectionView Grid.Row="1" 
+                        ItemsSource="{Binding Playlists}"
+                        Margin="0,10,0,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Playlist">
+                    <Grid Padding="10" ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
+                            <Label Text="{Binding Url}" FontSize="12" TextColor="Gray" LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                        <Button Grid.Column="1" 
+                                Text="Delete" 
+                                BackgroundColor="Red"
+                                TextColor="White"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=DeleteCommand}"
+                                CommandParameter="{Binding .}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+                <Label Text="No playlists added yet" 
+                       HorizontalOptions="Center" 
+                       TextColor="Gray" />
+            </CollectionView.EmptyView>
+        </CollectionView>
+
+    </Grid>
 
 </ContentPage>

@@ -7,7 +7,7 @@
              x:DataType="vm:ChannelsViewModel"
              Title="Channels">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
         
         <HorizontalStackLayout Grid.Row="0" Padding="10" Spacing="10">
             <Button Text="Refresh" Command="{Binding LoadChannelsCommand}" />
@@ -15,7 +15,12 @@
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
         </HorizontalStackLayout>
 
-        <CollectionView Grid.Row="1" 
+        <Entry Grid.Row="1" 
+               Text="{Binding SearchText}" 
+               Placeholder="Search channels (min 2 chars)..." 
+               Margin="10,0" />
+
+        <CollectionView Grid.Row="2" 
                         ItemsSource="{Binding Channels}">
 
             <CollectionView.ItemTemplate>

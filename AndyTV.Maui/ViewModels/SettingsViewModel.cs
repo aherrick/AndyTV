@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
+using System.Collections.ObjectModel;
 
 namespace AndyTV.Maui.ViewModels;
 
@@ -18,26 +19,28 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    public ObservableCollection<Playlist> Playlists { get; } = [];
+
     public SettingsViewModel(IPlaylistService playlistService)
     {
         _playlistService = playlistService;
         PlaylistName = string.Empty;
         PlaylistUrl = string.Empty;
-        LoadSettings();
+        LoadPlaylists();
     }
 
-    private void LoadSettings()
+    private void LoadPlaylists()
     {
+        Playlists.Clear();
         var playlists = _playlistService.LoadPlaylists();
-        if (playlists.Count > 0)
+        foreach (var p in playlists)
         {
-            PlaylistName = playlists[0].Name ?? string.Empty;
-            PlaylistUrl = playlists[0].Url ?? string.Empty;
+            Playlists.Add(p);
         }
     }
 
     [RelayCommand]
-    private async Task SaveAsync()
+    private async Task AddAsync()
     {
         if (string.IsNullOrWhiteSpace(PlaylistName) || string.IsNullOrWhiteSpace(PlaylistUrl))
         {
@@ -56,13 +59,35 @@ public partial class SettingsViewModel : ObservableObject
                 ShowInMenu = true
             };
 
-            _playlistService.SavePlaylists([playlist]);
+            var existing = _playlistService.LoadPlaylists();
+            existing.Add(playlist);
+            _playlistService.SavePlaylists(existing);
 
-            await Shell.Current.DisplayAlertAsync("Success", "Playlist saved!", "OK");
+            // Clear form and reload list
+            PlaylistName = string.Empty;
+            PlaylistUrl = string.Empty;
+            LoadPlaylists();
+
+            await Shell.Current.DisplayAlertAsync("Success", "Playlist added!", "OK");
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync(Playlist playlist)
+    {
+        if (playlist == null) return;
+
+        var confirm = await Shell.Current.DisplayAlertAsync("Delete", $"Delete '{playlist.Name}'?", "Yes", "No");
+        if (!confirm) return;
+
+        var existing = _playlistService.LoadPlaylists();
+        existing.RemoveAll(p => p.Url == playlist.Url);
+        _playlistService.SavePlaylists(existing);
+
+        LoadPlaylists();
     }
 }

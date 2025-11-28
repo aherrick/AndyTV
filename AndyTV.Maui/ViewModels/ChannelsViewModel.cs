@@ -1,78 +1,94 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
-using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-public partial class ChannelsViewModel : ObservableObject
+public partial class ChannelsViewModel(
+    IPlaylistService playlistService,
+    IRecentChannelService recentChannelService
+) : ObservableObject
 {
-    private readonly IPlaylistService _playlistService;
-    private readonly IRecentChannelService _recentChannelService;
+    private readonly List<Channel> _allChannels = [];
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; }
+    public partial string StatusMessage { get; set; } = "Loading channels...";
+
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
 
     public ObservableCollection<Channel> Channels { get; } = [];
 
-    public ChannelsViewModel(IPlaylistService playlistService, IRecentChannelService recentChannelService)
+    private partial void OnSearchTextChanged(string value)
     {
-        _playlistService = playlistService;
-        _recentChannelService = recentChannelService;
-        StatusMessage = "Loading channels...";
+        FilterChannels();
+    }
+
+    private void FilterChannels()
+    {
+        Channels.Clear();
+
+        var filtered = _allChannels;
+
+        // Only filter if 2+ characters
+        if (!string.IsNullOrWhiteSpace(SearchText) && SearchText.Length >= 2)
+        {
+            var search = SearchText.Trim().ToLowerInvariant();
+            filtered =
+            [
+                .. _allChannels.Where(c =>
+                    (c.Name ?? string.Empty).Contains(
+                        search,
+                        StringComparison.InvariantCultureIgnoreCase
+                    )
+                ),
+            ];
+        }
+
+        foreach (var ch in filtered)
+        {
+            Channels.Add(ch);
+        }
+
+        StatusMessage = $"Showing {Channels.Count} of {_allChannels.Count} channels";
     }
 
     [RelayCommand]
     private async Task LoadChannelsAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+            return;
 
         IsBusy = true;
         StatusMessage = "Loading channels...";
 
         try
         {
-            Channels.Clear();
+            _allChannels.Clear();
 
-            // Load all data first
-            var recentChannels = _recentChannelService.GetRecentChannels();
-            var topUs = ChannelService.TopUs();
-            await _playlistService.RefreshChannelsAsync();
-
-            // Build a flat list
-            var allChannels = new List<Channel>();
+            // Load playlist channels
+            await playlistService.RefreshChannelsAsync();
 
             // Add Recent
+            var recentChannels = recentChannelService.GetRecentChannels();
             foreach (var ch in recentChannels)
             {
                 ch.Category = "Recent";
-                allChannels.Add(ch);
-            }
-
-            // Add Top US
-            foreach (var category in topUs.OrderBy(c => c.Key))
-            {
-                foreach (var channelTop in category.Value.OrderBy(c => c.Name))
-                {
-                    allChannels.Add(new Channel
-                    {
-                        Name = channelTop.Name,
-                        Category = category.Key
-                    });
-                }
+                _allChannels.Add(ch);
             }
 
             // Add Playlists
-            foreach (var (playlist, channels) in _playlistService.PlaylistChannels)
+            foreach (var (playlist, channels) in playlistService.PlaylistChannels)
             {
                 if (channels == null || channels.Count == 0)
                     continue;
 
-                foreach (var ch in channels.Take(100))
+                foreach (var ch in channels)
                 {
                     if (ch == null)
                         continue;
@@ -84,18 +100,12 @@ public partial class ChannelsViewModel : ObservableObject
                         ch.Name = "Channel";
 
                     ch.Category = playlist.Name ?? "Playlist";
-                    allChannels.Add(ch);
+                    _allChannels.Add(ch);
                 }
             }
 
-            // Add all at once
-            foreach (var ch in allChannels)
-            {
-                Channels.Add(ch);
-            }
-
-
-            StatusMessage = $"Loaded {Channels.Count} channels";
+            // Apply filter (or show all)
+            FilterChannels();
         }
         catch (Exception ex)
         {
@@ -110,21 +120,19 @@ public partial class ChannelsViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectChannelAsync(Channel channel)
     {
-        if (channel == null || string.IsNullOrEmpty(channel.Url)) return;
+        if (channel == null || string.IsNullOrEmpty(channel.Url))
+            return;
 
         // Add to recent channels
-        _recentChannelService.AddOrPromote(channel);
+        recentChannelService.AddOrPromote(channel);
 
-        await Shell.Current.GoToAsync($"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}");
+        await Shell.Current.GoToAsync(
+            $"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}"
+        );
     }
 }
 
-public class ChannelGroup : ObservableCollection<Channel>
+public partial class ChannelGroup(string name) : ObservableCollection<Channel>
 {
-    public string Name { get; }
-
-    public ChannelGroup(string name)
-    {
-        Name = name;
-    }
+    public string Name { get; } = name;
 }
