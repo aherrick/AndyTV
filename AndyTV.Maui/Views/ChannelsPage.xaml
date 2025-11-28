@@ -4,7 +4,6 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
-    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     x:Name="channelsPage"
     Title="Channels"
@@ -33,7 +32,7 @@
                 <DataTemplate x:DataType="models:Channel">
                     <Grid Padding="15,10">
                         <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=SelectChannelCommand}" CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference channelsPage}, Path=BindingContext.SelectChannelCommand}" CommandParameter="{Binding .}" />
                         </Grid.GestureRecognizers>
 
                         <VerticalStackLayout>

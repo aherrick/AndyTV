@@ -37,9 +37,15 @@ public partial class ChannelsViewModel(
     {
         Channels.Clear();
 
-        var filtered = string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
-            ? _allChannels
-            : _allChannels.Where(c => c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true).ToList();
+        var filtered =
+            string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
+                ? _allChannels
+                :
+                [
+                    .. _allChannels.Where(c =>
+                        c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true
+                    ),
+                ];
 
         foreach (var channel in filtered)
         {
