@@ -17,7 +17,35 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Loading channels...";
 
+    public string SearchText
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+            {
+                FilterChannels();
+            }
+        }
+    } = string.Empty;
+
+    private readonly List<Channel> _allChannels = [];
+
     public ObservableCollection<Channel> Channels { get; } = [];
+
+    private void FilterChannels()
+    {
+        Channels.Clear();
+
+        var filtered = string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
+            ? _allChannels
+            : _allChannels.Where(c => c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true).ToList();
+
+        foreach (var channel in filtered)
+        {
+            Channels.Add(channel);
+        }
+    }
 
     [RelayCommand]
     private async Task LoadChannelsAsync()
@@ -30,7 +58,9 @@ public partial class ChannelsViewModel(
 
         try
         {
+            _allChannels.Clear();
             Channels.Clear();
+            SearchText = string.Empty;
 
             // Load playlist channels
             await playlistService.RefreshChannelsAsync();
@@ -40,7 +70,7 @@ public partial class ChannelsViewModel(
             foreach (var ch in recentChannels)
             {
                 ch.Category = "Recent";
-                Channels.Add(ch);
+                _allChannels.Add(ch);
             }
 
             // Add Playlists
@@ -61,11 +91,12 @@ public partial class ChannelsViewModel(
                         ch.Name = "Channel";
 
                     ch.Category = playlist.Name ?? "Playlist";
-                    Channels.Add(ch);
+                    _allChannels.Add(ch);
                 }
             }
 
-            StatusMessage = $"Loaded {Channels.Count} channels";
+            FilterChannels();
+            StatusMessage = $"Loaded {_allChannels.Count} channels";
         }
         catch (Exception ex)
         {

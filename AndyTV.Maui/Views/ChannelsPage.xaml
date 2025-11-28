@@ -6,10 +6,11 @@
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    x:Name="channelsPage"
     Title="Channels"
     x:DataType="vm:ChannelsViewModel">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <HorizontalStackLayout
             Grid.Row="0"
@@ -20,7 +21,13 @@
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
         </HorizontalStackLayout>
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Channels}">
+        <Entry
+            Grid.Row="1"
+            Margin="10,0"
+            Placeholder="Search channels (min 2 chars)..."
+            Text="{Binding SearchText}" />
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Channels}">
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
