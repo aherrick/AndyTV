@@ -451,6 +451,12 @@ public partial class Form1 : Form
             (_, __) => _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute
         );
 
+        var pauseItem = MenuHelper.AddMenuItem(
+            appMenu,
+            "Pause",
+            (_, __) => _videoView.MediaPlayer.Pause()
+        );
+
         MenuHelper.AddSeparator(appMenu);
 
         MenuHelper.AddMenuItem(appMenu, "Restart", (_, __) => Program.Restart());
@@ -462,6 +468,7 @@ public partial class Form1 : Form
         {
             _videoView.ShowDefault();
             muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
+            pauseItem.Text = _videoView.MediaPlayer.IsPlaying ? "Pause" : "Resume";
             favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
         };
 
