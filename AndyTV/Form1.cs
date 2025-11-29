@@ -521,16 +521,26 @@ public partial class Form1 : Form
             "New Window",
             (_, __) =>
             {
-                SnapToHalf(left: true);
-                Process.Start(
+                // Only snap left if currently fullscreen
+                if (Bounds == Screen.PrimaryScreen.Bounds)
+                {
+                    SnapToHalf(left: true);
+                }
+
+                var exePath = Application.ExecutablePath;
+                Logger.Info($"[NEW WINDOW] Launching: {exePath} --new-instance --right");
+                
+                var process = Process.Start(
                     new ProcessStartInfo
                     {
-                        FileName = Environment.ProcessPath ?? Application.ExecutablePath,
+                        FileName = exePath,
                         Arguments = "--new-instance --right",
-                        UseShellExecute = true,
+                        UseShellExecute = false,
                         WorkingDirectory = AppContext.BaseDirectory,
                     }
                 );
+                
+                Logger.Info($"[NEW WINDOW] Process started: {process?.Id}");
             }
         );
 
