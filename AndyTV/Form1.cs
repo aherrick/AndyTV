@@ -371,7 +371,7 @@ public partial class Form1 : Form
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Normal;
         var workArea = Screen.PrimaryScreen.WorkingArea;
-        var x = left ? workArea.X : workArea.X + workArea.Width / 2;
+        var x = left ? workArea.X : (workArea.X + workArea.Width / 2);
         Bounds = new Rectangle(x, workArea.Y, workArea.Width / 2, workArea.Height);
         _videoView.HideCursor();
     }
