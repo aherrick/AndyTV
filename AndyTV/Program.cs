@@ -37,9 +37,14 @@ internal static class Program
                 Logger.Info("[STARTUP] Mutex detected existing instance and no --new-instance flag found. Exiting.");
                 return;
             }
+
+            VelopackApp.Build().Run();
+        }
+        else
+        {
+            Logger.Info("[STARTUP] Skipping Velopack initialization for secondary instance.");
         }
 
-        VelopackApp.Build().Run();
         Logger.WireGlobalHandlers();
 
         Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
