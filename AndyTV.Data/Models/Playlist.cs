@@ -8,4 +8,6 @@ public class Playlist
     public bool GroupByFirstChar { get; set; }
     public string UrlFind { get; set; }
     public string UrlReplace { get; set; }
+    public string NameFind { get; set; }
+    public string NameReplace { get; set; }
 }

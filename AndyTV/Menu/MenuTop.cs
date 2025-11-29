@@ -187,26 +187,63 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
 
             if (Playlist.GroupByFirstChar)
             {
-                var grouped = Channels
+                var firstCharGroups = Channels
                     .GroupBy(ch => char.ToUpperInvariant(ch.DisplayName.FirstOrDefault()))
                     .OrderBy(g => g.Key);
 
-                foreach (var group in grouped)
+                // Decide whether this playlist should have an extra "title" level.
+                var hasNameTransform =
+                    !string.IsNullOrWhiteSpace(Playlist.NameFind)
+                    && Playlist.NameReplace is not null;
+
+                foreach (var firstCharGroup in firstCharGroups)
                 {
-                    var groupKey = group.Key;
+                    var groupKey = firstCharGroup.Key;
                     if (!char.IsLetterOrDigit(groupKey))
                         groupKey = '#';
 
-                    var subMenu = new ToolStripMenuItem(groupKey.ToString());
+                    var firstCharMenu = new ToolStripMenuItem(groupKey.ToString());
 
-                    foreach (var ch in group.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    if (hasNameTransform)
                     {
-                        MenuHelper.AddChildChannelItem(subMenu, ch, channelClick);
+                        // Three-level: letter -> base title (DisplayName) -> entries
+                        var titleGroups = firstCharGroup
+                            .GroupBy(c => c.DisplayName)
+                            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var titleGroup in titleGroups)
+                        {
+                            var titleMenu = new ToolStripMenuItem(titleGroup.Key);
+
+                            foreach (var ch in titleGroup.OrderBy(
+                                         c => c.DisplayName,
+                                         StringComparer.OrdinalIgnoreCase
+                                     ))
+                            {
+                                MenuHelper.AddChildChannelItem(titleMenu, ch, channelClick);
+                            }
+
+                            if (titleMenu.DropDownItems.Count > 0)
+                            {
+                                firstCharMenu.DropDownItems.Add(titleMenu);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Simple two-level: letter -> raw entries
+                        foreach (var ch in firstCharGroup.OrderBy(
+                                     c => c.DisplayName,
+                                     StringComparer.OrdinalIgnoreCase
+                                 ))
+                        {
+                            MenuHelper.AddChildChannelItem(firstCharMenu, ch, channelClick);
+                        }
                     }
 
-                    if (subMenu.DropDownItems.Count > 0)
+                    if (firstCharMenu.DropDownItems.Count > 0)
                     {
-                        root.DropDownItems.Add(subMenu);
+                        root.DropDownItems.Add(firstCharMenu);
                     }
                 }
             }

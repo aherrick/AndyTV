@@ -102,7 +102,7 @@ public sealed class PlaylistManagerForm : Form
             new DataGridViewTextBoxColumn
             {
                 DataPropertyName = nameof(Playlist.UrlFind),
-                HeaderText = "Find",
+                HeaderText = nameof(Playlist.UrlFind),
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 15,
             }
@@ -111,7 +111,25 @@ public sealed class PlaylistManagerForm : Form
             new DataGridViewTextBoxColumn
             {
                 DataPropertyName = nameof(Playlist.UrlReplace),
-                HeaderText = "Replace",
+                HeaderText = nameof(Playlist.UrlReplace),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 15,
+            }
+        );
+        _grid.Columns.Add(
+            new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(Playlist.NameFind),
+                HeaderText = nameof(Playlist.NameFind),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 15,
+            }
+        );
+        _grid.Columns.Add(
+            new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(Playlist.NameReplace),
+                HeaderText = nameof(Playlist.NameReplace),
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 15,
             }

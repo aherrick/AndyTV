@@ -82,6 +82,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                 foreach (var item in parsed.Channels)
                 {
                     var url = item.MediaUrl;
+                    var name = item.Title;
 
                     if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
                     {
@@ -95,10 +96,22 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                         }
                     }
 
+                    if (!string.IsNullOrWhiteSpace(p.NameFind) && p.NameReplace != null)
+                    {
+                        try
+                        {
+                            name = Regex.Replace(name, p.NameFind, p.NameReplace);
+                        }
+                        catch
+                        {
+                            // Regex failed, use original name
+                        }
+                    }
+
                     channels.Add(
                         new Channel
                         {
-                            Name = item.Title,
+                            Name = name,
                             Url = url,
                             Group = item.GroupTitle,
                         }
