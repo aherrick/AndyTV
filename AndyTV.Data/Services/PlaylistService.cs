@@ -82,7 +82,8 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                 foreach (var item in parsed.Channels)
                 {
                     var url = item.MediaUrl;
-                    var name = item.Title;
+                    var rawName = item.Title;
+                    var name = rawName;
 
                     if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
                     {
@@ -111,6 +112,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                     channels.Add(
                         new Channel
                         {
+                            RawName = rawName,
                             Name = name,
                             Url = url,
                             Group = item.GroupTitle,

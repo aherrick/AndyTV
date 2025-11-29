@@ -2,6 +2,9 @@
 
 public class Channel
 {
+    // Raw title as it appeared in the source playlist (e.g. with HD / episode info)
+    public string RawName { get; set; }
+
     public string Name { get; set; } = string.Empty;
     public string MappedName { get; set; }
 

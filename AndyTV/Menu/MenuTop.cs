@@ -220,7 +220,14 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                                          StringComparer.OrdinalIgnoreCase
                                      ))
                             {
-                                MenuHelper.AddChildChannelItem(titleMenu, ch, channelClick);
+                                // For episode entries, use the raw name so the full
+                                // title (including episode code) is visible.
+                                MenuHelper.AddChildChannelItem(
+                                    titleMenu,
+                                    ch,
+                                    channelClick,
+                                    ch.RawName
+                                );
                             }
 
                             if (titleMenu.DropDownItems.Count > 0)
