@@ -16,20 +16,20 @@ internal static class Program
     public static bool StartOnRight { get; private set; }
 
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
         ApplicationConfiguration.Initialize();
 
-        var args = Environment.GetCommandLineArgs();
-        var isNewInstance = args.Contains(NewInstanceArg);
-        StartOnRight = args.Contains(RightArg);
+        // Use Main args directly, more reliable than Environment.GetCommandLineArgs()
+        var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
+        StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
 
         if (!isNewInstance)
         {
             _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-            if (!isNew && !args.Contains(RestartArg))
+            if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
             {
                 return;
             }
