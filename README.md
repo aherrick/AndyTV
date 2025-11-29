@@ -63,6 +63,16 @@ AndyTV is built with a modern .NET toolchain and a few carefully chosen librarie
 - 🗂️ **System.Text.Json** — lightweight and fast JSON handling  
 - 🛠️ **GitHub Actions** — CI/CD for build, test, and publish workflows  
 
+## 📱 AndyTV.Maui (Mobile Companion)
+`AndyTV.Maui` is a .NET MAUI companion app (in development) for iOS and Android that brings AndyTV-style playlist browsing to mobile.
+
+Planned highlights:
+- Browse and filter your IPTV playlists on phone/tablet.
+- Quickly launch or hand off channels to your preferred mobile player.
+- Share channels/devices with the desktop AndyTV app.
+
+This project is experimental and under active development; APIs and features may change.
+
 ## ▶️ AndyTV.VLC (Companion)
 `AndyTV.VLC` is a lightweight Blazor Server companion that lets you browse an IPTV playlist and launch any channel directly in VLC. Use it when you prefer VLC's player or want fast filtering/grouping.
 
