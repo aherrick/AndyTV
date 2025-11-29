@@ -18,51 +18,29 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        try
+        ApplicationConfiguration.Initialize();
+        Application.SetHighDpiMode(HighDpiMode.SystemAware);
+        Application.SetColorMode(SystemColorMode.Dark);
+
+        var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
+        StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
+
+        if (!isNewInstance)
         {
-            // Initialize Application Configuration first to prevent "SetCompatibleTextRenderingDefault" errors
-            ApplicationConfiguration.Initialize();
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
-            Application.SetColorMode(SystemColorMode.Dark);
-
-            // Log startup args immediately using the standard logger
-            Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
-
-            // Use Main args directly, more reliable than Environment.GetCommandLineArgs()
-            var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
-            StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
-
-            if (!isNewInstance)
+            _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
+            if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
             {
-                _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-                if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
-                {
-                    Logger.Info("[STARTUP] Mutex detected existing instance and no --new-instance flag found. Exiting.");
-                    return;
-                }
-
-                VelopackApp.Build().Run();
-            }
-            else
-            {
-                Logger.Info("[STARTUP] Skipping Velopack initialization for secondary instance.");
+                return;
             }
 
-            Logger.WireGlobalHandlers();
-
-            Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
-            Logger.Info($"[STARTUP] isNewInstance={isNewInstance}, StartOnRight={StartOnRight}");
-
-            var services = ServiceConfiguration.ConfigureServices();
-            Application.Run(services.GetRequiredService<Form1>());
+            VelopackApp.Build().Run();
         }
-        catch (Exception ex)
-        {
-            var crashLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "andytv_crash.txt");
-            File.AppendAllText(crashLog, $"{DateTime.Now} CRASH: {ex}\n");
-            Logger.Error(ex, "FATAL CRASH IN MAIN");
-            MessageBox.Show($"AndyTV Failed to Start:\n{ex.Message}", "AndyTV Error");
-        }
+
+        Logger.WireGlobalHandlers();
+        Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
+
+        var services = ServiceConfiguration.ConfigureServices();
+        Application.Run(services.GetRequiredService<Form1>());
     }
 
     public static void Restart()
