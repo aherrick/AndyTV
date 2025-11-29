@@ -14,6 +14,4 @@ namespace AndyTV.Maui;
         | ConfigChanges.SmallestScreenSize
         | ConfigChanges.Density
 )]
-public class MainActivity : MauiAppCompatActivity
-{
-}
+public class MainActivity : MauiAppCompatActivity;
