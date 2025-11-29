@@ -36,6 +36,10 @@ internal static class Program
 
         VelopackApp.Build().Run();
         Logger.WireGlobalHandlers();
+
+        Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
+        Logger.Info($"[STARTUP] isNewInstance={isNewInstance}, StartOnRight={StartOnRight}");
+
         ApplicationConfiguration.Initialize();
 
         var services = ServiceConfiguration.ConfigureServices();

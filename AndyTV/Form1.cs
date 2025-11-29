@@ -190,15 +190,6 @@ public partial class Form1 : Form
 
         Controls.Add(_videoView);
 
-        if (Program.StartOnRight)
-        {
-            SnapToHalf(left: false);
-        }
-        else
-        {
-            MaximizeWindow();
-        }
-
         ResizeEnd += delegate
         {
             if (WindowState == FormWindowState.Normal)
@@ -207,6 +198,17 @@ public partial class Form1 : Form
 
         Shown += async delegate
         {
+            Logger.Info($"[STARTUP] StartOnRight={Program.StartOnRight}");
+
+            if (Program.StartOnRight)
+            {
+                SnapToHalf(left: false);
+            }
+            else
+            {
+                MaximizeWindow();
+            }
+
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
@@ -371,7 +373,7 @@ public partial class Form1 : Form
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Normal;
         var workArea = Screen.PrimaryScreen.WorkingArea;
-        var x = left ? workArea.X : (workArea.X + workArea.Width / 2);
+        var x = left ? workArea.X : (workArea.X + (workArea.Width / 2));
         Bounds = new Rectangle(x, workArea.Y, workArea.Width / 2, workArea.Height);
         _videoView.HideCursor();
     }
@@ -529,7 +531,7 @@ public partial class Form1 : Form
 
                 var exePath = Application.ExecutablePath;
                 Logger.Info($"[NEW WINDOW] Launching: {exePath} --new-instance --right");
-                
+
                 var process = Process.Start(
                     new ProcessStartInfo
                     {
@@ -539,7 +541,7 @@ public partial class Form1 : Form
                         WorkingDirectory = AppContext.BaseDirectory,
                     }
                 );
-                
+
                 Logger.Info($"[NEW WINDOW] Process started: {process?.Id}");
             }
         );
