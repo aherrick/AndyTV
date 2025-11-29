@@ -20,12 +20,13 @@ internal static class Program
     {
         try
         {
-            // Log startup args immediately using the standard logger
-            Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
-
+            // Initialize Application Configuration first to prevent "SetCompatibleTextRenderingDefault" errors
+            ApplicationConfiguration.Initialize();
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.SetColorMode(SystemColorMode.Dark);
-            ApplicationConfiguration.Initialize();
+
+            // Log startup args immediately using the standard logger
+            Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
 
             // Use Main args directly, more reliable than Environment.GetCommandLineArgs()
             var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
