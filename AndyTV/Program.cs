@@ -20,6 +20,7 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
+        ApplicationConfiguration.Initialize();
 
         var args = Environment.GetCommandLineArgs();
         var isNewInstance = args.Contains(NewInstanceArg);
@@ -39,8 +40,6 @@ internal static class Program
 
         Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
         Logger.Info($"[STARTUP] isNewInstance={isNewInstance}, StartOnRight={StartOnRight}");
-
-        ApplicationConfiguration.Initialize();
 
         var services = ServiceConfiguration.ConfigureServices();
         Application.Run(services.GetRequiredService<Form1>());
