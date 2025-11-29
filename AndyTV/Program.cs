@@ -18,40 +18,50 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        // Log startup args immediately using the standard logger
-        Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
-
-        Application.SetHighDpiMode(HighDpiMode.SystemAware);
-        Application.SetColorMode(SystemColorMode.Dark);
-        ApplicationConfiguration.Initialize();
-
-        // Use Main args directly, more reliable than Environment.GetCommandLineArgs()
-        var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
-        StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
-
-        if (!isNewInstance)
+        try
         {
-            _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-            if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
+            // Log startup args immediately using the standard logger
+            Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
+
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            Application.SetColorMode(SystemColorMode.Dark);
+            ApplicationConfiguration.Initialize();
+
+            // Use Main args directly, more reliable than Environment.GetCommandLineArgs()
+            var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
+            StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
+
+            if (!isNewInstance)
             {
-                Logger.Info("[STARTUP] Mutex detected existing instance and no --new-instance flag found. Exiting.");
-                return;
+                _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
+                if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Logger.Info("[STARTUP] Mutex detected existing instance and no --new-instance flag found. Exiting.");
+                    return;
+                }
+
+                VelopackApp.Build().Run();
+            }
+            else
+            {
+                Logger.Info("[STARTUP] Skipping Velopack initialization for secondary instance.");
             }
 
-            VelopackApp.Build().Run();
+            Logger.WireGlobalHandlers();
+
+            Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
+            Logger.Info($"[STARTUP] isNewInstance={isNewInstance}, StartOnRight={StartOnRight}");
+
+            var services = ServiceConfiguration.ConfigureServices();
+            Application.Run(services.GetRequiredService<Form1>());
         }
-        else
+        catch (Exception ex)
         {
-            Logger.Info("[STARTUP] Skipping Velopack initialization for secondary instance.");
+            var crashLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "andytv_crash.txt");
+            File.AppendAllText(crashLog, $"{DateTime.Now} CRASH: {ex}\n");
+            Logger.Error(ex, "FATAL CRASH IN MAIN");
+            MessageBox.Show($"AndyTV Failed to Start:\n{ex.Message}", "AndyTV Error");
         }
-
-        Logger.WireGlobalHandlers();
-
-        Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
-        Logger.Info($"[STARTUP] isNewInstance={isNewInstance}, StartOnRight={StartOnRight}");
-
-        var services = ServiceConfiguration.ConfigureServices();
-        Application.Run(services.GetRequiredService<Form1>());
     }
 
     public static void Restart()
