@@ -18,6 +18,9 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Log startup args immediately using the standard logger
+        Logger.Info($"[STARTUP] Raw Args: {(args != null ? string.Join(" ", args) : "null")}");
+
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
         ApplicationConfiguration.Initialize();
@@ -31,6 +34,7 @@ internal static class Program
             _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
             if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
             {
+                Logger.Info("[STARTUP] Mutex detected existing instance and no --new-instance flag found. Exiting.");
                 return;
             }
         }

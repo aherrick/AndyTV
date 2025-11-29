@@ -537,7 +537,7 @@ public partial class Form1 : Form
                     {
                         FileName = exePath,
                         Arguments = "--new-instance --right",
-                        UseShellExecute = false,
+                        UseShellExecute = true,
                         WorkingDirectory = AppContext.BaseDirectory,
                     }
                 );
