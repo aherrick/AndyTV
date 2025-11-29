@@ -191,7 +191,8 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                     .GroupBy(ch => char.ToUpperInvariant(ch.DisplayName.FirstOrDefault()))
                     .OrderBy(g => g.Key);
 
-                // Decide whether this playlist should have an extra "title" level.
+                // Decide whether this playlist should have an extra "title" level
+                // (episodic grouping) based on NameFind/NameReplace being set.
                 var hasNameTransform =
                     !string.IsNullOrWhiteSpace(Playlist.NameFind)
                     && Playlist.NameReplace is not null;
@@ -216,6 +217,16 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
 
                         foreach (var titleGroup in titleGroups)
                         {
+                            // If there is only one channel for this title, avoid creating
+                            // a one-item show submenu; just add the entry directly under
+                            // the letter group.
+                            if (titleGroup.Count() == 1)
+                            {
+                                var single = titleGroup.First();
+                                MenuHelper.AddChildChannelItem(firstCharMenu, single, channelClick, single.RawName);
+                                continue;
+                            }
+
                             var titleMenu = new ToolStripMenuItem(titleGroup.Key);
 
                             foreach (var ch in titleGroup.OrderBy(
@@ -241,7 +252,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                     }
                     else
                     {
-                        // Simple two-level: letter -> raw entries
+                        // Simple two-level: letter -> entries (using current display name)
                         foreach (var ch in firstCharGroup.OrderBy(
                                      c => c.DisplayName,
                                      StringComparer.OrdinalIgnoreCase

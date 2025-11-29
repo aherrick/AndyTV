@@ -38,6 +38,15 @@ or directly via:
 - 🪟 Windows 10 or later  
 - 🌐 A valid M3U URL from an IPTV provider  
 
+## 📺 Playlist configuration
+
+Use **Settings → Manage Playlists** in the WinForms app to control how playlists show up in the menu:
+
+- **ShowInMenu** – whether this playlist appears in the CHANNELS menu.
+- **GroupByFirstChar** – group channels under A/B/C… based on their name.
+- **UrlFind / UrlReplace** – optional regex pair applied to each channel URL (for fixing or normalizing stream URLs).
+- **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
+
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome!  
 Feel free to check out the [issues page](../../issues) to get started.  
