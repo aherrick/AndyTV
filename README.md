@@ -22,6 +22,7 @@
 - **Left mouse:** click and hold for **1 second** → switch to **previous channel**
 - **Middle mouse:** click → **Mute / Unmute**
 - **Right mouse:** click → open **Menu**
+- **Scroll wheel:** cycle through **recent channels**
 
 ## 📥 Download
 

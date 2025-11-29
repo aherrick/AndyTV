@@ -153,6 +153,41 @@ public partial class Form1 : Form
             }
         };
 
+        _videoView.MouseWheel += (_, e) =>
+        {
+            var recents = _recentChannelService.GetRecentChannels();
+            if (recents.Count == 0)
+                return;
+
+            var currentIndex = _currentChannel != null
+                ? recents.FindIndex(c => string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase))
+                : -1;
+
+            int nextIndex;
+            if (e.Delta > 0) // Scroll up - go to previous (older)
+            {
+                nextIndex = currentIndex + 1;
+            }
+            else // Scroll down - go to next (newer)
+            {
+                nextIndex = currentIndex - 1;
+            }
+
+            // Wrap around
+            if (nextIndex < 0)
+            {
+                nextIndex = recents.Count - 1;
+            }
+            else if (nextIndex >= recents.Count)
+            {
+                nextIndex = 0;
+            }
+
+            var nextChannel = recents[nextIndex];
+            if (nextChannel != null)
+                Play(nextChannel);
+        };
+
         Controls.Add(_videoView);
         MaximizeWindow();
 
@@ -198,6 +233,10 @@ public partial class Form1 : Form
             _healthTimer.Tick += (_, __) =>
             {
                 if (_currentChannel == null)
+                    return;
+
+                // Don't restart if paused
+                if (_videoView.MediaPlayer.State == VLCState.Paused)
                     return;
 
                 var nowUtc = DateTime.UtcNow;
