@@ -10,6 +10,10 @@ internal static class Program
     private static Mutex _mutex;
     private const string MutexName = @"Global\AndyTV_SingleInstance";
     private const string RestartArg = "--restart";
+    private const string NewInstanceArg = "--new-instance";
+    private const string RightArg = "--right";
+
+    public static bool StartOnRight { get; private set; }
 
     [STAThread]
     private static void Main()
@@ -17,10 +21,17 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
 
-        _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-        if (!isNew && !Environment.GetCommandLineArgs().Contains(RestartArg))
+        var args = Environment.GetCommandLineArgs();
+        var isNewInstance = args.Contains(NewInstanceArg);
+        StartOnRight = args.Contains(RightArg);
+
+        if (!isNewInstance)
         {
-            return;
+            _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
+            if (!isNew && !args.Contains(RestartArg))
+            {
+                return;
+            }
         }
 
         VelopackApp.Build().Run();

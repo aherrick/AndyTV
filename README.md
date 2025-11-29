@@ -23,6 +23,7 @@
 - **Middle mouse:** click → **Mute / Unmute**
 - **Right mouse:** click → open **Menu**
 - **Scroll wheel:** cycle through **recent channels**
+- **App → New Window:** launch a second instance snapped side-by-side
 
 ## 📥 Download
 

@@ -189,7 +189,15 @@ public partial class Form1 : Form
         };
 
         Controls.Add(_videoView);
-        MaximizeWindow();
+
+        if (Program.StartOnRight)
+        {
+            SnapToHalf(left: false);
+        }
+        else
+        {
+            MaximizeWindow();
+        }
 
         ResizeEnd += delegate
         {
@@ -358,6 +366,16 @@ public partial class Form1 : Form
         _videoView.ShowDefault();
     }
 
+    private void SnapToHalf(bool left)
+    {
+        FormBorderStyle = FormBorderStyle.None;
+        WindowState = FormWindowState.Normal;
+        var workArea = Screen.PrimaryScreen.WorkingArea;
+        var x = left ? workArea.X : workArea.X + workArea.Width / 2;
+        Bounds = new Rectangle(x, workArea.Y, workArea.Width / 2, workArea.Height);
+        _videoView.HideCursor();
+    }
+
     private void BuildSettingsMenu(string appVersionName)
     {
         var header = MenuHelper.AddHeader(_contextMenuStrip, appVersionName).Header;
@@ -497,6 +515,24 @@ public partial class Form1 : Form
         );
 
         MenuHelper.AddSeparator(appMenu);
+
+        MenuHelper.AddMenuItem(
+            appMenu,
+            "New Window",
+            (_, __) =>
+            {
+                SnapToHalf(left: true);
+                Process.Start(
+                    new ProcessStartInfo
+                    {
+                        FileName = Environment.ProcessPath ?? Application.ExecutablePath,
+                        Arguments = "--new-instance --right",
+                        UseShellExecute = true,
+                        WorkingDirectory = AppContext.BaseDirectory,
+                    }
+                );
+            }
+        );
 
         MenuHelper.AddMenuItem(appMenu, "Restart", (_, __) => Program.Restart());
         MenuHelper.AddMenuItem(appMenu, "Exit", (_, __) => Application.Exit());
