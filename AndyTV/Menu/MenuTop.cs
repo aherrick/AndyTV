@@ -206,9 +206,12 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
 
                     if (hasNameTransform)
                     {
-                        // Three-level: letter -> base title (DisplayName) -> entries
+                        // Three-level: letter -> base title (DisplayName, case-insensitive) -> entries
                         var titleGroups = firstCharGroup
-                            .GroupBy(c => c.DisplayName)
+                            .GroupBy(
+                                c => c.DisplayName,
+                                StringComparer.OrdinalIgnoreCase
+                            )
                             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
                         foreach (var titleGroup in titleGroups)
