@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="AndyTV.Data/AndyTV.Data.csproj" />
+  <Project Path="AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj" />
+  <Project Path="AndyTV.Guide.Shared/AndyTV.Guide.Shared.csproj" />
+  <Project Path="AndyTV.Guide/AndyTV.Guide.csproj" />
+  <Project Path="AndyTV.Maui/AndyTV.Maui.csproj">
+    <Deploy Solution="Debug|Any CPU" />
+  </Project>
+  <Project Path="AndyTV.Tests/AndyTV.Tests.csproj" />
+  <Project Path="AndyTV.VLC/AndyTV.VLC.csproj" />
+  <Project Path="AndyTV.Web/AndyTV.Web.csproj" />
+  <Project Path="AndyTV/AndyTV.csproj" />
+</Solution>

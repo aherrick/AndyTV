@@ -159,9 +159,16 @@ public partial class Form1 : Form
             if (recents.Count == 0)
                 return;
 
-            var currentIndex = _currentChannel != null
-                ? recents.FindIndex(c => string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase))
-                : -1;
+            var currentIndex =
+                _currentChannel != null
+                    ? recents.FindIndex(c =>
+                        string.Equals(
+                            c.Url,
+                            _currentChannel.Url,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    : -1;
 
             int nextIndex;
             if (e.Delta > 0) // Scroll up - go to previous (older)

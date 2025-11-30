@@ -22,7 +22,9 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.SetColorMode(SystemColorMode.Dark);
 
-        var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
+        var isNewInstance = args.Any(a =>
+            a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase)
+        );
         StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
 
         if (!isNewInstance)
