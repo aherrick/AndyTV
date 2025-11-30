@@ -103,6 +103,23 @@ Open https://localhost:5001 and paste your M3U URL.
 
 > Security: Only the selected stream URL is passed to VLC; keep usage local/private.
 
+## 🌐 AndyTV.Web (Browser Player)
+`AndyTV.Web` is a Blazor WebAssembly app that lets you watch IPTV streams directly in your browser — no downloads required.
+
+**Try it out:** [https://zealous-cliff-09881570f.3.azurestaticapps.net/](https://zealous-cliff-09881570f.3.azurestaticapps.net/)
+
+**Highlights**
+- Add and manage M3U playlists (stored in browser local storage)
+- Search/filter channels with type-ahead
+- Video.js player with HLS support
+- Works on any device with a modern browser
+
+**Run locally**
+```powershell
+cd AndyTV.Web
+dotnet run
+```
+
 
 ## 📜 License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
