@@ -1,0 +1,40 @@
+@using AndyTV.Data.Models
+@using AndyTV.Web.Services
+
+@if (Manager.Channels.Any())
+{
+    <h5>Channels (@_filteredChannels.Count)</h5>
+    
+    <input type="text" class="form-control mb-3" @bind="_searchFilter" @bind:event="oninput" placeholder="Search channels..." />
+
+    <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+        @foreach (var channel in _filteredChannels.Take(100))
+        {
+            <button type="button" 
+                    class="list-group-item list-group-item-action @(channel.Url == CurrentUrl ? "active" : "")" 
+                    @onclick="() => OnChannelSelected.InvokeAsync(channel)">
+                @channel.DisplayName
+                @if (!string.IsNullOrEmpty(channel.Group))
+                {
+                    <small class="text-muted"> — @channel.Group</small>
+                }
+            </button>
+        }
+        @if (_filteredChannels.Count > 100)
+        {
+            <div class="list-group-item text-center text-muted">
+                Showing 100 of @_filteredChannels.Count channels. Use search to filter.
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public required ChannelManagerService Manager { get; set; }
+    [Parameter] public string CurrentUrl { get; set; } = "";
+    [Parameter] public EventCallback<Channel> OnChannelSelected { get; set; }
+
+    private string _searchFilter = "";
+
+    private List<Channel> _filteredChannels => Manager.FilterChannels(_searchFilter);
+}

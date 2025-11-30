@@ -1,0 +1,60 @@
+@using AndyTV.Data.Models
+@using AndyTV.Web.Services
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Playlists</h5>
+        
+        <div class="row g-2 mb-3">
+            <div class="col-12 col-md-3">
+                <input type="text" class="form-control" @bind="_name" placeholder="Playlist Name" />
+            </div>
+            <div class="col-12 col-md-7">
+                <input type="text" class="form-control" @bind="_url" placeholder="M3U URL" />
+            </div>
+            <div class="col-12 col-md-2">
+                <button class="btn btn-primary w-100" @onclick="AddPlaylist" disabled="@Manager.IsLoading">Add</button>
+            </div>
+        </div>
+
+        @if (Manager.Playlists.Any())
+        {
+            <ul class="list-group mb-3">
+                @foreach (var playlist in Manager.Playlists)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>@playlist.Name <span class="badge bg-secondary">@Manager.GetChannelCount(playlist) channels</span></span>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeletePlaylist(playlist)">Delete</button>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (Manager.IsLoading)
+        {
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-2">Loading channels...</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public required ChannelManagerService Manager { get; set; }
+
+    private string _name = "";
+    private string _url = "";
+
+    private async Task AddPlaylist()
+    {
+        await Manager.AddPlaylistAsync(_name, _url);
+        _name = "";
+        _url = "";
+    }
+
+    private async Task DeletePlaylist(Playlist playlist)
+    {
+        await Manager.DeletePlaylistAsync(playlist);
+    }
+}
