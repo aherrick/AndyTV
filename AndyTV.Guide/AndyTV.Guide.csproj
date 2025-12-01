@@ -9,8 +9,8 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.0" PrivateAssets="all" />
-		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.15" />
-		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.15" />
+		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.16" />
+		<PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.16" />
 
 	</ItemGroup>
 

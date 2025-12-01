@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using AndyTV.Data.Services;
 using AndyTV.Web;
 using AndyTV.Web.Services;
-using AndyTV.Data.Services;
 using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
