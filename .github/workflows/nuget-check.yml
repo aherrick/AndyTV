@@ -1,0 +1,50 @@
+name: nuget-check
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  check-outdated:
+    runs-on: ubuntu-latest
+    name: Check for outdated NuGet packages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check for outdated packages
+        run: |
+          echo "Checking for outdated top-level NuGet packages (including prerelease)..."
+          dotnet list package --outdated --include-prerelease > outdated.txt
+          cat outdated.txt
+          
+          # Extract and display all packages with versions and status
+          echo ""
+          echo "Packages checked:"
+          grep -E "^\s+>" outdated.txt | grep -v "Not found" | while read line; do
+            pkg=$(echo "$line" | awk '{print $2}')
+            current=$(echo "$line" | awk '{print $3}')
+            latest=$(echo "$line" | awk '{print $4}')
+            # Check if there's an update available
+            if [ "$current" != "$latest" ]; then
+              echo "  ❌ $pkg: $current → $latest"
+            else
+              echo "  ✅ $pkg: $current"
+            fi
+          done
+          
+          # Fail if any outdated packages are found
+          if grep -E "^\s+>" outdated.txt | grep -v "Not found" > /dev/null; then
+            echo ""
+            echo "❌ Outdated packages found!"
+            exit 1
+          else
+            echo ""
+            echo "✅ All packages are up to date"
+          fi
