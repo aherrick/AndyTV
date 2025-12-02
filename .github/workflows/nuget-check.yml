@@ -3,7 +3,7 @@ name: NuGet Package Version Check
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"   # Midnight UTC nightly
+    - cron: "0 0 * * *" # Midnight UTC nightly
 
 jobs:
   nuget-check:
@@ -14,132 +14,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Run NuGet version check
-        shell: pwsh
-        run: |
-          # ---------------------------
-          # IGNORE LIST (EDIT HERE)
-          # ---------------------------
-          $ignoreList = @(
-            # @{ Project="ProjectA.csproj"; Package="Some.Package" }
-            # @{ Project="Worker.csproj"; Package="Pinned.Package" }
-          )
-
-          # ---------------------------
-          # BUILD SINGLE-FILE SCRIPT
-          # ---------------------------
-
-          $code = @'
-#:package NuGet.Versioning@6.9.1
-
-using System.Text;
-using System.Text.Json;
-using System.Xml.Linq;
-using NuGet.Versioning;
-
-var ignore = new HashSet<(string Project, string Package)>(StringComparer.OrdinalIgnoreCase);
-'@
-
-          foreach ($item in $ignoreList) {
-            $proj = $item.Project.Replace('"','\"')
-            $pkg = $item.Package.Replace('"','\"')
-            $code += "ignore.Add((\"$proj\", \"$pkg\"));`n"
-          }
-
-$code += @'
-var root = Directory.GetCurrentDirectory();
-var csprojFiles = Directory.GetFiles(root, "*.csproj", SearchOption.AllDirectories);
-
-using var http = new HttpClient();
-var cache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-
-async Task<string?> GetLatestAsync(string packageId)
-{
-    if (cache.TryGetValue(packageId, out var cached))
-        return cached;
-
-    var url = $"https://api.nuget.org/v3-flatcontainer/{packageId.ToLowerInvariant()}/index.json";
-    var json = await http.GetStringAsync(url);
-    using var doc = JsonDocument.Parse(json);
-    var versions = doc.RootElement.GetProperty("versions");
-    var latest = versions[versions.GetArrayLength() - 1].GetString();
-
-    cache[packageId] = latest;
-    return latest;
-}
-
-var results = new List<(string Project,string Package,string Current,string? Latest,bool UpToDate,bool Ignored)>();
-
-foreach (var file in csprojFiles)
-{
-    var projectName = Path.GetFileName(file);
-    var xml = XDocument.Load(file);
-
-    var packageRefs = xml.Descendants("PackageReference")
-        .Where(x => x.Attribute("Include") is not null && x.Attribute("Version") is not null);
-
-    foreach (var pr in packageRefs)
-    {
-        var id = pr.Attribute("Include")!.Value;
-        var current = pr.Attribute("Version")!.Value;
-
-        bool isIgnored = ignore.Contains((projectName, id));
-
-        if (isIgnored)
-        {
-            results.Add((projectName,id,current,current,true,true));
-            continue;
-        }
-
-        var latest = await GetLatestAsync(id);
-        bool upToDate = latest is not null &&
-                         NuGetVersion.Parse(current) == NuGetVersion.Parse(latest);
-
-        results.Add((projectName,id,current,latest,upToDate,false));
-    }
-}
-
-Console.WriteLine("Project\tPackage\tCurrent\tLatest\tStatus");
-
-bool anyFailures = false;
-
-foreach (var r in results.OrderBy(r => r.Project).ThenBy(r => r.Package))
-{
-    string status = r.Ignored ? "🔒" : (r.UpToDate ? "✅" : "❌");
-    if (!r.Ignored && !r.UpToDate) anyFailures = true;
-
-    Console.WriteLine($"{r.Project}\t{r.Package}\t{r.Current}\t{r.Latest}\t{status}");
-}
-
-// Write markdown file
-var sb = new StringBuilder();
-sb.AppendLine("| Project | Package | Current | Latest | Status |");
-sb.AppendLine("|---------|---------|---------|--------|--------|");
-
-foreach (var r in results.OrderBy(r => r.Project).ThenBy(r => r.Package))
-{
-    var status = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅" : "❌");
-    sb.AppendLine($"| {r.Project} | {r.Package} | {r.Current} | {r.Latest} | {status} |");
-}
-
-File.WriteAllText(Path.Combine(root, "nuget-packages.md"), sb.ToString());
-
-// Fail if anything not ignored is outdated
-if (anyFailures)
-{
-    Console.WriteLine("❌ Some packages are outdated (not ignored). Failing pipeline.");
-    Environment.Exit(1);
-}
-
-Console.WriteLine("✅ All non-ignored packages are up to date.");
-'@
-
-          # Write script to disk
-          Set-Content -Path NugetCheck.cs -Value $code -Encoding utf8
-
-          # Run it
-          dotnet run NugetCheck.cs
+        run: >
+          dotnet run .github/scripts/NugetCheck.cs --ignore "Project=AndyTV.csproj&Package=Velopack"
