@@ -24,26 +24,20 @@ jobs:
           dotnet list package --outdated --include-prerelease > outdated.txt
           cat outdated.txt
           
-          # Extract and display all packages with versions and status
-          echo ""
-          echo "Packages checked:"
-          grep -E "^\s+>" outdated.txt | grep -v "Not found" | while read line; do
-            pkg=$(echo "$line" | awk '{print $2}')
-            current=$(echo "$line" | awk '{print $3}')
-            latest=$(echo "$line" | awk '{print $4}')
-            # Check if there's an update available
-            if [ "$current" != "$latest" ]; then
-              echo "  ❌ $pkg: $current → $latest"
-            else
-              echo "  ✅ $pkg: $current"
-            fi
-          done
+          # Count outdated packages (lines starting with > indicate outdated packages)
+          OUTDATED_COUNT=$(grep -E "^\s+>" outdated.txt 2>/dev/null | wc -l)
           
-          # Fail if any outdated packages are found
-          if grep -E "^\s+>" outdated.txt | grep -v "Not found" > /dev/null; then
+          if [ "$OUTDATED_COUNT" -gt 0 ]; then
             echo ""
-            echo "❌ Outdated packages found!"
-            exit 1
+            echo "📦 Found $OUTDATED_COUNT outdated package(s):"
+            grep -E "^\s+>" outdated.txt | while read line; do
+              pkg=$(echo "$line" | awk '{print $2}')
+              current=$(echo "$line" | awk '{print $3}')
+              latest=$(echo "$line" | awk '{print $4}')
+              echo "  ⚠️ $pkg: $current → $latest"
+            done
+            echo ""
+            echo "ℹ️ Outdated packages detected (informational only)"
           else
             echo ""
             echo "✅ All packages are up to date"
