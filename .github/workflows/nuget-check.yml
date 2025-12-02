@@ -19,26 +19,40 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Check for outdated packages
+        shell: bash
         run: |
           echo "Checking for outdated top-level NuGet packages (including prerelease)..."
+          set +e
           dotnet list package --outdated --include-prerelease > outdated.txt
+          DOTNET_EXIT=$?
+          set -e
+
+          # If dotnet itself failed, fail the job
+          if [ "$DOTNET_EXIT" -ne 0 ]; then
+            echo "dotnet list package failed with exit code $DOTNET_EXIT"
+            cat outdated.txt || true
+            exit $DOTNET_EXIT
+          fi
+
+          echo "--- dotnet list package --outdated output ---"
           cat outdated.txt
-          
+          echo "---------------------------------------------"
+          echo
+
           # Count outdated packages (lines starting with > indicate outdated packages)
           OUTDATED_COUNT=$(grep -E "^\s+>" outdated.txt 2>/dev/null | wc -l)
-          
+
           if [ "$OUTDATED_COUNT" -gt 0 ]; then
-            echo ""
             echo "📦 Found $OUTDATED_COUNT outdated package(s):"
-            grep -E "^\s+>" outdated.txt | while read line; do
+            grep -E "^\s+>" outdated.txt | while read -r line; do
               pkg=$(echo "$line" | awk '{print $2}')
               current=$(echo "$line" | awk '{print $3}')
               latest=$(echo "$line" | awk '{print $4}')
-              echo "  ⚠️ $pkg: $current → $latest"
+              echo "  ❌ $pkg: $current → $latest"
             done
-            echo ""
-            echo "ℹ️ Outdated packages detected (informational only)"
+            echo
+            echo "❌ Outdated NuGet packages detected (including prerelease). Failing job."
+            exit 1
           else
-            echo ""
             echo "✅ All packages are up to date"
           fi
