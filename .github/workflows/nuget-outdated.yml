@@ -17,3 +17,4 @@ jobs:
         uses: aherrick/nuget-outdated@main
         with:
           ignore: 'AndyTV.csproj=Velopack'
+          includeprelease: 'true'
