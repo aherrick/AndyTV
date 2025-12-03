@@ -1,4 +1,4 @@
-name: NuGet Package Version Check
+name: nuget-check
 
 on:
   workflow_dispatch:
