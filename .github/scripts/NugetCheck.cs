@@ -1,11 +1,11 @@
 #:package NuGet.Versioning@6.9.1
-#:package ConsoleTables@2.7.0
+#:package Alba.CsConsoleFormat@1.0.0
 
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using NuGet.Versioning;
-using ConsoleTables;
+using Alba.CsConsoleFormat;
 
 // Parse a single --ignore "Project=AndyTV.csproj&Package=Velopack" argument (URI-style query)
 var ignore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -113,15 +113,6 @@ bool anyFailures = false;
 var ordered = results
     .OrderBy(r => r.Project, StringComparer.OrdinalIgnoreCase)
     .ThenBy(r => r.Package, StringComparer.OrdinalIgnoreCase)
-    .Select(r => new
-    {
-        r.Project,
-        r.Package,
-        r.Current,
-        Latest = r.Latest ?? string.Empty,
-        Published = r.Published?.ToString("u") ?? string.Empty,
-        Status = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated")
-    })
     .ToList();
 
 anyFailures = results.Any(r => !r.Ignored && !r.UpToDate);
@@ -130,7 +121,30 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
-ConsoleTable.From(ordered).Configure(o => o.EnableCount = false).Write(Format.Default);
+var grid = new Grid
+{
+    Columns = { GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto },
+    Children =
+    {
+        new Cell(nameof(PackageResult.Project)) { Stroke = LineThickness.Single },
+        new Cell(nameof(PackageResult.Package)) { Stroke = LineThickness.Single },
+        new Cell(nameof(PackageResult.Current)) { Stroke = LineThickness.Single },
+        new Cell(nameof(PackageResult.Latest)) { Stroke = LineThickness.Single },
+        new Cell(nameof(PackageResult.Published)) { Stroke = LineThickness.Single },
+        new Cell("Status") { Stroke = LineThickness.Single },
+        ordered.Select(r => new[]
+        {
+            new Cell(r.Project),
+            new Cell(r.Package),
+            new Cell(r.Current),
+            new Cell(r.Latest ?? ""),
+            new Cell(r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""),
+            new Cell(r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated"))
+        })
+    }
+};
+
+ConsoleRenderer.RenderDocument(new Document(grid));
 
 Console.WriteLine();
 
