@@ -120,7 +120,7 @@ var ordered = results
         r.Current,
         Latest = r.Latest ?? string.Empty,
         Published = r.Published?.ToString("u") ?? string.Empty,
-        Status = r.Ignored ? "Pinned" : (r.UpToDate ? "Up-to-date" : "Outdated")
+        Status = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated")
     })
     .ToList();
 
@@ -130,7 +130,7 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
-ConsoleTable.From(ordered).Configure(o => o.EnableCount = false).Write(Format.Minimal);
+ConsoleTable.From(ordered).Configure(o => o.EnableCount = false).Write(Format.Default);
 
 Console.WriteLine();
 
