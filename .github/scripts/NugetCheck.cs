@@ -1,5 +1,7 @@
 #:package NuGet.Versioning@6.9.1
+#:package Spectre.Console@0.49.1
 
+using Spectre.Console;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -111,6 +113,15 @@ bool anyFailures = false;
 var ordered = results
     .OrderBy(r => r.Project, StringComparer.OrdinalIgnoreCase)
     .ThenBy(r => r.Package, StringComparer.OrdinalIgnoreCase)
+    .Select(r => new
+    {
+        r.Project,
+        r.Package,
+        r.Current,
+        Latest = r.Latest ?? "",
+        Published = r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? "",
+        Status = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated")
+    })
     .ToList();
 
 anyFailures = results.Any(r => !r.Ignored && !r.UpToDate);
@@ -119,30 +130,21 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
-// Calculate column widths
-int projectWidth = Math.Max(nameof(PackageResult.Project).Length, ordered.Max(r => r.Project.Length));
-int packageWidth = Math.Max(nameof(PackageResult.Package).Length, ordered.Max(r => r.Package.Length));
-int currentWidth = Math.Max(nameof(PackageResult.Current).Length, ordered.Max(r => r.Current.Length));
-int latestWidth = Math.Max(nameof(PackageResult.Latest).Length, ordered.Max(r => (r.Latest ?? "").Length));
-int publishedWidth = Math.Max(nameof(PackageResult.Published).Length, ordered.Max(r => (r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? "").Length));
-int statusWidth = "Status".Length + 3; // Account for emoji width
+var table = new Table();
 
-// Print header
-Console.WriteLine($"┌─{new string('─', projectWidth)}─┬─{new string('─', packageWidth)}─┬─{new string('─', currentWidth)}─┬─{new string('─', latestWidth)}─┬─{new string('─', publishedWidth)}─┬─{new string('─', statusWidth)}─┐");
-Console.WriteLine($"│ {nameof(PackageResult.Project).PadRight(projectWidth)} │ {nameof(PackageResult.Package).PadRight(packageWidth)} │ {nameof(PackageResult.Current).PadRight(currentWidth)} │ {nameof(PackageResult.Latest).PadRight(latestWidth)} │ {nameof(PackageResult.Published).PadRight(publishedWidth)} │ {"Status".PadRight(statusWidth)} │");
-Console.WriteLine($"├─{new string('─', projectWidth)}─┼─{new string('─', packageWidth)}─┼─{new string('─', currentWidth)}─┼─{new string('─', latestWidth)}─┼─{new string('─', publishedWidth)}─┼─{new string('─', statusWidth)}─┤");
+table.AddColumn(new TableColumn(nameof(PackageResult.Project)).NoWrap());
+table.AddColumn(new TableColumn(nameof(PackageResult.Package)).NoWrap());
+table.AddColumn(new TableColumn(nameof(PackageResult.Current)).NoWrap());
+table.AddColumn(new TableColumn(nameof(PackageResult.Latest)).NoWrap());
+table.AddColumn(new TableColumn(nameof(PackageResult.Published)).NoWrap());
+table.AddColumn(new TableColumn("Status").NoWrap());
 
-// Print rows
 foreach (var r in ordered)
 {
-    var publishedText = r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
-    var statusText = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated");
-    
-    Console.WriteLine($"│ {r.Project.PadRight(projectWidth)} │ {r.Package.PadRight(packageWidth)} │ {r.Current.PadRight(currentWidth)} │ {(r.Latest ?? "").PadRight(latestWidth)} │ {publishedText.PadRight(publishedWidth)} │ {statusText.PadRight(statusWidth)} │");
+    table.AddRow(r.Project, r.Package, r.Current, r.Latest, r.Published, r.Status);
 }
 
-// Print footer
-Console.WriteLine($"└─{new string('─', projectWidth)}─┴─{new string('─', packageWidth)}─┴─{new string('─', currentWidth)}─┴─{new string('─', latestWidth)}─┴─{new string('─', publishedWidth)}─┴─{new string('─', statusWidth)}─┘");
+AnsiConsole.Write(table);
 
 Console.WriteLine();
 
