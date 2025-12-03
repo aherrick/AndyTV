@@ -1,11 +1,9 @@
 #:package NuGet.Versioning@6.9.1
-#:package Alba.CsConsoleFormat@1.0.0
 
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using NuGet.Versioning;
-using Alba.CsConsoleFormat;
 
 // Parse a single --ignore "Project=AndyTV.csproj&Package=Velopack" argument (URI-style query)
 var ignore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -121,30 +119,30 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
-var grid = new Grid
-{
-    Columns = { GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto },
-    Children =
-    {
-        new Cell(nameof(PackageResult.Project)) { Stroke = LineThickness.Single },
-        new Cell(nameof(PackageResult.Package)) { Stroke = LineThickness.Single },
-        new Cell(nameof(PackageResult.Current)) { Stroke = LineThickness.Single },
-        new Cell(nameof(PackageResult.Latest)) { Stroke = LineThickness.Single },
-        new Cell(nameof(PackageResult.Published)) { Stroke = LineThickness.Single },
-        new Cell("Status") { Stroke = LineThickness.Single },
-        ordered.Select(r => new[]
-        {
-            new Cell(r.Project),
-            new Cell(r.Package),
-            new Cell(r.Current),
-            new Cell(r.Latest ?? ""),
-            new Cell(r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""),
-            new Cell(r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated"))
-        })
-    }
-};
+// Calculate column widths
+int projectWidth = Math.Max(nameof(PackageResult.Project).Length, ordered.Max(r => r.Project.Length));
+int packageWidth = Math.Max(nameof(PackageResult.Package).Length, ordered.Max(r => r.Package.Length));
+int currentWidth = Math.Max(nameof(PackageResult.Current).Length, ordered.Max(r => r.Current.Length));
+int latestWidth = Math.Max(nameof(PackageResult.Latest).Length, ordered.Max(r => (r.Latest ?? "").Length));
+int publishedWidth = Math.Max(nameof(PackageResult.Published).Length, ordered.Max(r => (r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? "").Length));
+int statusWidth = "Status".Length + 3; // Account for emoji width
 
-ConsoleRenderer.RenderDocument(new Document(grid));
+// Print header
+Console.WriteLine($"┌─{new string('─', projectWidth)}─┬─{new string('─', packageWidth)}─┬─{new string('─', currentWidth)}─┬─{new string('─', latestWidth)}─┬─{new string('─', publishedWidth)}─┬─{new string('─', statusWidth)}─┐");
+Console.WriteLine($"│ {nameof(PackageResult.Project).PadRight(projectWidth)} │ {nameof(PackageResult.Package).PadRight(packageWidth)} │ {nameof(PackageResult.Current).PadRight(currentWidth)} │ {nameof(PackageResult.Latest).PadRight(latestWidth)} │ {nameof(PackageResult.Published).PadRight(publishedWidth)} │ {"Status".PadRight(statusWidth)} │");
+Console.WriteLine($"├─{new string('─', projectWidth)}─┼─{new string('─', packageWidth)}─┼─{new string('─', currentWidth)}─┼─{new string('─', latestWidth)}─┼─{new string('─', publishedWidth)}─┼─{new string('─', statusWidth)}─┤");
+
+// Print rows
+foreach (var r in ordered)
+{
+    var publishedText = r.Published?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+    var statusText = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅ Up-to-date" : "❌ Outdated");
+    
+    Console.WriteLine($"│ {r.Project.PadRight(projectWidth)} │ {r.Package.PadRight(packageWidth)} │ {r.Current.PadRight(currentWidth)} │ {(r.Latest ?? "").PadRight(latestWidth)} │ {publishedText.PadRight(publishedWidth)} │ {statusText.PadRight(statusWidth)} │");
+}
+
+// Print footer
+Console.WriteLine($"└─{new string('─', projectWidth)}─┴─{new string('─', packageWidth)}─┴─{new string('─', currentWidth)}─┴─{new string('─', latestWidth)}─┴─{new string('─', publishedWidth)}─┴─{new string('─', statusWidth)}─┘");
 
 Console.WriteLine();
 
