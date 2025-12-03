@@ -55,6 +55,7 @@ async Task<(string? LatestVersion, DateTimeOffset? Published)> GetLatestAsync(st
         // Try to get published date from registration endpoint
         try
         {
+            // 1. Try direct registration blob (fastest)
             var regUrl = $"https://api.nuget.org/v3/registration5-semver1/{lowerId}/{latestVersion.ToLowerInvariant()}.json";
             var regJson = await http.GetStringAsync(regUrl);
             using var regDoc = JsonDocument.Parse(regJson);
@@ -67,8 +68,68 @@ async Task<(string? LatestVersion, DateTimeOffset? Published)> GetLatestAsync(st
         }
         catch
         {
-            // Ignore errors fetching published date; we'll just leave it null
+            // 2. Fallback: Check registration index (slower but more reliable)
+            try 
+            {
+                var regIndexUrl = $"https://api.nuget.org/v3/registration5-semver1/{lowerId}/index.json";
+                var regIndexJson = await http.GetStringAsync(regIndexUrl);
+                using var regIndexDoc = JsonDocument.Parse(regIndexJson);
+                
+                var targetVersion = NuGetVersion.Parse(latestVersion);
+                string? pageUrl = null;
+
+                // Find the right page
+                foreach (var page in regIndexDoc.RootElement.GetProperty("items").EnumerateArray())
+                {
+                    var lower = NuGetVersion.Parse(page.GetProperty("lower").GetString()!);
+                    var upper = NuGetVersion.Parse(page.GetProperty("upper").GetString()!);
+
+                    if (targetVersion >= lower && targetVersion <= upper)
+                    {
+                        pageUrl = page.GetProperty("@id").GetString();
+                        // If items are inline, we might find it here
+                        if (page.TryGetProperty("items", out var items))
+                        {
+                            foreach (var item in items.EnumerateArray())
+                            {
+                                var v = NuGetVersion.Parse(item.GetProperty("catalogEntry").GetProperty("version").GetString()!);
+                                if (v == targetVersion)
+                                {
+                                    if (DateTimeOffset.TryParse(item.GetProperty("catalogEntry").GetProperty("published").GetString(), out var dto))
+                                    {
+                                        published = dto;
+                                        goto Found;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // If we found a page URL but haven't found the item yet (because it wasn't inline), fetch the page
+                if (published == null && !string.IsNullOrEmpty(pageUrl))
+                {
+                    var pageJson = await http.GetStringAsync(pageUrl);
+                    using var pageDoc = JsonDocument.Parse(pageJson);
+                    foreach (var item in pageDoc.RootElement.GetProperty("items").EnumerateArray())
+                    {
+                        var v = NuGetVersion.Parse(item.GetProperty("catalogEntry").GetProperty("version").GetString()!);
+                        if (v == targetVersion)
+                        {
+                            if (DateTimeOffset.TryParse(item.GetProperty("catalogEntry").GetProperty("published").GetString(), out var dto))
+                            {
+                                published = dto;
+                                goto Found;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { /* Give up */ }
         }
+        
+        Found:;
     }
 
     var result = (latestVersion, published);
@@ -135,6 +196,7 @@ AnsiConsole.Profile.Width = 240;
 AnsiConsole.Profile.Encoding = Encoding.UTF8;
 
 var table = new Table();
+table.ShowRowSeparators = true;
 
 table.AddColumn(new TableColumn(nameof(PackageResult.Project)).NoWrap());
 table.AddColumn(new TableColumn(nameof(PackageResult.Package)).NoWrap());

@@ -1,0 +1,19 @@
+name: nuget-outdated
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # Midnight UTC nightly
+
+jobs:
+  nuget-outdated:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for outdated NuGet packages
+        uses: aherrick/nuget-outdated@main
+        with:
+          ignore: 'AndyTV.csproj=Velopack'
