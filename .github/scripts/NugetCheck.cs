@@ -1,9 +1,11 @@
 #:package NuGet.Versioning@6.9.1
+#:package ConsoleTables@2.7.0
 
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using NuGet.Versioning;
+using ConsoleTables;
 
 // Parse a single --ignore "Project=AndyTV.csproj&Package=Velopack" argument (URI-style query)
 var ignore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -74,7 +76,7 @@ async Task<(string? LatestVersion, DateTimeOffset? Published)> GetLatestAsync(st
     return result;
 }
 
-var results = new List<(string Project, string Package, string Current, string? Latest, DateTimeOffset? Published, bool UpToDate, bool Ignored)>();
+var results = new List<PackageResult>();
 
 foreach (var file in csprojFiles)
 {
@@ -98,28 +100,39 @@ foreach (var file in csprojFiles)
 
         if (isIgnored)
         {
-            results.Add((projectName, id, current, latest ?? current, published, true, true));
+            results.Add(new PackageResult(projectName, id, current, latest ?? current, published, true, true));
             continue;
         }
 
-        results.Add((projectName, id, current, latest, published, upToDate, false));
+        results.Add(new PackageResult(projectName, id, current, latest, published, upToDate, false));
     }
 }
 
 bool anyFailures = false;
 
-// Write markdown table to console (GitHub Actions log friendly)
-Console.WriteLine("| Project | Package | Current | Latest | Published | Status |");
-Console.WriteLine("|---------|---------|---------|--------|-----------|--------|");
+var ordered = results
+    .OrderBy(r => r.Project, StringComparer.OrdinalIgnoreCase)
+    .ThenBy(r => r.Package, StringComparer.OrdinalIgnoreCase)
+    .Select(r => new
+    {
+        r.Project,
+        r.Package,
+        r.Current,
+        Latest = r.Latest ?? string.Empty,
+        Published = r.Published?.ToString("u") ?? string.Empty,
+        Status = r.Ignored ? "Pinned" : (r.UpToDate ? "Up-to-date" : "Outdated")
+    })
+    .ToList();
 
-foreach (var r in results.OrderBy(r => r.Project).ThenBy(r => r.Package))
-{
-    var status = r.Ignored ? "🔒 Pinned" : (r.UpToDate ? "✅" : "❌");
-    if (!r.Ignored && !r.UpToDate) anyFailures = true;
+anyFailures = results.Any(r => !r.Ignored && !r.UpToDate);
 
-    var publishedText = r.Published?.ToString("u") ?? "";
-    Console.WriteLine($"| {r.Project} | {r.Package} | {r.Current} | {r.Latest} | {publishedText} | {status} |");
-}
+Console.WriteLine();
+Console.WriteLine("NuGet package status:");
+Console.WriteLine();
+
+ConsoleTable.From(ordered).Write(Format.Alternative);
+
+Console.WriteLine();
 
 // Fail if anything not ignored is outdated
 if (anyFailures)
@@ -129,3 +142,13 @@ if (anyFailures)
 }
 
 Console.WriteLine("✅ All non-ignored packages are up to date.");
+
+public record PackageResult(
+    string Project,
+    string Package,
+    string Current,
+    string? Latest,
+    DateTimeOffset? Published,
+    bool UpToDate,
+    bool Ignored
+);
