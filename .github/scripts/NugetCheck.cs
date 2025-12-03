@@ -130,6 +130,10 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
+// CI environments often report 80 columns, causing wrapping. Force a wider output.
+AnsiConsole.Profile.Width = 240;
+AnsiConsole.Profile.Encoding = Encoding.UTF8;
+
 var table = new Table();
 
 table.AddColumn(new TableColumn(nameof(PackageResult.Project)).NoWrap());
