@@ -130,7 +130,7 @@ Console.WriteLine();
 Console.WriteLine("NuGet package status:");
 Console.WriteLine();
 
-ConsoleTable.From(ordered).Write(Format.Alternative);
+ConsoleTable.From(ordered).Configure(o => o.EnableCount = false).Write(Format.Minimal);
 
 Console.WriteLine();
 
