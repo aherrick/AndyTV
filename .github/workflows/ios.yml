@@ -1,0 +1,94 @@
+name: ios
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: self-hosted
+
+    env:
+      BUNDLE_ID: com.ajh.AndyTV
+      APPLE_TEAM_ID: 55P33KNTP3
+      CODESIGN_KEY: "Apple Distribution: Andrew Herrick (55P33KNTP3)"
+      CODESIGN_PROVISION: "AndyTV"
+      STATIC_URL: "https://andytvstorage.z19.web.core.windows.net"
+      AZURE_STORAGE_ACCOUNT: andytvstorage
+      IPA_PATH: publishapp/AndyTV.Maui.ipa
+      IPA_NAME: AndyTV.Maui.ipa
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI
+        run: dotnet workload install maui
+
+      - name: Delete existing build keychain
+        run: security delete-keychain build.keychain-db.keychain || true
+
+      - name: Install Apple Certificates
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12_BASE64FILE }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+          keychain: build.keychain-db
+          keychain-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+          create-keychain: true
+
+      - name: Download provisioning profile (Ad Hoc)
+        uses: apple-actions/download-provisioning-profiles@v1
+        with:
+          bundle-id: ${{ env.BUNDLE_ID }}
+          profile-type: IOS_APP_ADHOC
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+
+      - name: Update app version
+        uses: managedcode/MAUIAppVersion@v1
+        with:
+          csproj: './AndyTV.Maui/AndyTV.Maui.csproj'
+          version: 1.0.${{ github.run_number }}
+          displayVersion: 1.0.${{ github.run_number }}
+          printFile: false
+
+      - name: Build iOS IPA (Ad Hoc)
+        run: |
+          dotnet publish ./AndyTV.Maui/AndyTV.Maui.csproj \
+            -f net10.0-ios \
+            -c Release \
+            -p:RuntimeIdentifier=ios-arm64 \
+            -p:ArchiveOnBuild=true \
+            -p:PackageApp=true \
+            -p:BuildIpa=true \
+            -p:BundleIdentifier=${{ env.BUNDLE_ID }} \
+            -p:CodesignTeamId=${{ env.APPLE_TEAM_ID }} \
+            -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
+            -p:CodesignProvision=${{ env.CODESIGN_PROVISION }} \
+            -o publishapp
+
+      - name: Upload to Azure & Generate OTA Install
+        id: ota
+        uses: aherrick/ios-adhoc-ota@main
+        with:
+          app_name: 'AndyTV'
+          bundle_id: ${{ env.BUNDLE_ID }}
+          version: 1.0.${{ github.run_number }}
+          ipa_name: ${{ env.IPA_NAME }}
+          ipa_path: ${{ env.IPA_PATH }}
+          static_url: ${{ env.STATIC_URL }}
+          azure_storage_account: ${{ env.AZURE_STORAGE_ACCOUNT }}
+          azure_storage_key: ${{ secrets.AZURE_STORAGE_KEY }}
+
+      - name: Show install URLs
+        run: |
+          echo "📺 AndyTV iOS build deployed!"
+          echo "Landing page:  ${{ steps.ota.outputs.landing_page_url }}"
+          echo "Manifest:      ${{ steps.ota.outputs.manifest_url }}"
+          echo "IPA:           ${{ steps.ota.outputs.ipa_url }}"

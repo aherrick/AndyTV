@@ -15,7 +15,7 @@
 		<ApplicationTitle>AndyTV</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.ajh.andytv</ApplicationId>
+		<ApplicationId>com.ajh.AndyTV</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
