@@ -34,7 +34,7 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         _playerViewController = new AVPlayerViewController
         {
             AllowsPictureInPicturePlayback = true,
-            ShowsPlaybackControls = false
+            ShowsPlaybackControls = true
         };
 
         return _playerViewController.View!;
@@ -51,6 +51,7 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
         handler._player = new AVPlayer(url);
         handler._playerViewController!.Player = handler._player;
+        handler._player.Play();
     }
 
     private static void MapPlay(NativeVideoPlayerHandler handler, NativeVideoPlayer player, object? args)
