@@ -19,6 +19,8 @@ public partial class PlayerPage : ContentPage
     {
         base.OnAppearing();
 
+        DeviceDisplay.Current.KeepScreenOn = true;
+
         if (!string.IsNullOrEmpty(_viewModel.Url))
         {
             _libVLC = new LibVLC();
@@ -35,6 +37,8 @@ public partial class PlayerPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+
+        DeviceDisplay.Current.KeepScreenOn = false;
 
         _mediaPlayer?.Stop();
         VideoView.MediaPlayer = null;

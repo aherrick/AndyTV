@@ -7,20 +7,17 @@
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="{Binding ChannelName}"
     x:DataType="vm:PlayerViewModel"
-    Shell.NavBarIsVisible="False">
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False">
 
     <Grid BackgroundColor="Black">
+        <Grid.GestureRecognizers>
+            <SwipeGestureRecognizer Direction="Right" Command="{Binding GoBackCommand}" />
+        </Grid.GestureRecognizers>
+
         <vlc:VideoView
             x:Name="VideoView"
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
-
-        <Button
-            Margin="20"
-            Command="{Binding GoBackCommand}"
-            HorizontalOptions="Start"
-            Opacity="0.7"
-            Text="Back"
-            VerticalOptions="Start" />
     </Grid>
 </ContentPage>
