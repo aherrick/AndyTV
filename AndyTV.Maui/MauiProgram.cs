@@ -2,7 +2,7 @@
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
-using AndyTV.Maui.Controls;
+using LibVLCSharp.MAUI;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Maui;
@@ -14,12 +14,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .ConfigureMauiHandlers(handlers =>
-            {
-#if IOS
-                handlers.AddHandler<NativeVideoPlayer, AndyTV.Maui.Platforms.iOS.Handlers.NativeVideoPlayerHandler>();
-#endif
-            })
+            .UseLibVLCSharp()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
