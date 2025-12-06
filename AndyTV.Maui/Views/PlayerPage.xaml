@@ -3,7 +3,7 @@
     x:Class="AndyTV.Maui.Views.PlayerPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
+    xmlns:controls="clr-namespace:AndyTV.Maui.Controls"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="{Binding ChannelName}"
     x:DataType="vm:PlayerViewModel"
@@ -15,8 +15,9 @@
             <SwipeGestureRecognizer Direction="Right" Command="{Binding GoBackCommand}" />
         </Grid.GestureRecognizers>
 
-        <vlc:VideoView
-            x:Name="VideoView"
+        <controls:NativeVideoPlayer
+            x:Name="VideoPlayer"
+            Source="{Binding Url}"
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
     </Grid>
