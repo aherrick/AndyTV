@@ -31,10 +31,10 @@
 
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\andytv.png" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\AppIcon\andytv.png" Color="#000000" />
+		<MauiSplashScreen Include="Resources\AppIcon\appicon.png" Color="#000000" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
