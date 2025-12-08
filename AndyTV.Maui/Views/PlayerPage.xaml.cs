@@ -13,11 +13,6 @@ public partial class PlayerPage : ContentPage
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel;
-
-        // Ensure shell chrome stays hidden when navigating directly
-        Shell.SetFlyoutBehavior(this, FlyoutBehavior.Disabled);
-        Shell.SetNavBarIsVisible(this, false);
-        Shell.SetTabBarIsVisible(this, false);
     }
 
     protected override void OnAppearing()

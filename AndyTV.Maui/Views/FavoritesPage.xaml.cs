@@ -15,8 +15,6 @@ public partial class FavoritesPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        Shell.SetNavBarIsVisible(this, true);
-        Shell.SetTabBarIsVisible(this, true);
         _viewModel.LoadFavoritesCommand.Execute(null);
     }
 }
