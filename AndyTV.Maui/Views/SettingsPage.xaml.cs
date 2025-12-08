@@ -15,6 +15,8 @@ public partial class SettingsPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        Shell.SetNavBarIsVisible(this, true);
+        Shell.SetTabBarIsVisible(this, true);
         _viewModel.Initialize();
     }
 }
