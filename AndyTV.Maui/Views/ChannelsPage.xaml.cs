@@ -15,6 +15,6 @@ public partial class ChannelsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _viewModel.LoadChannelsCommand.ExecuteAsync(null);
+        await _viewModel.EnsureChannelsLoaded();
     }
 }

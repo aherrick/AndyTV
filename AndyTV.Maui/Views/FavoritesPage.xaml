@@ -5,7 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
-    x:Name="favoritesPage"
     Title="Favorites"
     x:DataType="vm:FavoritesViewModel">
 
@@ -15,7 +14,9 @@
                 <DataTemplate x:DataType="models:Channel">
                     <Grid Padding="15,10" ColumnDefinitions="*,Auto">
                         <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference favoritesPage}, Path=BindingContext.SelectChannelCommand}" CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
+                                CommandParameter="{Binding .}" />
                         </Grid.GestureRecognizers>
 
                         <VerticalStackLayout Grid.Column="0">
@@ -29,7 +30,7 @@
                         <ImageButton
                             Grid.Column="1"
                             BackgroundColor="Transparent"
-                            Command="{Binding Source={x:Reference favoritesPage}, Path=BindingContext.RemoveFavoriteCommand}"
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveFavoriteCommand}"
                             CommandParameter="{Binding .}"
                             HeightRequest="40"
                             WidthRequest="40">

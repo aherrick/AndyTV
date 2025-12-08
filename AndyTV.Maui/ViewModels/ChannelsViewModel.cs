@@ -34,8 +34,17 @@ public partial class ChannelsViewModel(
 
     private readonly List<Channel> _allChannels = [];
     private bool _isFirstLoad = true;
+    private bool _hasLoaded;
 
     public ObservableCollection<Channel> Channels { get; } = [];
+
+    public async Task EnsureChannelsLoaded()
+    {
+        if (_hasLoaded && Channels.Count > 0)
+            return;
+
+        await LoadChannels();
+    }
 
     private void FilterChannels()
     {
@@ -58,7 +67,7 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private async Task LoadChannelsAsync()
+    private async Task LoadChannels()
     {
         if (IsBusy)
             return;
@@ -105,6 +114,7 @@ public partial class ChannelsViewModel(
             }
 
             FilterChannels();
+            _hasLoaded = true;
             await Toast.Make($"Loaded {_allChannels.Count} channels").Show();
 
             // Auto-play last channel on first load
@@ -132,7 +142,7 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private async Task ToggleFavoriteAsync(Channel channel)
+    private async Task ToggleFavorite(Channel channel)
     {
         if (channel == null)
             return;
@@ -150,7 +160,7 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private async Task SelectChannelAsync(Channel channel)
+    private async Task SelectChannel(Channel channel)
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url))
             return;

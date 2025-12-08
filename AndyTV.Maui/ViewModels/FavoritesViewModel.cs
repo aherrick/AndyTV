@@ -37,7 +37,7 @@ public partial class FavoritesViewModel(
     }
 
     [RelayCommand]
-    private async Task RemoveFavoriteAsync(Channel channel)
+    private async Task RemoveFavorite(Channel channel)
     {
         if (channel == null)
             return;
@@ -48,7 +48,7 @@ public partial class FavoritesViewModel(
     }
 
     [RelayCommand]
-    private async Task SelectChannelAsync(Channel channel)
+    private async Task SelectChannel(Channel channel)
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url))
             return;

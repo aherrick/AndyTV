@@ -41,7 +41,7 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     }
 
     [RelayCommand]
-    private async Task AddAsync()
+    private async Task Add()
     {
         if (string.IsNullOrWhiteSpace(PlaylistName) || string.IsNullOrWhiteSpace(PlaylistUrl))
         {
@@ -78,7 +78,7 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     }
 
     [RelayCommand]
-    private async Task DeleteAsync(Playlist playlist)
+    private async Task Delete(Playlist playlist)
     {
         if (playlist == null)
             return;

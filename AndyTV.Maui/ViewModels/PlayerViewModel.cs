@@ -20,7 +20,7 @@ public partial class PlayerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task GoBackAsync()
+    private async Task GoBack()
     {
         await Shell.Current.GoToAsync("..");
     }

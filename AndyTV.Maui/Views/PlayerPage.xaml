@@ -6,14 +6,13 @@
     xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="{Binding ChannelName}"
-    x:DataType="vm:PlayerViewModel"
-    Shell.FlyoutBehavior="Disabled"
-    Shell.NavBarIsVisible="False"
-    Shell.TabBarIsVisible="False">
+    x:DataType="vm:PlayerViewModel">
 
     <Grid BackgroundColor="Black">
         <Grid.GestureRecognizers>
-            <SwipeGestureRecognizer Command="{Binding GoBackCommand}" Direction="Right" />
+            <TapGestureRecognizer
+                Command="{Binding GoBackCommand}"
+                NumberOfTapsRequired="2" />
         </Grid.GestureRecognizers>
 
         <vlc:VideoView
