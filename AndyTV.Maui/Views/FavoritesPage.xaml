@@ -6,8 +6,6 @@
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="Favorites"
-    Shell.NavBarIsVisible="True"
-    Shell.TabBarIsVisible="True"
     x:DataType="vm:FavoritesViewModel">
 
     <RefreshView Command="{Binding LoadFavoritesCommand}" IsRefreshing="{Binding IsRefreshing}">

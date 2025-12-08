@@ -7,8 +7,6 @@
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     Title="Channels"
-    Shell.NavBarIsVisible="True"
-    Shell.TabBarIsVisible="True"
     x:DataType="vm:ChannelsViewModel">
 
     <ContentPage.Resources>

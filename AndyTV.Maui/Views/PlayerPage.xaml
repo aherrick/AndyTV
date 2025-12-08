@@ -6,9 +6,6 @@
     xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="{Binding ChannelName}"
-    Shell.NavBarIsVisible="False"
-    Shell.TabBarIsVisible="False"
-    Shell.FlyoutBehavior="Disabled"
     x:DataType="vm:PlayerViewModel">
 
     <Grid BackgroundColor="Black">
