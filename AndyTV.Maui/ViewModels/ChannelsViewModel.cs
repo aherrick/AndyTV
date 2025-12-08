@@ -165,12 +165,7 @@ public partial class ChannelsViewModel(
     }
 }
 
-public class ChannelGroup : ObservableCollection<Channel>
+public class ChannelGroup(string name, IEnumerable<Channel> channels) : ObservableCollection<Channel>(channels)
 {
-    public string Name { get; private set; }
-
-    public ChannelGroup(string name, IEnumerable<Channel> channels) : base(channels)
-    {
-        Name = name;
-    }
+    public string Name { get; } = name;
 }
