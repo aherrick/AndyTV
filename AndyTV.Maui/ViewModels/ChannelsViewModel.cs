@@ -96,15 +96,6 @@ public partial class ChannelsViewModel(
             {
                 foreach (var ch in channels)
                 {
-                    if (ch == null)
-                        continue;
-
-                    if (string.IsNullOrWhiteSpace(ch.Name) && string.IsNullOrWhiteSpace(ch.Url))
-                        continue;
-
-                    if (string.IsNullOrWhiteSpace(ch.Name))
-                        ch.Name = "Channel";
-
                     ch.Category = playlist.Name ?? "Playlist";
                     _allChannels.Add(ch);
                 }

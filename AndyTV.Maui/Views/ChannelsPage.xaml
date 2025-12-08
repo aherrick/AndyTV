@@ -6,6 +6,7 @@
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     Title="Channels"
+    Shell.NavBarIsVisible="True"
     x:DataType="vm:ChannelsViewModel">
 
     <Grid RowDefinitions="Auto,*">
