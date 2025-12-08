@@ -94,9 +94,6 @@ public partial class ChannelsViewModel(
             // Add Playlists
             foreach (var (playlist, channels) in playlistService.PlaylistChannels)
             {
-                if (channels == null || channels.Count == 0)
-                    continue;
-
                 foreach (var ch in channels)
                 {
                     if (ch == null)
