@@ -63,12 +63,10 @@ jobs:
           dotnet publish ./AndyTV.Maui/AndyTV.Maui.csproj \
             -f net10.0-ios \
             -c Release \
-            -p:RuntimeIdentifier=ios-arm64 \
-            -p:ArchiveOnBuild=true \
-            -p:PackageApp=true \
             -p:BuildIpa=true \
-            -p:BundleIdentifier=${{ env.BUNDLE_ID }} \
-            -p:CodesignTeamId=${{ env.APPLE_TEAM_ID }} \
+            -p:RuntimeIdentifier=ios-arm64 \
+            -p:UseInterpreter=false \
+            -p:MtouchUseLlvm=true \
             -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
             -p:CodesignProvision=${{ env.CODESIGN_PROVISION }} \
             -o publishapp
