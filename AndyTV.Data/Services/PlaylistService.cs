@@ -116,6 +116,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                             Name = name,
                             Url = url,
                             Group = item.GroupTitle,
+                            LogoUrl = item.Logo,
                         }
                     );
                 }

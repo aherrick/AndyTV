@@ -21,17 +21,36 @@
             Grid.Row="1"
             Command="{Binding LoadChannelsCommand}"
             IsRefreshing="{Binding IsRefreshing}">
-            <CollectionView ItemsSource="{Binding Channels}">
+            <CollectionView IsGrouped="True" ItemsSource="{Binding Channels}">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:ChannelGroup">
+                        <Label
+                            BackgroundColor="{AppThemeBinding Light=#F0F0F0,
+                                                              Dark=#202020}"
+                            FontAttributes="Bold"
+                            FontSize="18"
+                            Padding="15,10"
+                            Text="{Binding Name}" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:Channel">
-                        <Grid Padding="15,10" ColumnDefinitions="*,Auto">
+                        <Grid Padding="15,10" ColumnDefinitions="Auto,*,Auto">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
                                     CommandParameter="{Binding .}" />
                             </Grid.GestureRecognizers>
 
-                            <VerticalStackLayout Grid.Column="0">
+                            <Image
+                                Grid.Column="0"
+                                Aspect="AspectFit"
+                                HeightRequest="40"
+                                Margin="0,0,10,0"
+                                Source="{Binding LogoUrl}"
+                                WidthRequest="40" />
+
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
                                 <Label FontSize="16" Text="{Binding Name}" />
                                 <Label
                                     FontSize="12"
@@ -40,7 +59,7 @@
                             </VerticalStackLayout>
 
                             <ImageButton
-                                Grid.Column="1"
+                                Grid.Column="2"
                                 BackgroundColor="Transparent"
                                 Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleFavoriteCommand}"
                                 CommandParameter="{Binding .}"

@@ -12,6 +12,7 @@ public class Channel
 
     public string Group { get; set; }
     public string Category { get; set; }
+    public string LogoUrl { get; set; }
 
     public string DisplayName => MappedName ?? Name;
 }

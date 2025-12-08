@@ -36,7 +36,7 @@ public partial class ChannelsViewModel(
     private bool _isFirstLoad = true;
     private bool _hasLoaded;
 
-    public ObservableCollection<Channel> Channels { get; } = [];
+    public ObservableCollection<ChannelGroup> Channels { get; } = [];
 
     public async Task EnsureChannelsLoaded()
     {
@@ -53,16 +53,16 @@ public partial class ChannelsViewModel(
         var filtered =
             string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
                 ? _allChannels
-                :
-                [
-                    .. _allChannels.Where(c =>
+                : _allChannels.Where(c =>
                         c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true
-                    ),
-                ];
+                    ).ToList();
 
-        foreach (var channel in filtered)
+        var groups = filtered.GroupBy(c => c.Category)
+                             .Select(g => new ChannelGroup(g.Key, g));
+
+        foreach (var group in groups)
         {
-            Channels.Add(channel);
+            Channels.Add(group);
         }
     }
 
@@ -162,5 +162,15 @@ public partial class ChannelsViewModel(
         await Shell.Current.GoToAsync(
             $"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}"
         );
+    }
+}
+
+public class ChannelGroup : ObservableCollection<Channel>
+{
+    public string Name { get; private set; }
+
+    public ChannelGroup(string name, IEnumerable<Channel> channels) : base(channels)
+    {
+        Name = name;
     }
 }
