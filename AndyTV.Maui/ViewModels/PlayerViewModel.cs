@@ -3,8 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-[QueryProperty(nameof(Url), "url")]
-[QueryProperty(nameof(ChannelName), "name")]
 public partial class PlayerViewModel : ObservableObject
 {
     [ObservableProperty]
@@ -22,6 +20,6 @@ public partial class PlayerViewModel : ObservableObject
     [RelayCommand]
     private async Task GoBack()
     {
-        await Shell.Current.GoToAsync("..");
+        await Shell.Current.Navigation.PopModalAsync();
     }
 }

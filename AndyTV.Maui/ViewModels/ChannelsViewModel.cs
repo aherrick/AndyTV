@@ -112,9 +112,9 @@ public partial class ChannelsViewModel(
                 var lastChannel = lastChannelService.LoadLastChannel();
                 if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
                 {
-                    await Shell.Current.GoToAsync(
-                        $"player?url={Uri.EscapeDataString(lastChannel.Url)}&name={Uri.EscapeDataString(lastChannel.DisplayName)}"
-                    );
+                    var playerPage = App.Current.Handler.MauiContext.Services.GetService<Views.PlayerPage>();
+                    playerPage.SetChannel(lastChannel.Url, lastChannel.DisplayName);
+                    await Shell.Current.Navigation.PushModalAsync(playerPage);
                 }
             }
         }
@@ -159,9 +159,9 @@ public partial class ChannelsViewModel(
         // Save as last channel
         lastChannelService.SaveLastChannel(channel);
 
-        await Shell.Current.GoToAsync(
-            $"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}"
-        );
+        var playerPage = App.Current.Handler.MauiContext.Services.GetService<Views.PlayerPage>();
+        playerPage.SetChannel(channel.Url, channel.DisplayName);
+        await Shell.Current.Navigation.PushModalAsync(playerPage);
     }
 }
 

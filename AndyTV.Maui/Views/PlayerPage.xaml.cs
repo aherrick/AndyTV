@@ -15,6 +15,12 @@ public partial class PlayerPage : ContentPage
         BindingContext = _viewModel = viewModel;
     }
 
+    public void SetChannel(string url, string name)
+    {
+        _viewModel.Url = url;
+        _viewModel.ChannelName = name;
+    }
+
     protected override void OnAppearing()
     {
         base.OnAppearing();
