@@ -6,8 +6,8 @@ namespace AndyTV.Maui.Views;
 public partial class PlayerPage : ContentPage
 {
     private readonly PlayerViewModel _viewModel;
-    private LibVLC? _libVLC;
-    private MediaPlayer? _mediaPlayer;
+    private LibVLC _libVLC;
+    private LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
 
     public PlayerPage(PlayerViewModel viewModel)
     {
@@ -23,7 +23,7 @@ public partial class PlayerPage : ContentPage
         if (!string.IsNullOrEmpty(_viewModel.Url))
         {
             _libVLC = new LibVLC();
-            _mediaPlayer = new MediaPlayer(_libVLC);
+            _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
             VideoView.MediaPlayer = _mediaPlayer;
 
             var media = new Media(_libVLC, new Uri(_viewModel.Url));
