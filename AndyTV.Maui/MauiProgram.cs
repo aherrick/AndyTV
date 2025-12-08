@@ -2,6 +2,7 @@
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
+using CommunityToolkit.Maui;
 using LibVLCSharp.MAUI;
 using Microsoft.Extensions.Logging;
 
@@ -14,11 +15,13 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseMauiCommunityToolkit()
             .UseLibVLCSharp()
             .ConfigureFonts(fonts =>
             {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));
+                fonts.AddFont("fa-regular-400.ttf", nameof(FontAwesome.FontAwesomeRegular));
+                fonts.AddFont("fa-solid-900.ttf", nameof(FontAwesome.FontAwesomeSolid));
             });
 
         // Services
@@ -31,11 +34,13 @@ public static class MauiProgram
         // ViewModels
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<ChannelsViewModel>();
+        builder.Services.AddTransient<FavoritesViewModel>();
         builder.Services.AddTransient<PlayerViewModel>();
 
         // Pages
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<ChannelsPage>();
+        builder.Services.AddTransient<FavoritesPage>();
         builder.Services.AddTransient<PlayerPage>();
 
 #if DEBUG

@@ -11,13 +11,28 @@
         <ShellContent
             Title="Channels"
             ContentTemplate="{DataTemplate views:ChannelsPage}"
-            Icon="dotnet_bot.png"
-            Route="channels" />
+            Route="channels">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf26c;" />
+            </ShellContent.Icon>
+        </ShellContent>
+
+        <ShellContent
+            Title="Favorites"
+            ContentTemplate="{DataTemplate views:FavoritesPage}"
+            Route="favorites">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf004;" />
+            </ShellContent.Icon>
+        </ShellContent>
 
         <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate views:SettingsPage}"
-            Icon="dotnet_bot.png"
-            Route="settings" />
+            Route="settings">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf013;" />
+            </ShellContent.Icon>
+        </ShellContent>
     </TabBar>
 </Shell>

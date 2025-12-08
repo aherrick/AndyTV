@@ -9,42 +9,53 @@
     Title="Channels"
     x:DataType="vm:ChannelsViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*">
-
-        <HorizontalStackLayout
-            Grid.Row="0"
-            Padding="10"
-            Spacing="10">
-            <Button Command="{Binding LoadChannelsCommand}" Text="Refresh" />
-            <Label Text="{Binding StatusMessage}" VerticalOptions="Center" />
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-        </HorizontalStackLayout>
+    <Grid RowDefinitions="Auto,*">
 
         <Entry
-            Grid.Row="1"
-            Margin="10,0"
+            Grid.Row="0"
+            Margin="10"
             Placeholder="Search channels (min 2 chars)..."
             Text="{Binding SearchText}" />
 
-        <CollectionView Grid.Row="2" ItemsSource="{Binding Channels}">
+        <RefreshView
+            Grid.Row="1"
+            Command="{Binding LoadChannelsCommand}"
+            IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Channels}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Channel">
+                        <Grid Padding="15,10" ColumnDefinitions="*,Auto">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={x:Reference channelsPage}, Path=BindingContext.SelectChannelCommand}" CommandParameter="{Binding .}" />
+                            </Grid.GestureRecognizers>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:Channel">
-                    <Grid Padding="15,10">
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference channelsPage}, Path=BindingContext.SelectChannelCommand}" CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label FontSize="16" Text="{Binding Name}" />
+                                <Label
+                                    FontSize="12"
+                                    Text="{Binding Category}"
+                                    TextColor="Gray" />
+                            </VerticalStackLayout>
 
-                        <VerticalStackLayout>
-                            <Label FontSize="16" Text="{Binding Name}" />
-                            <Label
-                                FontSize="12"
-                                Text="{Binding Category}"
-                                TextColor="Gray" />
-                        </VerticalStackLayout>
-                    </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                            <ImageButton
+                                Grid.Column="1"
+                                BackgroundColor="Transparent"
+                                Command="{Binding Source={x:Reference channelsPage}, Path=BindingContext.ToggleFavoriteCommand}"
+                                CommandParameter="{Binding .}"
+                                HeightRequest="40"
+                                WidthRequest="40">
+                                <ImageButton.Source>
+                                    <FontImageSource
+                                        FontFamily="FontAwesomeRegular"
+                                        Glyph="&#xf004;"
+                                        Size="24"
+                                        Color="Gray" />
+                                </ImageButton.Source>
+                            </ImageButton>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
     </Grid>
 </ContentPage>

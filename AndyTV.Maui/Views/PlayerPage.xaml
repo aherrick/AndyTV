@@ -13,7 +13,7 @@
 
     <Grid BackgroundColor="Black">
         <Grid.GestureRecognizers>
-            <SwipeGestureRecognizer Direction="Right" Command="{Binding GoBackCommand}" />
+            <SwipeGestureRecognizer Command="{Binding GoBackCommand}" Direction="Right" />
         </Grid.GestureRecognizers>
 
         <vlc:VideoView

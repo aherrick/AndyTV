@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -8,14 +9,16 @@ namespace AndyTV.Maui.ViewModels;
 
 public partial class ChannelsViewModel(
     IPlaylistService playlistService,
-    IRecentChannelService recentChannelService
+    IRecentChannelService recentChannelService,
+    IFavoriteChannelService favoriteChannelService,
+    ILastChannelService lastChannelService
 ) : ObservableObject
 {
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Loading channels...";
+    public partial bool IsRefreshing { get; set; }
 
     public string SearchText
     {
@@ -30,6 +33,7 @@ public partial class ChannelsViewModel(
     } = string.Empty;
 
     private readonly List<Channel> _allChannels = [];
+    private bool _isFirstLoad = true;
 
     public ObservableCollection<Channel> Channels { get; } = [];
 
@@ -60,7 +64,6 @@ public partial class ChannelsViewModel(
             return;
 
         IsBusy = true;
-        StatusMessage = "Loading channels...";
 
         try
         {
@@ -102,15 +105,47 @@ public partial class ChannelsViewModel(
             }
 
             FilterChannels();
-            StatusMessage = $"Loaded {_allChannels.Count} channels";
+            await Toast.Make($"Loaded {_allChannels.Count} channels").Show();
+
+            // Auto-play last channel on first load
+            if (_isFirstLoad)
+            {
+                _isFirstLoad = false;
+                var lastChannel = lastChannelService.LoadLastChannel();
+                if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
+                {
+                    await Shell.Current.GoToAsync(
+                        $"player?url={Uri.EscapeDataString(lastChannel.Url)}&name={Uri.EscapeDataString(lastChannel.DisplayName)}"
+                    );
+                }
+            }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            await Toast.Make($"Error: {ex.Message}").Show();
         }
         finally
         {
             IsBusy = false;
+            IsRefreshing = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ToggleFavoriteAsync(Channel channel)
+    {
+        if (channel == null)
+            return;
+
+        if (favoriteChannelService.IsFavorite(channel))
+        {
+            favoriteChannelService.RemoveFavorite(channel);
+            await Toast.Make("Removed from favorites").Show();
+        }
+        else
+        {
+            favoriteChannelService.AddFavorite(channel);
+            await Toast.Make("Added to favorites").Show();
         }
     }
 
@@ -122,6 +157,9 @@ public partial class ChannelsViewModel(
 
         // Add to recent channels
         recentChannelService.AddOrPromote(channel);
+
+        // Save as last channel
+        lastChannelService.SaveLastChannel(channel);
 
         await Shell.Current.GoToAsync(
             $"player?url={Uri.EscapeDataString(channel.Url)}&name={Uri.EscapeDataString(channel.DisplayName)}"

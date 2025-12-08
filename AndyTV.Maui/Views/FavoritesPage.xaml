@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="AndyTV.Maui.Views.FavoritesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
+    xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    x:Name="favoritesPage"
+    Title="Favorites"
+    x:DataType="vm:FavoritesViewModel">
+
+    <RefreshView Command="{Binding LoadFavoritesCommand}" IsRefreshing="{Binding IsRefreshing}">
+        <CollectionView EmptyView="No favorites yet. Add some from the Channels tab!" ItemsSource="{Binding Favorites}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Channel">
+                    <Grid Padding="15,10" ColumnDefinitions="*,Auto">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference favoritesPage}, Path=BindingContext.SelectChannelCommand}" CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label FontSize="16" Text="{Binding Name}" />
+                            <Label
+                                FontSize="12"
+                                Text="{Binding Category}"
+                                TextColor="Gray" />
+                        </VerticalStackLayout>
+
+                        <ImageButton
+                            Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            Command="{Binding Source={x:Reference favoritesPage}, Path=BindingContext.RemoveFavoriteCommand}"
+                            CommandParameter="{Binding .}"
+                            HeightRequest="40"
+                            WidthRequest="40">
+                            <ImageButton.Source>
+                                <FontImageSource
+                                    FontFamily="FontAwesomeSolid"
+                                    Glyph="&#xf004;"
+                                    Size="24"
+                                    Color="Red" />
+                            </ImageButton.Source>
+                        </ImageButton>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </RefreshView>
+</ContentPage>
