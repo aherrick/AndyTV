@@ -20,7 +20,7 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     [ObservableProperty]
     public partial bool IsLoaded { get; set; }
 
-    public string AppVersion => $"v{AppInfo.Current.VersionString}";
+    public static string AppVersion => $"v{AppInfo.Current.VersionString}";
 
     public ObservableCollection<Playlist> Playlists { get; } = [];
 

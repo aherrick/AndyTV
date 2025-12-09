@@ -81,7 +81,7 @@
             Grid.Row="2"
             HorizontalOptions="Center"
             Margin="0,10,0,0"
-            Text="{Binding AppVersion}"
+            Text="{x:Static vm:SettingsViewModel.AppVersion}"
             TextColor="Gray" />
     </Grid>
 </ContentPage>
