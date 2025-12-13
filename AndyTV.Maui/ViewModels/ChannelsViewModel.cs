@@ -112,8 +112,7 @@ public partial class ChannelsViewModel(
                 var lastChannel = lastChannelService.LoadLastChannel();
                 if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
                 {
-                    var playerPage = App.Current.Handler.MauiContext.Services.GetService<Views.PlayerPage>();
-                    playerPage.SetChannel(lastChannel.Url, lastChannel.DisplayName);
+                    var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
                     await Shell.Current.Navigation.PushModalAsync(playerPage);
                 }
             }
@@ -159,8 +158,7 @@ public partial class ChannelsViewModel(
         // Save as last channel
         lastChannelService.SaveLastChannel(channel);
 
-        var playerPage = App.Current.Handler.MauiContext.Services.GetService<Views.PlayerPage>();
-        playerPage.SetChannel(channel.Url, channel.DisplayName);
+        var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
         await Shell.Current.Navigation.PushModalAsync(playerPage);
     }
 }

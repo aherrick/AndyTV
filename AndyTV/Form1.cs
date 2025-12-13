@@ -33,15 +33,13 @@ public partial class Form1 : Form
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
     private DateTime _mouseDownRightExit = DateTime.MinValue;
 
-    private bool _isRestartingStream = false;
+    private readonly StreamHealthMonitor _healthMonitor;
 
-    private const int STALL_SECONDS = 4;
     private const int MOUSE_LEFT_DOUBLE_CLICK_SECONDS = 1;
     private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
     private const int HOURLY_REFRESH_MILLISECONDS = 60 * 60 * 1000;
     private const int HEALTH_CHECK_MILLISECONDS = 1000;
     private System.Windows.Forms.Timer _healthTimer;
-    private DateTime _lastActivityUtc = DateTime.UtcNow;
 
     private bool _favoritesShown = true;
 
@@ -68,6 +66,20 @@ public partial class Form1 : Form
         _lastChannelService = lastChannelService;
         _favoriteChannelService = favoriteChannelService;
 
+        _healthMonitor = new StreamHealthMonitor(
+            isPaused: () => _videoView.MediaPlayer.State == VLCState.Paused,
+            restart: () =>
+            {
+                if (_currentChannel == null)
+                    return;
+
+                Logger.Info(
+                    $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
+                );
+                Play(_currentChannel);
+            }
+        );
+
         InitializeComponent();
 
         _menuTop = new MenuTop(_contextMenuStrip, _ui, _playlistService);
@@ -84,19 +96,12 @@ public partial class Form1 : Form
         Logger.Info("Starting AndyTV...");
         Icon = new Icon("AndyTV.ico");
 
-        _videoView.MediaPlayer.TimeChanged += delegate
-        {
-            _lastActivityUtc = DateTime.UtcNow;
-        };
-        _videoView.MediaPlayer.PositionChanged += delegate
-        {
-            _lastActivityUtc = DateTime.UtcNow;
-        };
+        _videoView.MediaPlayer.TimeChanged += delegate { _healthMonitor.MarkActivity(); };
+        _videoView.MediaPlayer.PositionChanged += delegate { _healthMonitor.MarkActivity(); };
 
         _videoView.MediaPlayer.Playing += delegate
         {
-            _lastActivityUtc = DateTime.UtcNow;
-            _isRestartingStream = false;
+            _healthMonitor.MarkPlaying();
 
             _videoView.SetCursorForCurrentView();
 
@@ -252,33 +257,7 @@ public partial class Form1 : Form
                 if (_currentChannel == null)
                     return;
 
-                // Don't restart if paused
-                if (_videoView.MediaPlayer.State == VLCState.Paused)
-                    return;
-
-                var nowUtc = DateTime.UtcNow;
-                var inactive = nowUtc - _lastActivityUtc;
-
-                if (inactive.TotalSeconds >= STALL_SECONDS)
-                {
-                    if (_isRestartingStream)
-                    {
-                        Logger.Info(
-                            $"[HEALTH] Skip restart: already in progress (inactive={inactive.TotalSeconds:F0}s)."
-                        );
-                        return;
-                    }
-
-                    _isRestartingStream = true;
-                    _lastActivityUtc = nowUtc;
-
-                    Logger.Info(
-                        $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
-                    );
-                    Play(_currentChannel);
-                    _isRestartingStream = false;
-                    Logger.Info("[HEALTH] Restart queued; awaiting Playing or next health check.");
-                }
+                _healthMonitor.Tick();
             };
             _healthTimer.Start();
 
@@ -341,8 +320,7 @@ public partial class Form1 : Form
         _currentChannel = channel;
 
         _videoView.ShowWaiting();
-        _isRestartingStream = false;
-        _lastActivityUtc = DateTime.UtcNow;
+        _healthMonitor.MarkPlaying();
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
 
@@ -422,9 +400,8 @@ public partial class Form1 : Form
                 using var dialog = new AdHocChannelForm(_playlistService.Channels);
                 dialog.ShowDialog(this);
                 if (dialog.SelectedItem != null)
-                {
                     Play(dialog.SelectedItem);
-                }
+                _videoView.SetCursorForCurrentView();
             }
         );
 

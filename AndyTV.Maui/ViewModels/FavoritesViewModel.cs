@@ -55,8 +55,7 @@ public partial class FavoritesViewModel(
 
         recentChannelService.AddOrPromote(channel);
 
-        var playerPage = App.Current.Handler.MauiContext.Services.GetService<Views.PlayerPage>();
-        playerPage.SetChannel(channel.Url, channel.DisplayName);
+        var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
         await Shell.Current.Navigation.PushModalAsync(playerPage);
     }
 }

@@ -35,13 +35,11 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<ChannelsViewModel>();
         builder.Services.AddTransient<FavoritesViewModel>();
-        builder.Services.AddTransient<PlayerViewModel>();
 
         // Pages
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<ChannelsPage>();
         builder.Services.AddTransient<FavoritesPage>();
-        builder.Services.AddTransient<PlayerPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
