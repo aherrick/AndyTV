@@ -7,7 +7,9 @@
     Title="AndyTV"
     FlyoutBehavior="Disabled">
 
-    <TabBar Shell.TabBarTitleColor="{StaticResource Primary}">
+    <TabBar
+        Shell.TabBarForegroundColor="{StaticResource Primary}"
+        Shell.TabBarTitleColor="{StaticResource Primary}">
         <ShellContent
             Title="Channels"
             ContentTemplate="{DataTemplate views:ChannelsPage}"
