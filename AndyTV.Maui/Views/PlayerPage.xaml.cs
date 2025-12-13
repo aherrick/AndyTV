@@ -40,7 +40,7 @@ public partial class PlayerPage : ContentPage
 
         _mediaPlayer.TimeChanged += (_, __) => _healthMonitor.MarkActivity();
         _mediaPlayer.PositionChanged += (_, __) => _healthMonitor.MarkActivity();
-        _mediaPlayer.Playing += (_, __) => _healthMonitor.MarkPlaying();
+        _mediaPlayer.Playing += (_, __) => _healthMonitor.MarkActivity();
 
         _healthTimer = Dispatcher.CreateTimer();
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);

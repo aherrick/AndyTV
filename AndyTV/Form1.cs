@@ -101,7 +101,7 @@ public partial class Form1 : Form
 
         _videoView.MediaPlayer.Playing += delegate
         {
-            _healthMonitor.MarkPlaying();
+            _healthMonitor.MarkActivity();
 
             _videoView.SetCursorForCurrentView();
 
@@ -320,7 +320,7 @@ public partial class Form1 : Form
         _currentChannel = channel;
 
         _videoView.ShowWaiting();
-        _healthMonitor.MarkPlaying();
+        _healthMonitor.MarkActivity();
 
         Logger.Info($"[PLAY][BEGIN] channel='{channel.DisplayName}' url='{channel.Url}'");
 
