@@ -1,7 +1,9 @@
 ﻿@page "/"
 @inject IJSRuntime JSRuntime
 @inject ChannelManagerService ChannelManager
+@inject IRecentChannelService RecentChannels
 @using AndyTV.Data.Models
+@using AndyTV.Data.Services
 @using AndyTV.Web.Services
 @using AndyTV.Web.Components
 @implements IAsyncDisposable
@@ -26,13 +28,54 @@
 
     <div class="row justify-content-center mt-4">
         <div class="col-12 col-lg-10">
-            <PlaylistManager Manager="ChannelManager" />
-        </div>
-    </div>
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <button type="button" class="nav-link @GetTabClass(Tab.Recent)" @onclick="() => SetTab(Tab.Recent)">Recent</button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link @GetTabClass(Tab.Channels)" @onclick="() => SetTab(Tab.Channels)">Channels</button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link @GetTabClass(Tab.Playlists)" @onclick="() => SetTab(Tab.Playlists)">Playlists</button>
+                </li>
+            </ul>
 
-    <div class="row justify-content-center mt-4">
-        <div class="col-12 col-lg-10">
-            <ChannelList Manager="ChannelManager" CurrentUrl="@_currentUrl" OnChannelSelected="PlayChannel" />
+            <div class="border border-top-0 rounded-bottom p-3">
+                @if (_activeTab == Tab.Recent)
+                {
+                    <h5>Recent (@_recentChannels.Count)</h5>
+
+                    @if (_recentChannels.Any())
+                    {
+                        <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+                            @foreach (var recent in _recentChannels)
+                            {
+                                <button type="button"
+                                        class="list-group-item list-group-item-action @(recent.Url == _currentUrl ? "active" : "")"
+                                        @onclick="() => PlayRecent(recent)">
+                                    @recent.DisplayName
+                                    @if (!string.IsNullOrEmpty(recent.Group))
+                                    {
+                                        <small class="text-muted"> — @recent.Group</small>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">No recent channels yet.</div>
+                    }
+                }
+                else if (_activeTab == Tab.Playlists)
+                {
+                    <PlaylistManager Manager="ChannelManager" />
+                }
+                else
+                {
+                    <ChannelList Manager="ChannelManager" CurrentUrl="@_currentUrl" OnChannelSelected="PlayChannel" />
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -42,10 +85,22 @@
     private string _currentUrl = "";
     private bool _playerInitialized;
 
+    private Tab _activeTab = Tab.Recent;
+    private List<Channel> _recentChannels = [];
+
+    private enum Tab
+    {
+        Recent,
+        Channels,
+        Playlists,
+    }
+
     protected override async Task OnInitializedAsync()
     {
         ChannelManager.OnStateChanged += StateHasChanged;
         ChannelManager.LoadPlaylists();
+
+        LoadRecent();
         
         if (ChannelManager.Playlists.Any())
         {
@@ -58,6 +113,9 @@
         _currentChannel = channel.DisplayName;
         _currentUrl = channel.Url;
 
+        RecentChannels.AddOrPromote(channel);
+        LoadRecent();
+
         if (!_playerInitialized)
         {
             await JSRuntime.InvokeVoidAsync("window.videoPlayer.init", "my-video", channel.Url);
@@ -68,6 +126,20 @@
             await JSRuntime.InvokeVoidAsync("window.videoPlayer.changeSource", channel.Url);
         }
     }
+
+    private async Task PlayRecent(Channel recent)
+    {
+        await PlayChannel(recent);
+    }
+
+    private void LoadRecent()
+    {
+        _recentChannels = RecentChannels.GetRecentChannels();
+    }
+
+    private void SetTab(Tab tab) => _activeTab = tab;
+
+    private string GetTabClass(Tab tab) => _activeTab == tab ? "active" : "";
 
     public async ValueTask DisposeAsync()
     {
