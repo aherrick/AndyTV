@@ -26,8 +26,8 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install MAUI
-        run: dotnet workload install maui
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios
 
       - name: Delete existing build keychain
         run: security delete-keychain build.keychain-db.keychain || true
