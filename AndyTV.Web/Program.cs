@@ -14,5 +14,6 @@ builder.Services.AddScoped<IStorageProvider, BlazorStorageProvider>();
 builder.Services.AddScoped<IPlaylistService, PlaylistService>();
 builder.Services.AddScoped<ChannelManagerService>();
 builder.Services.AddScoped<IRecentChannelService, RecentChannelService>();
+builder.Services.AddScoped<ILastChannelService, LastChannelService>();
 
 await builder.Build().RunAsync();

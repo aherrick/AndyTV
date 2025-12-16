@@ -2,6 +2,7 @@
 @inject IJSRuntime JSRuntime
 @inject ChannelManagerService ChannelManager
 @inject IRecentChannelService RecentChannels
+@inject ILastChannelService LastChannelService
 @using AndyTV.Data.Models
 @using AndyTV.Data.Services
 @using AndyTV.Web.Services
@@ -84,6 +85,7 @@
     private string _currentChannel = "";
     private string _currentUrl = "";
     private bool _playerInitialized;
+    private bool _attemptedAutoResume;
 
     private Tab _activeTab = Tab.Recent;
     private List<Channel> _recentChannels = [];
@@ -108,6 +110,20 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _attemptedAutoResume)
+            return;
+
+        _attemptedAutoResume = true;
+
+        var last = LastChannelService.LoadLastChannel();
+        if (last is null || string.IsNullOrWhiteSpace(last.Url))
+            return;
+
+        await PlayChannel(last);
+    }
+
     private async Task PlayChannel(Channel channel)
     {
         _currentChannel = channel.DisplayName;
@@ -115,6 +131,8 @@
 
         RecentChannels.AddOrPromote(channel);
         LoadRecent();
+
+        LastChannelService.SaveLastChannel(channel);
 
         if (!_playerInitialized)
         {
