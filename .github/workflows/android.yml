@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -22,12 +22,40 @@ jobs:
       - name: Install MAUI Android workload
         run: |
           dotnet workload install maui-android --ignore-failed-sources
-          dotnet workload restore
 
       - name: Publish Android APK
         shell: pwsh
         run: |
           dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk
+
+      - name: Locate APK
+        shell: pwsh
+        run: |
+          $apk = Get-ChildItem -Recurse -Filter *.apk -Path "AndyTV.Maui\bin" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $apk) { throw "APK not found" }
+          echo "APK_PATH=$($apk.FullName)" >> $env:GITHUB_ENV
+          echo "Found APK: $($apk.FullName)"
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: android-${{ github.run_number }}
+          release_name: Android build ${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload APK to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.APK_PATH }}
+          asset_name: AndyTV-android-${{ github.run_number }}.apk
+          asset_content_type: application/vnd.android.package-archive
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
