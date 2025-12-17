@@ -8,13 +8,18 @@ permissions:
 
 jobs:
   build:
-    #runs-on: windows-latest
-    runs-on: self-hosted
+    runs-on: [self-hosted]
 
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # - name: Setup Java (JDK 17)
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     distribution: temurin
+      #     java-version: '17'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -26,17 +31,21 @@ jobs:
           dotnet workload install maui-android --ignore-failed-sources
 
       - name: Publish Android APK
-        shell: pwsh
+        shell: bash
         run: |
           dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk
 
       - name: Locate APK
-        shell: pwsh
+        shell: bash
         run: |
-          $apk = Get-ChildItem -Recurse -Filter *.apk -Path "AndyTV.Maui\bin" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $apk) { throw "APK not found" }
-          echo "APK_PATH=$($apk.FullName)" >> $env:GITHUB_ENV
-          echo "Found APK: $($apk.FullName)"
+          set -euo pipefail
+          apk_path=$(find AndyTV.Maui/bin -name "*.apk" -print | sort | tail -n 1)
+          if [ -z "$apk_path" ]; then
+            echo "APK not found" >&2
+            exit 1
+          fi
+          echo "Found APK: $apk_path"
+          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
 
       - name: Create release
         id: create_release
@@ -59,11 +68,11 @@ jobs:
           asset_name: AndyTV-android-${{ github.run_number }}.apk
           asset_content_type: application/vnd.android.package-archive
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AndyTV-android-apk
-          path: |
-            AndyTV.Maui/bin/**/net10.0-android/**/publish/*.apk
-            AndyTV.Maui/bin/**/net10.0-android/**/*.apk
-          if-no-files-found: error
+      # - name: Upload APK artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: AndyTV-android-apk
+      #     path: |
+      #       AndyTV.Maui/bin/**/net10.0-android/**/publish/*.apk
+      #       AndyTV.Maui/bin/**/net10.0-android/**/*.apk
+      #     if-no-files-found: error
