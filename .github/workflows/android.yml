@@ -30,6 +30,11 @@ jobs:
         run: |
           dotnet workload install maui-android --ignore-failed-sources
 
+      - name: Install Android SDK dependencies (API/platforms/build-tools)
+        shell: bash
+        run: |
+          dotnet build AndyTV.Maui/AndyTV.Maui.csproj -t:InstallAndroidDependencies -f net10.0-android -p:AcceptAndroidSDKLicenses=true
+
       - name: Publish Android APK
         shell: bash
         run: |
