@@ -15,11 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - name: Setup Java (JDK 17)
-      #   uses: actions/setup-java@v4
-      #   with:
-      #     distribution: temurin
-      #     java-version: '17'
+      - name: Setup Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -33,12 +33,12 @@ jobs:
       - name: Install Android SDK dependencies (API/platforms/build-tools)
         shell: bash
         run: |
-          dotnet build AndyTV.Maui/AndyTV.Maui.csproj -t:InstallAndroidDependencies -f net10.0-android -p:AcceptAndroidSDKLicenses=true
+          dotnet build AndyTV.Maui/AndyTV.Maui.csproj -t:InstallAndroidDependencies -f net10.0-android -p:AcceptAndroidSDKLicenses=true -p:JavaSdkDirectory=$JAVA_HOME
 
       - name: Publish Android APK
         shell: bash
         run: |
-          dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk
+          dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk /p:JavaSdkDirectory=$JAVA_HOME
 
       - name: Locate APK
         shell: bash
