@@ -16,10 +16,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java (JDK 17)
+        id: java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Export JAVA_HOME
+        shell: bash
+        run: |
+          echo "JAVA_HOME=${{ steps.java.outputs.path }}" >> "$GITHUB_ENV"
+          echo "${{ steps.java.outputs.path }}/bin" >> "$GITHUB_PATH"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
