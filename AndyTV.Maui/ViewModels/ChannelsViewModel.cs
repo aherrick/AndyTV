@@ -53,13 +53,17 @@ public partial class ChannelsViewModel(
         var filtered =
             string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
                 ? _allChannels
-                : _allChannels.Where(c =>
+                :
+                [
+                    .. _allChannels.Where(c =>
                         c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true
-                    ).ToList();
+                    ),
+                ];
 
-        var groups = filtered.GroupBy(c => c.Category)
-                             .Select(g => new ChannelGroup(g.Key, g))
-                             .ToList();
+        var groups = filtered
+            .GroupBy(c => c.Category)
+            .Select(g => new ChannelGroup(g.Key, g))
+            .ToList();
 
         foreach (var group in groups)
         {
@@ -164,7 +168,8 @@ public partial class ChannelsViewModel(
     }
 }
 
-public partial class ChannelGroup(string name, IEnumerable<Channel> channels) : ObservableCollection<Channel>(channels)
+public partial class ChannelGroup(string name, IEnumerable<Channel> channels)
+    : ObservableCollection<Channel>(channels)
 {
     public string Name { get; } = name;
 }
