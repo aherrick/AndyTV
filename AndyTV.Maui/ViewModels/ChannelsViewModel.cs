@@ -58,7 +58,8 @@ public partial class ChannelsViewModel(
                     ).ToList();
 
         var groups = filtered.GroupBy(c => c.Category)
-                             .Select(g => new ChannelGroup(g.Key, g));
+                             .Select(g => new ChannelGroup(g.Key, g))
+                             .ToList();
 
         foreach (var group in groups)
         {
@@ -163,7 +164,7 @@ public partial class ChannelsViewModel(
     }
 }
 
-public class ChannelGroup(string name, IEnumerable<Channel> channels) : ObservableCollection<Channel>(channels)
+public partial class ChannelGroup(string name, IEnumerable<Channel> channels) : ObservableCollection<Channel>(channels)
 {
     public string Name { get; } = name;
 }

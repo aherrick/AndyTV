@@ -16,10 +16,13 @@ public static class DisplayHelper
     private const int DM_PELSWIDTH = 0x80000;
     private const int DM_PELSHEIGHT = 0x100000;
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct DEVMODE
     {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        private const int CCHDEVICENAME = 32;
+        private const int CCHFORMNAME = 32;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
         public string dmDeviceName;
 
         public short dmSpecVersion;
@@ -37,7 +40,7 @@ public static class DisplayHelper
         public short dmTTOption;
         public short dmCollate;
 
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHFORMNAME)]
         public string dmFormName;
 
         public short dmLogPixels;
@@ -56,15 +59,15 @@ public static class DisplayHelper
         public int dmPanningHeight;
     }
 
-    [DllImport("user32.dll", CharSet = CharSet.Ansi)]
-    private static extern int EnumDisplaySettings(
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+    private static extern int EnumDisplaySettingsW(
         string deviceName,
         int modeNum,
         ref DEVMODE devMode
     );
 
-    [DllImport("user32.dll", CharSet = CharSet.Ansi)]
-    private static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+    private static extern int ChangeDisplaySettingsW(ref DEVMODE devMode, int flags);
 
     private static int _originalRefreshRate = 0;
     private static bool _refreshRateChanged = false;
@@ -74,10 +77,9 @@ public static class DisplayHelper
     /// </summary>
     public static int GetCurrentRefreshRate()
     {
-        var devMode = new DEVMODE();
-        devMode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+        var devMode = new DEVMODE { dmSize = (short)Marshal.SizeOf<DEVMODE>() };
 
-        if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode) != 0)
+        if (EnumDisplaySettingsW(null, ENUM_CURRENT_SETTINGS, ref devMode) != 0)
         {
             return devMode.dmDisplayFrequency;
         }
@@ -94,10 +96,9 @@ public static class DisplayHelper
     {
         try
         {
-            var devMode = new DEVMODE();
-            devMode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+            var devMode = new DEVMODE { dmSize = (short)Marshal.SizeOf<DEVMODE>() };
 
-            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode) == 0)
+            if (EnumDisplaySettingsW(null, ENUM_CURRENT_SETTINGS, ref devMode) == 0)
             {
                 Logger.Error(null, "Failed to get current display settings");
                 return false;
@@ -119,7 +120,7 @@ public static class DisplayHelper
             devMode.dmFields = DM_DISPLAYFREQUENCY;
 
             // Test if the change is valid
-            int testResult = ChangeDisplaySettings(ref devMode, CDS_TEST);
+            int testResult = ChangeDisplaySettingsW(ref devMode, CDS_TEST);
             if (testResult != DISP_CHANGE_SUCCESSFUL)
             {
                 Logger.Error(
@@ -130,7 +131,7 @@ public static class DisplayHelper
             }
 
             // Apply the change
-            int result = ChangeDisplaySettings(ref devMode, CDS_UPDATEREGISTRY);
+            int result = ChangeDisplaySettingsW(ref devMode, CDS_UPDATEREGISTRY);
 
             if (result == DISP_CHANGE_SUCCESSFUL)
             {
@@ -170,10 +171,9 @@ public static class DisplayHelper
 
         try
         {
-            var devMode = new DEVMODE();
-            devMode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+            var devMode = new DEVMODE { dmSize = (short)Marshal.SizeOf<DEVMODE>() };
 
-            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode) == 0)
+            if (EnumDisplaySettingsW(null, ENUM_CURRENT_SETTINGS, ref devMode) == 0)
             {
                 Logger.Error(null, "Failed to get current display settings for restoration");
                 return false;
@@ -184,7 +184,7 @@ public static class DisplayHelper
             devMode.dmDisplayFrequency = _originalRefreshRate;
             devMode.dmFields = DM_DISPLAYFREQUENCY;
 
-            int result = ChangeDisplaySettings(ref devMode, CDS_UPDATEREGISTRY);
+            int result = ChangeDisplaySettingsW(ref devMode, CDS_UPDATEREGISTRY);
 
             if (result == DISP_CHANGE_SUCCESSFUL)
             {
