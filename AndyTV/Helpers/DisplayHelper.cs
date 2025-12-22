@@ -21,6 +21,7 @@ public static class DisplayHelper
     {
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string dmDeviceName;
+
         public short dmSpecVersion;
         public short dmDriverVersion;
         public short dmSize;
@@ -35,8 +36,10 @@ public static class DisplayHelper
         public short dmYResolution;
         public short dmTTOption;
         public short dmCollate;
+
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string dmFormName;
+
         public short dmLogPixels;
         public int dmBitsPerPel;
         public int dmPelsWidth;
@@ -54,7 +57,11 @@ public static class DisplayHelper
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Ansi)]
-    private static extern int EnumDisplaySettings(string? deviceName, int modeNum, ref DEVMODE devMode);
+    private static extern int EnumDisplaySettings(
+        string deviceName,
+        int modeNum,
+        ref DEVMODE devMode
+    );
 
     [DllImport("user32.dll", CharSet = CharSet.Ansi)]
     private static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
@@ -104,7 +111,9 @@ public static class DisplayHelper
                 return true;
             }
 
-            Logger.Info($"[DISPLAY] Current refresh rate: {_originalRefreshRate}Hz, changing to 60Hz");
+            Logger.Info(
+                $"[DISPLAY] Current refresh rate: {_originalRefreshRate}Hz, changing to 60Hz"
+            );
 
             devMode.dmDisplayFrequency = 60;
             devMode.dmFields = DM_DISPLAYFREQUENCY;
@@ -113,7 +122,10 @@ public static class DisplayHelper
             int testResult = ChangeDisplaySettings(ref devMode, CDS_TEST);
             if (testResult != DISP_CHANGE_SUCCESSFUL)
             {
-                Logger.Error(null, $"[DISPLAY] 60Hz is not supported on this display (test result: {testResult})");
+                Logger.Error(
+                    null,
+                    $"[DISPLAY] 60Hz is not supported on this display (test result: {testResult})"
+                );
                 return false;
             }
 
