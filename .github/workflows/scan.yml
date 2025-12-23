@@ -20,13 +20,10 @@ jobs:
         run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Analyze
-        run: roslynator analyze AndyTV.slnx --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
-        
+        shell: pwsh
+        run: roslynator analyze AndyTV.slnx --msbuild-path "$env:DOTNET_ROOT/sdk/$(dotnet --version)" --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+
       - name: Find unused private code
         continue-on-error: true
-        run: >
-          roslynator find-symbol AndyTV.slnx
-          --symbol-kind type-or-member
-          --unused
-          --visibility private
-          --without-attribute System.ObsoleteAttribute
+        shell: pwsh
+        run: roslynator find-symbol AndyTV.slnx --msbuild-path "$env:DOTNET_ROOT/sdk/$(dotnet --version)" --symbol-kind type-or-member --unused --visibility private --without-attribute System.ObsoleteAttribute
