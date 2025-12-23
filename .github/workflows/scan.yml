@@ -19,11 +19,24 @@ jobs:
       - name: Fetch Roslynator analyzers
         run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
+      - name: Restore solution
+        run: dotnet restore AndyTV.slnx
+
       - name: Analyze
         shell: pwsh
-        run: roslynator analyze AndyTV.slnx --msbuild-path "$env:DOTNET_ROOT/sdk/$(dotnet --version)" --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+        run: |
+          $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object { $_.FullName -notmatch 'Maui' }
+          foreach ($proj in $projects) {
+            Write-Host "Analyzing $($proj.FullName)..."
+            roslynator analyze $proj.FullName --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+          }
 
       - name: Find unused private code
         continue-on-error: true
         shell: pwsh
-        run: roslynator find-symbol AndyTV.slnx --msbuild-path "$env:DOTNET_ROOT/sdk/$(dotnet --version)" --symbol-kind type-or-member --unused --visibility private --without-attribute System.ObsoleteAttribute
+        run: |
+          $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object { $_.FullName -notmatch 'Maui' }
+          foreach ($proj in $projects) {
+            Write-Host "Scanning $($proj.FullName) for unused code..."
+            roslynator find-symbol $proj.FullName --symbol-kind type-or-member --unused --visibility private --without-attribute System.ObsoleteAttribute
+          }
