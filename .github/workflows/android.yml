@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: [self-hosted]
 
+    permissions:
+      contents: write
+
 
     steps:
       - name: Checkout
@@ -52,6 +55,7 @@ jobs:
           dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk /p:JavaSdkDirectory=${{ steps.java.outputs.path }}
 
       - name: Locate APK
+        id: locate_apk
         shell: bash
         run: |
           set -euo pipefail
@@ -61,28 +65,16 @@ jobs:
             exit 1
           fi
           echo "Found APK: $apk_path"
-          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
+          echo "apk_path=$apk_path" >> "$GITHUB_OUTPUT"
 
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub release and upload APK
+        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: android-${{ github.run_number }}
-          release_name: Android build ${{ github.run_number }}
-          draft: false
-          prerelease: false
-
-      - name: Upload APK to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.APK_PATH }}
-          asset_name: AndyTV-android-${{ github.run_number }}.apk
-          asset_content_type: application/vnd.android.package-archive
+          name: Android build ${{ github.run_number }}
+          files: ${{ steps.locate_apk.outputs.apk_path }}
 
       # - name: Upload APK artifact
       #   uses: actions/upload-artifact@v4
