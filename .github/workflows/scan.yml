@@ -11,19 +11,22 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
+          dotnet-version: '10.0.x'
 
       - name: Install Roslynator CLI
-        run: dotnet tool install --global roslynator.dotnet.cli
+        run: dotnet tool install --global roslynator.dotnet.cli --version 0.11.0
 
       - name: Fetch Roslynator analyzers
         run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
 
       - name: Analyze
-        run: roslynator analyze AndyTV.CI.sln --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+        run: roslynator analyze AndyTV.slnx --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
 
       - name: Find unused private code
         continue-on-error: true
-        run: roslynator find-symbol AndyTV.CI.sln --symbol-kind type-or-member --unused --visibility private --without-attribute System.ObsoleteAttribute
+        run: >
+          roslynator find-symbol AndyTV.slnx
+          --symbol-kind type-or-member
+          --unused
+          --visibility private
+          --without-attribute System.ObsoleteAttribute
