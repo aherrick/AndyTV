@@ -13,8 +13,6 @@ public static class DisplayHelper
     private const int DISP_CHANGE_SUCCESSFUL = 0;
     private const int DISP_CHANGE_RESTART = 1;
     private const int DM_DISPLAYFREQUENCY = 0x400000;
-    private const int DM_PELSWIDTH = 0x80000;
-    private const int DM_PELSHEIGHT = 0x100000;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct DEVMODE
