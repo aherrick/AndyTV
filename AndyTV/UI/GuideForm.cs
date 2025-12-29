@@ -26,7 +26,7 @@ public partial class GuideForm : Form
 
         // Register Syncfusion license
         SyncfusionLicenseProvider.RegisterLicense(
-            "Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXZccnVVR2ldVE1/W0tWYEg="
+            "Ngo9BigBOggjHTQxAR8/V1JGaF5cXGpCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWH1ceXVQRGBcVUd3XUdWYEs="
         );
 
         var services = new ServiceCollection();
