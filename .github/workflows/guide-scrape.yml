@@ -5,7 +5,7 @@ on:
     - cron: "0 10 * * *"  # 6 AM US/Eastern (10:00 UTC)
 
 jobs:
-  run:
+  guide-scrape:
     runs-on: self-hosted
     permissions:
       contents: write
