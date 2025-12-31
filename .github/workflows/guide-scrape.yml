@@ -6,7 +6,7 @@ on:
 
 jobs:
   guide-scrape:
-    runs-on: self-hosted
+    runs-on: [self-hosted, ajmacmini]
     permissions:
       contents: write
 

@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, ajmacmini]
 
     permissions:
       contents: write

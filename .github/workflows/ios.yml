@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: self-hosted
+    runs-on: [self-hosted, ajmacmini]
 
     env:
       BUNDLE_ID: com.ajh.AndyTV
