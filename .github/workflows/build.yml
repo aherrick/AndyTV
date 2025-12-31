@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: [self-hosted, ajwin]
 
     steps:
     - name: Checkout code
