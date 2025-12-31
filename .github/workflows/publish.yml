@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Install .NET SDKs locally in workspace to avoid conflicts with system installations
+      # NET 9 is required for vpk tool
       - name: Setup .NET (local install)
         uses: actions/setup-dotnet@v5
         env:
