@@ -39,14 +39,14 @@ public partial class Form1 : Form
     private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
     private static readonly int HOURLY_REFRESH_MILLISECONDS = (int)TimeSpan.FromHours(1).TotalMilliseconds;
     private static readonly int HEALTH_CHECK_MILLISECONDS = (int)TimeSpan.FromSeconds(1).TotalMilliseconds;
-    private System.Windows.Forms.Timer _healthTimer;
-
-    private bool _favoritesShown = true;
+    
+    private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = HEALTH_CHECK_MILLISECONDS };
+    private readonly System.Windows.Forms.Timer _hourlyRefreshTimer = new() { Interval = HOURLY_REFRESH_MILLISECONDS };
 
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
-    private System.Windows.Forms.Timer _hourlyRefreshTimer;
+    private bool _favoritesShown = true;
 
     public Form1(
         LibVLC libVLC,
@@ -89,7 +89,7 @@ public partial class Form1 : Form
         HandleCreated += delegate
         {
             var last = _lastChannelService.LoadLastChannel();
-            if (last != null)
+            if (last is not null)
                 Play(last);
         };
 
@@ -139,7 +139,7 @@ public partial class Form1 : Form
             )
             {
                 var prevChannel = _recentChannelService.GetPrevious();
-                if (prevChannel != null)
+                if (prevChannel is not null)
                     Play(prevChannel);
             }
 
@@ -164,39 +164,18 @@ public partial class Form1 : Form
             if (recents.Count == 0)
                 return;
 
-            var currentIndex =
-                _currentChannel != null
-                    ? recents.FindIndex(c =>
-                        string.Equals(
-                            c.Url,
-                            _currentChannel.Url,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
-                    : -1;
+            var currentIndex = _currentChannel is not null
+                ? recents.FindIndex(c => string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase))
+                : -1;
 
-            int nextIndex;
-            if (e.Delta > 0) // Scroll up - go to previous (older)
-            {
-                nextIndex = currentIndex + 1;
-            }
-            else // Scroll down - go to next (newer)
-            {
-                nextIndex = currentIndex - 1;
-            }
+            // Scroll up = previous (older), scroll down = next (newer)
+            var nextIndex = e.Delta > 0 ? currentIndex + 1 : currentIndex - 1;
 
             // Wrap around
-            if (nextIndex < 0)
-            {
-                nextIndex = recents.Count - 1;
-            }
-            else if (nextIndex >= recents.Count)
-            {
-                nextIndex = 0;
-            }
+            nextIndex = (nextIndex + recents.Count) % recents.Count;
 
             var nextChannel = recents[nextIndex];
-            if (nextChannel != null)
+            if (nextChannel is not null)
                 Play(nextChannel);
         };
 
@@ -251,20 +230,15 @@ public partial class Form1 : Form
 
             _videoView.SetCursorForCurrentView();
 
-            _healthTimer = new System.Windows.Forms.Timer { Interval = HEALTH_CHECK_MILLISECONDS };
             _healthTimer.Tick += (_, __) =>
             {
-                if (_currentChannel == null)
+                if (_currentChannel is null)
                     return;
 
                 _healthMonitor.Tick();
             };
             _healthTimer.Start();
 
-            _hourlyRefreshTimer = new System.Windows.Forms.Timer
-            {
-                Interval = HOURLY_REFRESH_MILLISECONDS,
-            };
             _hourlyRefreshTimer.Tick += (_, __) => StartChannelRefresh();
             _hourlyRefreshTimer.Start();
         };
