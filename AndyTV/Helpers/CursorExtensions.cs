@@ -2,11 +2,14 @@
 
 namespace AndyTV.Helpers;
 
-public static partial class CursorExtensions
+public static class CursorExtensions
 {
-    [LibraryImport("gdi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool DeleteObject(nint hObject);
+#pragma warning disable SYSLIB1054 // Use LibraryImport - not worth enabling unsafe blocks for one call
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern bool DeleteObject(nint hObject);
+
+#pragma warning restore SYSLIB1054
 
     private static readonly Cursor HiddenCursor = CreateHiddenCursor();
 

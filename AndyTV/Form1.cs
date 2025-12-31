@@ -37,11 +37,22 @@ public partial class Form1 : Form
 
     private const int MOUSE_LEFT_DOUBLE_CLICK_SECONDS = 1;
     private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
-    private static readonly int HOURLY_REFRESH_MILLISECONDS = (int)TimeSpan.FromHours(1).TotalMilliseconds;
-    private static readonly int HEALTH_CHECK_MILLISECONDS = (int)TimeSpan.FromSeconds(1).TotalMilliseconds;
 
-    private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = HEALTH_CHECK_MILLISECONDS };
-    private readonly System.Windows.Forms.Timer _hourlyRefreshTimer = new() { Interval = HOURLY_REFRESH_MILLISECONDS };
+    private static readonly int HOURLY_REFRESH_MILLISECONDS = (int)
+        TimeSpan.FromHours(1).TotalMilliseconds;
+
+    private static readonly int HEALTH_CHECK_MILLISECONDS = (int)
+        TimeSpan.FromSeconds(1).TotalMilliseconds;
+
+    private readonly System.Windows.Forms.Timer _healthTimer = new()
+    {
+        Interval = HEALTH_CHECK_MILLISECONDS,
+    };
+
+    private readonly System.Windows.Forms.Timer _hourlyRefreshTimer = new()
+    {
+        Interval = HOURLY_REFRESH_MILLISECONDS,
+    };
 
     private readonly SynchronizationContext _ui =
         SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
@@ -58,6 +69,8 @@ public partial class Form1 : Form
         IFavoriteChannelService favoriteChannelService
     )
     {
+        Logger.Info("Starting AndyTV...");
+
         _libVLC = libVLC;
         _updateService = updateService;
         _videoView = videoView;
@@ -93,11 +106,16 @@ public partial class Form1 : Form
                 Play(last);
         };
 
-        Logger.Info("Starting AndyTV...");
-        Icon = new Icon("AndyTV.ico");
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
-        _videoView.MediaPlayer.TimeChanged += delegate { _healthMonitor.MarkActivity(); };
-        _videoView.MediaPlayer.PositionChanged += delegate { _healthMonitor.MarkActivity(); };
+        _videoView.MediaPlayer.TimeChanged += delegate
+        {
+            _healthMonitor.MarkActivity();
+        };
+        _videoView.MediaPlayer.PositionChanged += delegate
+        {
+            _healthMonitor.MarkActivity();
+        };
 
         _videoView.MediaPlayer.Playing += delegate
         {
@@ -165,7 +183,9 @@ public partial class Form1 : Form
                 return;
 
             var currentIndex = _currentChannel is not null
-                ? recents.FindIndex(c => string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase))
+                ? recents.FindIndex(c =>
+                    string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase)
+                )
                 : -1;
 
             // Scroll up = previous (older), scroll down = next (newer)
@@ -462,7 +482,10 @@ public partial class Form1 : Form
         return favoritesMenu;
     }
 
-    private ToolStripMenuItem BuildAppMenu(out ToolStripMenuItem muteItem, out ToolStripMenuItem pauseItem)
+    private ToolStripMenuItem BuildAppMenu(
+        out ToolStripMenuItem muteItem,
+        out ToolStripMenuItem pauseItem
+    )
     {
         var appMenu = new ToolStripMenuItem("App");
 
