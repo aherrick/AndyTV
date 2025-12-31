@@ -11,18 +11,7 @@ jobs:
     runs-on: [self-hosted, ajwin]
 
     steps:
-      # Remove all files from _work/AndyTV folder to ensure completely clean build
-      # This prevents leftover artifacts from previous runs on self-hosted runner
-      - name: Clean workspace
-        shell: powershell
-        run: |
-          $workDir = Split-Path "${{ github.workspace }}" -Parent
-          Write-Host "Cleaning _work folder: $workDir"
-          if (Test-Path $workDir) {
-            Remove-Item -Path "$workDir\*" -Recurse -Force -ErrorAction SilentlyContinue
-          }
-
-      # Clone the repository into the cleaned workspace
+      # Clone the repository (checkout automatically cleans the workspace first)
       - uses: actions/checkout@v4
 
       # Install .NET SDKs locally in workspace to avoid conflicts with system installations
