@@ -18,7 +18,9 @@ jobs:
         env:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            10.0.x
+            9.0.x
 
       - name: Add local dotnet to PATH
         shell: powershell
@@ -35,7 +37,10 @@ jobs:
       - name: Install vpk (local tool) + run
         shell: powershell
         run: |
+          $version = "1.0.${{ github.run_number }}"
+
           if (!(Test-Path ".\.config\dotnet-tools.json")) { dotnet new tool-manifest }
+
           dotnet tool install vpk
           dotnet tool restore
 
