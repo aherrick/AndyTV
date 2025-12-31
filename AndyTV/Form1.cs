@@ -39,7 +39,7 @@ public partial class Form1 : Form
     private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
     private static readonly int HOURLY_REFRESH_MILLISECONDS = (int)TimeSpan.FromHours(1).TotalMilliseconds;
     private static readonly int HEALTH_CHECK_MILLISECONDS = (int)TimeSpan.FromSeconds(1).TotalMilliseconds;
-    
+
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = HEALTH_CHECK_MILLISECONDS };
     private readonly System.Windows.Forms.Timer _hourlyRefreshTimer = new() { Interval = HOURLY_REFRESH_MILLISECONDS };
 

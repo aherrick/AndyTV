@@ -2,10 +2,11 @@
 
 namespace AndyTV.Helpers;
 
-public static class CursorExtensions
+public static partial class CursorExtensions
 {
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern bool DeleteObject(IntPtr hObject);
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DeleteObject(nint hObject);
 
     private static readonly Cursor HiddenCursor = CreateHiddenCursor();
 
