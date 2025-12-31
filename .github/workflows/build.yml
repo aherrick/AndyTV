@@ -10,21 +10,29 @@ jobs:
     runs-on: [self-hosted, ajwin]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # Clone the repository (checkout automatically cleans the workspace first)
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET 
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: '10.0.x'
+      # Install .NET SDK locally in workspace to avoid conflicts with system installations
+      - name: Setup .NET (local install)
+        uses: actions/setup-dotnet@v5
+        env:
+          DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
+        with:
+          dotnet-version: '10.0.x'
 
-    - name: Install MAUI Workload
-      run: dotnet workload restore
+      # Configure environment to use the locally installed .NET instead of system version
+      - name: Add local dotnet to PATH
+        shell: powershell
+        run: |
+          "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-    # Build the project
-    - name: Build project
-      run: dotnet build
+      - name: Install MAUI Workload
+        run: dotnet workload restore
 
-    # Run tests
-    - name: Run tests
-      run: dotnet run --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --no-restore
+      - name: Build project
+        run: dotnet build
+
+      - name: Run tests
+        run: dotnet run --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --no-restore
