@@ -27,7 +27,7 @@ public partial class Form1 : Form
     private MenuFavorite _menuFavorite;
     private readonly MenuTop _menuTop;
 
-    private Channel _currentChannel = null;
+    private Channel _currentChannel;
     private Rectangle _manuallyAdjustedBounds = Rectangle.Empty;
 
     private DateTime _mouseDownLeftPrevChannel = DateTime.MinValue;
@@ -37,8 +37,8 @@ public partial class Form1 : Form
 
     private const int MOUSE_LEFT_DOUBLE_CLICK_SECONDS = 1;
     private const int MOUSE_RIGHT_EXIT_SECONDS = 5;
-    private const int HOURLY_REFRESH_MILLISECONDS = 60 * 60 * 1000;
-    private const int HEALTH_CHECK_MILLISECONDS = 1000;
+    private static readonly int HOURLY_REFRESH_MILLISECONDS = (int)TimeSpan.FromHours(1).TotalMilliseconds;
+    private static readonly int HEALTH_CHECK_MILLISECONDS = (int)TimeSpan.FromSeconds(1).TotalMilliseconds;
     private System.Windows.Forms.Timer _healthTimer;
 
     private bool _favoritesShown = true;
@@ -298,13 +298,11 @@ public partial class Form1 : Form
     private async Task HandlePlaylistManager()
     {
         _videoView.ShowDefault();
-        using (var dlg = new PlaylistManagerForm(_playlistService))
+        using var dlg = new PlaylistManagerForm(_playlistService);
+        dlg.ShowDialog(this);
+        if (dlg.Saved)
         {
-            dlg.ShowDialog(this);
-            if (dlg.Saved)
-            {
-                StartChannelRefresh();
-            }
+            StartChannelRefresh();
         }
         _videoView.SetCursorForCurrentView();
     }
@@ -377,6 +375,28 @@ public partial class Form1 : Form
             );
         };
 
+        var channelsMenu = BuildChannelsMenu();
+        _contextMenuStrip.Items.Add(channelsMenu);
+
+        var favoritesMenu = BuildFavoritesMenu(out var favoritesToggleItem);
+        _contextMenuStrip.Items.Add(favoritesMenu);
+
+        var appMenu = BuildAppMenu(out var muteItem, out var pauseItem);
+        _contextMenuStrip.Items.Add(appMenu);
+
+        _contextMenuStrip.Opening += (_, __) =>
+        {
+            _videoView.ShowDefault();
+            muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
+            pauseItem.Text = _videoView.MediaPlayer.IsPlaying ? "Pause" : "Resume";
+            favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
+        };
+
+        _contextMenuStrip.Closing += (_, __) => _videoView.SetCursorForCurrentView();
+    }
+
+    private ToolStripMenuItem BuildChannelsMenu()
+    {
         var channelsMenu = new ToolStripMenuItem("Channels");
 
         MenuHelper.AddMenuItem(
@@ -415,8 +435,11 @@ public partial class Form1 : Form
 
         MenuHelper.AddMenuItem(channelsMenu, "Refresh", (_, __) => StartChannelRefresh());
 
-        _contextMenuStrip.Items.Add(channelsMenu);
+        return channelsMenu;
+    }
 
+    private ToolStripMenuItem BuildFavoritesMenu(out ToolStripMenuItem favoritesToggleItem)
+    {
         var favoritesMenu = new ToolStripMenuItem("Favorites");
 
         void OpenFavorites(Channel addOnOpen = null)
@@ -452,7 +475,7 @@ public partial class Form1 : Form
 
         MenuHelper.AddSeparator(favoritesMenu);
 
-        var favoritesToggleItem = MenuHelper.AddMenuItem(
+        favoritesToggleItem = MenuHelper.AddMenuItem(
             favoritesMenu,
             "Hide",
             (_, __) =>
@@ -462,8 +485,11 @@ public partial class Form1 : Form
             }
         );
 
-        _contextMenuStrip.Items.Add(favoritesMenu);
+        return favoritesMenu;
+    }
 
+    private ToolStripMenuItem BuildAppMenu(out ToolStripMenuItem muteItem, out ToolStripMenuItem pauseItem)
+    {
         var appMenu = new ToolStripMenuItem("App");
 
         MenuHelper.AddMenuItem(
@@ -488,13 +514,13 @@ public partial class Form1 : Form
             }
         );
 
-        var muteItem = MenuHelper.AddMenuItem(
+        muteItem = MenuHelper.AddMenuItem(
             appMenu,
             "Mute",
             (_, __) => _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute
         );
 
-        var pauseItem = MenuHelper.AddMenuItem(
+        pauseItem = MenuHelper.AddMenuItem(
             appMenu,
             "Pause",
             (_, __) => _videoView.MediaPlayer.Pause()
@@ -533,16 +559,6 @@ public partial class Form1 : Form
         MenuHelper.AddMenuItem(appMenu, "Restart", (_, __) => Program.Restart());
         MenuHelper.AddMenuItem(appMenu, "Exit", (_, __) => Application.Exit());
 
-        _contextMenuStrip.Items.Add(appMenu);
-
-        _contextMenuStrip.Opening += (_, __) =>
-        {
-            _videoView.ShowDefault();
-            muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
-            pauseItem.Text = _videoView.MediaPlayer.IsPlaying ? "Pause" : "Resume";
-            favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
-        };
-
-        _contextMenuStrip.Closing += (_, __) => _videoView.SetCursorForCurrentView();
+        return appMenu;
     }
 }

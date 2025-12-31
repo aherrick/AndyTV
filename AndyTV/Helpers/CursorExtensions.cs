@@ -1,13 +1,21 @@
-﻿namespace AndyTV.Helpers;
+﻿using System.Runtime.InteropServices;
+
+namespace AndyTV.Helpers;
 
 public static class CursorExtensions
 {
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern bool DeleteObject(IntPtr hObject);
+
     private static readonly Cursor HiddenCursor = CreateHiddenCursor();
 
     private static Cursor CreateHiddenCursor()
     {
         using var bmp = new Bitmap(1, 1);
-        return new Cursor(bmp.GetHicon());
+        var handle = bmp.GetHicon();
+        var cursor = new Cursor(handle);
+        DeleteObject(handle);
+        return cursor;
     }
 
     public static void ShowDefault(this Control control) => SetCursor(control, Cursors.Default);
