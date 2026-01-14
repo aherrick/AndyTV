@@ -25,8 +25,8 @@ jobs:
       - name: Add local dotnet to PATH
         shell: powershell
         run: |
-          "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
+          echo "DOTNET_ROOT=${{ github.workspace }}\.dotnet" >> $env:GITHUB_ENV
 
       - name: Install MAUI Workload
         run: dotnet workload restore

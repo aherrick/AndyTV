@@ -17,7 +17,6 @@ jobs:
       - uses: actions/checkout@v4
 
       # Install .NET SDKs locally in workspace to avoid conflicts with system installations
-      # NET 9 is required for vpk tool
       - name: Setup .NET (local install)
         uses: actions/setup-dotnet@v5
         env:
@@ -31,8 +30,8 @@ jobs:
       - name: Add local dotnet to PATH
         shell: powershell
         run: |
-          "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
+          echo "DOTNET_ROOT=${{ github.workspace }}\.dotnet" >> $env:GITHUB_ENV
 
       # Build self-contained executable with all dependencies bundled (no .NET runtime required)
       - name: Publish (self-contained win-x64)
