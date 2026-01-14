@@ -10,11 +10,21 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      DOTNET_ROOT: /usr/local/share/dotnet
+      
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Remove old x86_64 .NET installation
+        run: rm -rf ~/.dotnet
+        
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+      
+      - name: Display dotnet info
+        run: dotnet --info
 
       - name: Run scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj
