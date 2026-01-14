@@ -10,18 +10,22 @@ jobs:
     permissions:
       contents: write
 
-    env:
-      DOTNET_ROOT: /usr/local/share/dotnet
-      
     steps:
       - uses: actions/checkout@v4
       
-      - name: Remove old x86_64 .NET installation
-        run: rm -rf ~/.dotnet
-        
-      - uses: actions/setup-dotnet@v5
+      # Install .NET SDK locally in workspace to avoid conflicts with system installations
+      - name: Setup .NET (local install)
+        uses: actions/setup-dotnet@v5
+        env:
+          DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
         with:
           dotnet-version: '10.0.x'
+      
+      # Configure environment to use the locally installed .NET instead of system version
+      - name: Add local dotnet to PATH
+        run: |
+          echo "${{ github.workspace }}/.dotnet" >> $GITHUB_PATH
+          echo "DOTNET_ROOT=${{ github.workspace }}/.dotnet" >> $GITHUB_ENV
       
       - name: Display dotnet info
         run: dotnet --info
