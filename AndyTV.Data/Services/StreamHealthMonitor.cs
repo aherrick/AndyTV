@@ -21,8 +21,8 @@ public sealed class StreamHealthMonitor(Func<bool> isPaused, Action restart, int
         // Called periodically by a timer (UI timer in MAUI/WinForms).
         // Purpose: detect "no playback activity for N seconds" and trigger a restart.
 
-        if (_isPaused())
-            return;
+        //if (_isPaused())
+        //    return;
 
         var nowTicks = DateTime.UtcNow.Ticks;
 
