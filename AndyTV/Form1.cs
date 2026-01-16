@@ -90,7 +90,8 @@ public partial class Form1 : Form
                     $"[HEALTH] Restarting channel: '{_currentChannel.DisplayName}' url='{_currentChannel.Url}'"
                 );
                 Play(_currentChannel);
-            }
+            },
+            logger: msg => Logger.Info(msg)
         );
 
         InitializeComponent();
