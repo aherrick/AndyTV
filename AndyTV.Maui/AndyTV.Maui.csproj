@@ -55,7 +55,7 @@
 		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.30" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.2" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-		<PackageReference Include="CommunityToolkit.Maui" Version="13.0.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
