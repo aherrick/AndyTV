@@ -139,7 +139,7 @@ public static class LocalScraper
                     var descParts = new List<string>();
                     if (typeYearEl != null) descParts.Add(typeYearEl.TextContent.Trim());
                     if (seasonEpEl != null) descParts.Add(seasonEpEl.TextContent.Trim());
-                    
+
                     var metaInfo = string.Join(" | ", descParts);
                     var bodyDesc = descEl?.TextContent?.Trim() ?? "";
 
