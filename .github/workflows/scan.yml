@@ -25,8 +25,13 @@ jobs:
       - name: Install Roslynator CLI
         run: dotnet tool install roslynator.dotnet.cli --version 0.11.0 --tool-path tools
 
-      - name: Fetch Roslynator analyzers
-        run: nuget install Roslynator.Analyzers -OutputDirectory analyzers -ExcludeVersion
+      - name: Download Roslynator Analyzers
+        shell: powershell
+        run: |
+          $url = "https://www.nuget.org/api/v2/package/Roslynator.Analyzers"
+          Invoke-WebRequest $url -OutFile package.zip
+          Expand-Archive package.zip -DestinationPath analyzers/Roslynator.Analyzers
+          Remove-Item package.zip
 
       - name: Analyze
         run: ./tools/roslynator analyze AndyTV.slnx --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
