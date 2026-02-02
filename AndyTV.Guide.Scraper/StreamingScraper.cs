@@ -56,8 +56,9 @@ public static class StreamingScraper
                         Console.WriteLine(
                             document
                                 .DocumentElement
-                                ?.OuterHtml[..Math.Min(500, document.DocumentElement.OuterHtml.Length)]
-                                ?? ""
+                                ?.OuterHtml[
+                                    ..Math.Min(500, document.DocumentElement.OuterHtml.Length)
+                                ] ?? ""
                         );
                         noCardBodyChannels.Add((category, tvChannelFav.Name, url));
                     }
@@ -90,7 +91,9 @@ public static class StreamingScraper
 
                         if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
                         {
-                            Console.WriteLine($"[DEBUG] Skipping show (no timeline) → Title: {title}");
+                            Console.WriteLine(
+                                $"[DEBUG] Skipping show (no timeline) → Title: {title}"
+                            );
                             continue;
                         }
 
@@ -101,7 +104,10 @@ public static class StreamingScraper
                             continue;
                         }
 
-                        var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[0]), pstTz);
+                        var startUtc = TimeZoneInfo.ConvertTimeToUtc(
+                            DateTime.Parse(parts[0]),
+                            pstTz
+                        );
                         var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
                         var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
 

@@ -16,8 +16,8 @@ Console.WriteLine($"Fetched {localShows.Count} local shows.");
 
 // 3. Merge
 var allShows = new List<Show>();
-allShows.AddRange(streamingShows);
 allShows.AddRange(localShows);
+allShows.AddRange(streamingShows);
 
 Console.WriteLine($"Total Combined Shows: {allShows.Count}");
 
@@ -34,7 +34,10 @@ var outDir = Path.Combine(repoRoot, "out");
 Directory.CreateDirectory(outDir);
 
 // Serialize the shows list to JSON and write it to out/guide.json
-await File.WriteAllTextAsync(Path.Combine(outDir, "guide.json"), JsonSerializer.Serialize(allShows));
+await File.WriteAllTextAsync(
+    Path.Combine(outDir, "guide.json"),
+    JsonSerializer.Serialize(allShows)
+);
 
 // Print confirmation with the total show count
 Console.WriteLine($"Done. Written {allShows.Count} shows to {Path.Combine(outDir, "guide.json")}");

@@ -102,7 +102,7 @@ public static class LocalScraper
                     var titleEl = showEl.QuerySelector("h3");
 
                     var typeYearEl = showEl.QuerySelector("h4"); // e.g. "Series • 2026"
-                    var epTitleEl = showEl.QuerySelector("h5");  // e.g. "When You Know, You Know"
+                    var epTitleEl = showEl.QuerySelector("h5"); // e.g. "When You Know, You Know"
                     var seasonEpEl = showEl.QuerySelector("h6"); // e.g. "Season 2 • Episode 14"
                     var descEl = showEl.QuerySelector("p");
 
@@ -114,7 +114,7 @@ public static class LocalScraper
 
                     // Clean title: remove "New" if present
                     var rawTitle = "";
-                    foreach(var node in titleEl.ChildNodes)
+                    foreach (var node in titleEl.ChildNodes)
                     {
                         if (node is IText textNode)
                         {
@@ -137,8 +137,10 @@ public static class LocalScraper
 
                     // Construct Description
                     var descParts = new List<string>();
-                    if (typeYearEl != null) descParts.Add(typeYearEl.TextContent.Trim());
-                    if (seasonEpEl != null) descParts.Add(seasonEpEl.TextContent.Trim());
+                    if (typeYearEl != null)
+                        descParts.Add(typeYearEl.TextContent.Trim());
+                    if (seasonEpEl != null)
+                        descParts.Add(seasonEpEl.TextContent.Trim());
 
                     var metaInfo = string.Join(" | ", descParts);
                     var bodyDesc = descEl?.TextContent?.Trim() ?? "";
