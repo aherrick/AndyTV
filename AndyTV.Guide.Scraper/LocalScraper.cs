@@ -36,7 +36,7 @@ public static class LocalScraper
                 Console.WriteLine($"Error scraping {network.Name}: {ex.Message}");
             }
         }
-        
+
         return allShows;
     }
 
@@ -46,6 +46,7 @@ public static class LocalScraper
         string channelName
     )
     {
+        var estTz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
         var url = $"https://www.tvinsider.com/network/{slug}/schedule/";
         Console.WriteLine($"Scraping {url}...");
 
@@ -85,22 +86,21 @@ public static class LocalScraper
             // Find the associated show grid (sibling)
             var sibling = header.NextElementSibling;
             while (
-                sibling != null
-                && !sibling.ClassList.Contains("show-grid")
-                && !sibling.TagName.Equals("H2", StringComparison.OrdinalIgnoreCase)
+                sibling?.ClassList.Contains("show-grid") is false
+                && sibling?.TagName.Equals("H2", StringComparison.OrdinalIgnoreCase) is false
             )
             {
                 sibling = sibling.NextElementSibling;
             }
 
-            if (sibling != null && sibling.ClassList.Contains("show-grid"))
+            if (sibling?.ClassList.Contains("show-grid") == true)
             {
                 var showElements = sibling.QuerySelectorAll("a.show-upcoming");
                 foreach (var showEl in showElements)
                 {
                     var timeEl = showEl.QuerySelector("time");
                     var titleEl = showEl.QuerySelector("h3");
-                    
+
                     var typeYearEl = showEl.QuerySelector("h4"); // e.g. "Series • 2026"
                     var epTitleEl = showEl.QuerySelector("h5");  // e.g. "When You Know, You Know"
                     var seasonEpEl = showEl.QuerySelector("h6"); // e.g. "Season 2 • Episode 14"
@@ -143,11 +143,11 @@ public static class LocalScraper
                     var metaInfo = string.Join(" | ", descParts);
                     var bodyDesc = descEl?.TextContent?.Trim() ?? "";
 
-                    var finalDesc = string.IsNullOrWhiteSpace(metaInfo) 
-                        ? bodyDesc 
+                    var finalDesc = string.IsNullOrWhiteSpace(metaInfo)
+                        ? bodyDesc
                         : $"{metaInfo}\n{bodyDesc}";
 
-                    var timeText = timeEl.TextContent.Trim(); 
+                    var timeText = timeEl.TextContent.Trim();
                     var combinedDateString = $"{dateId} {timeText}";
 
                     if (
@@ -155,8 +155,8 @@ public static class LocalScraper
                             combinedDateString,
                             "MM-dd-yyyy h:mm tt",
                             CultureInfo.InvariantCulture,
-                            DateTimeStyles.AssumeLocal,
-                            out var localStartTime
+                            DateTimeStyles.None,
+                            out var estStartTime
                         )
                     )
                     {
@@ -166,7 +166,7 @@ public static class LocalScraper
                             ChannelName = channelName,
                             Category = "LOCAL",
                             Subject = subject,
-                            StartTime = localStartTime.ToUniversalTime(),
+                            StartTime = TimeZoneInfo.ConvertTimeToUtc(estStartTime, estTz),
                             Description = finalDesc.Trim(),
                         };
                         shows.Add(show);
