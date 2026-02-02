@@ -4,6 +4,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="AndyTV.Console/AndyTV.Console.csproj" />
   <Project Path="AndyTV.Data/AndyTV.Data.csproj" />
   <Project Path="AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj" />
   <Project Path="AndyTV.Guide.Shared/AndyTV.Guide.Shared.csproj" />
