@@ -1,13 +1,18 @@
 namespace AndyTV.Data.Services;
 
-public sealed class StreamHealthMonitor(Func<bool> isPaused, Action restart, int stallSeconds = 4, Action<string>? logger = null)
+public sealed class StreamHealthMonitor(
+    Func<bool> isPaused,
+    Action restart,
+    int stallSeconds = 4,
+    Action<string> logger = null
+)
 {
     public const int DefaultStallSeconds = 4;
 
     private readonly long _stallThresholdTicks = TimeSpan.FromSeconds(stallSeconds).Ticks;
     private readonly Func<bool> _isPaused = isPaused;
     private readonly Action _restart = restart;
-    private readonly Action<string>? _logger = logger;
+    private readonly Action<string> _logger = logger;
 
     private long _lastActivityUtcTicks = DateTime.UtcNow.Ticks;
     private int _isRestarting;
@@ -36,12 +41,16 @@ public sealed class StreamHealthMonitor(Func<bool> isPaused, Action restart, int
         {
             if (inactiveSeconds > 1)
             {
-                _logger?.Invoke($"[Health] Tick: Inactive for {inactiveSeconds:F2}s (Threshold: {stallSeconds}s)");
+                _logger?.Invoke(
+                    $"[Health] Tick: Inactive for {inactiveSeconds:F2}s (Threshold: {stallSeconds}s)"
+                );
             }
             return;
         }
 
-        _logger?.Invoke($"[Health] Stalled! Inactive for {inactiveSeconds:F2}s. Attempting restart...");
+        _logger?.Invoke(
+            $"[Health] Stalled! Inactive for {inactiveSeconds:F2}s. Attempting restart..."
+        );
 
         // Prevent overlapping restart attempts.
         if (Interlocked.CompareExchange(ref _isRestarting, 1, 0) != 0)

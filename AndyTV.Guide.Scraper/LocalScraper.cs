@@ -23,17 +23,17 @@ public static class LocalScraper
 
         var allShows = new List<Show>();
 
-        foreach (var network in networks)
+        foreach (var (Slug, Name) in networks)
         {
             try
             {
-                var shows = await ScrapeNetwork(context, network.Slug, network.Name);
-                Console.WriteLine($"Found {shows.Count} shows for {network.Name}");
+                var shows = await ScrapeNetwork(context, Slug, Name);
+                Console.WriteLine($"Found {shows.Count} shows for {Name}");
                 allShows.AddRange(shows);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error scraping {network.Name}: {ex.Message}");
+                Console.WriteLine($"Error scraping {Name}: {ex.Message}");
             }
         }
 
@@ -112,20 +112,12 @@ public static class LocalScraper
                         continue;
                     }
 
-                    // Clean title: remove "New" if present
-                    var rawTitle = "";
-                    foreach (var node in titleEl.ChildNodes)
-                    {
-                        if (node is IText textNode)
-                        {
-                            rawTitle += textNode.Text;
-                        }
-                    }
-                    rawTitle = rawTitle.Trim();
-                    if (string.IsNullOrEmpty(rawTitle))
-                    {
-                        rawTitle = titleEl.TextContent.Replace("New", "").Trim();
-                    }
+                    // Clean title: use direct text only to ignore "New" badges in spans
+                    var rawTitle = string.Join(
+                            "",
+                            titleEl.ChildNodes.OfType<IText>().Select(t => t.Text)
+                        )
+                        .Trim();
 
                     // Construct Subject
                     var subject = rawTitle;
@@ -178,29 +170,14 @@ public static class LocalScraper
         }
 
         // Second pass: Calculate EndTime
-        shows = shows.OrderBy(s => s.StartTime).ToList();
+        shows = [.. shows.OrderBy(s => s.StartTime)];
 
         for (int i = 0; i < shows.Count; i++)
         {
             var currentShow = shows[i];
+            var nextShow = i < shows.Count - 1 ? shows[i + 1] : null;
 
-            if (i < shows.Count - 1)
-            {
-                var nextShow = shows[i + 1];
-                var gap = nextShow.StartTime - currentShow.StartTime;
-                if (gap.TotalHours > 0 && gap.TotalHours < 6)
-                {
-                    currentShow.EndTime = nextShow.StartTime;
-                }
-                else
-                {
-                    currentShow.EndTime = currentShow.StartTime.AddHours(1);
-                }
-            }
-            else
-            {
-                currentShow.EndTime = currentShow.StartTime.AddHours(1);
-            }
+            currentShow.EndTime = nextShow?.StartTime ?? currentShow.StartTime.AddHours(1);
         }
 
         return shows;
