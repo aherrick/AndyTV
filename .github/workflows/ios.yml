@@ -10,7 +10,7 @@ jobs:
     env:
       BUNDLE_ID: com.ajh.AndyTV
       APPLE_TEAM_ID: 55P33KNTP3
-      CODESIGN_KEY: "Apple Distribution: Andrew Herrick (55P33KNTP3)"
+      CODESIGN_KEY: "iPhone Distribution: Andrew Herrick (55P33KNTP3)"
       CODESIGN_PROVISION: "AndyTV"
       STATIC_URL: "https://andytvstorage.z19.web.core.windows.net"
       AZURE_STORAGE_ACCOUNT: andytvstorage
