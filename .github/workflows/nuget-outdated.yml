@@ -16,6 +16,7 @@ jobs:
       - name: Check for outdated NuGet packages
         uses: aherrick/nuget-outdated@main
         with:
-          ignore: 'AndyTV.csproj=Velopack'
+          #Ignore VLC for now, it seems buggy and we don't want to update it until we can test it more thoroughly
+          ignore: 'AndyTV.csproj=Velopack;AndyTV=VideoLAN.LibVLC.Windows' 
           includeprelease: 'true'
           currentmajorprereleaseonly: 'true'
