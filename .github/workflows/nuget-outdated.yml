@@ -18,3 +18,4 @@ jobs:
         with:
           ignore: 'AndyTV.csproj=Velopack'
           includeprelease: 'true'
+          currentmajorprereleaseonly: 'true'
