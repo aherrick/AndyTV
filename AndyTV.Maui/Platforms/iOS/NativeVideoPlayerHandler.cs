@@ -13,6 +13,7 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
     private AVPlayer _player;
     private AVPlayerViewController _playerViewController;
     private NSObject _timeObserver;
+    private IDisposable _itemStatusObserver;
 
     public static IPropertyMapper<NativeVideoPlayer, NativeVideoPlayerHandler> Mapper =
         new PropertyMapper<NativeVideoPlayer, NativeVideoPlayerHandler>(ViewMapper)
@@ -39,44 +40,15 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
             AllowsPictureInPicturePlayback = true,
         };
 
-        AttachTimeObserver();
-
         var view = _playerViewController.View;
         view.AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight;
         return view;
-    }
-
-    private void AttachTimeObserver()
-    {
-        if (_timeObserver != null)
-        {
-            _player?.RemoveTimeObserver(_timeObserver);
-            _timeObserver = null;
-        }
-
-        var interval = CMTime.FromSeconds(1, 1);
-        _timeObserver = _player.AddPeriodicTimeObserver(interval, null, _ =>
-        {
-            var status = _player.TimeControlStatus;
-            var active = status != AVPlayerTimeControlStatus.Paused;
-
-            VirtualView?.SetPaused(!active);
-
-            // Fire activity for both Playing AND WaitingToPlay (buffering).
-            // HLS streams can buffer for many seconds before the first frame.
-            // Without this, the health monitor restarts the stream in a loop.
-            if (active)
-            {
-                VirtualView?.OnPlaybackActivity();
-            }
-        });
     }
 
     protected override void ConnectHandler(UIView platformView)
     {
         base.ConnectHandler(platformView);
 
-        // Proper VC containment is required for PiP to function
         var window = UIApplication.SharedApplication.ConnectedScenes
             .OfType<UIWindowScene>()
             .SelectMany(s => s.Windows)
@@ -97,6 +69,9 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
     protected override void DisconnectHandler(UIView platformView)
     {
+        _itemStatusObserver?.Dispose();
+        _itemStatusObserver = null;
+
         if (_timeObserver != null)
         {
             _player?.RemoveTimeObserver(_timeObserver);
@@ -109,33 +84,114 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         base.DisconnectHandler(platformView);
     }
 
+    private static void ShowAlert(string title, string message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
+            alert.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
+
+            var vc = UIApplication.SharedApplication.ConnectedScenes
+                .OfType<UIWindowScene>()
+                .SelectMany(s => s.Windows)
+                .FirstOrDefault(w => w.IsKeyWindow)
+                ?.RootViewController;
+
+            while (vc?.PresentedViewController != null)
+            {
+                vc = vc.PresentedViewController;
+            }
+
+            vc?.PresentViewController(alert, true, null);
+        });
+    }
+
     private static void MapSource(NativeVideoPlayerHandler handler, NativeVideoPlayer player)
     {
-        if (string.IsNullOrEmpty(player.Source))
-        {
-            handler._player?.Pause();
-            return;
-        }
+        handler._itemStatusObserver?.Dispose();
+        handler._itemStatusObserver = null;
 
-        var url = NSUrl.FromString(player.Source);
-        if (url == null)
-        {
-            return;
-        }
-
-        // Create a brand new AVPlayer with the URL. This is the pattern Apple
-        // recommends and the only one that reliably bootstraps HLS playback.
-        handler._player?.Pause();
         if (handler._timeObserver != null)
         {
             handler._player?.RemoveTimeObserver(handler._timeObserver);
             handler._timeObserver = null;
         }
 
-        handler._player = new AVPlayer(url);
-        handler._playerViewController.Player = handler._player;
-        handler.AttachTimeObserver();
-        handler._player.Play();
+        handler._player?.Pause();
+
+        if (string.IsNullOrEmpty(player.Source))
+        {
+            return;
+        }
+
+        var url = NSUrl.FromString(player.Source);
+        if (url == null)
+        {
+            ShowAlert("Player Error", $"Invalid URL: {player.Source}");
+            return;
+        }
+
+        ShowAlert("Debug", $"Loading: {player.Source}");
+
+        var newPlayer = new AVPlayer(url);
+        handler._player = newPlayer;
+        handler._playerViewController.Player = newPlayer;
+
+        // Observe item status to catch errors
+        var item = newPlayer.CurrentItem;
+        if (item != null)
+        {
+            handler._itemStatusObserver = item.AddObserver(
+                "status",
+                NSKeyValueObservingOptions.New | NSKeyValueObservingOptions.Initial,
+                _ =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        if (item.Status == AVPlayerItemStatus.Failed)
+                        {
+                            var errorMsg = item.Error?.LocalizedDescription ?? "Unknown error";
+                            var errorDetail = item.Error?.LocalizedFailureReason ?? "";
+
+                            var logLines = $"Error: {errorMsg}\n{errorDetail}";
+
+                            var errorLog = item.ErrorLog;
+                            if (errorLog?.Events != null)
+                            {
+                                foreach (var evt in errorLog.Events)
+                                {
+                                    logLines += $"\nURI: {evt.Uri}";
+                                    logLines += $"\nStatus: {evt.ErrorStatusCode}";
+                                    logLines += $"\nComment: {evt.ErrorComment}";
+                                }
+                            }
+
+                            ShowAlert("AVPlayerItem Failed", logLines);
+                        }
+                        else if (item.Status == AVPlayerItemStatus.ReadyToPlay)
+                        {
+                            ShowAlert("Debug", "Item is ReadyToPlay — calling Play()");
+                            newPlayer.Play();
+                        }
+                    });
+                });
+        }
+        else
+        {
+            ShowAlert("Debug", "CurrentItem is null after AVPlayer(url) init");
+            newPlayer.Play();
+        }
+
+        // Time observer for activity
+        var interval = CMTime.FromSeconds(1, 1);
+        handler._timeObserver = newPlayer.AddPeriodicTimeObserver(interval, null, _ =>
+        {
+            handler.VirtualView?.SetPaused(newPlayer.TimeControlStatus == AVPlayerTimeControlStatus.Paused);
+            if (newPlayer.TimeControlStatus == AVPlayerTimeControlStatus.Playing)
+            {
+                handler.VirtualView?.OnPlaybackActivity();
+            }
+        });
     }
 
     private static void MapPlay(NativeVideoPlayerHandler handler, NativeVideoPlayer player, object args)
