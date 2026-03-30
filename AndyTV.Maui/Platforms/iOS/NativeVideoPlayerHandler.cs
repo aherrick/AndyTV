@@ -78,8 +78,13 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         }
     }
 
+    private IDisposable _statusObserver;
+
     protected override void DisconnectHandler(UIView platformView)
     {
+        _statusObserver?.Dispose();
+        _statusObserver = null;
+
         if (_timeObserver != null)
         {
             _player?.RemoveTimeObserver(_timeObserver);
@@ -95,13 +100,29 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
     private static void MapSource(NativeVideoPlayerHandler handler, NativeVideoPlayer player)
     {
+        handler._statusObserver?.Dispose();
+        handler._statusObserver = null;
+
         if (string.IsNullOrEmpty(player.Source))
         {
+            handler._player.ReplaceCurrentItemWithPlayerItem(null);
             return;
         }
 
         var url = NSUrl.FromString(player.Source);
         var item = new AVPlayerItem(AVAsset.FromUrl(url));
+        
+        handler._statusObserver = item.AddObserver(
+            "status",
+            NSKeyValueObservingOptions.New | NSKeyValueObservingOptions.Initial,
+            change =>
+            {
+                if (item.Status == AVPlayerItemStatus.ReadyToPlay)
+                {
+                    handler._player.Play();
+                }
+            });
+
         handler._player.ReplaceCurrentItemWithPlayerItem(item);
     }
 
