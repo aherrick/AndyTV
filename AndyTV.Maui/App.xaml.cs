@@ -9,6 +9,22 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState activationState)
     {
-        return new Window(new AppShell());
+        return new Window(
+            new ContentPage
+            {
+                Content = new Grid
+                {
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "AndyTV startup test",
+                            HorizontalOptions = LayoutOptions.Center,
+                            VerticalOptions = LayoutOptions.Center,
+                        },
+                    },
+                },
+            }
+        );
     }
 }
