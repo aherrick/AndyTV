@@ -39,11 +39,24 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
             AllowsPictureInPicturePlayback = true,
         };
 
+        AttachTimeObserver();
+
+        var view = _playerViewController.View;
+        view.AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight;
+        return view;
+    }
+
+    private void AttachTimeObserver()
+    {
+        if (_timeObserver != null)
+        {
+            _player?.RemoveTimeObserver(_timeObserver);
+            _timeObserver = null;
+        }
+
         var interval = CMTime.FromSeconds(1, 1);
         _timeObserver = _player.AddPeriodicTimeObserver(interval, null, _ =>
         {
-            // Treat buffering (WaitingToPlay) the same as playing so the
-            // health monitor doesn't restart the stream while HLS is loading.
             var status = _player.TimeControlStatus;
             var active = status != AVPlayerTimeControlStatus.Paused;
 
@@ -53,10 +66,6 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
                 VirtualView?.OnPlaybackActivity();
             }
         });
-
-        var view = _playerViewController.View;
-        view.AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight;
-        return view;
     }
 
     protected override void ConnectHandler(UIView platformView)
@@ -91,7 +100,6 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         }
 
         _player?.Pause();
-        _player?.ReplaceCurrentItemWithPlayerItem(null);
         _playerViewController?.WillMoveToParentViewController(null);
         _playerViewController?.RemoveFromParentViewController();
         base.DisconnectHandler(platformView);
@@ -101,7 +109,7 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
     {
         if (string.IsNullOrEmpty(player.Source))
         {
-            handler._player.ReplaceCurrentItemWithPlayerItem(null);
+            handler._player?.Pause();
             return;
         }
 
@@ -111,9 +119,18 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
             return;
         }
 
-        // Let AVPlayer handle all HLS buffering automatically.
-        var item = new AVPlayerItem(url);
-        handler._player.ReplaceCurrentItemWithPlayerItem(item);
+        // Create a brand new AVPlayer with the URL. This is the pattern Apple
+        // recommends and the only one that reliably bootstraps HLS playback.
+        handler._player?.Pause();
+        if (handler._timeObserver != null)
+        {
+            handler._player?.RemoveTimeObserver(handler._timeObserver);
+            handler._timeObserver = null;
+        }
+
+        handler._player = new AVPlayer(url);
+        handler._playerViewController.Player = handler._player;
+        handler.AttachTimeObserver();
         handler._player.Play();
     }
 
@@ -125,6 +142,5 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
     private static void MapStop(NativeVideoPlayerHandler handler, NativeVideoPlayer player, object args)
     {
         handler._player?.Pause();
-        handler._player?.ReplaceCurrentItemWithPlayerItem(null);
     }
 }
