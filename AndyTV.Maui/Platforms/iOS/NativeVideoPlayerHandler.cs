@@ -13,6 +13,7 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
     private AVPlayer _player;
     private AVPlayerViewController _playerViewController;
     private NSObject _timeObserver;
+    private NSObject _playbackStalledObserver;
 
     public static IPropertyMapper<NativeVideoPlayer, NativeVideoPlayerHandler> Mapper =
         new PropertyMapper<NativeVideoPlayer, NativeVideoPlayerHandler>(ViewMapper)
@@ -31,7 +32,12 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
     protected override UIView CreatePlatformView()
     {
-        _player = new AVPlayer();
+        _player = new AVPlayer
+        {
+            AutomaticallyWaitsToMinimizeStalling = false,
+            ActionAtItemEnd = AVPlayerActionAtItemEnd.None,
+        };
+
         _playerViewController = new AVPlayerViewController
         {
             Player = _player,
@@ -42,9 +48,13 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         var interval = CMTime.FromSeconds(1, 1);
         _timeObserver = _player.AddPeriodicTimeObserver(interval, null, _ =>
         {
-            var playing = _player.Rate > 0f;
-            VirtualView?.SetPaused(!playing);
-            if (playing)
+            var isActivelyPlaying = _player.TimeControlStatus == AVPlayerTimeControlStatus.Playing;
+            var isWaitingForData = _player.TimeControlStatus == AVPlayerTimeControlStatus.WaitingToPlayAtSpecifiedRate;
+
+            // Buffering is not a user pause. Keep the health monitor armed for stalled live HLS.
+            VirtualView?.SetPaused(!isActivelyPlaying && !isWaitingForData);
+
+            if (isActivelyPlaying)
             {
                 VirtualView?.OnPlaybackActivity();
             }
@@ -80,6 +90,13 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
     protected override void DisconnectHandler(UIView platformView)
     {
+        if (_playbackStalledObserver != null)
+        {
+            NSNotificationCenter.DefaultCenter.RemoveObserver(_playbackStalledObserver);
+            _playbackStalledObserver.Dispose();
+            _playbackStalledObserver = null;
+        }
+
         if (_timeObserver != null)
         {
             _player?.RemoveTimeObserver(_timeObserver);
@@ -98,22 +115,56 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
         if (string.IsNullOrEmpty(player.Source))
         {
             handler._player.ReplaceCurrentItemWithPlayerItem(null);
+            player.SetPaused(true);
             return;
         }
 
         var url = NSUrl.FromString(player.Source);
-        var item = new AVPlayerItem(url); // Don't use AVAsset for HLS streams
+        if (url == null)
+        {
+            handler._player.ReplaceCurrentItemWithPlayerItem(null);
+            player.SetPaused(true);
+            return;
+        }
+
+        if (handler._playbackStalledObserver != null)
+        {
+            NSNotificationCenter.DefaultCenter.RemoveObserver(handler._playbackStalledObserver);
+            handler._playbackStalledObserver.Dispose();
+            handler._playbackStalledObserver = null;
+        }
+
+        var item = new AVPlayerItem(url)
+        {
+            PreferredForwardBufferDuration = 1,
+            CanUseNetworkResourcesForLiveStreamingWhilePaused = true,
+        };
 
         handler._player.ReplaceCurrentItemWithPlayerItem(item);
+        player.SetPaused(false);
+
+        handler._playbackStalledObserver = NSNotificationCenter.DefaultCenter.AddObserver(
+            AVPlayerItem.PlaybackStalledNotification,
+            _ =>
+            {
+                if (handler._player?.CurrentItem == item)
+                {
+                    handler._player.PlayImmediatelyAtRate(1f);
+                }
+            },
+            item
+        );
     }
 
     private static void MapPlay(NativeVideoPlayerHandler handler, NativeVideoPlayer player, object args)
     {
-        handler._player?.Play();
+        player.SetPaused(false);
+        handler._player?.PlayImmediatelyAtRate(1f);
     }
 
     private static void MapStop(NativeVideoPlayerHandler handler, NativeVideoPlayer player, object args)
     {
+        player.SetPaused(true);
         handler._player?.Pause();
         handler._player?.ReplaceCurrentItemWithPlayerItem(null);
     }
