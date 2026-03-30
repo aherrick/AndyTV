@@ -90,7 +90,6 @@ jobs:
             -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}" \
             "-p:MtouchInterpreter=-all,LibVLCSharp.MAUI,LibVLCSharp" \
             -o publishapp
-            -o publishapp
 
       - name: Upload to Azure & Generate OTA Install
         id: ota
