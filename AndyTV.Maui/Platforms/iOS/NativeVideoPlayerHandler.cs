@@ -61,7 +61,11 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
             var active = status != AVPlayerTimeControlStatus.Paused;
 
             VirtualView?.SetPaused(!active);
-            if (status == AVPlayerTimeControlStatus.Playing)
+
+            // Fire activity for both Playing AND WaitingToPlay (buffering).
+            // HLS streams can buffer for many seconds before the first frame.
+            // Without this, the health monitor restarts the stream in a loop.
+            if (active)
             {
                 VirtualView?.OnPlaybackActivity();
             }
