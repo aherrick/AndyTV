@@ -1,4 +1,5 @@
 ﻿using AndyTV.Data.Services;
+using AndyTV.Maui.Controls;
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
@@ -15,6 +16,10 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler<NativeVideoPlayer, NativeVideoPlayerHandler>();
+            })
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));

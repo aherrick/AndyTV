@@ -1,14 +1,11 @@
 using AndyTV.Data.Services;
 using AndyTV.Maui.ViewModels;
-using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
 public partial class PlayerPage : ContentPage
 {
     private readonly PlayerViewModel _viewModel;
-    private readonly LibVLC _libVLC;
-    private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
 
@@ -23,24 +20,20 @@ public partial class PlayerPage : ContentPage
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
-        _libVLC = new LibVLC();
-        _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
-        VideoView.MediaPlayer = _mediaPlayer;
-
         _healthMonitor = new StreamHealthMonitor(
-            isPaused: () => _mediaPlayer.State == VLCState.Paused,
+            isPaused: () => VideoPlayer.IsPaused,
             restart: () =>
             {
                 if (string.IsNullOrEmpty(_viewModel.Url))
+                {
                     return;
+                }
 
                 Play(_viewModel.Url);
             }
         );
 
-        _mediaPlayer.TimeChanged += (_, __) => _healthMonitor.MarkActivity();
-        _mediaPlayer.PositionChanged += (_, __) => _healthMonitor.MarkActivity();
-        _mediaPlayer.Playing += (_, __) => _healthMonitor.MarkActivity();
+        VideoPlayer.PlaybackActivity += () => _healthMonitor.MarkActivity();
 
         _healthTimer = Dispatcher.CreateTimer();
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
@@ -53,14 +46,16 @@ public partial class PlayerPage : ContentPage
     private void Play(string url)
     {
         _healthMonitor.MarkActivity();
-        _mediaPlayer.Stop();
-        _mediaPlayer.Play(new Media(_libVLC, new Uri(url)));
+        VideoPlayer.Source = url;
+        VideoPlayer.Play();
     }
 
     private void OnHealthTimerTick(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_viewModel.Url))
+        {
             return;
+        }
 
         _healthMonitor.Tick();
     }
@@ -69,9 +64,7 @@ public partial class PlayerPage : ContentPage
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
-
         _healthTimer.Stop();
-        _mediaPlayer.Stop();
-        VideoView.MediaPlayer = null;
+        VideoPlayer.Stop();
     }
 }
