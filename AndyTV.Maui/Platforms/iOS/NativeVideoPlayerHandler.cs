@@ -156,27 +156,27 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
                 {
                     if (item.Status == AVPlayerItemStatus.Failed)
                     {
-                        var errorMsg = item.Error?.LocalizedDescription ?? "Unknown error";
-                        var errorDetail = item.Error?.LocalizedFailureReason ?? "";
-
-                        var logLines = $"Error: {errorMsg}\n{errorDetail}";
+                        var err = item.Error;
+                        var logLines = $"Code: {err?.Code}\nDomain: {err?.Domain}\n{err?.LocalizedDescription}\n{err?.LocalizedFailureReason}";
 
                         var errorLog = item.ErrorLog;
-                        if (errorLog?.Events != null)
+                        if (errorLog?.Events != null && errorLog.Events.Length > 0)
                         {
                             foreach (var evt in errorLog.Events)
                             {
-                                logLines += $"\nURI: {evt.Uri}";
-                                logLines += $"\nStatus: {evt.ErrorStatusCode}";
-                                logLines += $"\nComment: {evt.ErrorComment}";
+                                logLines += $"\n---\nURI: {evt.Uri}\nHTTP: {evt.ErrorStatusCode}\n{evt.ErrorComment}";
                             }
+                        }
+                        else
+                        {
+                            logLines += "\n(no error log events)";
                         }
 
                         ShowAlert("AVPlayerItem Failed", logLines);
                     }
                     else if (item.Status == AVPlayerItemStatus.ReadyToPlay)
                     {
-                        ShowAlert("Debug", "Item is ReadyToPlay — calling Play()");
+                        ShowAlert("Debug", "ReadyToPlay — calling Play()");
                         newPlayer.Play();
                     }
                 });
