@@ -84,6 +84,11 @@ public partial class AVKitTestPage : ContentPage
             return;
         }
 
+        // Ensure the audio session is configured for playback, otherwise video might not start
+        var audioSession = AVFoundation.AVAudioSession.SharedInstance();
+        audioSession.SetCategory(AVFoundation.AVAudioSessionCategory.Playback);
+        try { audioSession.SetActive(true); } catch { /* ignore */ }
+
         // Many IPTV/HLS providers block Apple's default UA; use a VLC-style UA to pass.
         var headers = Foundation.NSDictionary.FromObjectAndKey(
             new Foundation.NSString("VLC/3.0.0 LibVLC/3.0.0"),
@@ -97,6 +102,28 @@ public partial class AVKitTestPage : ContentPage
         var playerItem = new AVFoundation.AVPlayerItem(asset);
         var player = new AVFoundation.AVPlayer(playerItem);
         var playerVC = new AVKit.AVPlayerViewController { Player = player };
+
+        // Diagnostic polling: check if the AVPlayer hits an error (async)
+        _ = Task.Run(async () =>
+        {
+            for (int i = 0; i < 30; i++)
+            {
+                await Task.Delay(1000); // Check every second for 30 seconds
+                if (playerItem.Status == AVFoundation.AVPlayerItemStatus.Failed)
+                {
+                    var errorMsg = playerItem.Error?.LocalizedDescription ?? "Unknown AVPlayerError";
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        var window = Application.Current?.Windows.FirstOrDefault();
+                        if (window?.Page != null)
+                        {
+                            await window.Page.DisplayAlertAsync("Playback Failed", errorMsg, "OK");
+                        }
+                    });
+                    break;
+                }
+            }
+        });
 
         var window = UIKit.UIApplication.SharedApplication.ConnectedScenes
             .OfType<UIKit.UIWindowScene>()
