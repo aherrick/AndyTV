@@ -16,6 +16,7 @@
             BackgroundColor="#222"
             ClearButtonVisibility="WhileEditing"
             Keyboard="Url" />
+        <Button Text="Paste URL" Clicked="OnPromptClicked" />
         <Button Text="Play" Clicked="OnPlayClicked" />
     </VerticalStackLayout>
 </ContentPage>
