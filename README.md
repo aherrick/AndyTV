@@ -15,8 +15,8 @@
 - 🕑 Remembers your most recently watched channels  
 - 🔄 Auto-update support via GitHub Releases  
 
-> ⚠️ **Note:** AndyTV does **not** include or ship with any IPTV channels, playlists, or URLs.  
-> You must provide your own M3U URL from your IPTV provider.
+> ⚠️ **Note:** AndyTV does **not** include or ship with any IPTV channels or playlists.  
+> You must provide your own M3U playlist — either a remote URL from your IPTV provider or a local `.m3u` file.
 
 ## 🖱️ Quick controls
 - **Left mouse:** click and hold for **1 second** → switch to **previous channel**
@@ -38,11 +38,18 @@ or directly via:
 
 ## 🖥️ Requirements
 - 🪟 Windows 10 or later  
-- 🌐 A valid M3U URL from an IPTV provider  
+- 📋 An M3U playlist — either a remote URL or a local file
 
 ## 📺 Playlist configuration
 
-Use **Settings → Manage Playlists** in the WinForms app to control how playlists show up in the menu:
+Use **Settings → Manage Playlists** in the WinForms app to control how playlists show up in the menu.
+
+The **Source** field accepts either an HTTP URL or a local file path:
+
+```
+https://provider.example.com/playlist.m3u
+C:\Users\Andy\Playlists\tv.m3u
+```
 
 - **ShowInMenu** – whether this playlist appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
