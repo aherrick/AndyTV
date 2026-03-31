@@ -133,54 +133,54 @@ public class NativeVideoPlayerHandler : ViewHandler<NativeVideoPlayer, UIView>
 
         ShowAlert("Debug", $"Loading: {player.Source}");
 
-        var newPlayer = new AVPlayer(url);
+        // IPTV servers commonly block iOS's default AVPlayer User-Agent.
+        // Use AVURLAsset with a custom User-Agent that matches VLC so the
+        // server accepts the request and returns a valid HLS playlist.
+        var headers = NSDictionary.FromObjectsAndKeys(
+            new NSObject[] { new NSString("VLC/3.0.21 LibVLC/3.0.21") },
+            new NSObject[] { new NSString("User-Agent") }
+        );
+        var asset = new AVUrlAsset(url, new AVUrlAssetOptions(headers));
+        var item = new AVPlayerItem(asset);
+        var newPlayer = new AVPlayer(item);
         handler._player = newPlayer;
         handler._playerViewController.Player = newPlayer;
 
         // Observe item status to catch errors
-        var item = newPlayer.CurrentItem;
-        if (item != null)
-        {
-            handler._itemStatusObserver = item.AddObserver(
-                "status",
-                NSKeyValueObservingOptions.New | NSKeyValueObservingOptions.Initial,
-                _ =>
+        handler._itemStatusObserver = item.AddObserver(
+            "status",
+            NSKeyValueObservingOptions.New | NSKeyValueObservingOptions.Initial,
+            _ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    if (item.Status == AVPlayerItemStatus.Failed)
                     {
-                        if (item.Status == AVPlayerItemStatus.Failed)
+                        var errorMsg = item.Error?.LocalizedDescription ?? "Unknown error";
+                        var errorDetail = item.Error?.LocalizedFailureReason ?? "";
+
+                        var logLines = $"Error: {errorMsg}\n{errorDetail}";
+
+                        var errorLog = item.ErrorLog;
+                        if (errorLog?.Events != null)
                         {
-                            var errorMsg = item.Error?.LocalizedDescription ?? "Unknown error";
-                            var errorDetail = item.Error?.LocalizedFailureReason ?? "";
-
-                            var logLines = $"Error: {errorMsg}\n{errorDetail}";
-
-                            var errorLog = item.ErrorLog;
-                            if (errorLog?.Events != null)
+                            foreach (var evt in errorLog.Events)
                             {
-                                foreach (var evt in errorLog.Events)
-                                {
-                                    logLines += $"\nURI: {evt.Uri}";
-                                    logLines += $"\nStatus: {evt.ErrorStatusCode}";
-                                    logLines += $"\nComment: {evt.ErrorComment}";
-                                }
+                                logLines += $"\nURI: {evt.Uri}";
+                                logLines += $"\nStatus: {evt.ErrorStatusCode}";
+                                logLines += $"\nComment: {evt.ErrorComment}";
                             }
+                        }
 
-                            ShowAlert("AVPlayerItem Failed", logLines);
-                        }
-                        else if (item.Status == AVPlayerItemStatus.ReadyToPlay)
-                        {
-                            ShowAlert("Debug", "Item is ReadyToPlay — calling Play()");
-                            newPlayer.Play();
-                        }
-                    });
+                        ShowAlert("AVPlayerItem Failed", logLines);
+                    }
+                    else if (item.Status == AVPlayerItemStatus.ReadyToPlay)
+                    {
+                        ShowAlert("Debug", "Item is ReadyToPlay — calling Play()");
+                        newPlayer.Play();
+                    }
                 });
-        }
-        else
-        {
-            ShowAlert("Debug", "CurrentItem is null after AVPlayer(url) init");
-            newPlayer.Play();
-        }
+            });
 
         // Time observer for activity
         var interval = CMTime.FromSeconds(1, 1);
