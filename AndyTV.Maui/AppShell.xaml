@@ -34,5 +34,14 @@
                 <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf013;" />
             </ShellContent.Icon>
         </ShellContent>
+
+        <ShellContent
+            Title="AVKit"
+            ContentTemplate="{DataTemplate views:AVKitTestPage}"
+            Route="avkittest">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf144;" />
+            </ShellContent.Icon>
+        </ShellContent>
     </TabBar>
 </Shell>
