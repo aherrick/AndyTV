@@ -84,7 +84,18 @@ public partial class AVKitTestPage : ContentPage
             return;
         }
 
-        var player = new AVFoundation.AVPlayer(url);
+        // Many IPTV/HLS providers block Apple's default UA; use a VLC-style UA to pass.
+        var headers = Foundation.NSDictionary.FromObjectAndKey(
+            new Foundation.NSString("VLC/3.0.0 LibVLC/3.0.0"),
+            new Foundation.NSString("User-Agent"));
+
+        var assetOptions = Foundation.NSDictionary.FromObjectAndKey(
+            headers,
+            new Foundation.NSString("AVURLAssetHTTPHeaderFieldsKey"));
+
+        var asset = new AVFoundation.AVUrlAsset(url, assetOptions);
+        var playerItem = new AVFoundation.AVPlayerItem(asset);
+        var player = new AVFoundation.AVPlayer(playerItem);
         var playerVC = new AVKit.AVPlayerViewController { Player = player };
 
         var window = UIKit.UIApplication.SharedApplication.ConnectedScenes
