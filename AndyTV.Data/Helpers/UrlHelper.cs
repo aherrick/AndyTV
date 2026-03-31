@@ -7,9 +7,12 @@ public static class UrlHelper
         if (string.IsNullOrWhiteSpace(url))
             return false;
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var u))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return false;
 
-        return u.Scheme is "http" or "https" && !string.IsNullOrEmpty(u.Host);
+        return uri.Scheme is "http" or "https" && !string.IsNullOrEmpty(uri.Host);
     }
+
+    public static bool IsValidPlaylistSource(string source) =>
+        IsValidUrl(source) || File.Exists(source);
 }

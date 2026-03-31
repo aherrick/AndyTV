@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AndyTV.Data.Helpers;
 using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
@@ -70,7 +71,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         {
             try
             {
-                var m3uText = await _httpClient.GetStringAsync(p.Url);
+                var m3uText = await LoadPlaylistTextAsync(p.Url);
                 if (string.IsNullOrWhiteSpace(m3uText))
                 {
                     return (p, new List<Channel>());
@@ -130,5 +131,16 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         });
 
         return [.. await Task.WhenAll(tasks)];
+    }
+
+    private static Task<string> LoadPlaylistTextAsync(string source)
+    {
+        if (UrlHelper.IsValidUrl(source))
+            return _httpClient.GetStringAsync(source);
+
+        if (File.Exists(source))
+            return File.ReadAllTextAsync(source);
+
+        return Task.FromResult(string.Empty);
     }
 }

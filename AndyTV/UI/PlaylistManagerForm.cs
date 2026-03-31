@@ -73,7 +73,7 @@ public sealed class PlaylistManagerForm : Form
             new DataGridViewTextBoxColumn
             {
                 DataPropertyName = nameof(Playlist.Url),
-                HeaderText = nameof(Playlist.Url),
+                HeaderText = "Source",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 55,
             }
@@ -208,7 +208,7 @@ public sealed class PlaylistManagerForm : Form
             new Playlist
             {
                 Name = "New Playlist",
-                Url = "https://",
+                Url = string.Empty,
                 ShowInMenu = true,
                 GroupByFirstChar = false,
             }
@@ -271,11 +271,11 @@ public sealed class PlaylistManagerForm : Form
         _grid.EndEdit();
         Validate();
 
-        if (!_data.All(x => UrlHelper.IsValidUrl(x.Url)))
+        if (!_data.All(x => UrlHelper.IsValidPlaylistSource(x.Url)))
         {
             MessageBox.Show(
                 this,
-                "Valid URL required for save.",
+            "Each playlist needs an HTTP URL or an existing local .m3u/.m3u8 file.",
                 "Validation",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning

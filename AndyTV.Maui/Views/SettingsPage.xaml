@@ -21,8 +21,7 @@
             <Entry Placeholder="Playlist Name" Text="{Binding PlaylistName}" />
 
             <Entry
-                Keyboard="Url"
-                Placeholder="https://example.com/playlist.m3u"
+                Placeholder="https://example.com/playlist.m3u or C:\\Playlists\\tv.m3u"
                 Text="{Binding PlaylistUrl}" />
 
             <Button Command="{Binding AddCommand}" Text="Add Playlist" />

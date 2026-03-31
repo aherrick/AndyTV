@@ -47,7 +47,11 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     {
         if (string.IsNullOrWhiteSpace(PlaylistName) || string.IsNullOrWhiteSpace(PlaylistUrl))
         {
-            await Shell.Current.DisplayAlertAsync("Error", "Please enter both name and URL", "OK");
+            await Shell.Current.DisplayAlertAsync(
+                "Error",
+                "Please enter both a name and an M3U source.",
+                "OK"
+            );
             return;
         }
 

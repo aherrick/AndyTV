@@ -10,7 +10,7 @@
                 <input type="text" class="form-control" @bind="_name" placeholder="Playlist Name" />
             </div>
             <div class="col-12 col-md-7">
-                <input type="text" class="form-control" @bind="_url" placeholder="M3U URL" />
+                <input type="text" class="form-control" @bind="_url" placeholder="M3U URL or file path" />
             </div>
             <div class="col-12 col-md-2">
                 <button class="btn btn-primary w-100" @onclick="AddPlaylist" disabled="@Manager.IsLoading">Add</button>
