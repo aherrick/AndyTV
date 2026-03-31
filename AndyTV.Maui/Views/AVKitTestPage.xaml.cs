@@ -111,7 +111,18 @@ public partial class AVKitTestPage : ContentPage
                 await Task.Delay(1000); // Check every second for 30 seconds
                 if (playerItem.Status == AVFoundation.AVPlayerItemStatus.Failed)
                 {
-                    var errorMsg = playerItem.Error?.LocalizedDescription ?? "Unknown AVPlayerError";
+                    var error = playerItem.Error;
+                    var errorMsg = $"Code: {error?.Code}\nMsg: {error?.LocalizedDescription}\nReason: {error?.LocalizedFailureReason}";
+                    
+                    if (error?.UserInfo != null)
+                    {
+                        var underlyingErroKey = new Foundation.NSString("NSUnderlyingError");
+                        if (error.UserInfo.TryGetValue(underlyingErroKey, out var underlyingErrorObj) && underlyingErrorObj is Foundation.NSError underlyingError)
+                        {
+                            errorMsg += $"\nUnderlying: {underlyingError.LocalizedDescription}\nUnderlying Code: {underlyingError.Code}";
+                        }
+                    }
+
                     MainThread.BeginInvokeOnMainThread(async () =>
                     {
                         var window = Application.Current?.Windows.FirstOrDefault();
