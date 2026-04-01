@@ -12,7 +12,7 @@ namespace AndyTV;
 
 public partial class Form1 : Form
 {
-    private readonly LibVLC _libVLC;
+    private LibVLC _libVLC;
     private readonly NotificationService _notificationService;
     private readonly UpdateService _updateService;
     private readonly VideoView _videoView;
@@ -60,7 +60,6 @@ public partial class Form1 : Form
     private bool _favoritesShown = true;
 
     public Form1(
-        LibVLC libVLC,
         UpdateService updateService,
         VideoView videoView,
         IPlaylistService playlistService,
@@ -71,7 +70,6 @@ public partial class Form1 : Form
     {
         Logger.Info("Starting AndyTV...");
 
-        _libVLC = libVLC;
         _updateService = updateService;
         _videoView = videoView;
         _playlistService = playlistService;
@@ -100,35 +98,7 @@ public partial class Form1 : Form
 
         _notificationService = new NotificationService(this);
 
-        HandleCreated += delegate
-        {
-            var last = _lastChannelService.LoadLastChannel();
-            if (last is not null)
-                Play(last);
-        };
-
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
-
-        _videoView.MediaPlayer.TimeChanged += delegate
-        {
-            _healthMonitor.MarkActivity();
-        };
-        _videoView.MediaPlayer.PositionChanged += delegate
-        {
-            _healthMonitor.MarkActivity();
-        };
-
-        _videoView.MediaPlayer.Playing += delegate
-        {
-            _healthMonitor.MarkActivity();
-
-            _videoView.SetCursorForCurrentView();
-
-            _notificationService.ShowToast(_currentChannel.DisplayName);
-            _recentChannelService.AddOrPromote(_currentChannel);
-            _lastChannelService.SaveLastChannel(_currentChannel);
-            _menuRecent?.Rebuild();
-        };
 
         _videoView.ContextMenuStrip = _contextMenuStrip;
 
@@ -162,7 +132,7 @@ public partial class Form1 : Form
                     Play(prevChannel);
             }
 
-            if (e.Button == MouseButtons.Middle)
+            if (e.Button == MouseButtons.Middle && _videoView.MediaPlayer is not null)
             {
                 _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
             }
@@ -240,6 +210,13 @@ public partial class Form1 : Form
             );
             _menuFavorite.Rebuild();
 
+            // Initialize VLC in background (heaviest startup cost)
+            _ = Task.Run(() =>
+            {
+                var libVlc = new LibVLC(enableDebugLogs: false);
+                BeginInvoke(() => CompleteVlcInit(libVlc));
+            });
+
             // Initial refresh
             StartChannelRefresh();
 
@@ -266,6 +243,45 @@ public partial class Form1 : Form
     }
 
     private int _isRefreshingChannels;
+
+    private void CompleteVlcInit(LibVLC libVlc)
+    {
+        _libVLC = libVlc;
+
+        _videoView.MediaPlayer = new MediaPlayer(libVlc)
+        {
+            EnableHardwareDecoding = true,
+            EnableKeyInput = false,
+            EnableMouseInput = false,
+        };
+
+        _videoView.MediaPlayer.TimeChanged += delegate
+        {
+            _healthMonitor.MarkActivity();
+        };
+        _videoView.MediaPlayer.PositionChanged += delegate
+        {
+            _healthMonitor.MarkActivity();
+        };
+
+        _videoView.MediaPlayer.Playing += delegate
+        {
+            _healthMonitor.MarkActivity();
+
+            _videoView.SetCursorForCurrentView();
+
+            _notificationService.ShowToast(_currentChannel.DisplayName);
+            _recentChannelService.AddOrPromote(_currentChannel);
+            _lastChannelService.SaveLastChannel(_currentChannel);
+            _menuRecent?.Rebuild();
+        };
+
+        var last = _lastChannelService.LoadLastChannel();
+        if (last is not null)
+        {
+            Play(last);
+        }
+    }
 
     private void StartChannelRefresh()
     {
@@ -310,6 +326,11 @@ public partial class Form1 : Form
 
     private void Play(Channel channel)
     {
+        if (_libVLC is null)
+        {
+            return;
+        }
+
         _currentChannel = channel;
 
         _videoView.ShowWaiting();
@@ -382,8 +403,8 @@ public partial class Form1 : Form
         _contextMenuStrip.Opening += (_, __) =>
         {
             _videoView.ShowDefault();
-            muteItem.Text = _videoView.MediaPlayer.Mute ? "Unmute" : "Mute";
-            pauseItem.Text = _videoView.MediaPlayer.IsPlaying ? "Pause" : "Resume";
+            muteItem.Text = _videoView.MediaPlayer?.Mute == true ? "Unmute" : "Mute";
+            pauseItem.Text = _videoView.MediaPlayer?.IsPlaying == true ? "Pause" : "Resume";
             favoritesToggleItem.Text = _favoritesShown ? "Hide" : "Show";
         };
 
@@ -515,13 +536,19 @@ public partial class Form1 : Form
         muteItem = MenuHelper.AddMenuItem(
             appMenu,
             "Mute",
-            (_, __) => _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute
+            (_, __) =>
+            {
+                if (_videoView.MediaPlayer is not null)
+                {
+                    _videoView.MediaPlayer.Mute = !_videoView.MediaPlayer.Mute;
+                }
+            }
         );
 
         pauseItem = MenuHelper.AddMenuItem(
             appMenu,
             "Pause",
-            (_, __) => _videoView.MediaPlayer.Pause()
+            (_, __) => _videoView.MediaPlayer?.Pause()
         );
 
         MenuHelper.AddSeparator(appMenu);
