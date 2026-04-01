@@ -17,6 +17,6 @@ jobs:
         uses: aherrick/nuget-outdated@main
         with:
           #Ignore VLC for now, it seems buggy and we don't want to update it until we can test it more thoroughly
-          ignore: 'AndyTV=Velopack;'                                           
+          ignore: 'AndyTV=Velopack'
           includeprelease: 'true'
           currentmajorprereleaseonly: 'true'
