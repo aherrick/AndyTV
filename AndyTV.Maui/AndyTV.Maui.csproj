@@ -47,7 +47,7 @@
 
 	<ItemGroup>
                 <PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
-                <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.5" />
+                <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.6" />
                 <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
                 <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
                 <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
@@ -58,7 +58,7 @@
         </ItemGroup>
 
         <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-                <PackageReference Include="VideoLAN.LibVLC.Android" Version="3.5.3" />
+                <PackageReference Include="VideoLAN.LibVLC.Android" Version="3.7.0-beta" />
         </ItemGroup>
 
         <ItemGroup>
