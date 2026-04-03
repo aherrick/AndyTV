@@ -1,5 +1,6 @@
 using AndyTV.Data.Services;
 using AndyTV.Services;
+using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,8 +12,24 @@ public static class ServiceConfiguration
     {
         var services = new ServiceCollection();
 
-        // VideoView (MediaPlayer wired after deferred LibVLC init in Form1)
-        services.AddSingleton(_ => new VideoView { Dock = DockStyle.Fill });
+        // LibVLC
+        services.AddSingleton(_ => new LibVLC(enableDebugLogs: false));
+
+        // VideoView
+        services.AddSingleton(sp =>
+        {
+            var libVlc = sp.GetRequiredService<LibVLC>();
+            return new VideoView
+            {
+                Dock = DockStyle.Fill,
+                MediaPlayer = new MediaPlayer(libVlc)
+                {
+                    EnableHardwareDecoding = true,
+                    EnableKeyInput = false,
+                    EnableMouseInput = false,
+                },
+            };
+        });
 
         // Shared services
         services.AddSingleton<IStorageProvider, WinFormsStorageProvider>();
