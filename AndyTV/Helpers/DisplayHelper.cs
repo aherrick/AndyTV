@@ -104,9 +104,9 @@ public static class DisplayHelper
 
             _originalRefreshRate = devMode.dmDisplayFrequency;
 
-            if (_originalRefreshRate == 60)
+            if (_originalRefreshRate >= 60)
             {
-                Logger.Info("[DISPLAY] Already at 60Hz, no change needed");
+                Logger.Info($"[DISPLAY] Already at {_originalRefreshRate}Hz (>= 60), no change needed");
                 return true;
             }
 
