@@ -46,7 +46,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-                <PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
+                <PackageReference Include="CommunityToolkit.Maui" Version="14.1.0" />
                 <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.6" />
                 <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
                 <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
