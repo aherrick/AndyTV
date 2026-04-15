@@ -1,4 +1,7 @@
-﻿namespace AndyTV.Maui;
+﻿using AndyTV.Maui.Messages;
+using CommunityToolkit.Mvvm.Messaging;
+
+namespace AndyTV.Maui;
 
 public partial class App : Application
 {
@@ -9,6 +12,11 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState activationState)
     {
-        return new Window(new AppShell());
+        var window = new Window(new AppShell());
+
+        window.Resumed += (_, _) =>
+            WeakReferenceMessenger.Default.Send(new AppResumedMessage());
+
+        return window;
     }
 }

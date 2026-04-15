@@ -50,7 +50,7 @@
                 <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.6" />
                 <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
                 <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
-                <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
+                <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
                 <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" /></ItemGroup>
 
         <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
