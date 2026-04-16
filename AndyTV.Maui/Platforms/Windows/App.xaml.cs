@@ -21,4 +21,5 @@ namespace AndyTV.Maui.WinUI
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
     }
+
 }

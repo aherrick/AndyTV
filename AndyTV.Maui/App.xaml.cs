@@ -1,17 +1,17 @@
-﻿namespace AndyTV.Maui;
+﻿using Microsoft.Extensions.DependencyInjection;
 
-public partial class App : Application
+namespace AndyTV.Maui
 {
-    private readonly MainPage _mainPage;
-
-    public App(MainPage mainPage)
+    public partial class App : Application
     {
-        InitializeComponent();
-        _mainPage = mainPage;
-    }
+        public App()
+        {
+            InitializeComponent();
+        }
 
-    protected override Window CreateWindow(IActivationState activationState)
-    {
-        return new Window(_mainPage);
+        protected override Window CreateWindow(IActivationState? activationState)
+        {
+            return new Window(new AppShell());
+        }
     }
 }

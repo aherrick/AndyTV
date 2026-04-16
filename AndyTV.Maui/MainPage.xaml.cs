@@ -1,42 +1,24 @@
-﻿using AndyTV.Maui.Services;
-
-namespace AndyTV.Maui;
-
-public partial class MainPage : ContentPage
+﻿namespace AndyTV.Maui
 {
-    private readonly IHlsPlayer _hlsPlayer;
-
-    public MainPage(IHlsPlayer hlsPlayer)
+    public partial class MainPage : ContentPage
     {
-        InitializeComponent();
-        _hlsPlayer = hlsPlayer;
-    }
+        int count = 0;
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        await PlayUrl();
-    }
-
-    private async void OnPlayClicked(object sender, EventArgs e)
-    {
-        await PlayUrl();
-    }
-
-    private async Task PlayUrl()
-    {
-        try
+        public MainPage()
         {
-            var url = HlsUrlEntry.Text?.Trim() ?? string.Empty;
-            var result = await _hlsPlayer.PlayHls(url);
-            if (!result.StartsWith("Started"))
-            {
-                await DisplayAlertAsync("HLS Diagnostic", result, "OK");
-            }
+            InitializeComponent();
         }
-        catch (Exception ex)
+
+        private void OnCounterClicked(object? sender, EventArgs e)
         {
-            await DisplayAlertAsync("Playback Error", ex.Message, "OK");
+            count++;
+
+            if (count == 1)
+                CounterBtn.Text = $"Clicked {count} time";
+            else
+                CounterBtn.Text = $"Clicked {count} times";
+
+            SemanticScreenReader.Announce(CounterBtn.Text);
         }
     }
 }
