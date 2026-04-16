@@ -1,12 +1,10 @@
 using AndyTV.Data.Services;
-using AndyTV.Maui.Messages;
 using AndyTV.Maui.ViewModels;
-using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
+public partial class PlayerPage : ContentPage
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
@@ -15,8 +13,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly StreamHealthMonitor _healthMonitor;
 
     private const int HealthCheckMilliseconds = 1000;
-
-    private Media _currentMedia;
 
     public PlayerPage(string url, string channelName)
     {
@@ -38,58 +34,30 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
                 if (string.IsNullOrEmpty(_viewModel.Url))
                     return;
 
-                Dispatcher.Dispatch(() => Play(_viewModel.Url));
+                Play(_viewModel.Url);
             }
         );
 
-        _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
-        _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
-        _mediaPlayer.Playing += (_, _) => _healthMonitor.MarkActivity();
-        _mediaPlayer.EncounteredError += (_, _) =>
-            Dispatcher.Dispatch(() =>
-            {
-                if (!string.IsNullOrEmpty(_viewModel.Url))
-                    Play(_viewModel.Url);
-            });
-        _mediaPlayer.EndReached += (_, _) =>
-            Dispatcher.Dispatch(() =>
-            {
-                if (!string.IsNullOrEmpty(_viewModel.Url))
-                    Play(_viewModel.Url);
-            });
+        _mediaPlayer.TimeChanged += (_, __) => _healthMonitor.MarkActivity();
+        _mediaPlayer.PositionChanged += (_, __) => _healthMonitor.MarkActivity();
+        _mediaPlayer.Playing += (_, __) => _healthMonitor.MarkActivity();
 
         _healthTimer = Dispatcher.CreateTimer();
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
         _healthTimer.Tick += OnHealthTimerTick;
 
-        WeakReferenceMessenger.Default.Register(this);
         Play(url);
         _healthTimer.Start();
-    }
-
-    public void Receive(AppResumedMessage message)
-    {
-        if (string.IsNullOrEmpty(_viewModel.Url))
-            return;
-
-        // Re-attach the native surface in case it went stale during suspension.
-        VideoView.MediaPlayer = _mediaPlayer;
-        Play(_viewModel.Url);
-        if (!_healthTimer.IsRunning)
-            _healthTimer.Start();
     }
 
     private void Play(string url)
     {
         _healthMonitor.MarkActivity();
         _mediaPlayer.Stop();
-        var previous = _currentMedia;
-        _currentMedia = new Media(_libVLC, new Uri(url));
-        _mediaPlayer.Play(_currentMedia);
-        previous?.Dispose();
+        _mediaPlayer.Play(new Media(_libVLC, new Uri(url)));
     }
 
-    private void OnHealthTimerTick(object? sender, EventArgs e)
+    private void OnHealthTimerTick(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_viewModel.Url))
             return;
@@ -102,12 +70,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
 
-        WeakReferenceMessenger.Default.UnregisterAll(this);
         _healthTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
-        _currentMedia?.Dispose();
-        _mediaPlayer.Dispose();
-        _libVLC.Dispose();
     }
 }
