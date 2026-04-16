@@ -9,15 +9,21 @@
     x:DataType="vm:PlayerViewModel">
 
     <Grid BackgroundColor="Black">
-        <Grid.GestureRecognizers>
-            <TapGestureRecognizer
-                Command="{Binding GoBackCommand}"
-                NumberOfTapsRequired="2" />
-        </Grid.GestureRecognizers>
-
         <vlc:VideoView
             x:Name="VideoView"
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
+
+        <!-- Transparent overlay ensures gestures work even when the native VLC surface is frozen -->
+        <BoxView
+            BackgroundColor="Transparent"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding GoBackCommand}"
+                    NumberOfTapsRequired="2" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
     </Grid>
 </ContentPage>
