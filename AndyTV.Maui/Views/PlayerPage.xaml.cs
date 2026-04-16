@@ -11,6 +11,7 @@ public partial class PlayerPage : ContentPage
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
+    private Window _subscribedWindow;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -50,6 +51,29 @@ public partial class PlayerPage : ContentPage
         _healthTimer.Start();
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Subscribe to window resume to restart playback if iOS backgrounded us.
+        // Cache the specific window we bound to so we don't leak it later.
+        _subscribedWindow = this.Window ?? Application.Current?.Windows.FirstOrDefault();
+        if (_subscribedWindow != null)
+        {
+            _subscribedWindow.Resumed += OnWindowResumed;
+        }
+    }
+
+    private void OnWindowResumed(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_viewModel.Url))
+            return;
+
+        var state = _mediaPlayer.State;
+        if (state != VLCState.Playing && state != VLCState.Buffering && state != VLCState.Opening)
+            Play(_viewModel.Url);
+    }
+
     private void Play(string url)
     {
         _healthMonitor.MarkActivity();
@@ -69,6 +93,12 @@ public partial class PlayerPage : ContentPage
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
+
+        if (_subscribedWindow != null)
+        {
+            _subscribedWindow.Resumed -= OnWindowResumed;
+            _subscribedWindow = null;
+        }
 
         _healthTimer.Stop();
         _mediaPlayer.Stop();
