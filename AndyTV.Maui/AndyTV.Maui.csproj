@@ -73,6 +73,8 @@
 		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
+		
+		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.5" />
 	</ItemGroup>
 
