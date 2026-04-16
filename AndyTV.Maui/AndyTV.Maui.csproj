@@ -1,42 +1,43 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
-
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
-		<RootNamespace>AndyTV.Maui</RootNamespace>
+		<RootNamespace>LibVLCSharp.MAUI.Sample</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<LangVersion>preview</LangVersion>
-
 		<!-- Display name -->
-		<ApplicationTitle>AndyTV</ApplicationTitle>
-
+		<ApplicationTitle>LibVLCSharp.MAUI.SampleX</ApplicationTitle>
+		<WindowsPackageType>None</WindowsPackageType>
 		<!-- App Identifier -->
 		<ApplicationId>com.ajh.AndyTV</ApplicationId>
+		<ApplicationIdGuid>49861f9e-48d3-45c0-b6a8-f591ad6d2010</ApplicationIdGuid>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
-		<WindowsPackageType>None</WindowsPackageType>
-
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+		<DefaultLanguage>en</DefaultLanguage>
 	</PropertyGroup>
-
 
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\AppIcon\appicon.svg" Color="#000000" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
-		
+		<MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
+
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
 
@@ -44,28 +45,26 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
+	
+
 	<ItemGroup>
-                <PackageReference Include="CommunityToolkit.Maui" Version="14.1.0" />
-                <PackageReference Include="LibVLCSharp.MAUI" Version="3.9.6" />
-                <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
-                <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
-                <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
-                <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" /></ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
+	</ItemGroup>
 
-        <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
-                <PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-        </ItemGroup>
+	
 
-        <!-- LibVLCSharp AOT workaround: interpret both the MAUI handler and the shared binding assembly -->
-        <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
-                <MtouchInterpreter>LibVLCSharp.MAUI.dll,LibVLCSharp.dll</MtouchInterpreter>
-        </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.6" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.0.51" />
+	</ItemGroup>
 
-        <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-                <PackageReference Include="VideoLAN.LibVLC.Android" Version="3.7.0-beta" />
-        </ItemGroup>
-
-        <ItemGroup>
-                <ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
-        </ItemGroup>
+	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+		<PackageReference Include="VideoLAN.LibVLC.Android" Version="3.6.5" />
+	</ItemGroup>
+	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
+	</ItemGroup>
+	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+	</ItemGroup>
 </Project>
