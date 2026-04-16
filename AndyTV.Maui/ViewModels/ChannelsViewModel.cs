@@ -114,12 +114,15 @@ public partial class ChannelsViewModel(
             if (_isFirstLoad)
             {
                 _isFirstLoad = false;
+#if IOS
+#else
                 var lastChannel = lastChannelService.LoadLastChannel();
                 if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
                 {
                     var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
                     await Shell.Current.Navigation.PushModalAsync(playerPage);
                 }
+#endif
             }
         }
         catch (Exception ex)
@@ -165,8 +168,13 @@ public partial class ChannelsViewModel(
         // Save as last channel
         lastChannelService.SaveLastChannel(channel);
 
+#if IOS
+        await Toast.Make("Player is temporarily disabled while iOS startup diagnostics continue.").Show();
+        return;
+#else
         var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
         await Shell.Current.Navigation.PushModalAsync(playerPage);
+#endif
     }
 }
 

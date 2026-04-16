@@ -13,16 +13,7 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-        builder.UseMauiApp<App>().UseMauiCommunityToolkit();
-
-#if IOS
-        builder.ConfigureMauiHandlers(handlers =>
-        {
-            handlers.AddHandler<VideoView, VideoViewHandler>();
-        });
-#else
-        builder.UseLibVLCSharp();
-#endif
+    builder.UseMauiApp<App>().UseMauiCommunityToolkit().UseLibVLCSharp();
 
         builder.ConfigureFonts(fonts =>
             {

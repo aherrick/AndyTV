@@ -57,7 +57,12 @@ public partial class FavoritesViewModel(
 
         recentChannelService.AddOrPromote(channel);
 
+#if IOS
+        await Toast.Make("Player is temporarily disabled while iOS startup diagnostics continue.").Show();
+        return;
+#else
         var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
         await Shell.Current.Navigation.PushModalAsync(playerPage);
+#endif
     }
 }
