@@ -57,7 +57,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.7" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
@@ -67,6 +67,6 @@
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
 	</ItemGroup>
 	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
 	</ItemGroup>
 </Project>
