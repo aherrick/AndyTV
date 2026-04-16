@@ -17,6 +17,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private const int HealthCheckMilliseconds = 1000;
 
     private Media _currentMedia;
+    private bool _disposed;
 
     public PlayerPage(string url, string channelName)
     {
@@ -35,36 +36,24 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             isPaused: () => _mediaPlayer.State == VLCState.Paused,
             restart: () =>
             {
-                if (string.IsNullOrEmpty(_viewModel.Url))
+                if (_disposed || string.IsNullOrEmpty(_viewModel.Url))
                 {
                     return;
                 }
 
-                Dispatcher.Dispatch(() => Play(_viewModel.Url));
+                Dispatcher.Dispatch(() =>
+                {
+                    if (!_disposed)
+                    {
+                        Play(_viewModel.Url);
+                    }
+                });
             }
         );
 
         _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
         _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
         _mediaPlayer.Playing += (_, _) => _healthMonitor.MarkActivity();
-
-        _mediaPlayer.EncounteredError += (_, _) =>
-            Dispatcher.Dispatch(() =>
-            {
-                if (!string.IsNullOrEmpty(_viewModel.Url))
-                {
-                    Play(_viewModel.Url);
-                }
-            });
-
-        _mediaPlayer.EndReached += (_, _) =>
-            Dispatcher.Dispatch(() =>
-            {
-                if (!string.IsNullOrEmpty(_viewModel.Url))
-                {
-                    Play(_viewModel.Url);
-                }
-            });
 
         _healthTimer = Dispatcher.CreateTimer();
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
@@ -78,7 +67,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
     public void Receive(AppResumedMessage message)
     {
-        if (string.IsNullOrEmpty(_viewModel.Url))
+        if (_disposed || string.IsNullOrEmpty(_viewModel.Url))
         {
             return;
         }
@@ -113,7 +102,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
     private void OnHealthTimerTick(object sender, EventArgs e)
     {
-        if (string.IsNullOrEmpty(_viewModel.Url))
+        if (_disposed || string.IsNullOrEmpty(_viewModel.Url))
         {
             return;
         }
@@ -124,8 +113,9 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        DeviceDisplay.Current.KeepScreenOn = false;
+        _disposed = true;
 
+        DeviceDisplay.Current.KeepScreenOn = false;
         WeakReferenceMessenger.Default.UnregisterAll(this);
 
         _healthTimer.Stop();
