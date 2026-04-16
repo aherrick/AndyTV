@@ -13,4 +13,3 @@ public static class Program
         UIApplication.Main(args, null, typeof(AppDelegate));
     }
 }
-}
