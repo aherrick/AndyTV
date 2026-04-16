@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace LibVLCSharp.MAUI.Sample
+namespace AndyTV.Maui
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

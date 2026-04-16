@@ -87,8 +87,6 @@ jobs:
             -p:CodesignTeamId="${{ env.APPLE_TEAM_ID }}" \
             -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
             -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}" \
-            -p:RunAOTCompilation=false \
-            -p:UseInterpreter=true \
             -o publishapp
 
       - name: Upload to Azure & Generate OTA Install

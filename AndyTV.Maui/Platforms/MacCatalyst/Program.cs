@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace LibVLCSharp.MAUI.Sample
+namespace AndyTV.Maui
 {
     public class Program
     {

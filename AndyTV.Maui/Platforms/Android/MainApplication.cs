@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace LibVLCSharp.MAUI.Sample
+namespace AndyTV.Maui
 {
     [Application]
     public class MainApplication : MauiApplication

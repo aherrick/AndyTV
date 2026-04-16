@@ -1,44 +1,20 @@
-﻿using LibVLCSharp.Shared;
+﻿using AndyTV.Maui.Services;
 
-namespace LibVLCSharp.MAUI.Sample
+namespace AndyTV.Maui;
+
+public partial class MainPage(IHlsPlayer hlsPlayer) : ContentPage
 {
-    public partial class MainPage : ContentPage
+    private async void OnPlayClicked(object sender, EventArgs e)
     {
-        public MainPage()
+        try
         {
-            InitializeComponent();
+            var url = HlsUrlEntry.Text?.Trim() ?? string.Empty;
+            var result = await hlsPlayer.PlayHls(url);
+            await DisplayAlert("HLS Diagnostic", result, "OK");
         }
-
-        protected override void OnAppearing()
+        catch (Exception ex)
         {
-            base.OnAppearing();
-#if !WINDOWS
-            ((MainViewModel)BindingContext).OnAppearing();
-#endif
-        }
-
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-            ((MainViewModel)BindingContext).OnDisappearing();
-        }
-
-        private void VideoView_MediaPlayerChanged(object sender, MediaPlayerChangedEventArgs e)
-        {
-            ((MainViewModel)BindingContext).OnVideoViewInitialized();
-        }
-
-        private void VideoView_HandlerChanged(object sender, EventArgs e)
-        {
-#if WINDOWS
-            var windowsView = ((LibVLCSharp.Platforms.Windows.VideoView)VideoView.Handler.PlatformView);
-
-            windowsView.Initialized += (s, e) =>
-            {
-                ((MainViewModel)BindingContext).Initialize(e.SwapChainOptions);
-                ((MainViewModel)BindingContext).OnAppearing();
-            };
-#endif
+            await DisplayAlert("Playback Error", ex.Message, "OK");
         }
     }
 }
