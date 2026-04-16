@@ -1,10 +1,9 @@
-﻿using AndyTV.Maui.Messages;
-using CommunityToolkit.Mvvm.Messaging;
-
-namespace AndyTV.Maui;
+﻿namespace AndyTV.Maui;
 
 public partial class App : Application
 {
+    public static event EventHandler AppResumed;
+
     public App()
     {
         InitializeComponent();
@@ -14,8 +13,7 @@ public partial class App : Application
     {
         var window = new Window(new AppShell());
 
-        window.Resumed += (_, _) =>
-            WeakReferenceMessenger.Default.Send(new AppResumedMessage());
+        window.Resumed += (_, _) => AppResumed?.Invoke(this, EventArgs.Empty);
 
         return window;
     }

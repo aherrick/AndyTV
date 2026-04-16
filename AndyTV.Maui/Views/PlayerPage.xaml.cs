@@ -1,12 +1,10 @@
 using AndyTV.Data.Services;
-using AndyTV.Maui.Messages;
 using AndyTV.Maui.ViewModels;
-using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
+public partial class PlayerPage : ContentPage
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
@@ -59,13 +57,13 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
         _healthTimer.Tick += OnHealthTimerTick;
 
-        WeakReferenceMessenger.Default.Register(this);
+        App.AppResumed += OnAppResumed;
 
         Play(url);
         _healthTimer.Start();
     }
 
-    public void Receive(AppResumedMessage message)
+    private void OnAppResumed(object sender, EventArgs e)
     {
         if (_disposed || string.IsNullOrEmpty(_viewModel.Url))
         {
@@ -116,7 +114,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _disposed = true;
 
         DeviceDisplay.Current.KeepScreenOn = false;
-        WeakReferenceMessenger.Default.UnregisterAll(this);
+        App.AppResumed -= OnAppResumed;
 
         _healthTimer.Stop();
         _mediaPlayer.Stop();
