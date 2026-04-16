@@ -1,12 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="AndyTV.Maui.MainPage">
+             x:Class="AndyTV.Maui.MainPage"
+             BackgroundColor="Black">
 
     <VerticalStackLayout Padding="20" Spacing="12" VerticalOptions="Center">
         <Entry
             x:Name="HlsUrlEntry"
-            Placeholder="Enter .m3u8 URL" />
+            Text="https://bloomberg.com/media-manifest/streams/qt.m3u8"
+            Placeholder="Enter .m3u8 URL"
+            TextColor="White"
+            PlaceholderColor="Gray" />
 
         <Button
             Text="Play HLS"
