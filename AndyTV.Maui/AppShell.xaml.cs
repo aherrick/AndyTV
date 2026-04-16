@@ -1,10 +1,9 @@
-﻿namespace AndyTV.Maui
+﻿namespace AndyTV.Maui;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    public AppShell()
     {
-        public AppShell()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }
