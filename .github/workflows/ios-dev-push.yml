@@ -29,7 +29,7 @@ jobs:
         run: dotnet workload install maui
 
       - name: Restore
-        run: dotnet restore AndyTV.slnx -r ios-arm64
+        run: dotnet restore ${{ env.CSPROJ_PATH }} -r ios-arm64
 
       - name: Build app for device
         run: |
