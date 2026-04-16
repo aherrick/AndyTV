@@ -10,7 +10,8 @@ namespace AndyTV.Maui.ViewModels;
 public partial class ChannelsViewModel(
     IPlaylistService playlistService,
     IRecentChannelService recentChannelService,
-    IFavoriteChannelService favoriteChannelService
+    IFavoriteChannelService favoriteChannelService,
+    ILastChannelService lastChannelService
 ) : ObservableObject
 {
     [ObservableProperty]
