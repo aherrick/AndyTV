@@ -1,18 +1,20 @@
 ﻿using LibVLCSharp.Shared;
 
+using LibVlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
+
 namespace AndyTV.Maui
 {
     public partial class MainPage : ContentPage
     {
         LibVLC _libVLC;
-        MediaPlayer _mediaPlayer;
+        LibVlcMediaPlayer _mediaPlayer;
 
         public MainPage()
         {
             InitializeComponent();
 
             _libVLC = new LibVLC();
-            _mediaPlayer = new MediaPlayer(_libVLC);
+            _mediaPlayer = new LibVlcMediaPlayer(_libVLC);
             VideoView.MediaPlayer = _mediaPlayer;
         }
 
