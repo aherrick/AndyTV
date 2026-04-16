@@ -51,7 +51,15 @@ public partial class FavoritesViewModel(
     private async Task SelectChannel(Channel channel)
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url))
+        {
             return;
+        }
+
+        if (App.IsIosStartupIsolationEnabled)
+        {
+            await Toast.Make("Player is temporarily disabled while iOS startup diagnostics are enabled.").Show();
+            return;
+        }
 
         recentChannelService.AddOrPromote(channel);
 

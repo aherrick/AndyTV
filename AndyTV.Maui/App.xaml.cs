@@ -3,13 +3,21 @@
 public partial class App : Application
 {
     public static event EventHandler AppResumed;
+    public static bool IsIosStartupIsolationEnabled
+    {
+        get
+        {
+#if IOS
+            return true;
+#else
+            return false;
+#endif
+        }
+    }
 
     public App()
     {
-#if IOS
-#else
         InitializeComponent();
-#endif
     }
 
     protected override Window CreateWindow(IActivationState activationState)
@@ -30,10 +38,17 @@ public partial class App : Application
 #if IOS
     private static ContentPage CreateIosStartupTestPage(Window window)
     {
+        var openAppButton = new Button
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            Text = "Open Full App",
+        };
+
+        openAppButton.Clicked += (_, _) => window.Page = new AppShell();
+
         return new ContentPage
         {
             Title = "AndyTV",
-            BackgroundColor = Colors.Black,
             Content = new Grid
             {
                 Padding = 24,
@@ -49,7 +64,6 @@ public partial class App : Application
                             new Label
                             {
                                 FontAttributes = FontAttributes.Bold,
-                                TextColor = Colors.White,
                                 FontSize = 28,
                                 HorizontalOptions = LayoutOptions.Center,
                                 HorizontalTextAlignment = TextAlignment.Center,
@@ -60,8 +74,8 @@ public partial class App : Application
                                 HorizontalOptions = LayoutOptions.Center,
                                 HorizontalTextAlignment = TextAlignment.Center,
                                 Text = "Minimal iOS startup page loaded.",
-                                TextColor = Colors.White,
                             },
+                            openAppButton,
                         },
                     },
                 },
