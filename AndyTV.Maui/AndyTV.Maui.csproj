@@ -68,6 +68,8 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
+
+		<PackageReference Include="LibVLCSharp" Version="3.9.7" />
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.7" />
 	</ItemGroup>
 

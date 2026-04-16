@@ -1,8 +1,9 @@
 name: ios
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["ios-dev-push"]
+    types: [completed]
   workflow_dispatch:
 
 env:
