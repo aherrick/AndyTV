@@ -16,16 +16,20 @@ public static class MauiProgram
         builder.UseMauiApp<App>().UseMauiCommunityToolkit();
 
 #if IOS
+        builder.ConfigureMauiHandlers(handlers =>
+        {
+            handlers.AddHandler<VideoView, VideoViewHandler>();
+        });
 #else
         builder.UseLibVLCSharp();
 #endif
 
         builder.ConfigureFonts(fonts =>
-        {
-            fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));
-            fonts.AddFont("fa-regular-400.ttf", nameof(FontAwesome.FontAwesomeRegular));
-            fonts.AddFont("fa-solid-900.ttf", nameof(FontAwesome.FontAwesomeSolid));
-        });
+            {
+                fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));
+                fonts.AddFont("fa-regular-400.ttf", nameof(FontAwesome.FontAwesomeRegular));
+                fonts.AddFont("fa-solid-900.ttf", nameof(FontAwesome.FontAwesomeSolid));
+            });
 
         // Services
         builder.Services.AddSingleton<IStorageProvider, MauiStorageProvider>();
