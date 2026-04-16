@@ -56,9 +56,9 @@
                 <PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
         </ItemGroup>
 
-        <!-- LibVLCSharp.MAUI fails iOS AOT; interpret it at runtime instead -->
+        <!-- LibVLCSharp AOT workaround: interpret both the MAUI handler and the shared binding assembly -->
         <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
-                <MtouchInterpreter>LibVLCSharp.MAUI.dll</MtouchInterpreter>
+                <MtouchInterpreter>LibVLCSharp.MAUI.dll;LibVLCSharp.dll</MtouchInterpreter>
         </PropertyGroup>
 
         <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
