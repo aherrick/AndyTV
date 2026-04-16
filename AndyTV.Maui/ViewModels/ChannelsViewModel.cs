@@ -10,8 +10,7 @@ namespace AndyTV.Maui.ViewModels;
 public partial class ChannelsViewModel(
     IPlaylistService playlistService,
     IRecentChannelService recentChannelService,
-    IFavoriteChannelService favoriteChannelService,
-    ILastChannelService lastChannelService
+    IFavoriteChannelService favoriteChannelService
 ) : ObservableObject
 {
     [ObservableProperty]
@@ -33,7 +32,6 @@ public partial class ChannelsViewModel(
     } = string.Empty;
 
     private readonly List<Channel> _allChannels = [];
-    private bool _isFirstLoad = true;
     private bool _hasLoaded;
 
     public ObservableCollection<ChannelGroup> Channels { get; } = [];
@@ -109,18 +107,6 @@ public partial class ChannelsViewModel(
             FilterChannels();
             _hasLoaded = true;
             await Toast.Make($"Loaded {_allChannels.Count} channels").Show();
-
-            // Auto-play last channel on first load
-            if (_isFirstLoad)
-            {
-                _isFirstLoad = false;
-                var lastChannel = lastChannelService.LoadLastChannel();
-                if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
-                {
-                    var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
-                    await Shell.Current.Navigation.PushModalAsync(playerPage);
-                }
-            }
         }
         catch (Exception ex)
         {
