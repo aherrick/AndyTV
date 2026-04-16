@@ -1,13 +1,12 @@
 ﻿using LibVLCSharp.Shared;
-
 using LibVlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace AndyTV.Maui
 {
     public partial class MainPage : ContentPage
     {
-        LibVLC _libVLC;
-        LibVlcMediaPlayer _mediaPlayer;
+        private LibVLC _libVLC;
+        private LibVlcMediaPlayer _mediaPlayer;
 
         public MainPage()
         {
@@ -22,7 +21,10 @@ namespace AndyTV.Maui
         {
             base.OnAppearing();
 
-            using var media = new Media(_libVLC, new Uri("https://streams.videolan.org/streams/mp4/Mr_MrsSmith-h264_aac.mp4"));
+            using var media = new Media(
+                _libVLC,
+                new Uri("https://streams.videolan.org/streams/mp4/Mr_MrsSmith-h264_aac.mp4")
+            );
             _mediaPlayer.Play(media);
         }
     }

@@ -7,5 +7,4 @@
     <vlc:VideoView x:Name="VideoView"
                    HorizontalOptions="Fill"
                    VerticalOptions="Fill" />
-
 </ContentPage>

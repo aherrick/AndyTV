@@ -275,7 +275,7 @@ public sealed class PlaylistManagerForm : Form
         {
             MessageBox.Show(
                 this,
-            "Each playlist needs an HTTP URL or an existing local .m3u/.m3u8 file.",
+                "Each playlist needs an HTTP URL or an existing local .m3u/.m3u8 file.",
                 "Validation",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning
