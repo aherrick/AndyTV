@@ -1,24 +1,27 @@
-﻿namespace AndyTV.Maui
+﻿using LibVLCSharp.Shared;
+
+namespace AndyTV.Maui
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
+        LibVLC _libVLC;
+        MediaPlayer _mediaPlayer;
 
         public MainPage()
         {
             InitializeComponent();
+
+            _libVLC = new LibVLC();
+            _mediaPlayer = new MediaPlayer(_libVLC);
+            VideoView.MediaPlayer = _mediaPlayer;
         }
 
-        private void OnCounterClicked(object? sender, EventArgs e)
+        protected override void OnAppearing()
         {
-            count++;
+            base.OnAppearing();
 
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
-            else
-                CounterBtn.Text = $"Clicked {count} times";
-
-            SemanticScreenReader.Announce(CounterBtn.Text);
+            using var media = new Media(_libVLC, new Uri("https://streams.videolan.org/streams/mp4/Mr_MrsSmith-h264_aac.mp4"));
+            _mediaPlayer.Play(media);
         }
     }
 }

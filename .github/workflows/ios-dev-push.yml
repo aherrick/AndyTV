@@ -1,0 +1,85 @@
+name: ios-dev-push
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CSPROJ_PATH: ./AndyTV.Maui/AndyTV.Maui.csproj
+  APP_PATH: AndyTV.Maui/bin/Debug/net10.0-ios/ios-arm64/AndyTV.Maui.app
+  BUNDLE_ID: com.ajh.AndyTV
+  CODESIGN_KEY: "Apple Development: Andrew Herrick (J342D9426H)"
+  CODESIGN_PROVISION: "AJH Wildcard"
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, ajmacmini]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore
+        run: dotnet restore AndyTV.slnx -r ios-arm64
+
+      - name: Build app for device
+        run: |
+          dotnet build ${{ env.CSPROJ_PATH }} \
+            -f net10.0-ios \
+            -c Debug \
+            -r ios-arm64 \
+            -p:PlatformTarget=arm64 \
+            --no-restore \
+            -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
+            -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}"
+
+      - name: Install and launch on device
+        continue-on-error: true
+        run: |
+          mkdir -p logs
+
+          xcrun devicectl device install app \
+            --device "${{ secrets.IOS_DEVICE_UDID }}" \
+            "${{ env.APP_PATH }}"
+
+          xcrun devicectl device process launch \
+            --terminate-existing \
+            --console \
+            --device "${{ secrets.IOS_DEVICE_UDID }}" \
+            "${{ env.BUNDLE_ID }}" \
+            > logs/device-console.txt 2>&1 || true
+
+          cat logs/device-console.txt || echo "(no console captured)"
+
+      - name: Pull crash logs
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p crash-logs
+          xcrun devicectl device copy crashlogs \
+            --device "${{ secrets.IOS_DEVICE_UDID }}" \
+            crash-logs/ 2>&1 || true
+
+          grep -rl "com.ajh.AndyTV\|AndyTV" crash-logs/ 2>/dev/null | while read f; do
+            echo "=== $f ===" && cat "$f"
+          done
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-diagnostics
+          path: |
+            crash-logs/
+            logs/
+          retention-days: 14
+          if-no-files-found: ignore

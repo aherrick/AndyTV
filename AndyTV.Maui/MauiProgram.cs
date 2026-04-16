@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using LibVLCSharp.MAUI;
+using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Maui
 {
@@ -9,6 +10,7 @@ namespace AndyTV.Maui
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseLibVLCSharp()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
