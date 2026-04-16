@@ -36,67 +36,43 @@ public sealed class HlsPlayer : IHlsPlayer
                     return;
                 }
 
-                var asset = AVAsset.FromUrl(nsUrl);
-                var keys = new[] { "playable" };
+                var item = new AVPlayerItem(nsUrl);
 
-                asset.LoadValuesAsynchronously(keys, () =>
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                NSNotificationCenter.DefaultCenter.AddObserver(
+                    new NSString("AVPlayerItemFailedToPlayToEndTimeNotification"),
+                    notification =>
                     {
-                        try
-                        {
-                            var playableStatus = asset.StatusOfValue("playable", out var playableError);
+                        var failedItem = notification.Object as AVPlayerItem;
+                        var error = failedItem?.Error;
+                        ShowNativeAlert("Playback Failed",
+                            $"Error: {error?.LocalizedDescription ?? "unknown"}\n" +
+                            $"Reason: {error?.LocalizedFailureReason ?? "none"}");
+                    },
+                    item);
 
-                            if (playableStatus != AVKeyValueStatus.Loaded)
-                            {
-                                tcs.TrySetResult(
-                                    $"Asset not playable.\n" +
-                                    $"Status: {playableStatus}\n" +
-                                    $"Error: {playableError?.LocalizedDescription ?? "none"}");
-                                return;
-                            }
+                // Also observe item status for immediate load errors
+                item.AddObserver(new ItemStatusObserver(tcs), "status", NSKeyValueObservingOptions.New, IntPtr.Zero);
 
-                            var item = new AVPlayerItem(asset);
+                var player = new AVPlayer(item);
+                var controller = new AVPlayerViewController
+                {
+                    Player = player,
+                    ShowsPlaybackControls = true,
+                    ModalPresentationStyle = UIModalPresentationStyle.FullScreen
+                };
 
-                            NSNotificationCenter.DefaultCenter.AddObserver(
-                                new NSString("AVPlayerItemFailedToPlayToEndTimeNotification"),
-                                notification =>
-                                {
-                                    var failedItem = notification.Object as AVPlayerItem;
-                                    var error = failedItem?.Error;
-                                    ShowNativeAlert("Playback Failed",
-                                        $"Error: {error?.LocalizedDescription ?? "unknown"}\n" +
-                                        $"Reason: {error?.LocalizedFailureReason ?? "none"}");
-                                },
-                                item);
+                var root = GetTopViewController();
 
-                            var player = new AVPlayer(item);
-                            var controller = new AVPlayerViewController
-                            {
-                                Player = player,
-                                ShowsPlaybackControls = true,
-                                ModalPresentationStyle = UIModalPresentationStyle.FullScreen
-                            };
+                if (root is null)
+                {
+                    tcs.TrySetResult("Could not find a view controller to present from.");
+                    return;
+                }
 
-                            var root = GetTopViewController();
-
-                            if (root is null)
-                            {
-                                tcs.TrySetResult("Could not find a view controller to present from.");
-                                return;
-                            }
-
-                            root.PresentViewController(controller, true, () =>
-                            {
-                                player.Play();
-                                tcs.TrySetResult("Started playback.");
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            tcs.TrySetResult($"Asset load error: {ex.Message}");
-                        }
-                    });
+                root.PresentViewController(controller, true, () =>
+                {
+                    player.Play();
+                    tcs.TrySetResult("Started playback.");
                 });
             }
             catch (Exception ex)
@@ -140,5 +116,25 @@ public sealed class HlsPlayer : IHlsPlayer
         }
 
         return vc;
+    }
+}
+
+sealed class ItemStatusObserver(TaskCompletionSource<string> tcs) : NSObject
+{
+    public override void ObserveValue(NSString keyPath, NSObject ofObject, NSDictionary change, IntPtr context)
+    {
+        if (ofObject is not AVPlayerItem item)
+        {
+            return;
+        }
+
+        if (item.Status == AVPlayerItemStatus.Failed)
+        {
+            var error = item.Error;
+            tcs.TrySetResult(
+                $"Item failed to load.\n" +
+                $"Error: {error?.LocalizedDescription ?? "unknown"}\n" +
+                $"Reason: {error?.LocalizedFailureReason ?? "none"}");
+        }
     }
 }
