@@ -1,5 +1,6 @@
 using LibVLCSharp.MAUI;
 using LibVLCSharp.Shared;
+using VlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace AndyTV.Maui.Views;
 
@@ -10,7 +11,7 @@ public partial class MinimalPlayerPage : ContentPage
 
     private LibVLC _libVlc;
     private Media _media;
-    private MediaPlayer _mediaPlayer;
+    private VlcMediaPlayer _mediaPlayer;
     private bool _isPageVisible;
     private bool _isVideoViewReady;
 
@@ -29,7 +30,7 @@ public partial class MinimalPlayerPage : ContentPage
         {
             _libVlc = new LibVLC(enableDebugLogs: true);
             _media = new Media(_libVlc, new Uri(TestUrl));
-            _mediaPlayer = new MediaPlayer(_libVlc)
+            _mediaPlayer = new VlcMediaPlayer(_libVlc)
             {
                 EnableHardwareDecoding = true,
                 Media = _media,
