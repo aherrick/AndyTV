@@ -58,7 +58,7 @@
 
         <!-- LibVLCSharp AOT workaround: interpret both the MAUI handler and the shared binding assembly -->
         <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
-                <MtouchInterpreter>LibVLCSharp.MAUI.dll;LibVLCSharp.dll</MtouchInterpreter>
+                <MtouchInterpreter>LibVLCSharp.MAUI.dll,LibVLCSharp.dll</MtouchInterpreter>
         </PropertyGroup>
 
         <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
