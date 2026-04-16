@@ -6,7 +6,10 @@ public partial class App : Application
 
     public App()
     {
+#if IOS
+#else
         InitializeComponent();
+#endif
     }
 
     protected override Window CreateWindow(IActivationState activationState)
@@ -27,24 +30,10 @@ public partial class App : Application
 #if IOS
     private static ContentPage CreateIosStartupTestPage(Window window)
     {
-        var statusLabel = new Label
-        {
-            HorizontalOptions = LayoutOptions.Center,
-            HorizontalTextAlignment = TextAlignment.Center,
-            Text = "AndyTV startup test page loaded.",
-        };
-
-        var openAppButton = new Button
-        {
-            HorizontalOptions = LayoutOptions.Fill,
-            Text = "Open Full App",
-        };
-
-        openAppButton.Clicked += (_, _) => window.Page = new AppShell();
-
         return new ContentPage
         {
             Title = "AndyTV",
+            BackgroundColor = Colors.Black,
             Content = new Grid
             {
                 Padding = 24,
@@ -60,13 +49,19 @@ public partial class App : Application
                             new Label
                             {
                                 FontAttributes = FontAttributes.Bold,
+                                TextColor = Colors.White,
                                 FontSize = 28,
                                 HorizontalOptions = LayoutOptions.Center,
                                 HorizontalTextAlignment = TextAlignment.Center,
                                 Text = "AndyTV",
                             },
-                            statusLabel,
-                            openAppButton,
+                            new Label
+                            {
+                                HorizontalOptions = LayoutOptions.Center,
+                                HorizontalTextAlignment = TextAlignment.Center,
+                                Text = "Minimal iOS startup page loaded.",
+                                TextColor = Colors.White,
+                            },
                         },
                     },
                 },
