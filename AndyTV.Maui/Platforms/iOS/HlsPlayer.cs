@@ -20,7 +20,7 @@ public sealed class HlsPlayer : IHlsPlayer
 
         if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
         {
-            tcs.SetResult("URL uses http — iOS App Transport Security may block this. Try https or add ATS exception.");
+            tcs.SetResult("URL uses http — iOS ATS may block this. Try https, or add ATS exception to Info.plist.");
             return tcs.Task;
         }
 
@@ -36,8 +36,8 @@ public sealed class HlsPlayer : IHlsPlayer
                     return;
                 }
 
-                var asset = AVUrlAsset.Create(nsUrl);
-                var keys = new[] { "playable", "hasProtectedContent" };
+                var asset = AVAsset.FromUrl(nsUrl);
+                var keys = new[] { "playable" };
 
                 asset.LoadValuesAsynchronously(keys, () =>
                 {
@@ -45,8 +45,7 @@ public sealed class HlsPlayer : IHlsPlayer
                     {
                         try
                         {
-                            var playableStatus = asset.GetStatusOfValue("playable", out var playableError);
-                            var protectedStatus = asset.GetStatusOfValue("hasProtectedContent", out _);
+                            var playableStatus = asset.StatusOfValue("playable", out var playableError);
 
                             if (playableStatus != AVKeyValueStatus.Loaded)
                             {
@@ -60,16 +59,14 @@ public sealed class HlsPlayer : IHlsPlayer
                             var item = new AVPlayerItem(asset);
 
                             NSNotificationCenter.DefaultCenter.AddObserver(
-                                AVPlayerItem.FailedToPlayToEndTimeNotification,
+                                new NSString("AVPlayerItemFailedToPlayToEndTimeNotification"),
                                 notification =>
                                 {
                                     var failedItem = notification.Object as AVPlayerItem;
                                     var error = failedItem?.Error;
-                                    var message =
-                                        $"Playback failed mid-stream.\n" +
+                                    ShowNativeAlert("Playback Failed",
                                         $"Error: {error?.LocalizedDescription ?? "unknown"}\n" +
-                                        $"Reason: {error?.LocalizedFailureReason ?? "none"}";
-                                    ShowNativeAlert("Playback Failed", message);
+                                        $"Reason: {error?.LocalizedFailureReason ?? "none"}");
                                 },
                                 item);
 
@@ -92,15 +89,7 @@ public sealed class HlsPlayer : IHlsPlayer
                             root.PresentViewController(controller, true, () =>
                             {
                                 player.Play();
-
-                                var protectedValue = protectedStatus == AVKeyValueStatus.Loaded
-                                    ? asset.HasProtectedContent.ToString()
-                                    : "unknown";
-
-                                tcs.TrySetResult(
-                                    $"Started playback.\n" +
-                                    $"Playable: yes\n" +
-                                    $"Protected: {protectedValue}");
+                                tcs.TrySetResult("Started playback.");
                             });
                         }
                         catch (Exception ex)

@@ -10,11 +10,11 @@ public partial class MainPage(IHlsPlayer hlsPlayer) : ContentPage
         {
             var url = HlsUrlEntry.Text?.Trim() ?? string.Empty;
             var result = await hlsPlayer.PlayHls(url);
-            await DisplayAlert("HLS Diagnostic", result, "OK");
+            await DisplayAlertAsync("HLS Diagnostic", result, "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Playback Error", ex.Message, "OK");
+            await DisplayAlertAsync("Playback Error", ex.Message, "OK");
         }
     }
 }
