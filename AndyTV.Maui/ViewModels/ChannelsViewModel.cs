@@ -114,17 +114,11 @@ public partial class ChannelsViewModel(
             if (_isFirstLoad)
             {
                 _isFirstLoad = false;
-                if (!App.IsIosStartupIsolationEnabled)
+                var lastChannel = lastChannelService.LoadLastChannel();
+                if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
                 {
-                    var lastChannel = lastChannelService.LoadLastChannel();
-                    if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
-                    {
-                        var playerPage = new Views.PlayerPage(
-                            lastChannel.Url,
-                            lastChannel.DisplayName
-                        );
-                        await Shell.Current.Navigation.PushModalAsync(playerPage);
-                    }
+                    var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
+                    await Shell.Current.Navigation.PushModalAsync(playerPage);
                 }
             }
         }
@@ -162,12 +156,6 @@ public partial class ChannelsViewModel(
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url))
         {
-            return;
-        }
-
-        if (App.IsIosStartupIsolationEnabled)
-        {
-            await Toast.Make("Player is temporarily disabled while iOS startup diagnostics are enabled.").Show();
             return;
         }
 
