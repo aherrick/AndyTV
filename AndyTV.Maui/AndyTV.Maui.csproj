@@ -68,9 +68,8 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.6" />
-
-		<PackageReference Include="LibVLCSharp" Version="3.9.7" />
-		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.7" />
+		<PackageReference Include="LibVLCSharp" Version="3.9.5" />
+		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.5" />
 	</ItemGroup>
 
 
@@ -79,7 +78,6 @@
 	</ItemGroup>
 	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-		<TrimmerRootDescriptor Include="Platforms\iOS\LinkerConfig.xml" />
 	</ItemGroup>
 	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
