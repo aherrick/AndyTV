@@ -86,7 +86,13 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         // Re-attach the native surface in case it went stale during suspension.
         VideoView.MediaPlayer = _mediaPlayer;
 
-        Play(_viewModel.Url);
+        // Only force-restart if VLC isn't already actively playing/buffering.
+        // If it is healthy, the existing health monitor will catch any stall within ~4s on its own.
+        var state = _mediaPlayer.State;
+        if (state != VLCState.Playing && state != VLCState.Buffering && state != VLCState.Opening)
+        {
+            Play(_viewModel.Url);
+        }
 
         if (!_healthTimer.IsRunning)
         {
