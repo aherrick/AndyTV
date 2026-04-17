@@ -143,7 +143,8 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
             {
                 var matches = channels
                     .Where(ch =>
-                        entry.Terms.Any(term =>
+                        ch.DisplayName != null
+                        && entry.Terms.Any(term =>
                             ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
                         )
                         && entry.ExcludeTerms?.Any(ex =>
