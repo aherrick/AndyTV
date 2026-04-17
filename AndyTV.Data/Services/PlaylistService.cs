@@ -124,8 +124,11 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
                 return (p, channels);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[PLAYLIST] Failed to load '{p.Name}': {ex.Message}"
+                );
                 return (p, new List<Channel>());
             }
         });

@@ -11,12 +11,6 @@ public partial class PlayerViewModel : ObservableObject
     [ObservableProperty]
     public partial string ChannelName { get; set; }
 
-    public PlayerViewModel()
-    {
-        Url = string.Empty;
-        ChannelName = string.Empty;
-    }
-
     [RelayCommand]
     private async Task GoBack()
     {

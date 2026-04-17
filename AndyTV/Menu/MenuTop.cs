@@ -30,23 +30,27 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                 // Add playlists first (before US/UK)
                 BuildPlaylistMenu(channelClick);
 
-                BuildTopMenu(
+                var channels = playlistService.Channels;
+
+                var usCount = BuildTopMenu(
                     "US",
                     ChannelService.TopUs(),
                     channelClick,
-                    playlistService.Channels
+                    channels
                 );
-                BuildTopMenu(
+                var ukCount = BuildTopMenu(
                     "UK",
                     ChannelService.TopUk(),
                     channelClick,
-                    playlistService.Channels
+                    channels
                 );
 
                 // ----- 24/7 -----
-                Build247("24/7", channelClick, playlistService.Channels);
+                Build247("24/7", channelClick, channels);
 
-                Logger.Info("[CHANNELS] Menu rebuilt (Top + 24/7)");
+                Logger.Info(
+                    $"[CHANNELS] Menu rebuilt – {channels.Count} channels, US={usCount} UK={ukCount}"
+                );
             },
             null
         );
@@ -116,7 +120,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         }
     }
 
-    private void BuildTopMenu(
+    private int BuildTopMenu(
         string rootTitle,
         Dictionary<string, List<ChannelTop>> categories,
         EventHandler channelClick,
@@ -124,6 +128,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
     )
     {
         var rootItem = new ToolStripMenuItem(rootTitle);
+        var totalMatches = 0;
 
         foreach (
             var (catName, entries) in categories.OrderBy(
@@ -153,6 +158,8 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                     continue;
                 }
 
+                totalMatches += matches.Count;
+
                 var parent = new ToolStripMenuItem(entry.Name);
                 foreach (var ch in matches)
                 {
@@ -173,6 +180,8 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
             menu.Items.Add(rootItem);
             _added.Add(rootItem);
         }
+
+        return totalMatches;
     }
 
     private void BuildPlaylistMenu(EventHandler channelClick)

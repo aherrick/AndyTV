@@ -30,7 +30,7 @@ public partial class ChannelsViewModel(
                 FilterChannels();
             }
         }
-    } = string.Empty;
+    }
 
     private readonly List<Channel> _allChannels = [];
     private bool _hasLoaded;

@@ -27,9 +27,7 @@ public partial class App : Application
         };
 
         window.Resumed += (_, _) =>
-        {
             WeakReferenceMessenger.Default.Send(new AppResumedMessage());
-        };
 
         return window;
     }

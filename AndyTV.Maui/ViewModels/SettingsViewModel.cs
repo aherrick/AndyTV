@@ -9,10 +9,10 @@ namespace AndyTV.Maui.ViewModels;
 public partial class SettingsViewModel(IPlaylistService playlistService) : ObservableObject
 {
     [ObservableProperty]
-    public partial string PlaylistName { get; set; } = string.Empty;
+    public partial string PlaylistName { get; set; }
 
     [ObservableProperty]
-    public partial string PlaylistUrl { get; set; } = string.Empty;
+    public partial string PlaylistUrl { get; set; }
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }

@@ -60,7 +60,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         WeakReferenceMessenger.Default.Register(this);
     }
 
-    public void Receive(AppResumedMessage message)
+    public void Receive(AppResumedMessage _)
     {
         if (!string.IsNullOrEmpty(_viewModel.Url))
         {

@@ -277,6 +277,16 @@ public partial class Form1 : Form
             try
             {
                 await _playlistService.RefreshChannelsAsync();
+
+                foreach (var (pl, chs) in _playlistService.PlaylistChannels)
+                {
+                    Logger.Info($"[CHANNELS] Playlist '{pl.Name}': {chs.Count} channels");
+                }
+
+                Logger.Info(
+                    $"[CHANNELS] Total unique channels: {_playlistService.Channels.Count}"
+                );
+
                 _ui.Post(_ => _menuTop.Rebuild(ChItem_Click), null);
             }
             catch (Exception ex)
