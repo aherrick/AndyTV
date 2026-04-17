@@ -1,18 +1,18 @@
 using AndyTV.Data.Services;
+using AndyTV.Maui.Messages;
 using AndyTV.Maui.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage
+public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
-    private Window _subscribedWindow;
-    private readonly EventHandler _onWindowResumed;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -34,7 +34,9 @@ public partial class PlayerPage : ContentPage
             restart: () =>
             {
                 if (string.IsNullOrEmpty(_viewModel.Url))
+                {
                     return;
+                }
 
                 Play(_viewModel.Url);
             }
@@ -48,12 +50,6 @@ public partial class PlayerPage : ContentPage
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
         _healthTimer.Tick += OnHealthTimerTick;
 
-        _onWindowResumed = (_, _) =>
-        {
-            if (!string.IsNullOrEmpty(_viewModel.Url))
-                Play(_viewModel.Url);
-        };
-
         Play(url);
         _healthTimer.Start();
     }
@@ -61,11 +57,15 @@ public partial class PlayerPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        WeakReferenceMessenger.Default.Register(this);
+    }
 
-        // Subscribe to window resume to restart playback if iOS backgrounded us.
-        // Cache the specific window we bound to so we don't leak it later.
-        _subscribedWindow = this.Window ?? Application.Current?.Windows.FirstOrDefault();
-        _subscribedWindow?.Resumed += _onWindowResumed;
+    public void Receive(AppResumedMessage message)
+    {
+        if (!string.IsNullOrEmpty(_viewModel.Url))
+        {
+            Dispatcher.Dispatch(() => Play(_viewModel.Url));
+        }
     }
 
     private void Play(string url)
@@ -78,7 +78,9 @@ public partial class PlayerPage : ContentPage
     private void OnHealthTimerTick(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_viewModel.Url))
+        {
             return;
+        }
 
         _healthMonitor.Tick();
     }
@@ -88,11 +90,7 @@ public partial class PlayerPage : ContentPage
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
 
-        if (_subscribedWindow != null)
-        {
-            _subscribedWindow.Resumed -= _onWindowResumed;
-            _subscribedWindow = null;
-        }
+        WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
 
         _healthTimer.Stop();
         _mediaPlayer.Stop();

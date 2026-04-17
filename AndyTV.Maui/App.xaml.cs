@@ -1,4 +1,6 @@
 ﻿using AndyTV.Data.Services;
+using AndyTV.Maui.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace AndyTV.Maui;
 
@@ -22,6 +24,11 @@ public partial class App : Application
                 var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
                 await Shell.Current.Navigation.PushModalAsync(playerPage);
             }
+        };
+
+        window.Resumed += (_, _) =>
+        {
+            WeakReferenceMessenger.Default.Send(new AppResumedMessage());
         };
 
         return window;
