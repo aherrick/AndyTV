@@ -18,7 +18,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
 		<!-- 3.0.23 causes freezing issues, staying on 3.0.21 -->
-		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
 
 	</ItemGroup>
 
