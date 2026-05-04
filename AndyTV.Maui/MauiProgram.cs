@@ -5,6 +5,7 @@ using AndyTV.Maui.Views;
 using CommunityToolkit.Maui;
 using LibVLCSharp.MAUI;
 using Microsoft.Extensions.Logging;
+using Syncfusion.Maui.Core.Hosting;
 
 namespace AndyTV.Maui;
 
@@ -17,6 +18,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseLibVLCSharp()
+            .ConfigureSyncfusionCore()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));

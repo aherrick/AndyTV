@@ -5,7 +5,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:AndyTV.Maui.Views"
     Title="AndyTV"
-    FlyoutBehavior="Disabled">
+    FlyoutBehavior="Disabled"
+    Shell.TabBarBackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#1A1A2E}"
+    Shell.TabBarUnselectedColor="{StaticResource Gray400}">
 
     <TabBar Shell.TabBarForegroundColor="{StaticResource Primary}">
         <ShellContent
@@ -22,7 +24,7 @@
             ContentTemplate="{DataTemplate views:FavoritesPage}"
             Route="favorites">
             <ShellContent.Icon>
-                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf004;" />
+                <FontImageSource FontFamily="FontAwesomeSolid" Glyph="&#xf005;" />
             </ShellContent.Icon>
         </ShellContent>
 

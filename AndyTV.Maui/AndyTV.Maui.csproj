@@ -69,17 +69,18 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui" Version="14.1.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.51" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
+		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.60" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.60" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.7" />
 		
 		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
-		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.5" />
+		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.7.1" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="33.2.4" />
 	</ItemGroup>
 
 
 	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-		<PackageReference Include="VideoLAN.LibVLC.Android" Version="3.6.5" />
+		<PackageReference Include="VideoLAN.LibVLC.Android" Version="3.7.0-beta" />
 	</ItemGroup>
 	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />

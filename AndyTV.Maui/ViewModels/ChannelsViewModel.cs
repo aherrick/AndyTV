@@ -35,12 +35,14 @@ public partial class ChannelsViewModel(
     private readonly List<Channel> _allChannels = [];
     private bool _hasLoaded;
 
-    public ObservableCollection<ChannelGroup> Channels { get; } = [];
+    public ObservableCollection<Channel> Channels { get; } = [];
 
     public async Task EnsureChannelsLoaded()
     {
         if (_hasLoaded && Channels.Count > 0)
+        {
             return;
+        }
 
         await LoadChannels();
     }
@@ -59,14 +61,9 @@ public partial class ChannelsViewModel(
                     ),
                 ];
 
-        var groups = filtered
-            .GroupBy(c => c.Category)
-            .Select(g => new ChannelGroup(g.Key, g))
-            .ToList();
-
-        foreach (var group in groups)
+        foreach (var ch in filtered)
         {
-            Channels.Add(group);
+            Channels.Add(ch);
         }
     }
 
@@ -74,7 +71,9 @@ public partial class ChannelsViewModel(
     private async Task LoadChannels()
     {
         if (IsBusy)
+        {
             return;
+        }
 
         IsBusy = true;
 
@@ -124,7 +123,9 @@ public partial class ChannelsViewModel(
     private async Task ToggleFavorite(Channel channel)
     {
         if (channel == null)
+        {
             return;
+        }
 
         if (favoriteChannelService.IsFavorite(channel))
         {
@@ -142,7 +143,9 @@ public partial class ChannelsViewModel(
     private async Task SelectChannel(Channel channel)
     {
         if (channel == null || string.IsNullOrEmpty(channel.Url))
+        {
             return;
+        }
 
         // Add to recent channels
         recentChannelService.AddOrPromote(channel);
@@ -153,10 +156,4 @@ public partial class ChannelsViewModel(
         var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
         await Shell.Current.Navigation.PushModalAsync(playerPage);
     }
-}
-
-public partial class ChannelGroup(string name, IEnumerable<Channel> channels)
-    : ObservableCollection<Channel>(channels)
-{
-    public string Name { get; } = name;
 }

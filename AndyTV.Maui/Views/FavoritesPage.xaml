@@ -9,40 +9,84 @@
     x:DataType="vm:FavoritesViewModel">
 
     <RefreshView Command="{Binding LoadFavoritesCommand}" IsRefreshing="{Binding IsRefreshing}">
-        <CollectionView EmptyView="No favorites yet. Add some from the Channels tab!" ItemsSource="{Binding Favorites}">
+        <CollectionView
+            ItemsSource="{Binding Favorites}"
+            SelectionMode="None">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Spacing="12"
+                    Padding="40">
+                    <Label
+                        FontFamily="FontAwesomeLight"
+                        Text="&#xf005;"
+                        FontSize="48"
+                        HorizontalOptions="Center"
+                        TextColor="{StaticResource Gray300}" />
+                    <Label
+                        Text="No favorites yet"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Center"
+                        TextColor="{StaticResource Gray400}" />
+                    <Label
+                        Text="Star channels from the Channels tab to add them here."
+                        FontSize="14"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource Gray400}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
-                    <Grid Padding="15,10" ColumnDefinitions="*,Auto">
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
-                                CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
+                    <Border
+                        Margin="12,4"
+                        Padding="14,12"
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#252535}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Grid.GestureRecognizers>
 
-                        <VerticalStackLayout Grid.Column="0">
-                            <Label FontSize="16" Text="{Binding Name}" />
                             <Label
-                                FontSize="12"
-                                Text="{Binding Category}"
-                                TextColor="Gray" />
-                        </VerticalStackLayout>
+                                Grid.Column="0"
+                                FontFamily="FontAwesomeSolid"
+                                Text="&#xf005;"
+                                FontSize="18"
+                                TextColor="#FFB300"
+                                VerticalOptions="Center"
+                                Margin="0,0,14,0" />
 
-                        <ImageButton
-                            Grid.Column="1"
-                            BackgroundColor="Transparent"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveFavoriteCommand}"
-                            CommandParameter="{Binding .}"
-                            HeightRequest="40"
-                            WidthRequest="40">
-                            <ImageButton.Source>
-                                <FontImageSource
-                                    FontFamily="FontAwesomeSolid"
-                                    Glyph="&#xf004;"
-                                    Size="24"
-                                    Color="Red" />
-                            </ImageButton.Source>
-                        </ImageButton>
-                    </Grid>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label FontSize="15" FontAttributes="Bold" Text="{Binding Name}" />
+                                <Label
+                                    FontSize="12"
+                                    Text="{Binding Category}"
+                                    TextColor="{StaticResource Gray400}" />
+                            </VerticalStackLayout>
+
+                            <ImageButton
+                                Grid.Column="2"
+                                BackgroundColor="Transparent"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveFavoriteCommand}"
+                                CommandParameter="{Binding .}"
+                                HeightRequest="36"
+                                WidthRequest="36">
+                                <ImageButton.Source>
+                                    <FontImageSource
+                                        FontFamily="FontAwesomeSolid"
+                                        Glyph="&#xf00d;"
+                                        Size="18"
+                                        Color="{StaticResource Gray400}" />
+                                </ImageButton.Source>
+                            </ImageButton>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

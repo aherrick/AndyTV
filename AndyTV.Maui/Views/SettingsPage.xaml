@@ -8,71 +8,130 @@
     Title="Settings"
     x:DataType="vm:SettingsViewModel">
 
-    <Grid Padding="20" RowDefinitions="Auto,*,Auto">
+    <Grid Padding="16" RowDefinitions="Auto,*,Auto">
 
         <!--  Add Playlist Form  -->
-        <VerticalStackLayout Grid.Row="0" Spacing="10">
+        <VerticalStackLayout Grid.Row="0" Spacing="12">
 
             <Label
                 FontAttributes="Bold"
-                FontSize="20"
-                Text="Add Playlist" />
+                FontSize="22"
+                Text="Add Playlist"
+                Margin="0,4,0,4" />
 
-            <Entry Placeholder="Playlist Name" Text="{Binding PlaylistName}" />
+            <Border
+                StrokeShape="RoundRectangle 10"
+                Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}"
+                Padding="12,4">
+                <Entry
+                    Placeholder="Playlist Name"
+                    Text="{Binding PlaylistName}"
+                    BackgroundColor="Transparent"
+                    FontSize="15" />
+            </Border>
 
-            <Entry
-                Placeholder="https://example.com/playlist.m3u or C:\\Playlists\\tv.m3u"
-                Text="{Binding PlaylistUrl}" />
+            <Border
+                StrokeShape="RoundRectangle 10"
+                Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}"
+                Padding="12,4">
+                <Entry
+                    Placeholder="https://example.com/playlist.m3u or C:\Playlists\tv.m3u"
+                    Text="{Binding PlaylistUrl}"
+                    BackgroundColor="Transparent"
+                    FontSize="15" />
+            </Border>
 
-            <Button Command="{Binding AddCommand}" Text="Add Playlist" />
+            <Button
+                Command="{Binding AddCommand}"
+                Text="Add Playlist"
+                Margin="0,4,0,0" />
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
 
             <BoxView
-                Margin="0,10"
+                Margin="0,12"
                 HeightRequest="1"
-                Color="Gray" />
+                Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
 
             <Label
                 FontAttributes="Bold"
-                FontSize="20"
-                Text="My Playlists" />
+                FontSize="22"
+                Text="My Playlists"
+                Margin="0,0,0,4" />
         </VerticalStackLayout>
 
         <!--  Playlist List  -->
         <CollectionView
             Grid.Row="1"
-            Margin="0,10,0,0"
+            Margin="0,8,0,0"
             ItemsSource="{Binding Playlists}">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Playlist">
-                    <Grid Padding="10" ColumnDefinitions="*,Auto">
-                        <VerticalStackLayout Grid.Column="0">
+                    <Border
+                        Margin="0,4"
+                        Padding="14,12"
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#252535}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
                             <Label
-                                FontAttributes="Bold"
-                                FontSize="16"
-                                Text="{Binding Name}" />
-                            <Label
-                                FontSize="12"
-                                LineBreakMode="TailTruncation"
-                                Text="{Binding Url}"
-                                TextColor="Gray" />
-                        </VerticalStackLayout>
-                        <Button
-                            Grid.Column="1"
-                            BackgroundColor="Red"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=DeleteCommand}"
-                            CommandParameter="{Binding .}"
-                            Text="Delete"
-                            TextColor="White" />
-                    </Grid>
+                                Grid.Column="0"
+                                FontFamily="FontAwesomeSolid"
+                                Text="&#xf03a;"
+                                FontSize="18"
+                                TextColor="{StaticResource Primary}"
+                                VerticalOptions="Center"
+                                Margin="0,0,14,0" />
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label
+                                    FontAttributes="Bold"
+                                    FontSize="15"
+                                    Text="{Binding Name}" />
+                                <Label
+                                    FontSize="12"
+                                    LineBreakMode="TailTruncation"
+                                    Text="{Binding Url}"
+                                    TextColor="{StaticResource Gray400}" />
+                            </VerticalStackLayout>
+                            <ImageButton
+                                Grid.Column="2"
+                                BackgroundColor="Transparent"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=DeleteCommand}"
+                                CommandParameter="{Binding .}"
+                                HeightRequest="36"
+                                WidthRequest="36">
+                                <ImageButton.Source>
+                                    <FontImageSource
+                                        FontFamily="FontAwesomeSolid"
+                                        Glyph="&#xf1f8;"
+                                        Size="18"
+                                        Color="#E53935" />
+                                </ImageButton.Source>
+                            </ImageButton>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
             <CollectionView.EmptyView>
-                <Label
+                <VerticalStackLayout
                     HorizontalOptions="Center"
-                    Text="No playlists added yet"
-                    TextColor="Gray" />
+                    VerticalOptions="Center"
+                    Spacing="8"
+                    Padding="40">
+                    <Label
+                        FontFamily="FontAwesomeLight"
+                        Text="&#xf03a;"
+                        FontSize="40"
+                        HorizontalOptions="Center"
+                        TextColor="{StaticResource Gray300}" />
+                    <Label
+                        HorizontalOptions="Center"
+                        Text="No playlists added yet"
+                        FontSize="16"
+                        TextColor="{StaticResource Gray400}" />
+                </VerticalStackLayout>
             </CollectionView.EmptyView>
         </CollectionView>
 
@@ -81,6 +140,7 @@
             HorizontalOptions="Center"
             Margin="0,10,0,0"
             Text="{x:Static vm:SettingsViewModel.AppVersion}"
-            TextColor="Gray" />
+            TextColor="{StaticResource Gray400}"
+            FontSize="12" />
     </Grid>
 </ContentPage>
