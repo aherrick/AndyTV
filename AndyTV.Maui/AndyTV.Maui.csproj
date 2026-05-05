@@ -74,7 +74,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.7" />
 		
 		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
-		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.7.1" />
+		<PackageReference Include="LibVLCSharp.MAUI" Version="3.9.5" />
 		<PackageReference Include="Syncfusion.Maui.ListView" Version="33.2.4" />
 	</ItemGroup>
 
