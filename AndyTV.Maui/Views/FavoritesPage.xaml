@@ -8,44 +8,48 @@
     Title="Favorites"
     x:DataType="vm:FavoritesViewModel">
 
-    <RefreshView Command="{Binding LoadFavoritesCommand}" IsRefreshing="{Binding IsRefreshing}">
+    <RefreshView
+        Command="{Binding LoadFavoritesCommand}"
+        IsRefreshing="{Binding IsRefreshing}"
+        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
         <CollectionView
             ItemsSource="{Binding Favorites}"
-            SelectionMode="None">
+            SelectionMode="None"
+            Margin="8,8,8,10">
             <CollectionView.EmptyView>
                 <VerticalStackLayout
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    Spacing="12"
+                    Spacing="8"
                     Padding="40">
                     <Label
                         FontFamily="FontAwesomeLight"
                         Text="&#xf005;"
-                        FontSize="48"
+                        FontSize="42"
                         HorizontalOptions="Center"
-                        TextColor="{StaticResource Gray300}" />
+                        TextColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}" />
                     <Label
                         Text="No favorites yet"
-                        FontSize="18"
+                        FontSize="16"
                         FontAttributes="Bold"
                         HorizontalOptions="Center"
-                        TextColor="{StaticResource Gray400}" />
+                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
                     <Label
                         Text="Star channels from the Channels tab to add them here."
                         FontSize="14"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource Gray400}" />
+                        TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
                     <Border
-                        Margin="12,4"
-                        Padding="14,12"
-                        StrokeShape="RoundRectangle 10"
-                        Stroke="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
-                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#252535}">
+                        Margin="0,4"
+                        Padding="12,10"
+                        StrokeShape="RoundRectangle 8"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer
@@ -57,17 +61,21 @@
                                 Grid.Column="0"
                                 FontFamily="FontAwesomeSolid"
                                 Text="&#xf005;"
-                                FontSize="18"
-                                TextColor="#FFB300"
+                                FontSize="16"
+                                TextColor="{StaticResource Favorite}"
                                 VerticalOptions="Center"
-                                Margin="0,0,14,0" />
+                                Margin="0,0,12,0" />
 
-                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
-                                <Label FontSize="15" FontAttributes="Bold" Text="{Binding Name}" />
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                                <Label
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    LineBreakMode="TailTruncation"
+                                    Text="{Binding DisplayName}" />
                                 <Label
                                     FontSize="12"
                                     Text="{Binding Category}"
-                                    TextColor="{StaticResource Gray400}" />
+                                    TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
                             </VerticalStackLayout>
 
                             <ImageButton
@@ -78,13 +86,13 @@
                                 HeightRequest="36"
                                 WidthRequest="36">
                                 <ImageButton.Source>
-                                    <FontImageSource
-                                        FontFamily="FontAwesomeSolid"
-                                        Glyph="&#xf00d;"
-                                        Size="18"
-                                        Color="{StaticResource Gray400}" />
-                                </ImageButton.Source>
-                            </ImageButton>
+                                <FontImageSource
+                                    FontFamily="FontAwesomeSolid"
+                                    Glyph="&#xf00d;"
+                                    Size="16"
+                                    Color="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                            </ImageButton.Source>
+                        </ImageButton>
                         </Grid>
                     </Border>
                 </DataTemplate>

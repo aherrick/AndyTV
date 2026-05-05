@@ -15,31 +15,33 @@
         <toolkit:IsStringNotNullOrEmptyConverter x:Key="IsStringNotNullOrEmptyConverter" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid
+        RowDefinitions="Auto,*"
+        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
 
         <!-- Search Bar -->
         <Border
             Grid.Row="0"
-            Margin="12,12,12,6"
-            Padding="4"
-            StrokeShape="RoundRectangle 12"
-            Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-            BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}">
+            Margin="16,14,16,8"
+            Padding="10,0"
+            StrokeShape="RoundRectangle 8"
+            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
             <Grid ColumnDefinitions="Auto,*">
                 <Label
                     Grid.Column="0"
                     FontFamily="FontAwesomeSolid"
                     Text="&#xf002;"
-                    FontSize="16"
-                    TextColor="{StaticResource Gray400}"
+                    FontSize="14"
+                    TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}"
                     VerticalOptions="Center"
-                    Margin="12,0,8,0" />
+                    Margin="2,0,8,0" />
                 <Entry
                     Grid.Column="1"
-                    Placeholder="Search channels (min 2 chars)..."
+                    Placeholder="Search channels"
                     Text="{Binding SearchText}"
                     BackgroundColor="Transparent"
-                    FontSize="15" />
+                    FontSize="14" />
             </Grid>
         </Border>
 
@@ -47,8 +49,9 @@
         <sfListView:SfListView
             Grid.Row="1"
             ItemsSource="{Binding Channels}"
-            ItemSize="64"
-            GroupHeaderSize="48"
+            ItemSize="62"
+            GroupHeaderSize="40"
+            Margin="8,0,8,8"
             AllowGroupExpandCollapse="True"
             SelectionMode="None">
 
@@ -61,32 +64,32 @@
             </sfListView:SfListView.DataSource>
 
             <sfListView:SfListView.GroupHeaderTemplate>
-                <DataTemplate x:DataType="x:Object">
+                <DataTemplate x:DataType="{x:Null}">
                     <Grid
-                        Padding="16,8"
-                        BackgroundColor="{AppThemeBinding Light=#EDE7F6, Dark=#1E1E2E}"
+                        Padding="10,6"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         ColumnDefinitions="Auto,*,Auto">
                         <Label
                             Grid.Column="0"
                             FontFamily="FontAwesomeSolid"
                             Text="&#xf105;"
-                            FontSize="14"
-                            TextColor="{StaticResource Primary}"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}"
                             VerticalOptions="Center"
-                            Margin="0,0,10,0" />
+                            Margin="2,0,8,0" />
                         <Label
                             Grid.Column="1"
                             FontAttributes="Bold"
-                            FontSize="16"
-                            TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                            FontSize="13"
+                            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
                             VerticalOptions="Center"
                             Text="{Binding Key}" />
                         <Label
                             Grid.Column="2"
                             FontSize="12"
-                            TextColor="{StaticResource Gray400}"
+                            TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}"
                             VerticalOptions="Center"
-                            Margin="0,0,12,0"
+                            Margin="8,0,4,0"
                             Text="{Binding Count, StringFormat='{0} channels'}" />
                     </Grid>
                 </DataTemplate>
@@ -94,53 +97,64 @@
 
             <sfListView:SfListView.ItemTemplate>
                 <DataTemplate x:DataType="models:Channel">
-                    <Grid Padding="16,8" ColumnDefinitions="Auto,*,Auto">
-                        <Grid.GestureRecognizers>
+                    <Border
+                        Margin="0,3"
+                        Padding="10,6"
+                        StrokeShape="RoundRectangle 8"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
+                        <Border.GestureRecognizers>
                             <TapGestureRecognizer
                                 Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
                                 CommandParameter="{Binding .}" />
-                        </Grid.GestureRecognizers>
+                        </Border.GestureRecognizers>
 
-                        <Border
-                            Grid.Column="0"
-                            StrokeShape="RoundRectangle 8"
-                            Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                            BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
-                            HeightRequest="44"
-                            WidthRequest="44"
-                            Margin="0,0,12,0"
-                            IsVisible="{Binding LogoUrl, Converter={StaticResource IsStringNotNullOrEmptyConverter}}">
-                            <Image
-                                Aspect="AspectFit"
-                                HeightRequest="36"
-                                WidthRequest="36"
-                                Source="{Binding LogoUrl}" />
-                        </Border>
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Border
+                                Grid.Column="0"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceSubtleLight}, Dark={StaticResource SurfaceSubtleDark}}"
+                                HeightRequest="38"
+                                WidthRequest="38"
+                                Margin="0,0,10,0"
+                                IsVisible="{Binding LogoUrl, Converter={StaticResource IsStringNotNullOrEmptyConverter}}">
+                                <Image
+                                    Aspect="AspectFit"
+                                    HeightRequest="30"
+                                    WidthRequest="30"
+                                    Source="{Binding LogoUrl}" />
+                            </Border>
 
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
-                            <Label FontSize="15" FontAttributes="Bold" Text="{Binding Name}" />
-                            <Label
-                                FontSize="12"
-                                Text="{Binding Category}"
-                                TextColor="{StaticResource Gray400}" />
-                        </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                                <Label
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    LineBreakMode="TailTruncation"
+                                    Text="{Binding DisplayName}" />
+                                <Label
+                                    FontSize="12"
+                                    Text="{Binding Category}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
+                            </VerticalStackLayout>
 
-                        <ImageButton
-                            Grid.Column="2"
-                            BackgroundColor="Transparent"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleFavoriteCommand}"
-                            CommandParameter="{Binding .}"
-                            HeightRequest="40"
-                            WidthRequest="40">
-                            <ImageButton.Source>
-                                <FontImageSource
-                                    FontFamily="FontAwesomeRegular"
-                                    Glyph="&#xf005;"
-                                    Size="22"
-                                    Color="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}" />
-                            </ImageButton.Source>
-                        </ImageButton>
-                    </Grid>
+                            <ImageButton
+                                Grid.Column="2"
+                                BackgroundColor="Transparent"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleFavoriteCommand}"
+                                CommandParameter="{Binding .}"
+                                HeightRequest="38"
+                                WidthRequest="38">
+                                <ImageButton.Source>
+                                    <FontImageSource
+                                        FontFamily="FontAwesomeRegular"
+                                        Glyph="&#xf005;"
+                                        Size="18"
+                                        Color="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                                </ImageButton.Source>
+                            </ImageButton>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </sfListView:SfListView.ItemTemplate>
         </sfListView:SfListView>

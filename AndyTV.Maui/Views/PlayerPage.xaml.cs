@@ -62,10 +62,30 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
     public void Receive(AppResumedMessage _)
     {
-        if (!string.IsNullOrEmpty(_viewModel.Url))
+        if (string.IsNullOrEmpty(_viewModel.Url))
         {
-            Dispatcher.Dispatch(() => Play(_viewModel.Url));
+            return;
         }
+
+        Dispatcher.Dispatch(() =>
+        {
+            if (ShouldRestartOnResume())
+            {
+                Play(_viewModel.Url);
+                return;
+            }
+
+            _healthMonitor.MarkActivity();
+        });
+    }
+
+    private bool ShouldRestartOnResume()
+    {
+        return _mediaPlayer.State
+            is VLCState.NothingSpecial
+                or VLCState.Stopped
+                or VLCState.Ended
+                or VLCState.Error;
     }
 
     private void Play(string url)

@@ -3,18 +3,32 @@
 
     <!--  Note: For Android please see also Platforms\Android\Resources\values\colors.xml  -->
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
-    <Color x:Key="PrimaryDarkText">#242424</Color>
-    <Color x:Key="Secondary">#DFD8F7</Color>
-    <Color x:Key="SecondaryDarkText">#9880e5</Color>
-    <Color x:Key="Tertiary">#2B0B98</Color>
+    <Color x:Key="Primary">#2563EB</Color>
+    <Color x:Key="PrimaryDark">#93C5FD</Color>
+    <Color x:Key="PrimaryDarkText">#0F172A</Color>
+    <Color x:Key="Secondary">#DBEAFE</Color>
+    <Color x:Key="SecondaryDarkText">#BFDBFE</Color>
+    <Color x:Key="Tertiary">#0F766E</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>
-    <Color x:Key="Magenta">#D600AA</Color>
-    <Color x:Key="MidnightBlue">#190649</Color>
-    <Color x:Key="OffBlack">#1f1f1f</Color>
+    <Color x:Key="Magenta">#2563EB</Color>
+    <Color x:Key="MidnightBlue">#111827</Color>
+    <Color x:Key="OffBlack">#151515</Color>
+    <Color x:Key="Accent">#0F766E</Color>
+    <Color x:Key="Favorite">#F59E0B</Color>
+    <Color x:Key="Danger">#DC2626</Color>
+
+    <Color x:Key="SurfaceLight">#F7F8FA</Color>
+    <Color x:Key="SurfaceDark">#151515</Color>
+    <Color x:Key="SurfaceRaisedLight">#FFFFFF</Color>
+    <Color x:Key="SurfaceRaisedDark">#202024</Color>
+    <Color x:Key="SurfaceSubtleLight">#F1F3F6</Color>
+    <Color x:Key="SurfaceSubtleDark">#2A2A2E</Color>
+    <Color x:Key="BorderLight">#E5E7EB</Color>
+    <Color x:Key="BorderDark">#34343A</Color>
+    <Color x:Key="TextMutedLight">#6B7280</Color>
+    <Color x:Key="TextMutedDark">#A3A3A3</Color>
 
     <Color x:Key="Gray100">#E1E1E1</Color>
     <Color x:Key="Gray200">#C8C8C8</Color>
@@ -30,6 +44,9 @@
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}" />
     <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}" />
     <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}" />
+    <SolidColorBrush x:Key="FavoriteBrush" Color="{StaticResource Favorite}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource Danger}" />
 
     <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}" />
     <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}" />

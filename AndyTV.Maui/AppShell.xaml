@@ -6,10 +6,14 @@
     xmlns:views="clr-namespace:AndyTV.Maui.Views"
     Title="AndyTV"
     FlyoutBehavior="Disabled"
-    Shell.TabBarBackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#1A1A2E}"
-    Shell.TabBarUnselectedColor="{StaticResource Gray400}">
+    Shell.BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}"
+    Shell.ForegroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+    Shell.TitleColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+    Shell.TabBarBackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}"
+    Shell.TabBarTitleColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+    Shell.TabBarUnselectedColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}">
 
-    <TabBar Shell.TabBarForegroundColor="{StaticResource Primary}">
+    <TabBar Shell.TabBarForegroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}">
         <ShellContent
             Title="Channels"
             ContentTemplate="{DataTemplate views:ChannelsPage}"
