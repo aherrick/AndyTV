@@ -92,7 +92,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     {
         _healthMonitor.MarkActivity();
         _mediaPlayer.Stop();
-        _mediaPlayer.Play(new Media(_libVLC, new Uri(url)));
+        _mediaPlayer.Play(new Media(_libVLC, url, FromType.FromLocation));
     }
 
     private void OnHealthTimerTick(object sender, EventArgs e)

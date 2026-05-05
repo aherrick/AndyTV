@@ -45,9 +45,12 @@
             </Grid>
         </Border>
 
-        <!-- Syncfusion ListView with collapsible groups -->
-        <sfListView:SfListView
+        <!-- Pull-to-refresh wrapping Syncfusion ListView -->
+        <RefreshView
             Grid.Row="1"
+            Command="{Binding LoadChannelsCommand}"
+            IsRefreshing="{Binding IsRefreshing}">
+        <sfListView:SfListView
             ItemsSource="{Binding Channels}"
             ItemSize="62"
             GroupHeaderSize="40"
@@ -158,5 +161,6 @@
                 </DataTemplate>
             </sfListView:SfListView.ItemTemplate>
         </sfListView:SfListView>
+        </RefreshView>
     </Grid>
 </ContentPage>
