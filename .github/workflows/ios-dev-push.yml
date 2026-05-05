@@ -43,43 +43,12 @@ jobs:
             -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}"
 
       - name: Install and launch on device
-        continue-on-error: true
         run: |
-          mkdir -p logs
-
           xcrun devicectl device install app \
             --device "${{ secrets.IOS_DEVICE_UDID }}" \
             "${{ env.APP_PATH }}"
 
           xcrun devicectl device process launch \
             --terminate-existing \
-            --console \
             --device "${{ secrets.IOS_DEVICE_UDID }}" \
-            "${{ env.BUNDLE_ID }}" \
-            > logs/device-console.txt 2>&1 || true
-
-          cat logs/device-console.txt || echo "(no console captured)"
-
-      - name: Pull crash logs
-        if: always()
-        continue-on-error: true
-        run: |
-          mkdir -p crash-logs
-          xcrun devicectl device copy crashlogs \
-            --device "${{ secrets.IOS_DEVICE_UDID }}" \
-            crash-logs/ 2>&1 || true
-
-          grep -rl "com.ajh.AndyTV\|AndyTV" crash-logs/ 2>/dev/null | while read f; do
-            echo "=== $f ===" && cat "$f"
-          done
-
-      - name: Upload diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: crash-diagnostics
-          path: |
-            crash-logs/
-            logs/
-          retention-days: 14
-          if-no-files-found: ignore
+            "${{ env.BUNDLE_ID }}"
