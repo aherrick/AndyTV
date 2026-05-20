@@ -1,4 +1,5 @@
-﻿using AVFoundation;
+using AndyTV.Maui.Services;
+using AVFoundation;
 using Foundation;
 using UIKit;
 
@@ -15,5 +16,20 @@ public class AppDelegate : MauiUIApplicationDelegate
         AVAudioSession.SharedInstance().SetActive(true);
 
         return base.FinishedLaunching(application, launchOptions);
+    }
+
+    public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations(
+        UIApplication application,
+        UIWindow forWindow
+    )
+    {
+        if (OrientationLockService.IsPlaybackLandscapeLocked)
+        {
+            return UIInterfaceOrientationMask.Landscape;
+        }
+
+        return UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad
+            ? UIInterfaceOrientationMask.All
+            : UIInterfaceOrientationMask.AllButUpsideDown;
     }
 }

@@ -36,6 +36,11 @@ jobs:
 
       - name: Install MAUI
         run: dotnet workload install maui
+
+      - name: Temporary Silly fix
+        run: |
+          mkdir -p ~/Library/Preferences/maui
+          defaults write ~/Library/Preferences/maui/Settings.plist TEST_VAR -int 1
         
       - name: Verify imported identity
         run: |

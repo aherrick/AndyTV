@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
+using AndyTV.Maui.Services;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +12,8 @@ public partial class ChannelsViewModel(
     IPlaylistService playlistService,
     IRecentChannelService recentChannelService,
     IFavoriteChannelService favoriteChannelService,
-    ILastChannelService lastChannelService
+    ILastChannelService lastChannelService,
+    IOrientationLockService orientationLockService
 ) : ObservableObject
 {
     [ObservableProperty]
@@ -33,12 +35,32 @@ public partial class ChannelsViewModel(
     }
 
     private readonly List<Channel> _allChannels = [];
+    private bool _isLandscapeLockEnabled = orientationLockService.IsLandscapeLockEnabled;
     private bool _hasLoaded;
 
     public ObservableCollection<Channel> Channels { get; } = [];
 
+    public bool IsLandscapeLockEnabled
+    {
+        get => _isLandscapeLockEnabled;
+        set
+        {
+            if (!SetProperty(ref _isLandscapeLockEnabled, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(LandscapeLockGlyph));
+        }
+    }
+
+    public string LandscapeLockGlyph => IsLandscapeLockEnabled ? "\uf023" : "\uf09c";
+
     public async Task EnsureChannelsLoaded()
     {
+        IsLandscapeLockEnabled = orientationLockService.IsLandscapeLockEnabled;
+        orientationLockService.UseDefaultOrientation();
+
         if (_hasLoaded && Channels.Count > 0)
         {
             return;
@@ -65,6 +87,13 @@ public partial class ChannelsViewModel(
         {
             Channels.Add(ch);
         }
+    }
+
+    [RelayCommand]
+    private void ToggleLandscapeLock()
+    {
+        IsLandscapeLockEnabled = !IsLandscapeLockEnabled;
+        orientationLockService.SetLandscapeLockEnabled(IsLandscapeLockEnabled);
     }
 
     [RelayCommand]

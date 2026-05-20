@@ -1,5 +1,6 @@
 using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
+using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
@@ -13,6 +14,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
+    private readonly IOrientationLockService _orientationLockService;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -22,6 +24,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
         _viewModel = new PlayerViewModel { Url = url, ChannelName = channelName };
         BindingContext = _viewModel;
+        _orientationLockService =
+            IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
@@ -57,6 +61,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _orientationLockService?.ApplyForPlayback();
         WeakReferenceMessenger.Default.Register(this);
     }
 
@@ -109,6 +114,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
+        _orientationLockService?.UseDefaultOrientation();
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
 

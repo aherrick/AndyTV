@@ -11,6 +11,20 @@
     Title="Channels"
     x:DataType="vm:ChannelsViewModel">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem
+            Command="{Binding ToggleLandscapeLockCommand}"
+            Order="Primary">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    FontFamily="FontAwesomeSolid"
+                    Glyph="{Binding LandscapeLockGlyph}"
+                    Size="18"
+                    Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
+
     <ContentPage.Resources>
         <toolkit:IsStringNotNullOrEmptyConverter x:Key="IsStringNotNullOrEmptyConverter" />
     </ContentPage.Resources>

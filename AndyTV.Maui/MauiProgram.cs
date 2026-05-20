@@ -32,6 +32,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IRecentChannelService, RecentChannelService>();
         builder.Services.AddSingleton<ILastChannelService, LastChannelService>();
         builder.Services.AddSingleton<IFavoriteChannelService, FavoriteChannelService>();
+        builder.Services.AddSingleton<IOrientationLockService, OrientationLockService>();
 
         // ViewModels
         builder.Services.AddTransient<SettingsViewModel>();
