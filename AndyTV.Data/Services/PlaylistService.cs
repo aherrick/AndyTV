@@ -2,9 +2,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using AndyTV.Data.Helpers;
 using AndyTV.Data.Models;
-using Polly;
-using Polly.Retry;
-using Polly.Timeout;
 
 namespace AndyTV.Data.Services;
 
@@ -12,22 +9,6 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 {
     private const string PlaylistsFileName = "playlists.json";
     private static readonly HttpClient _httpClient = new();
-
-    // 2 retries, 15-second timeout per attempt; on failure returns empty string and the playlist is skipped
-    private static readonly ResiliencePipeline<string> _downloadPipeline =
-        new ResiliencePipelineBuilder<string>()
-            .AddRetry(new RetryStrategyOptions<string>
-            {
-                MaxRetryAttempts = 2,
-                Delay = TimeSpan.FromSeconds(2),
-                BackoffType = DelayBackoffType.Exponential,
-                ShouldHandle = new PredicateBuilder<string>()
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
-                    .Handle<TaskCanceledException>(),
-            })
-            .AddTimeout(TimeSpan.FromSeconds(15))
-            .Build();
 
     // Cached channel data
     public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels
@@ -155,28 +136,14 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         return [.. await Task.WhenAll(tasks)];
     }
 
-    private static async Task<string> LoadPlaylistTextAsync(string source)
+    private static Task<string> LoadPlaylistTextAsync(string source)
     {
         if (UrlHelper.IsValidUrl(source))
-        {
-            try
-            {
-                return await _downloadPipeline.ExecuteAsync(
-                    async ct => await _httpClient.GetStringAsync(source, ct)
-                );
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[PLAYLIST] HTTP download failed after retries for '{source}': {ex.Message}"
-                );
-                return string.Empty;
-            }
-        }
+            return _httpClient.GetStringAsync(source);
 
         if (File.Exists(source))
-            return await File.ReadAllTextAsync(source);
+            return File.ReadAllTextAsync(source);
 
-        return string.Empty;
+        return Task.FromResult(string.Empty);
     }
 }
