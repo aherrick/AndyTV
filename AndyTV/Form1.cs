@@ -287,7 +287,7 @@ public partial class Form1 : Form
                     $"[CHANNELS] Total unique channels: {_playlistService.Channels.Count}"
                 );
 
-                _ui.Post(_ => _menuTop.Rebuild(ChItem_Click), null);
+                _menuTop.Rebuild(ChItem_Click);
             }
             catch (Exception ex)
             {

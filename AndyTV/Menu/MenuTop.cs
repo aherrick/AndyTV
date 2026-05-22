@@ -11,6 +11,14 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
 
     public void Rebuild(EventHandler channelClick)
     {
+        // Build all menu items off the UI thread — this is the expensive part.
+        var channels = playlistService.Channels;
+        var playlistItems = BuildPlaylistItems(channelClick);
+        var (usItem, usCount) = BuildTopItems("US", ChannelService.TopUs(), channelClick, channels);
+        var (ukItem, ukCount) = BuildTopItems("UK", ChannelService.TopUk(), channelClick, channels);
+        var item247 = Build247Items("24/7", channelClick, channels);
+
+        // Only the quick swap runs on the UI thread.
         _ui.Post(
             _ =>
             {
@@ -23,30 +31,32 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                 }
                 _added.Clear();
 
-                // ----- CHANNELS -----
                 var (_, topAll) = MenuHelper.AddHeader(menu, "CHANNELS");
                 _added.AddRange(topAll);
 
-                // Add playlists first (before US/UK)
-                BuildPlaylistMenu(channelClick);
+                foreach (var pi in playlistItems)
+                {
+                    menu.Items.Add(pi);
+                    _added.Add(pi);
+                }
 
-                var channels = playlistService.Channels;
+                if (usItem.DropDownItems.Count > 0)
+                {
+                    menu.Items.Add(usItem);
+                    _added.Add(usItem);
+                }
 
-                var usCount = BuildTopMenu(
-                    "US",
-                    ChannelService.TopUs(),
-                    channelClick,
-                    channels
-                );
-                var ukCount = BuildTopMenu(
-                    "UK",
-                    ChannelService.TopUk(),
-                    channelClick,
-                    channels
-                );
+                if (ukItem.DropDownItems.Count > 0)
+                {
+                    menu.Items.Add(ukItem);
+                    _added.Add(ukItem);
+                }
 
-                // ----- 24/7 -----
-                Build247("24/7", channelClick, channels);
+                if (item247 is not null)
+                {
+                    menu.Items.Add(item247);
+                    _added.Add(item247);
+                }
 
                 Logger.Info(
                     $"[CHANNELS] Menu rebuilt – {channels.Count} channels, US={usCount} UK={ukCount}"
@@ -56,7 +66,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         );
     }
 
-    public void Build247(string rootTitle, EventHandler channelClick, List<Channel> channels)
+    private ToolStripMenuItem Build247Items(string rootTitle, EventHandler channelClick, List<Channel> channels)
     {
         var root = new ToolStripMenuItem(rootTitle);
         var entries = ChannelService.Get247Entries(channels);
@@ -113,14 +123,10 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
             root.DropDownItems.Add(currentMenu);
         }
 
-        if (root.DropDownItems.Count > 0)
-        {
-            menu.Items.Add(root);
-            _added.Add(root);
-        }
+        return root.DropDownItems.Count > 0 ? root : null;
     }
 
-    private int BuildTopMenu(
+    private (ToolStripMenuItem Root, int TotalMatches) BuildTopItems(
         string rootTitle,
         Dictionary<string, List<ChannelTop>> categories,
         EventHandler channelClick,
@@ -176,17 +182,12 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
             }
         }
 
-        if (rootItem.DropDownItems.Count > 0)
-        {
-            menu.Items.Add(rootItem);
-            _added.Add(rootItem);
-        }
-
-        return totalMatches;
+        return (rootItem, totalMatches);
     }
 
-    private void BuildPlaylistMenu(EventHandler channelClick)
+    private List<ToolStripMenuItem> BuildPlaylistItems(EventHandler channelClick)
     {
+        var result = new List<ToolStripMenuItem>();
         var playlistChannelsMenu = playlistService.PlaylistChannels.Where(x =>
             x.Playlist.ShowInMenu
         );
@@ -288,9 +289,10 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
 
             if (root.DropDownItems.Count > 0)
             {
-                menu.Items.Add(root);
-                _added.Add(root);
+                result.Add(root);
             }
         }
+
+        return result;
     }
 }
