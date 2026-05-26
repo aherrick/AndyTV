@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -64,21 +64,13 @@ jobs:
         run: security find-identity -v -p codesigning build.keychain
 
       - name: Download provisioning profile (Ad Hoc)
-        uses: apple-actions/download-provisioning-profiles@v1
+        uses: apple-actions/download-provisioning-profiles@v6
         with:
           bundle-id: ${{ env.BUNDLE_ID }}
           profile-type: IOS_APP_ADHOC
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-
-      - name: Update app version
-        uses: managedcode/MAUIAppVersion@v1
-        with:
-          csproj: ${{ env.CSPROJ_PATH }}
-          version: 1.0.${{ github.run_number }}
-          displayVersion: 1.0.${{ github.run_number }}
-          printFile: false
 
       - name: Build iOS IPA (Ad Hoc)
         run: |
@@ -89,6 +81,8 @@ jobs:
             -p:ArchiveOnBuild=true \
             -p:PackageApp=true \
             -p:BuildIpa=true \
+            -p:ApplicationVersion=1.0.${{ github.run_number }} \
+            -p:ApplicationDisplayVersion=1.0.${{ github.run_number }} \
             -p:BundleIdentifier="${{ env.BUNDLE_ID }}" \
             -p:CodesignTeamId="${{ env.APPLE_TEAM_ID }}" \
             -p:CodesignKey="${{ env.CODESIGN_KEY }}" \

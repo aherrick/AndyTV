@@ -18,7 +18,8 @@ public class AppDelegate : MauiUIApplicationDelegate
         return base.FinishedLaunching(application, launchOptions);
     }
 
-    public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations(
+    [Export("application:supportedInterfaceOrientationsForWindow:")]
+    public UIInterfaceOrientationMask GetSupportedInterfaceOrientations(
         UIApplication application,
         UIWindow forWindow
     )
