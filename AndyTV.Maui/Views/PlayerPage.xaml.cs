@@ -3,6 +3,7 @@ using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
 
@@ -77,9 +78,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
         if (_remoteCommandService is not null)
         {
-            _remoteCommandService.ToggleMuteRequested += OnToggleMuteRequested;
-            _remoteCommandService.NextChannelRequested += OnNextChannelRequested;
-            _remoteCommandService.PreviousChannelRequested += OnPreviousChannelRequested;
+            _remoteCommandService.CommandReceived += OnRemoteCommandReceived;
             _remoteCommandService.Start();
             _remoteCommandService.SetNowPlaying(_viewModel.ChannelName, _isMuted);
         }
@@ -138,9 +137,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
         if (_remoteCommandService is not null)
         {
-            _remoteCommandService.ToggleMuteRequested -= OnToggleMuteRequested;
-            _remoteCommandService.NextChannelRequested -= OnNextChannelRequested;
-            _remoteCommandService.PreviousChannelRequested -= OnPreviousChannelRequested;
+            _remoteCommandService.CommandReceived -= OnRemoteCommandReceived;
             _remoteCommandService.Stop();
         }
 
@@ -151,30 +148,52 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         VideoView.MediaPlayer = null;
     }
 
-    private void OnToggleMuteRequested(object sender, EventArgs e)
+    private void OnRemoteCommandReceived(object sender, RemoteCommandEventArgs e)
     {
         Dispatcher.Dispatch(() =>
         {
-            _isMuted = !_isMuted;
-            _mediaPlayer.Mute = _isMuted;
-            _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, _isMuted);
+            switch (e.Kind)
+            {
+                case RemoteCommandKind.ToggleMute:
+                    ShowRemoteToast($"Remote: mute/unmute ({e.Source})");
+                    ToggleMute();
+                    break;
+                case RemoteCommandKind.RecentNext:
+                    ShowRemoteToast($"Remote: recent next ({e.Source})");
+                    SwitchToRecentChannel(1);
+                    break;
+                case RemoteCommandKind.RecentPrevious:
+                    ShowRemoteToast($"Remote: recent previous ({e.Source})");
+                    SwitchToRecentChannel(-1);
+                    break;
+                case RemoteCommandKind.Unknown:
+                    ShowRemoteToast($"Remote input: {e.Details ?? e.Source}");
+                    break;
+            }
         });
     }
 
-    private void OnNextChannelRequested(object sender, EventArgs e)
+    private void ToggleMute()
     {
-        Dispatcher.Dispatch(() => SwitchToRecentChannel(1));
+        _isMuted = !_isMuted;
+        _mediaPlayer.Mute = _isMuted;
+        _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, _isMuted);
     }
 
-    private void OnPreviousChannelRequested(object sender, EventArgs e)
+    private static void ShowRemoteToast(string message)
     {
-        Dispatcher.Dispatch(() => SwitchToRecentChannel(-1));
+        _ = Toast.Make(message).Show();
     }
 
     private void SwitchToRecentChannel(int direction)
     {
         var channel = _recentChannelService?.GetRelative(_viewModel.Url, direction);
         if (channel is null)
+        {
+            return;
+        }
+
+        if (string.Equals(channel.Url, _viewModel.Url, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }

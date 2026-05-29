@@ -49,6 +49,11 @@ public class RecentChannelService : IRecentChannelService
         var currentIndex = recents.FindIndex(c =>
             string.Equals(c.Url, currentUrl, StringComparison.OrdinalIgnoreCase));
 
+        if (currentIndex < 0)
+        {
+            return direction >= 0 ? recents[0] : recents[^1];
+        }
+
         var nextIndex = (currentIndex + direction + recents.Count) % recents.Count;
         return recents[nextIndex];
     }
