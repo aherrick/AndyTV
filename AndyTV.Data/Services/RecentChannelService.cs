@@ -38,6 +38,21 @@ public class RecentChannelService : IRecentChannelService
         return list.ElementAtOrDefault(1);
     }
 
+    public Channel GetRelative(string currentUrl, int direction)
+    {
+        var recents = GetRecentChannels();
+        if (recents.Count == 0)
+        {
+            return null;
+        }
+
+        var currentIndex = recents.FindIndex(c =>
+            string.Equals(c.Url, currentUrl, StringComparison.OrdinalIgnoreCase));
+
+        var nextIndex = (currentIndex + direction + recents.Count) % recents.Count;
+        return recents[nextIndex];
+    }
+
     public List<Channel> GetRecentChannels()
     {
         return [.. LoadListFromDisk().Take(MaxRecent)];

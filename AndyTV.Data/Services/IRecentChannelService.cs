@@ -8,5 +8,7 @@ public interface IRecentChannelService
 
     Channel GetPrevious();
 
+    Channel GetRelative(string currentUrl, int direction);
+
     List<Channel> GetRecentChannels();
 }

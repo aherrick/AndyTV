@@ -179,25 +179,12 @@ public partial class Form1 : Form
 
         _videoView.MouseWheel += (_, e) =>
         {
-            var recents = _recentChannelService.GetRecentChannels();
-            if (recents.Count == 0)
-                return;
-
-            var currentIndex = _currentChannel is not null
-                ? recents.FindIndex(c =>
-                    string.Equals(c.Url, _currentChannel.Url, StringComparison.OrdinalIgnoreCase)
-                )
-                : -1;
-
-            // Scroll up = previous (older), scroll down = next (newer)
-            var nextIndex = e.Delta > 0 ? currentIndex + 1 : currentIndex - 1;
-
-            // Wrap around
-            nextIndex = (nextIndex + recents.Count) % recents.Count;
-
-            var nextChannel = recents[nextIndex];
+            var direction = e.Delta > 0 ? 1 : -1;
+            var nextChannel = _recentChannelService.GetRelative(_currentChannel?.Url, direction);
             if (nextChannel is not null)
+            {
                 Play(nextChannel);
+            }
         };
 
         Controls.Add(_videoView);

@@ -1,3 +1,4 @@
+using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
@@ -15,6 +16,10 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
     private readonly IOrientationLockService _orientationLockService;
+    private readonly IRemoteCommandService _remoteCommandService;
+    private readonly IRecentChannelService _recentChannelService;
+    private readonly ILastChannelService _lastChannelService;
+    private bool _isMuted;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -26,6 +31,12 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         BindingContext = _viewModel;
         _orientationLockService =
             IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
+        _remoteCommandService =
+            IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
+        _recentChannelService =
+            IPlatformApplication.Current?.Services.GetService<IRecentChannelService>();
+        _lastChannelService =
+            IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
@@ -63,6 +74,15 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         base.OnAppearing();
         _orientationLockService?.ApplyForPlayback();
         WeakReferenceMessenger.Default.Register(this);
+
+        if (_remoteCommandService is not null)
+        {
+            _remoteCommandService.ToggleMuteRequested += OnToggleMuteRequested;
+            _remoteCommandService.NextChannelRequested += OnNextChannelRequested;
+            _remoteCommandService.PreviousChannelRequested += OnPreviousChannelRequested;
+            _remoteCommandService.Start();
+            _remoteCommandService.SetNowPlaying(_viewModel.ChannelName, _isMuted);
+        }
     }
 
     public void Receive(AppResumedMessage _)
@@ -116,10 +136,56 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         DeviceDisplay.Current.KeepScreenOn = false;
         _orientationLockService?.UseDefaultOrientation();
 
+        if (_remoteCommandService is not null)
+        {
+            _remoteCommandService.ToggleMuteRequested -= OnToggleMuteRequested;
+            _remoteCommandService.NextChannelRequested -= OnNextChannelRequested;
+            _remoteCommandService.PreviousChannelRequested -= OnPreviousChannelRequested;
+            _remoteCommandService.Stop();
+        }
+
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
 
         _healthTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
+    }
+
+    private void OnToggleMuteRequested(object sender, EventArgs e)
+    {
+        Dispatcher.Dispatch(() =>
+        {
+            _isMuted = !_isMuted;
+            _mediaPlayer.Mute = _isMuted;
+            _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, _isMuted);
+        });
+    }
+
+    private void OnNextChannelRequested(object sender, EventArgs e)
+    {
+        Dispatcher.Dispatch(() => SwitchToRecentChannel(1));
+    }
+
+    private void OnPreviousChannelRequested(object sender, EventArgs e)
+    {
+        Dispatcher.Dispatch(() => SwitchToRecentChannel(-1));
+    }
+
+    private void SwitchToRecentChannel(int direction)
+    {
+        var channel = _recentChannelService?.GetRelative(_viewModel.Url, direction);
+        if (channel is null)
+        {
+            return;
+        }
+
+        _viewModel.Url = channel.Url;
+        _viewModel.ChannelName = channel.DisplayName;
+        _isMuted = false;
+        _mediaPlayer.Mute = false;
+
+        Play(channel.Url);
+        _lastChannelService?.SaveLastChannel(channel);
+        _remoteCommandService?.SetNowPlaying(channel.DisplayName, false);
     }
 }
