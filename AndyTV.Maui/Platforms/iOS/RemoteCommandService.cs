@@ -12,6 +12,8 @@ public sealed class RemoteCommandService : IRemoteCommandService
     private const int HidKeyboardA = 4;
     private const int HidKeyboardReturnOrEnter = 40;
     private const int HidKeyboardSpacebar = 44;
+    private const int HidKeyboardRightArrow = 79;
+    private const int HidKeyboardLeftArrow = 80;
     private const int HidKeyboardDownArrow = 81;
     private const int HidKeyboardUpArrow = 82;
 
@@ -21,6 +23,10 @@ public sealed class RemoteCommandService : IRemoteCommandService
     private NSObject _nextToken;
     private NSObject _previousToken;
     private HardwareInputView _hardwareInputView;
+    private MPVolumeView _hiddenVolumeView;
+    private VolumeObserver _volumeObserverHelper;
+    private float _lastVolume;
+    private bool _suppressVolumeChange;
     private bool _started;
 
     public event EventHandler<RemoteCommandEventArgs> CommandReceived;
@@ -74,6 +80,7 @@ public sealed class RemoteCommandService : IRemoteCommandService
         });
 
         MainThread.BeginInvokeOnMainThread(AttachHardwareInputView);
+        MainThread.BeginInvokeOnMainThread(StartVolumeObservation);
         SetNowPlaying("Andy TV", false);
     }
 
@@ -112,6 +119,7 @@ public sealed class RemoteCommandService : IRemoteCommandService
         }
 
         MainThread.BeginInvokeOnMainThread(DetachHardwareInputView);
+        MainThread.BeginInvokeOnMainThread(StopVolumeObservation);
         _started = false;
     }
 
@@ -187,7 +195,6 @@ public sealed class RemoteCommandService : IRemoteCommandService
     {
         var key = press.Key;
         var keyCode = key is null ? -1 : (int)key.KeyCode;
-        var characters = key?.Characters ?? string.Empty;
         var charactersIgnoringModifiers = key?.CharactersIgnoringModifiers ?? string.Empty;
         var modifiers = key?.ModifierFlags.ToString() ?? "None";
 
@@ -198,6 +205,12 @@ public sealed class RemoteCommandService : IRemoteCommandService
                 return true;
             case UIPressType.DownArrow:
                 Publish(RemoteCommandKind.RecentPrevious, "hardware-press:DownArrow");
+                return true;
+            case UIPressType.LeftArrow:
+                Publish(RemoteCommandKind.RecentPrevious, "hardware-press:LeftArrow");
+                return true;
+            case UIPressType.RightArrow:
+                Publish(RemoteCommandKind.RecentNext, "hardware-press:RightArrow");
                 return true;
             case UIPressType.Select:
             case UIPressType.PlayPause:
@@ -212,6 +225,12 @@ public sealed class RemoteCommandService : IRemoteCommandService
                 return true;
             case HidKeyboardDownArrow:
                 Publish(RemoteCommandKind.RecentPrevious, "hid-key:DownArrow");
+                return true;
+            case HidKeyboardRightArrow:
+                Publish(RemoteCommandKind.RecentNext, "hid-key:RightArrow");
+                return true;
+            case HidKeyboardLeftArrow:
+                Publish(RemoteCommandKind.RecentPrevious, "hid-key:LeftArrow");
                 return true;
             case HidKeyboardReturnOrEnter:
             case HidKeyboardSpacebar:
@@ -255,6 +274,94 @@ public sealed class RemoteCommandService : IRemoteCommandService
         return null;
     }
 
+    private void StartVolumeObservation()
+    {
+        var rootView = GetRootView();
+        if (rootView is null)
+        {
+            return;
+        }
+
+        // Hidden MPVolumeView suppresses the system volume HUD
+        _hiddenVolumeView = new MPVolumeView(new CGRect(-1000, -1000, 1, 1))
+        {
+            Alpha = 0.01f
+        };
+        rootView.AddSubview(_hiddenVolumeView);
+
+        var session = AVAudioSession.SharedInstance();
+        _lastVolume = session.OutputVolume;
+
+        _volumeObserverHelper = new VolumeObserver(session, OnVolumeChanged);
+    }
+
+    private void OnVolumeChanged()
+    {
+        if (_suppressVolumeChange)
+        {
+            return;
+        }
+
+        var newVolume = AVAudioSession.SharedInstance().OutputVolume;
+        var delta = newVolume - _lastVolume;
+        _lastVolume = newVolume;
+
+        if (Math.Abs(delta) < 0.001f)
+        {
+            return;
+        }
+
+        // Restore volume to avoid drift
+        RestoreVolume(newVolume, -delta);
+
+        if (delta > 0)
+        {
+            Publish(RemoteCommandKind.RecentNext, "volume-button:Up");
+        }
+        else
+        {
+            Publish(RemoteCommandKind.RecentPrevious, "volume-button:Down");
+        }
+    }
+
+    private void RestoreVolume(float current, float correction)
+    {
+        _suppressVolumeChange = true;
+
+        // Find the volume slider inside the hidden MPVolumeView and reset it
+        if (_hiddenVolumeView is not null)
+        {
+            foreach (var subview in _hiddenVolumeView.Subviews)
+            {
+                if (subview is UISlider slider)
+                {
+                    slider.Value = current + correction;
+                    break;
+                }
+            }
+        }
+
+        // Small delay before re-enabling observation to avoid feedback loop
+        Task.Delay(TimeSpan.FromMilliseconds(100)).ContinueWith(_ =>
+        {
+            _suppressVolumeChange = false;
+            _lastVolume = AVAudioSession.SharedInstance().OutputVolume;
+        });
+    }
+
+    private void StopVolumeObservation()
+    {
+        _volumeObserverHelper?.Dispose();
+        _volumeObserverHelper = null;
+
+        if (_hiddenVolumeView is not null)
+        {
+            _hiddenVolumeView.RemoveFromSuperview();
+            _hiddenVolumeView.Dispose();
+            _hiddenVolumeView = null;
+        }
+    }
+
     private void Publish(RemoteCommandKind kind, string source, string details = null)
     {
         CommandReceived?.Invoke(this, new RemoteCommandEventArgs(kind, source, details));
@@ -296,6 +403,48 @@ public sealed class RemoteCommandService : IRemoteCommandService
             {
                 base.PressesBegan(presses, evt);
             }
+        }
+    }
+
+    private sealed class VolumeObserver : NSObject
+    {
+        private readonly AVAudioSession _session;
+        private readonly Action _onChanged;
+
+        public VolumeObserver(AVAudioSession session, Action onChanged)
+        {
+            _session = session;
+            _onChanged = onChanged;
+            _session.AddObserver(this, "outputVolume", NSKeyValueObservingOptions.New, nint.Zero);
+        }
+
+        public override void ObserveValue(
+            NSString keyPath,
+            NSObject ofObject,
+            NSDictionary change,
+            nint context)
+        {
+            if (string.Equals(keyPath, "outputVolume", StringComparison.Ordinal))
+            {
+                _onChanged();
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try
+                {
+                    _session.RemoveObserver(this, "outputVolume");
+                }
+                catch
+                {
+                    // Already removed
+                }
+            }
+
+            base.Dispose(disposing);
         }
     }
 }
