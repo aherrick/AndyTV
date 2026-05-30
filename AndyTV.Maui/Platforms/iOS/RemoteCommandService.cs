@@ -22,6 +22,13 @@ public sealed class RemoteCommandService : IRemoteCommandService
     private NSObject _nextToken;
     private NSObject _previousToken;
     private HardwareInputView _hardwareInputView;
+    private UIView _attachedRootView;
+    private UISwipeGestureRecognizer _swipeUpRecognizer;
+    private UISwipeGestureRecognizer _swipeDownRecognizer;
+    private MPVolumeView _hiddenVolumeView;
+    private VolumeObserver _volumeObserverHelper;
+    private float _lastVolume;
+    private bool _suppressVolumeChange;
     private bool _started;
 
     public event EventHandler<RemoteCommandEventArgs> CommandReceived;
@@ -75,6 +82,7 @@ public sealed class RemoteCommandService : IRemoteCommandService
         });
 
         MainThread.BeginInvokeOnMainThread(AttachHardwareInputView);
+        MainThread.BeginInvokeOnMainThread(StartVolumeObservation);
         SetNowPlaying("Andy TV", false);
     }
 
@@ -113,6 +121,7 @@ public sealed class RemoteCommandService : IRemoteCommandService
         }
 
         MainThread.BeginInvokeOnMainThread(DetachHardwareInputView);
+        MainThread.BeginInvokeOnMainThread(StopVolumeObservation);
         _started = false;
     }
 
@@ -169,6 +178,25 @@ public sealed class RemoteCommandService : IRemoteCommandService
 
         rootView.AddSubview(_hardwareInputView);
         _hardwareInputView.BecomeFirstResponder();
+
+        // The ring on scroll remotes generates swipe/scroll events rather than UIPressType
+        // events for up/down. Add gesture recognizers on the root view as a fallback.
+        _attachedRootView = rootView;
+
+        _swipeUpRecognizer = new UISwipeGestureRecognizer(() =>
+            Publish(RemoteCommandKind.RecentNext, "swipe:Up"))
+        {
+            Direction = UISwipeGestureRecognizerDirection.Up,
+            CancelsTouchesInView = false
+        };
+        _swipeDownRecognizer = new UISwipeGestureRecognizer(() =>
+            Publish(RemoteCommandKind.RecentPrevious, "swipe:Down"))
+        {
+            Direction = UISwipeGestureRecognizerDirection.Down,
+            CancelsTouchesInView = false
+        };
+        rootView.AddGestureRecognizer(_swipeUpRecognizer);
+        rootView.AddGestureRecognizer(_swipeDownRecognizer);
     }
 
     private void DetachHardwareInputView()
@@ -182,6 +210,20 @@ public sealed class RemoteCommandService : IRemoteCommandService
         _hardwareInputView.RemoveFromSuperview();
         _hardwareInputView.Dispose();
         _hardwareInputView = null;
+
+        if (_swipeUpRecognizer is not null)
+        {
+            _attachedRootView?.RemoveGestureRecognizer(_swipeUpRecognizer);
+            _swipeUpRecognizer.Dispose();
+            _swipeUpRecognizer = null;
+        }
+        if (_swipeDownRecognizer is not null)
+        {
+            _attachedRootView?.RemoveGestureRecognizer(_swipeDownRecognizer);
+            _swipeDownRecognizer.Dispose();
+            _swipeDownRecognizer = null;
+        }
+        _attachedRootView = null;
     }
 
     private bool HandleHardwarePress(UIPress press)
@@ -258,13 +300,99 @@ public sealed class RemoteCommandService : IRemoteCommandService
         return null;
     }
 
+    private void StartVolumeObservation()
+    {
+        var rootView = GetRootView();
+        if (rootView is null)
+        {
+            return;
+        }
+
+        // Hidden MPVolumeView suppresses the system volume HUD while we intercept
+        // the ring's up/down buttons (which send Volume Up/Down HID consumer events).
+        _hiddenVolumeView = new MPVolumeView(new CGRect(-1000, -1000, 1, 1))
+        {
+            Alpha = 0.01f
+        };
+        rootView.AddSubview(_hiddenVolumeView);
+
+        var session = AVAudioSession.SharedInstance();
+        _lastVolume = session.OutputVolume;
+        _volumeObserverHelper = new VolumeObserver(session, OnVolumeChanged);
+    }
+
+    private void OnVolumeChanged()
+    {
+        if (_suppressVolumeChange)
+        {
+            return;
+        }
+
+        var newVolume = AVAudioSession.SharedInstance().OutputVolume;
+        var delta = newVolume - _lastVolume;
+        _lastVolume = newVolume;
+
+        if (Math.Abs(delta) < 0.001f)
+        {
+            return;
+        }
+
+        // Restore volume so the ring's up/down buttons don't drift system volume.
+        RestoreVolume(-delta);
+
+        // Up = next channel, Down = previous channel.
+        if (delta > 0)
+        {
+            Publish(RemoteCommandKind.RecentNext, "volume-button:Up");
+        }
+        else
+        {
+            Publish(RemoteCommandKind.RecentPrevious, "volume-button:Down");
+        }
+    }
+
+    private void RestoreVolume(float correction)
+    {
+        _suppressVolumeChange = true;
+
+        if (_hiddenVolumeView is not null)
+        {
+            foreach (var subview in _hiddenVolumeView.Subviews)
+            {
+                if (subview is UISlider slider)
+                {
+                    slider.Value = _lastVolume + correction;
+                    break;
+                }
+            }
+        }
+
+        Task.Delay(TimeSpan.FromMilliseconds(100)).ContinueWith(_ =>
+        {
+            _suppressVolumeChange = false;
+            _lastVolume = AVAudioSession.SharedInstance().OutputVolume;
+        });
+    }
+
+    private void StopVolumeObservation()
+    {
+        _volumeObserverHelper?.Dispose();
+        _volumeObserverHelper = null;
+
+        if (_hiddenVolumeView is not null)
+        {
+            _hiddenVolumeView.RemoveFromSuperview();
+            _hiddenVolumeView.Dispose();
+            _hiddenVolumeView = null;
+        }
+    }
+
     private void Publish(RemoteCommandKind kind, string source, string details = null)
     {
         CommandReceived?.Invoke(this, new RemoteCommandEventArgs(kind, source, details));
     }
 
-    private sealed class HardwareInputView(Func<UIPress, bool> handlePress) : UIView(CGRect.Empty)
-    {
+    private sealed class HardwareInputView(Func<UIPress, bool> handlePress) : UIView(CGRect.Empty)    {
         public override bool CanBecomeFirstResponder => true;
 
         public override void MovedToWindow()
@@ -290,6 +418,60 @@ public sealed class RemoteCommandService : IRemoteCommandService
             {
                 base.PressesBegan(presses, evt);
             }
+        }
+
+        public override void PressesEnded(NSSet<UIPress> presses, UIPressesEvent evt)
+        {
+            var allHandled = true;
+            foreach (var press in presses)
+            {
+                if (!handlePress(press))
+                    allHandled = false;
+            }
+            if (!allHandled)
+                base.PressesEnded(presses, evt);
+        }
+    }
+
+    private sealed class VolumeObserver : NSObject
+    {
+        private readonly AVAudioSession _session;
+        private readonly Action _onChanged;
+
+        public VolumeObserver(AVAudioSession session, Action onChanged)
+        {
+            _session = session;
+            _onChanged = onChanged;
+            _session.AddObserver(this, "outputVolume", NSKeyValueObservingOptions.New, nint.Zero);
+        }
+
+        public override void ObserveValue(
+            NSString keyPath,
+            NSObject ofObject,
+            NSDictionary change,
+            nint context)
+        {
+            if (string.Equals(keyPath, "outputVolume", StringComparison.Ordinal))
+            {
+                _onChanged();
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try
+                {
+                    _session.RemoveObserver(this, "outputVolume");
+                }
+                catch
+                {
+                    // Already removed
+                }
+            }
+
+            base.Dispose(disposing);
         }
     }
 }
