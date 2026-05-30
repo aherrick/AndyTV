@@ -3,7 +3,6 @@ using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
 using AndyTV.Maui.ViewModels;
-using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.Messaging;
 using LibVLCSharp.Shared;
 
@@ -155,19 +154,19 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             switch (e.Kind)
             {
                 case RemoteCommandKind.ToggleMute:
-                    ShowRemoteToast($"Remote: mute/unmute ({e.Source})");
                     ToggleMute();
                     break;
+                case RemoteCommandKind.VolumeUp:
+                    AdjustVolume(10);
+                    break;
+                case RemoteCommandKind.VolumeDown:
+                    AdjustVolume(-10);
+                    break;
                 case RemoteCommandKind.RecentNext:
-                    ShowRemoteToast($"Remote: recent next ({e.Source})");
                     SwitchToRecentChannel(1);
                     break;
                 case RemoteCommandKind.RecentPrevious:
-                    ShowRemoteToast($"Remote: recent previous ({e.Source})");
                     SwitchToRecentChannel(-1);
-                    break;
-                case RemoteCommandKind.Unknown:
-                    ShowRemoteToast($"Remote input: {e.Details ?? e.Source}");
                     break;
             }
         });
@@ -180,9 +179,17 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, _isMuted);
     }
 
-    private static void ShowRemoteToast(string message)
+    private void AdjustVolume(int delta)
     {
-        _ = Toast.Make(message).Show();
+        var newVolume = Math.Clamp(_mediaPlayer.Volume + delta, 0, 200);
+        _mediaPlayer.Volume = newVolume;
+
+        if (_isMuted && delta > 0)
+        {
+            _isMuted = false;
+            _mediaPlayer.Mute = false;
+            _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, false);
+        }
     }
 
     private void SwitchToRecentChannel(int direction)

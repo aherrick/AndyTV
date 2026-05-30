@@ -3,6 +3,8 @@ namespace AndyTV.Maui.Services;
 public enum RemoteCommandKind
 {
     ToggleMute,
+    VolumeUp,
+    VolumeDown,
     RecentNext,
     RecentPrevious,
     Unknown
