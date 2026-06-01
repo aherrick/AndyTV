@@ -7,18 +7,11 @@ public enum RemoteCommandKind
     VolumeDown,
     RecentNext,
     RecentPrevious,
-    Unknown
 }
 
-public sealed class RemoteCommandEventArgs(
-    RemoteCommandKind kind,
-    string source,
-    string details = null
-) : EventArgs
+public sealed class RemoteCommandEventArgs(RemoteCommandKind kind) : EventArgs
 {
     public RemoteCommandKind Kind { get; } = kind;
-    public string Source { get; } = source;
-    public string Details { get; } = details;
 }
 
 public interface IRemoteCommandService

@@ -161,7 +161,7 @@ public sealed class RemoteCommandService : IRemoteCommandService
 
     private void Publish(RemoteCommandKind kind)
     {
-        CommandReceived?.Invoke(this, new RemoteCommandEventArgs(kind, kind.ToString()));
+        CommandReceived?.Invoke(this, new RemoteCommandEventArgs(kind));
     }
 
     private static UIView GetRootView()
