@@ -1,4 +1,3 @@
-using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
@@ -17,9 +16,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly StreamHealthMonitor _healthMonitor;
     private readonly IOrientationLockService _orientationLockService;
     private readonly IRemoteCommandService _remoteCommandService;
-    private readonly IRecentChannelService _recentChannelService;
-    private readonly ILastChannelService _lastChannelService;
-    private bool _isMuted;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -33,10 +29,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
         _remoteCommandService =
             IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
-        _recentChannelService =
-            IPlatformApplication.Current?.Services.GetService<IRecentChannelService>();
-        _lastChannelService =
-            IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
@@ -79,7 +71,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         {
             _remoteCommandService.CommandReceived += OnRemoteCommandReceived;
             _remoteCommandService.Start();
-            _remoteCommandService.SetNowPlaying(_viewModel.ChannelName, _isMuted);
         }
     }
 
@@ -153,65 +144,19 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         {
             switch (e.Kind)
             {
-                case RemoteCommandKind.ToggleMute:
-                    ToggleMute();
-                    break;
                 case RemoteCommandKind.VolumeUp:
                     AdjustVolume(10);
                     break;
                 case RemoteCommandKind.VolumeDown:
                     AdjustVolume(-10);
                     break;
-                case RemoteCommandKind.RecentNext:
-                    SwitchToRecentChannel(1);
-                    break;
-                case RemoteCommandKind.RecentPrevious:
-                    SwitchToRecentChannel(-1);
-                    break;
             }
         });
-    }
-
-    private void ToggleMute()
-    {
-        _isMuted = !_isMuted;
-        _mediaPlayer.Mute = _isMuted;
-        _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, _isMuted);
     }
 
     private void AdjustVolume(int delta)
     {
         var newVolume = Math.Clamp(_mediaPlayer.Volume + delta, 0, 200);
         _mediaPlayer.Volume = newVolume;
-
-        if (_isMuted && delta > 0)
-        {
-            _isMuted = false;
-            _mediaPlayer.Mute = false;
-            _remoteCommandService?.SetNowPlaying(_viewModel.ChannelName, false);
-        }
-    }
-
-    private void SwitchToRecentChannel(int direction)
-    {
-        var channel = _recentChannelService?.GetRelative(_viewModel.Url, direction);
-        if (channel is null)
-        {
-            return;
-        }
-
-        if (string.Equals(channel.Url, _viewModel.Url, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        _viewModel.Url = channel.Url;
-        _viewModel.ChannelName = channel.DisplayName;
-        _isMuted = false;
-        _mediaPlayer.Mute = false;
-
-        Play(channel.Url);
-        _lastChannelService?.SaveLastChannel(channel);
-        _remoteCommandService?.SetNowPlaying(channel.DisplayName, false);
     }
 }

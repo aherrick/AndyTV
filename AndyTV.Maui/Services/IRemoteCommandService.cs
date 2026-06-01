@@ -2,11 +2,8 @@ namespace AndyTV.Maui.Services;
 
 public enum RemoteCommandKind
 {
-    ToggleMute,
     VolumeUp,
     VolumeDown,
-    RecentNext,
-    RecentPrevious,
 }
 
 public sealed class RemoteCommandEventArgs(RemoteCommandKind kind) : EventArgs
@@ -20,5 +17,4 @@ public interface IRemoteCommandService
 
     void Start();
     void Stop();
-    void SetNowPlaying(string channelName, bool isMuted);
 }

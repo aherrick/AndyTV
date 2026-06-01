@@ -10,5 +10,4 @@ public sealed class NoopRemoteCommandService : IRemoteCommandService
 
     public void Start() { }
     public void Stop() { }
-    public void SetNowPlaying(string channelName, bool isMuted) { }
 }
