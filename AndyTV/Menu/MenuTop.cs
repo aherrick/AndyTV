@@ -66,7 +66,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         );
     }
 
-    private ToolStripMenuItem Build247Items(string rootTitle, EventHandler channelClick, List<Channel> channels)
+    private static ToolStripMenuItem Build247Items(string rootTitle, EventHandler channelClick, List<Channel> channels)
     {
         var root = new ToolStripMenuItem(rootTitle);
         var entries = ChannelService.Get247Entries(channels);
@@ -126,7 +126,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         return root.DropDownItems.Count > 0 ? root : null;
     }
 
-    private (ToolStripMenuItem Root, int TotalMatches) BuildTopItems(
+    private static (ToolStripMenuItem Root, int TotalMatches) BuildTopItems(
         string rootTitle,
         Dictionary<string, List<ChannelTop>> categories,
         EventHandler channelClick,

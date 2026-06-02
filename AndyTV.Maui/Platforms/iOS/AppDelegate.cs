@@ -18,12 +18,20 @@ public class AppDelegate : MauiUIApplicationDelegate
         return base.FinishedLaunching(application, launchOptions);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Exported iOS delegate callbacks must remain instance methods."
+    )]
     [Export("application:supportedInterfaceOrientationsForWindow:")]
     public UIInterfaceOrientationMask GetSupportedInterfaceOrientations(
         UIApplication application,
         UIWindow forWindow
     )
     {
+        _ = application;
+        _ = forWindow;
+
         if (OrientationLockService.IsPlaybackLandscapeLocked)
         {
             return UIInterfaceOrientationMask.Landscape;
