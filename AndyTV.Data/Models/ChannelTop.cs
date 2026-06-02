@@ -11,13 +11,9 @@ public class ChannelTop
     {
         get
         {
-            var alts = AltNames;
-            if (alts != null)
+            foreach (var a in AltNames ?? [])
             {
-                foreach (var a in alts)
-                {
-                    yield return a;
-                }
+                yield return a;
             }
 
             yield return Name; // Name is always present
