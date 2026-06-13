@@ -66,7 +66,15 @@ public partial class ChannelsViewModel(
             return;
         }
 
-        await LoadChannels();
+        // Use channels pre-fetched by the background startup refresh; otherwise fetch now
+        if (playlistService.Channels.Count > 0)
+        {
+            Populate();
+        }
+        else
+        {
+            await LoadChannels();
+        }
     }
 
     private void FilterChannels()
@@ -96,6 +104,32 @@ public partial class ChannelsViewModel(
         orientationLockService.SetLandscapeLockEnabled(IsLandscapeLockEnabled);
     }
 
+    private void Populate()
+    {
+        _allChannels.Clear();
+        Channels.Clear();
+        SearchText = string.Empty;
+
+        var recentChannels = recentChannelService.GetRecentChannels();
+        foreach (var ch in recentChannels)
+        {
+            ch.Category = "Recent";
+            _allChannels.Add(ch);
+        }
+
+        foreach (var (playlist, channels) in playlistService.PlaylistChannels)
+        {
+            foreach (var ch in channels)
+            {
+                ch.Category = playlist.Name ?? "Playlist";
+                _allChannels.Add(ch);
+            }
+        }
+
+        FilterChannels();
+        _hasLoaded = true;
+    }
+
     [RelayCommand]
     private async Task LoadChannels()
     {
@@ -108,33 +142,9 @@ public partial class ChannelsViewModel(
 
         try
         {
-            _allChannels.Clear();
-            Channels.Clear();
-            SearchText = string.Empty;
-
-            // Load playlist channels
+            // Pull-to-refresh always fetches fresh data from network
             await playlistService.RefreshChannelsAsync();
-
-            // Add Recent
-            var recentChannels = recentChannelService.GetRecentChannels();
-            foreach (var ch in recentChannels)
-            {
-                ch.Category = "Recent";
-                _allChannels.Add(ch);
-            }
-
-            // Add Playlists
-            foreach (var (playlist, channels) in playlistService.PlaylistChannels)
-            {
-                foreach (var ch in channels)
-                {
-                    ch.Category = playlist.Name ?? "Playlist";
-                    _allChannels.Add(ch);
-                }
-            }
-
-            FilterChannels();
-            _hasLoaded = true;
+            Populate();
             await Toast.Make($"Loaded {_allChannels.Count} channels").Show();
         }
         catch (Exception ex)

@@ -17,6 +17,13 @@ public partial class App : Application
 
         window.Created += async (_, _) =>
         {
+            // Pre-warm the channel list in the background so it's ready when the user navigates back
+            var playlistService = IPlatformApplication.Current?.Services.GetService<IPlaylistService>();
+            if (playlistService is not null)
+            {
+                _ = Task.Run(() => playlistService.RefreshChannelsAsync());
+            }
+
             var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
             var lastChannel = lastChannelService?.LoadLastChannel();
             if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
