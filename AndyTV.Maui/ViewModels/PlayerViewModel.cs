@@ -14,6 +14,6 @@ public partial class PlayerViewModel : ObservableObject
     [RelayCommand]
     private async Task GoBack()
     {
-        await Shell.Current.Navigation.PopModalAsync();
+        await Shell.Current.Navigation.PopAsync();
     }
 }

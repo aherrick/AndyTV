@@ -22,7 +22,7 @@ public partial class App : Application
             if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
             {
                 var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
-                await Shell.Current.Navigation.PushModalAsync(playerPage);
+                await Shell.Current.Navigation.PushAsync(playerPage, animated: false);
             }
         };
 

@@ -183,6 +183,6 @@ public partial class ChannelsViewModel(
         lastChannelService.SaveLastChannel(channel);
 
         var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
-        await Shell.Current.Navigation.PushModalAsync(playerPage);
+        await Shell.Current.Navigation.PushAsync(playerPage);
     }
 }
