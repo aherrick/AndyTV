@@ -1,5 +1,6 @@
 ﻿using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
+using AndyTV.Maui.Services;
 using CommunityToolkit.Mvvm.Messaging;
 
 namespace AndyTV.Maui;
@@ -25,10 +26,16 @@ public partial class App : Application
             }
 
             var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
+            var localPlaybackService =
+                IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
             var lastChannel = lastChannelService?.LoadLastChannel();
             if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
             {
-                var playerPage = new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName);
+                var playbackUrl =
+                    localPlaybackService is null
+                        ? lastChannel.Url
+                        : await localPlaybackService.ResolvePlaybackUrl(lastChannel.Url);
+                var playerPage = new Views.PlayerPage(playbackUrl, lastChannel.DisplayName);
                 await Shell.Current.Navigation.PushAsync(playerPage, animated: false);
             }
         };

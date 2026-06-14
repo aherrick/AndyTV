@@ -13,7 +13,9 @@ public partial class ChannelsViewModel(
     IRecentChannelService recentChannelService,
     IFavoriteChannelService favoriteChannelService,
     ILastChannelService lastChannelService,
-    IOrientationLockService orientationLockService
+    IOrientationLockService orientationLockService,
+    ILocalConfigService localConfigService,
+    ILocalPlaybackService localPlaybackService
 ) : ObservableObject
 {
     [ObservableProperty]
@@ -56,9 +58,35 @@ public partial class ChannelsViewModel(
 
     public string LandscapeLockGlyph => IsLandscapeLockEnabled ? "\uf023" : "\uf09c";
 
+    private bool _useLocal;
+
+    public bool UseLocal
+    {
+        get => _useLocal;
+        set
+        {
+            if (!SetProperty(ref _useLocal, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(UseLocalColor));
+
+            // Persist the toggle
+            var config = localConfigService.Load();
+            config.Enabled = value;
+            localConfigService.Save(config);
+        }
+    }
+
+    public Color UseLocalColor => UseLocal ? Colors.LimeGreen : Colors.Gray;
+
     public async Task EnsureChannelsLoaded()
     {
         IsLandscapeLockEnabled = orientationLockService.IsLandscapeLockEnabled;
+        _useLocal = localConfigService.Load().Enabled;
+        OnPropertyChanged(nameof(UseLocal));
+        OnPropertyChanged(nameof(UseLocalColor));
         orientationLockService.UseDefaultOrientation();
 
         if (_hasLoaded && Channels.Count > 0)
@@ -102,6 +130,12 @@ public partial class ChannelsViewModel(
     {
         IsLandscapeLockEnabled = !IsLandscapeLockEnabled;
         orientationLockService.SetLandscapeLockEnabled(IsLandscapeLockEnabled);
+    }
+
+    [RelayCommand]
+    private void ToggleUseLocal()
+    {
+        UseLocal = !UseLocal;
     }
 
     private void Populate()
@@ -192,7 +226,9 @@ public partial class ChannelsViewModel(
         // Save as last channel
         lastChannelService.SaveLastChannel(channel);
 
-        var playerPage = new Views.PlayerPage(channel.Url, channel.DisplayName);
+        var playbackUrl = await localPlaybackService.ResolvePlaybackUrl(channel.Url);
+
+        var playerPage = new Views.PlayerPage(playbackUrl, channel.DisplayName);
         await Shell.Current.Navigation.PushAsync(playerPage);
     }
 }

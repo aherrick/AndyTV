@@ -9,9 +9,10 @@
     Title="Settings"
     x:DataType="vm:SettingsViewModel">
 
+    <ScrollView>
     <Grid
         Padding="16"
-        RowDefinitions="Auto,*,Auto"
+        RowDefinitions="Auto,Auto,Auto,Auto"
         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
 
         <!--  Add Playlist Form  -->
@@ -129,12 +130,50 @@
             </sfListView:SfListView.ItemTemplate>
         </sfListView:SfListView>
 
+        <!--  Local Streaming Config  -->
+        <VerticalStackLayout Grid.Row="2" Spacing="12" Margin="0,14,0,0">
+            <BoxView
+                HeightRequest="1"
+                Color="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" />
+
+            <Label
+                FontAttributes="Bold"
+                FontSize="18"
+                Text="Local Streaming"
+                Margin="0,4,0,4" />
+
+            <Border
+                StrokeShape="RoundRectangle 8"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}"
+                Padding="10,0">
+                <Entry
+                    Placeholder="http://192.168.1.100:8080"
+                    Text="{Binding LocalServerUrl}"
+                    BackgroundColor="Transparent"
+                    FontSize="15"
+                    Keyboard="Url" />
+            </Border>
+
+            <Border
+                StrokeShape="RoundRectangle 8"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}"
+                Padding="10,4">
+                <Picker
+                    Title="Quality"
+                    ItemsSource="{x:Static vm:SettingsViewModel.QualityOptions}"
+                    SelectedItem="{Binding SelectedQuality}" />
+            </Border>
+        </VerticalStackLayout>
+
         <Label
-            Grid.Row="2"
+            Grid.Row="3"
             HorizontalOptions="Center"
             Margin="0,10,0,0"
             Text="{x:Static vm:SettingsViewModel.AppVersion}"
             TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}"
             FontSize="12" />
     </Grid>
+    </ScrollView>
 </ContentPage>

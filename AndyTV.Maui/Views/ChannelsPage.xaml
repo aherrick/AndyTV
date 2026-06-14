@@ -13,6 +13,17 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem
+            Command="{Binding ToggleUseLocalCommand}"
+            Order="Primary">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    FontFamily="FontAwesomeSolid"
+                    Glyph="&#xf6ff;"
+                    Size="18"
+                    Color="{Binding UseLocalColor}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem
             Command="{Binding ToggleLandscapeLockCommand}"
             Order="Primary">
             <ToolbarItem.IconImageSource>

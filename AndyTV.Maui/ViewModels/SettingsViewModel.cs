@@ -6,7 +6,10 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-public partial class SettingsViewModel(IPlaylistService playlistService) : ObservableObject
+public partial class SettingsViewModel(
+    IPlaylistService playlistService,
+    ILocalConfigService localConfigService
+) : ObservableObject
 {
     [ObservableProperty]
     public partial string PlaylistName { get; set; }
@@ -20,6 +23,14 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     [ObservableProperty]
     public partial bool IsLoaded { get; set; }
 
+    [ObservableProperty]
+    public partial string LocalServerUrl { get; set; }
+
+    [ObservableProperty]
+    public partial string SelectedQuality { get; set; }
+
+    public static string[] QualityOptions { get; } = ["240", "320", "480", "576", "720"];
+
     public static string AppVersion => $"v{AppInfo.Current.VersionString}";
 
     public ObservableCollection<Playlist> Playlists { get; } = [];
@@ -27,9 +38,44 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
     public void Initialize()
     {
         if (IsLoaded)
+        {
             return;
+        }
+
         LoadPlaylists();
+        LoadLocalConfig();
         IsLoaded = true;
+    }
+
+    private void LoadLocalConfig()
+    {
+        var config = localConfigService.Load();
+        LocalServerUrl = config.ServerUrl;
+        SelectedQuality = string.IsNullOrEmpty(config.Quality) ? "320" : config.Quality;
+    }
+
+    public void SaveLocalConfig()
+    {
+        var config = localConfigService.Load();
+        config.ServerUrl = LocalServerUrl?.Trim();
+        config.Quality = SelectedQuality;
+        localConfigService.Save(config);
+    }
+
+    partial void OnLocalServerUrlChanged(string value)
+    {
+        if (IsLoaded)
+        {
+            SaveLocalConfig();
+        }
+    }
+
+    partial void OnSelectedQualityChanged(string value)
+    {
+        if (IsLoaded)
+        {
+            SaveLocalConfig();
+        }
     }
 
     private void LoadPlaylists()
