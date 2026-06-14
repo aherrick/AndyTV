@@ -83,11 +83,18 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
         }
     }
 
+    public void SaveCurrentOrder()
+    {
+        playlistService.SavePlaylists([.. Playlists]);
+    }
+
     [RelayCommand]
     private async Task Delete(Playlist playlist)
     {
         if (playlist == null)
+        {
             return;
+        }
 
         var confirm = await Shell.Current.DisplayAlertAsync(
             "Delete",
@@ -96,7 +103,9 @@ public partial class SettingsViewModel(IPlaylistService playlistService) : Obser
             "No"
         );
         if (!confirm)
+        {
             return;
+        }
 
         var existing = playlistService.LoadPlaylists();
         existing.RemoveAll(p => p.Url == playlist.Url);

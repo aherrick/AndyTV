@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    xmlns:sfListView="clr-namespace:Syncfusion.Maui.ListView;assembly=Syncfusion.Maui.ListView"
     Title="Settings"
     x:DataType="vm:SettingsViewModel">
 
@@ -65,12 +66,16 @@
                 Margin="0,0,0,4" />
         </VerticalStackLayout>
 
-        <!--  Playlist List  -->
-        <CollectionView
+        <!--  Playlist List (drag to reorder)  -->
+        <sfListView:SfListView
+            x:Name="playlistListView"
             Grid.Row="1"
             Margin="0,8,0,0"
-            ItemsSource="{Binding Playlists}">
-            <CollectionView.ItemTemplate>
+            ItemsSource="{Binding Playlists}"
+            ItemSize="62"
+            DragStartMode="OnDragIndicator"
+            SelectionMode="None">
+            <sfListView:SfListView.ItemTemplate>
                 <DataTemplate x:DataType="models:Playlist">
                     <Border
                         Margin="0,4"
@@ -79,14 +84,18 @@
                         Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
                         <Grid ColumnDefinitions="Auto,*,Auto">
-                            <Label
+                            <sfListView:DragIndicatorView
                                 Grid.Column="0"
-                                FontFamily="FontAwesomeSolid"
-                                Text="&#xf03a;"
-                                FontSize="16"
-                                TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                ListView="{x:Reference playlistListView}"
                                 VerticalOptions="Center"
-                                Margin="0,0,12,0" />
+                                Margin="0,0,12,0">
+                                <Label
+                                    FontFamily="FontAwesomeSolid"
+                                    Text="&#xf58e;"
+                                    FontSize="18"
+                                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                    VerticalOptions="Center" />
+                            </sfListView:DragIndicatorView>
                             <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
                                 <Label
                                     FontAttributes="Bold"
@@ -108,36 +117,17 @@
                                 WidthRequest="36">
                                 <ImageButton.Source>
                                     <FontImageSource
-                                    FontFamily="FontAwesomeSolid"
-                                    Glyph="&#xf1f8;"
-                                    Size="16"
-                                    Color="{StaticResource Danger}" />
-                            </ImageButton.Source>
-                        </ImageButton>
+                                        FontFamily="FontAwesomeSolid"
+                                        Glyph="&#xf1f8;"
+                                        Size="16"
+                                        Color="{StaticResource Danger}" />
+                                </ImageButton.Source>
+                            </ImageButton>
                         </Grid>
                     </Border>
                 </DataTemplate>
-            </CollectionView.ItemTemplate>
-            <CollectionView.EmptyView>
-                <VerticalStackLayout
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    Spacing="8"
-                    Padding="40">
-                    <Label
-                        FontFamily="FontAwesomeLight"
-                        Text="&#xf03a;"
-                        FontSize="40"
-                        HorizontalOptions="Center"
-                        TextColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}" />
-                    <Label
-                        HorizontalOptions="Center"
-                        Text="No playlists added yet"
-                        FontSize="16"
-                        TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
-        </CollectionView>
+            </sfListView:SfListView.ItemTemplate>
+        </sfListView:SfListView>
 
         <Label
             Grid.Row="2"
