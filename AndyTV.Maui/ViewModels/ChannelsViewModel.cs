@@ -133,8 +133,13 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private void ToggleUseLocal()
+    private async Task ToggleUseLocal()
     {
+        if (UseLocal)
+        {
+            await localPlaybackService.StopPlayback();
+        }
+
         UseLocal = !UseLocal;
     }
 

@@ -1,4 +1,3 @@
-using System.Net.Http;
 using AndyTV.Data.Services;
 
 namespace AndyTV.Maui.Services;
@@ -9,39 +8,19 @@ public class LocalPlaybackService(ILocalConfigService localConfigService) : ILoc
 
     public async Task<string> ResolvePlaybackUrl(string sourceUrl)
     {
-        if (string.IsNullOrWhiteSpace(sourceUrl))
-        {
-            return sourceUrl;
-        }
-
         var config = localConfigService.Load();
         if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
         {
             return sourceUrl;
         }
 
-        if (!Uri.TryCreate(config.ServerUrl, UriKind.Absolute, out var serverUri))
-        {
-            return sourceUrl;
-        }
-
-        if (serverUri.Scheme != Uri.UriSchemeHttp && serverUri.Scheme != Uri.UriSchemeHttps)
-        {
-            return sourceUrl;
-        }
-
+        var serverUrl = config.ServerUrl.TrimEnd('/');
         var quality = string.IsNullOrWhiteSpace(config.Quality) ? "320" : config.Quality;
-        var startUri = BuildStartUri(serverUri, sourceUrl, quality);
 
         try
         {
-            using var response = await HttpClient.PostAsync(startUri, null);
-            if (!response.IsSuccessStatusCode)
-            {
-                return sourceUrl;
-            }
-
-            return new Uri(serverUri, "live.m3u8").ToString();
+            await HttpClient.PostAsync($"{serverUrl}/start?url={Uri.EscapeDataString(sourceUrl)}&quality={quality}", null);
+            return $"{serverUrl}/live.m3u8";
         }
         catch
         {
@@ -49,14 +28,20 @@ public class LocalPlaybackService(ILocalConfigService localConfigService) : ILoc
         }
     }
 
-    private static Uri BuildStartUri(Uri serverUri, string sourceUrl, string quality)
+    public async Task StopPlayback()
     {
-        var startUri = new Uri(serverUri, "start");
-        var builder = new UriBuilder(startUri)
+        var config = localConfigService.Load();
+        if (string.IsNullOrWhiteSpace(config.ServerUrl))
         {
-            Query = $"url={Uri.EscapeDataString(sourceUrl)}&quality={Uri.EscapeDataString(quality)}",
-        };
+            return;
+        }
 
-        return builder.Uri;
+        try
+        {
+            await HttpClient.PostAsync($"{config.ServerUrl.TrimEnd('/')}/stop", null);
+        }
+        catch
+        {
+        }
     }
 }
