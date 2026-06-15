@@ -127,6 +127,34 @@ cd AndyTV.Web
 dotnet run
 ```
 
+## 📡 Local Streaming Server (`local/`)
+
+The `local/` folder contains a lightweight Python streaming server that transcodes IPTV streams into HLS on a local PC. The mobile app (AndyTV.Maui) connects to it over [Tailscale](https://tailscale.com/) to play streams that would otherwise be too heavy for a phone.
+
+**How it works:**
+1. `start-all.bat` launches the server on port **5050**
+2. The mobile app sends `POST /start?url={stream}&quality={level}` to begin transcoding
+3. FFmpeg re-encodes the stream to a lower bitrate HLS playlist (`live.m3u8`)
+4. The mobile app plays `http://{tailscale-ip}:5050/live.m3u8`
+5. `POST /stop` kills the transcode when done
+
+**Quality presets:** 240p, 320p (default), 360p, 480p, 576p, 720p
+
+**Setup:**
+```powershell
+cd local
+start-all.bat
+```
+FFmpeg is downloaded automatically on first run if not already present.
+
+**Mobile app configuration:**
+In AndyTV.Maui Settings, enable **Local Streaming** and set the **Server URL** to your Tailscale IP (e.g. `http://100.x.x.x:5050`). When enabled, channel playback is routed through the server automatically.
+
+**Requirements:**
+- Windows PC on the same Tailscale network as your phone
+- Python 3.x
+- Tailscale installed on both PC and phone
+
 
 ## 📜 License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
