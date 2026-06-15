@@ -16,6 +16,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly StreamHealthMonitor _healthMonitor;
     private readonly IOrientationLockService _orientationLockService;
     private readonly IRemoteCommandService _remoteCommandService;
+    private readonly ILocalConfigService _localConfigService;
+    private readonly ILocalPlaybackService _localPlaybackService;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -29,6 +31,10 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
         _remoteCommandService =
             IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
+        _localConfigService =
+            IPlatformApplication.Current?.Services.GetService<ILocalConfigService>();
+        _localPlaybackService =
+            IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
@@ -136,6 +142,17 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
+
+        if (IsLocalModeActive())
+        {
+            _ = _localPlaybackService?.StopPlayback();
+        }
+    }
+
+    private bool IsLocalModeActive()
+    {
+        var config = _localConfigService?.Load();
+        return config?.Enabled == true && !string.IsNullOrWhiteSpace(config.ServerUrl);
     }
 
     private void OnRemoteCommandReceived(object sender, RemoteCommandEventArgs e)
