@@ -4,45 +4,46 @@ using Android.Content.PM;
 using Foundation;
 using UIKit;
 #endif
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Storage;
 
 namespace AndyTV.Maui.Services;
 
 public class OrientationLockService : IOrientationLockService
 {
-    private const string LandscapeLockPreferenceKey = "LandscapeLockEnabled";
+    internal static LockMode ActivePlaybackLockMode { get; private set; } = LockMode.Unlocked;
 
-    internal static bool IsPlaybackLandscapeLocked { get; private set; }
+    public LockMode CurrentLockMode { get; private set; } = LockMode.Unlocked;
 
-    public bool IsLandscapeLockEnabled =>
-        Preferences.Default.Get(LandscapeLockPreferenceKey, false);
-
-    public void SetLandscapeLockEnabled(bool isEnabled)
+    public void CycleLockMode()
     {
-        Preferences.Default.Set(LandscapeLockPreferenceKey, isEnabled);
-
-        if (!isEnabled)
+        CurrentLockMode = CurrentLockMode switch
         {
-            UseDefaultOrientation();
-        }
+            LockMode.Unlocked => LockMode.Landscape,
+            LockMode.Landscape => LockMode.Portrait,
+            _ => LockMode.Unlocked
+        };
     }
 
     public void ApplyForPlayback()
     {
-        if (!IsLandscapeLockEnabled)
-        {
-            UseDefaultOrientation();
-            return;
-        }
+        ActivePlaybackLockMode = CurrentLockMode;
 
-        IsPlaybackLandscapeLocked = true;
-        LockLandscape();
+        switch (CurrentLockMode)
+        {
+            case LockMode.Landscape:
+                LockLandscape();
+                break;
+            case LockMode.Portrait:
+                LockPortrait();
+                break;
+            default:
+                UnlockOrientation();
+                break;
+        }
     }
 
     public void UseDefaultOrientation()
     {
-        IsPlaybackLandscapeLocked = false;
+        ActivePlaybackLockMode = LockMode.Unlocked;
         UnlockOrientation();
     }
 
@@ -60,6 +61,24 @@ public class OrientationLockService : IOrientationLockService
             activity.RequestedOrientation = ScreenOrientation.Landscape;
 #elif IOS
             RequestIosOrientation(UIInterfaceOrientation.LandscapeRight);
+#endif
+        });
+    }
+
+    private static void LockPortrait()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+#if ANDROID
+            var activity = Platform.CurrentActivity;
+            if (activity is null)
+            {
+                return;
+            }
+
+            activity.RequestedOrientation = ScreenOrientation.Portrait;
+#elif IOS
+            RequestIosOrientation(UIInterfaceOrientation.Portrait);
 #endif
         });
     }
@@ -103,3 +122,4 @@ public class OrientationLockService : IOrientationLockService
     }
 #endif
 }
+

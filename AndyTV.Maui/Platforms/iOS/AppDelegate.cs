@@ -32,9 +32,14 @@ public class AppDelegate : MauiUIApplicationDelegate
         _ = application;
         _ = forWindow;
 
-        if (OrientationLockService.IsPlaybackLandscapeLocked)
+        if (OrientationLockService.ActivePlaybackLockMode == LockMode.Landscape)
         {
             return UIInterfaceOrientationMask.Landscape;
+        }
+
+        if (OrientationLockService.ActivePlaybackLockMode == LockMode.Portrait)
+        {
+            return UIInterfaceOrientationMask.Portrait;
         }
 
         return UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad

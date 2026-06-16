@@ -29,9 +29,9 @@
             <ToolbarItem.IconImageSource>
                 <FontImageSource
                     FontFamily="FontAwesomeSolid"
-                    Glyph="{Binding LandscapeLockGlyph}"
+                    Glyph="{Binding LockGlyph}"
                     Size="18"
-                    Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                    Color="{Binding LockColor}" />
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
     </ContentPage.ToolbarItems>

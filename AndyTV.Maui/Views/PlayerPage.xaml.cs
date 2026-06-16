@@ -36,6 +36,12 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _localPlaybackService =
             IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
 
+        // Disable double-tap back when in Portrait lock mode
+        if (_orientationLockService?.CurrentLockMode == LockMode.Portrait)
+        {
+            _viewModel.CanGoBack = false;
+        }
+
         DeviceDisplay.Current.KeepScreenOn = true;
 
         _libVLC = new LibVLC();

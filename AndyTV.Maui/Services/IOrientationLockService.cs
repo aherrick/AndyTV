@@ -2,9 +2,9 @@ namespace AndyTV.Maui.Services;
 
 public interface IOrientationLockService
 {
-    bool IsLandscapeLockEnabled { get; }
+    LockMode CurrentLockMode { get; }
 
-    void SetLandscapeLockEnabled(bool isEnabled);
+    void CycleLockMode();
 
     void ApplyForPlayback();
 

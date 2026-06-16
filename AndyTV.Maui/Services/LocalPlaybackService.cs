@@ -4,7 +4,8 @@ namespace AndyTV.Maui.Services;
 
 public class LocalPlaybackService(ILocalConfigService localConfigService) : ILocalPlaybackService
 {
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private string _currentSourceUrl;
 
     public async Task<string> ResolvePlaybackUrl(string sourceUrl)
     {
@@ -15,11 +16,19 @@ public class LocalPlaybackService(ILocalConfigService localConfigService) : ILoc
         }
 
         var serverUrl = config.ServerUrl.TrimEnd('/');
+
+        // If the same source URL is already streaming, skip restarting
+        if (string.Equals(_currentSourceUrl, sourceUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{serverUrl}/live.m3u8";
+        }
+
         var quality = string.IsNullOrWhiteSpace(config.Quality) ? "320" : config.Quality;
 
         try
         {
             await HttpClient.PostAsync($"{serverUrl}/start?url={Uri.EscapeDataString(sourceUrl)}&quality={quality}", null);
+            _currentSourceUrl = sourceUrl;
             return $"{serverUrl}/live.m3u8";
         }
         catch
@@ -35,6 +44,8 @@ public class LocalPlaybackService(ILocalConfigService localConfigService) : ILoc
         {
             return;
         }
+
+        _currentSourceUrl = null;
 
         try
         {

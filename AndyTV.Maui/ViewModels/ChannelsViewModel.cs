@@ -37,26 +37,20 @@ public partial class ChannelsViewModel(
     }
 
     private readonly List<Channel> _allChannels = [];
-    private bool _isLandscapeLockEnabled = orientationLockService.IsLandscapeLockEnabled;
     private bool _hasLoaded;
 
     public ObservableCollection<Channel> Channels { get; } = [];
 
-    public bool IsLandscapeLockEnabled
+    public LockMode CurrentLockMode => orientationLockService.CurrentLockMode;
+
+    public string LockGlyph => CurrentLockMode == LockMode.Unlocked ? "\uf09c" : "\uf023";
+
+    public Color LockColor => CurrentLockMode switch
     {
-        get => _isLandscapeLockEnabled;
-        set
-        {
-            if (!SetProperty(ref _isLandscapeLockEnabled, value))
-            {
-                return;
-            }
-
-            OnPropertyChanged(nameof(LandscapeLockGlyph));
-        }
-    }
-
-    public string LandscapeLockGlyph => IsLandscapeLockEnabled ? "\uf023" : "\uf09c";
+        LockMode.Landscape => Colors.Orange,
+        LockMode.Portrait => Colors.Red,
+        _ => Colors.Gray
+    };
 
     private bool _useLocal;
 
@@ -83,7 +77,9 @@ public partial class ChannelsViewModel(
 
     public async Task EnsureChannelsLoaded()
     {
-        IsLandscapeLockEnabled = orientationLockService.IsLandscapeLockEnabled;
+        OnPropertyChanged(nameof(CurrentLockMode));
+        OnPropertyChanged(nameof(LockGlyph));
+        OnPropertyChanged(nameof(LockColor));
         _useLocal = localConfigService.Load().Enabled;
         OnPropertyChanged(nameof(UseLocal));
         OnPropertyChanged(nameof(UseLocalColor));
@@ -128,16 +124,18 @@ public partial class ChannelsViewModel(
     [RelayCommand]
     private void ToggleLandscapeLock()
     {
-        IsLandscapeLockEnabled = !IsLandscapeLockEnabled;
-        orientationLockService.SetLandscapeLockEnabled(IsLandscapeLockEnabled);
+        orientationLockService.CycleLockMode();
+        OnPropertyChanged(nameof(CurrentLockMode));
+        OnPropertyChanged(nameof(LockGlyph));
+        OnPropertyChanged(nameof(LockColor));
     }
 
     [RelayCommand]
-    private async Task ToggleUseLocal()
+    private void ToggleUseLocal()
     {
         if (UseLocal)
         {
-            await localPlaybackService.StopPlayback();
+            _ = localPlaybackService.StopPlayback();
         }
 
         UseLocal = !UseLocal;
