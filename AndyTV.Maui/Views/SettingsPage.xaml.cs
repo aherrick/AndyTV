@@ -15,7 +15,7 @@ public partial class SettingsPage : ContentPage
         playlistListView.ItemDragging += OnItemDragging;
     }
 
-    private void OnItemDragging(object sender, ItemDraggingEventArgs e)
+    private void OnItemDragging(object _, ItemDraggingEventArgs e)
     {
         if (e.Action == DragAction.Drop)
         {
