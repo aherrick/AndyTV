@@ -67,7 +67,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui" Version="14.2.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="15.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.80" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.80" />
@@ -75,7 +75,7 @@
 		
 		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.0" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="34.1.31" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="34.1.32" />
 	</ItemGroup>
 
 
