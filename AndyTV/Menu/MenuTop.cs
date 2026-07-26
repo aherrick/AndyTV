@@ -196,7 +196,30 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         {
             var root = new ToolStripMenuItem(Playlist.Name);
 
-            if (Playlist.GroupByFirstChar)
+            if (Playlist.Groups is { Count: > 0 })
+            {
+                foreach (var groupName in Playlist.Groups)
+                {
+                    var groupMenu = new ToolStripMenuItem(groupName);
+
+                    var groupChannels = Channels
+                        .Where(ch =>
+                            string.Equals(ch.Group, groupName, StringComparison.OrdinalIgnoreCase)
+                        )
+                        .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var ch in groupChannels)
+                    {
+                        MenuHelper.AddChildChannelItem(groupMenu, ch, channelClick);
+                    }
+
+                    if (groupMenu.DropDownItems.Count > 0)
+                    {
+                        root.DropDownItems.Add(groupMenu);
+                    }
+                }
+            }
+            else if (Playlist.GroupByFirstChar)
             {
                 var firstCharGroups = Channels
                     .GroupBy(ch => char.ToUpperInvariant(ch.DisplayName.FirstOrDefault()))
