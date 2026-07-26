@@ -53,6 +53,7 @@ C:\Users\Andy\Playlists\tv.m3u
 
 - **ShowInMenu** – whether this playlist appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
+- **Groups** – optional semicolon-separated M3U `group-title` names to show as submenus for this playlist (for example `News;Sports` or `News ; Sports`). Leave it empty to keep the default behavior.
 - **UrlFind / UrlReplace** – optional regex pair applied to each channel URL (for fixing or normalizing stream URLs).
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 

@@ -102,8 +102,8 @@ public sealed class PlaylistManagerForm : Form
             new DataGridViewTextBoxColumn
             {
                 DataPropertyName = nameof(Playlist.GroupsText),
-                HeaderText = "Categories",
-                ToolTipText = "Semicolon-separated M3U group names to show as submenus. Empty = show all.",
+                HeaderText = "Groups",
+                ToolTipText = "Semicolon-separated M3U group-title names to show as submenus. Empty = default behavior.",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 25,
             }
