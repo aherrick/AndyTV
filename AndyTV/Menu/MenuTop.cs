@@ -189,7 +189,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
     {
         var result = new List<ToolStripMenuItem>();
         var playlistChannelsMenu = playlistService.PlaylistChannels.Where(x =>
-            x.Playlist.ShowInMenu
+            x.Playlist.ShowInMenu || x.Playlist.Groups is { Count: > 0 }
         );
 
         foreach (var (Playlist, Channels) in playlistChannelsMenu)
