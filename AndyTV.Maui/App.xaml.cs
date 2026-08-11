@@ -27,7 +27,7 @@ public partial class App : Application
 
             var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
             var localPlaybackService =
-                IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
+                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
             var lastChannel = lastChannelService?.LoadLastChannel();
             if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
             {
@@ -42,6 +42,14 @@ public partial class App : Application
 
         window.Resumed += (_, _) =>
             WeakReferenceMessenger.Default.Send(new AppResumedMessage());
+
+        // Kill the server-side stream on hibernate/close so the next launch starts fresh
+        window.Stopped += (_, _) =>
+        {
+            var localPlaybackService =
+                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
+            _ = localPlaybackService?.StopPlayback();
+        };
 
         return window;
     }

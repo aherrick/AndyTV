@@ -14,10 +14,9 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
-    private readonly IOrientationLockService _orientationLockService;
     private readonly IRemoteCommandService _remoteCommandService;
-    private readonly ILocalConfigService _localConfigService;
-    private readonly ILocalPlaybackService _localPlaybackService;
+    private readonly LocalPlaybackService _localPlaybackService;
+    private readonly OrientationLockService _orientationLockService;
 
     private const int HealthCheckMilliseconds = 1000;
 
@@ -28,13 +27,11 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _viewModel = new PlayerViewModel { Url = url, ChannelName = channelName };
         BindingContext = _viewModel;
         _orientationLockService =
-            IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
+            IPlatformApplication.Current?.Services.GetService<OrientationLockService>();
         _remoteCommandService =
             IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
-        _localConfigService =
-            IPlatformApplication.Current?.Services.GetService<ILocalConfigService>();
         _localPlaybackService =
-            IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
+            IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
 
         // Disable double-tap back when in Portrait lock mode
         if (_orientationLockService?.CurrentLockMode == LockMode.Portrait)
@@ -149,16 +146,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
 
-        if (IsLocalModeActive())
-        {
-            _ = _localPlaybackService?.StopPlayback();
-        }
-    }
-
-    private bool IsLocalModeActive()
-    {
-        var config = _localConfigService?.Load();
-        return config?.Enabled == true && !string.IsNullOrWhiteSpace(config.ServerUrl);
+        _ = _localPlaybackService?.StopPlayback();
     }
 
     private void OnRemoteCommandReceived(object sender, RemoteCommandEventArgs e)

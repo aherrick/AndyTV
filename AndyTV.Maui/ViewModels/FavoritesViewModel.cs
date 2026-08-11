@@ -12,7 +12,7 @@ public partial class FavoritesViewModel(
     IFavoriteChannelService favoriteChannelService,
     IRecentChannelService recentChannelService,
     ILastChannelService lastChannelService,
-    ILocalPlaybackService localPlaybackService
+    LocalPlaybackService localPlaybackService
 ) : ObservableObject
 {
     [ObservableProperty]

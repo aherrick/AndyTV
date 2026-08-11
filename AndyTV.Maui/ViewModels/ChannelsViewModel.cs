@@ -13,9 +13,9 @@ public partial class ChannelsViewModel(
     IRecentChannelService recentChannelService,
     IFavoriteChannelService favoriteChannelService,
     ILastChannelService lastChannelService,
-    IOrientationLockService orientationLockService,
+    OrientationLockService orientationLockService,
     ILocalConfigService localConfigService,
-    ILocalPlaybackService localPlaybackService
+    LocalPlaybackService localPlaybackService
 ) : ObservableObject
 {
     [ObservableProperty]
