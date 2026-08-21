@@ -17,8 +17,10 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     private readonly IRemoteCommandService _remoteCommandService;
     private readonly LocalPlaybackService _localPlaybackService;
     private readonly OrientationLockService _orientationLockService;
+    private readonly IDispatcherTimer _controlsTimer;
 
     private const int HealthCheckMilliseconds = 1000;
+    private const int ControlsHideMilliseconds = 3000;
 
     public PlayerPage(string url, string channelName)
     {
@@ -66,6 +68,10 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
         _healthTimer.Tick += OnHealthTimerTick;
 
+        _controlsTimer = Dispatcher.CreateTimer();
+        _controlsTimer.Interval = TimeSpan.FromMilliseconds(ControlsHideMilliseconds);
+        _controlsTimer.Tick += OnControlsTimerTick;
+
         Play(url);
         _healthTimer.Start();
     }
@@ -74,6 +80,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     {
         base.OnAppearing();
         _orientationLockService?.ApplyForPlayback();
+        ShowControls();
         WeakReferenceMessenger.Default.Register(this);
 
         if (_remoteCommandService is not null)
@@ -128,6 +135,31 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthMonitor.Tick();
     }
 
+    private void OnPlayerTapped(object sender, TappedEventArgs e)
+    {
+        ShowControls();
+    }
+
+    private void OnControlsTimerTick(object sender, EventArgs e)
+    {
+        _controlsTimer.Stop();
+        BackButton.Opacity = 0;
+        BackButton.InputTransparent = true;
+    }
+
+    private void ShowControls()
+    {
+        if (!_viewModel.CanGoBack)
+        {
+            return;
+        }
+
+        BackButton.Opacity = 1;
+        BackButton.InputTransparent = false;
+        _controlsTimer.Stop();
+        _controlsTimer.Start();
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
@@ -143,6 +175,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
 
         _healthTimer.Stop();
+        _controlsTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
 

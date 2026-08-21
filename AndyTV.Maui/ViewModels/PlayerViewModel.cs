@@ -12,7 +12,8 @@ public partial class PlayerViewModel : ObservableObject
     [ObservableProperty]
     public partial string ChannelName { get; set; }
 
-    public bool CanGoBack { get; set; } = true;
+    [ObservableProperty]
+    public partial bool CanGoBack { get; set; } = true;
 
     [RelayCommand]
     private async Task GoBack()

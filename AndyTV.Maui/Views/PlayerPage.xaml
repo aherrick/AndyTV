@@ -16,16 +16,28 @@
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
 
-        <!-- Transparent overlay ensures gestures work even when the native VLC surface is frozen -->
         <BoxView
             BackgroundColor="Transparent"
             HorizontalOptions="Fill"
             VerticalOptions="Fill">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer
-                    Command="{Binding GoBackCommand}"
-                    NumberOfTapsRequired="2" />
+                    NumberOfTapsRequired="1"
+                    Tapped="OnPlayerTapped" />
             </BoxView.GestureRecognizers>
         </BoxView>
+
+        <Button
+            x:Name="BackButton"
+            Margin="16,24,16,16"
+            Padding="14,8"
+            BackgroundColor="#80000000"
+            Command="{Binding GoBackCommand}"
+            CornerRadius="18"
+            HorizontalOptions="Start"
+            IsVisible="{Binding CanGoBack}"
+            Text="Back to list"
+            TextColor="White"
+            VerticalOptions="Start" />
     </Grid>
 </ContentPage>
