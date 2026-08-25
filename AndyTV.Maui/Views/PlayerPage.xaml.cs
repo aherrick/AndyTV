@@ -7,7 +7,7 @@ using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
+public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IRecipient<AppStoppedMessage>
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
@@ -21,6 +21,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
     private const int HealthCheckMilliseconds = 1000;
     private const int ControlsHideMilliseconds = 3000;
+
+    private int _backgroundVideoTrack = -1;
 
     public PlayerPage(string url, string channelName)
     {
@@ -81,7 +83,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         base.OnAppearing();
         _orientationLockService?.ApplyForPlayback();
         ShowControls();
-        WeakReferenceMessenger.Default.Register(this);
+        WeakReferenceMessenger.Default.Register<AppResumedMessage>(this);
+        WeakReferenceMessenger.Default.Register<AppStoppedMessage>(this);
 
         if (_remoteCommandService is not null)
         {
@@ -99,6 +102,15 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
         Dispatcher.Dispatch(() =>
         {
+            _healthTimer.Start();
+
+            // Re-enable the video track we disabled when the app was backgrounded
+            if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
+            {
+                _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
+                _backgroundVideoTrack = -1;
+            }
+
             if (ShouldRestartOnResume())
             {
                 Play(_viewModel.Url);
@@ -106,6 +118,22 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             }
 
             _healthMonitor.MarkActivity();
+        });
+    }
+
+    public void Receive(AppStoppedMessage _)
+    {
+        Dispatcher.Dispatch(() =>
+        {
+            _healthTimer.Stop();
+
+            // Keep audio playing in the background: disable video so VLC doesn't stall rendering off-screen
+            var currentVideoTrack = _mediaPlayer.VideoTrack;
+            if (currentVideoTrack != -1)
+            {
+                _backgroundVideoTrack = currentVideoTrack;
+                _mediaPlayer.SetVideoTrack(-1);
+            }
         });
     }
 
@@ -173,6 +201,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         }
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);
 
         _healthTimer.Stop();
         _controlsTimer.Stop();
