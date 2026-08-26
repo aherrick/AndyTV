@@ -21,9 +21,7 @@
             HorizontalOptions="Fill"
             VerticalOptions="Fill">
             <BoxView.GestureRecognizers>
-                <TapGestureRecognizer
-                    NumberOfTapsRequired="1"
-                    Tapped="OnPlayerTapped" />
+                <TapGestureRecognizer x:Name="PlayerTapGesture" NumberOfTapsRequired="1" />
             </BoxView.GestureRecognizers>
         </BoxView>
 

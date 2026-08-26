@@ -74,6 +74,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         _controlsTimer.Interval = TimeSpan.FromMilliseconds(ControlsHideMilliseconds);
         _controlsTimer.Tick += OnControlsTimerTick;
 
+        PlayerTapGesture.Tapped += OnPlayerTapped;
+
         Play(url);
         _healthTimer.Start();
     }
