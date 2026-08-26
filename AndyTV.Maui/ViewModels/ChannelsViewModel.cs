@@ -83,7 +83,7 @@ public partial class ChannelsViewModel(
         _useLocal = localConfigService.Load().Enabled;
         OnPropertyChanged(nameof(UseLocal));
         OnPropertyChanged(nameof(UseLocalColor));
-        orientationLockService.UseDefaultOrientation();
+        OrientationLockService.UseDefaultOrientation();
 
         if (_hasLoaded && Channels.Count > 0)
         {

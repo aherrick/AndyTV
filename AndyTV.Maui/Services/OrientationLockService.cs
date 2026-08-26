@@ -41,7 +41,7 @@ public class OrientationLockService
         }
     }
 
-    public void UseDefaultOrientation()
+    public static void UseDefaultOrientation()
     {
         ActivePlaybackLockMode = LockMode.Unlocked;
         UnlockOrientation();

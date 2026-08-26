@@ -192,7 +192,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
-        _orientationLockService?.UseDefaultOrientation();
+        OrientationLockService.UseDefaultOrientation();
 
         if (_remoteCommandService is not null)
         {
