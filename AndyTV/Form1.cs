@@ -208,6 +208,11 @@ public partial class Form1 : Form
                 MaximizeWindow();
             }
 
+            // Kick off the channel download/parse in the background immediately so
+            // it never waits behind the UI-thread menu construction below. The last
+            // channel is already playing (wired to HandleCreated).
+            StartChannelRefresh();
+
             var appVersionName = "AndyTV v" + AppHelper.Version;
             Text = appVersionName;
 
@@ -226,9 +231,6 @@ public partial class Form1 : Form
                 _favoriteChannelService
             );
             _menuFavorite.Rebuild();
-
-            // Initial refresh
-            StartChannelRefresh();
 
             if (_playlistService.LoadPlaylists().Count == 0)
             {
