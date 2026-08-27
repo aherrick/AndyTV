@@ -74,7 +74,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         _controlsTimer.Interval = TimeSpan.FromMilliseconds(ControlsHideMilliseconds);
         _controlsTimer.Tick += OnControlsTimerTick;
 
-        PlayerTapGesture.Tapped += OnPlayerTapped;
+        PlayerTapGesture.Tapped += (_, _) => ShowControls();
 
         Play(url);
         _healthTimer.Start();
@@ -163,11 +163,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         }
 
         _healthMonitor.Tick();
-    }
-
-    private void OnPlayerTapped(object sender, TappedEventArgs e)
-    {
-        ShowControls();
     }
 
     private void OnControlsTimerTick(object sender, EventArgs e)
