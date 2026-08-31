@@ -8,20 +8,19 @@ sealed class PlayerForm : Form
 {
     private readonly LibVLC _libVLC = new();
     private readonly MediaPlayer _mediaPlayer;
+    private readonly VideoView _videoView;
     private readonly ContextMenuStrip _menu = new();
     private readonly List<(PlaylistRef Ref, List<ChannelRef> Channels)> _loaded = [];
     private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
     private readonly ToolStripSeparator _recentSeparator = new();
     private AppState _state = new();
     private ChannelRef? _pending;
-    private bool _cursorHidden;
+    private Rectangle _userBounds;
 
     public PlayerForm()
     {
         Text = "AndyTV vNext";
         BackColor = Color.Black;
-        FormBorderStyle = FormBorderStyle.None;
-        WindowState = FormWindowState.Maximized;
 
         for (var i = 0; i < _recentItems.Length; i++)
         {
@@ -45,16 +44,33 @@ sealed class PlayerForm : Form
             BackColor = Color.Black,
             ContextMenuStrip = _menu
         };
-        videoView.MouseDoubleClick += (_, _) => ToggleWindowState();
+        videoView.MouseDoubleClick += (_, _) =>
+        {
+            this.ToggleFullscreen(_userBounds);
+            _videoView.SetCursorForCurrentView();
+        };
+        _videoView = videoView;
         Controls.Add(videoView);
 
-        _menu.Opening += (_, _) => SetCursorHidden(false);
-        _menu.Closed += (_, _) => SetCursorHidden(IsFullscreen);
-        SetCursorHidden(true);
+        ResizeEnd += (_, _) =>
+        {
+            if (WindowState == FormWindowState.Normal && FormBorderStyle == FormBorderStyle.Sizable)
+            {
+                _userBounds = Bounds;
+            }
+        };
+
+        _menu.Opening += (_, _) => _videoView.ShowDefault();
+        _menu.Closed += (_, _) => _videoView.SetCursorForCurrentView();
         KeyPreview = true;
         KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape) Close(); };
 
-        Shown += async (_, _) => await InitializeAsync();
+        Shown += async (_, _) =>
+        {
+            this.EnterFullscreen();
+            _videoView.SetCursorForCurrentView();
+            await InitializeAsync();
+        };
     }
 
     private async Task InitializeAsync()
@@ -215,18 +231,13 @@ sealed class PlayerForm : Form
     private void Play(ChannelRef channel)
     {
         _pending = channel;
-        UseWaitCursor = true;
+        _videoView.ShowWaiting();
         using var media = new Media(_libVLC, new Uri(channel.Url));
         _mediaPlayer.Play(media);
     }
 
-    private void OnLoadStopped(object? sender, EventArgs e)
-    {
-        if (InvokeRequired)
-            BeginInvoke(() => UseWaitCursor = false);
-        else
-            UseWaitCursor = false;
-    }
+    private void OnLoadStopped(object? sender, EventArgs e) =>
+        _videoView.SetCursorForCurrentView();
 
     private void OnPlaying(object? sender, EventArgs e)
     {
@@ -247,45 +258,14 @@ sealed class PlayerForm : Form
             _state.Recent.RemoveRange(5, _state.Recent.Count - 5);
         _state.Last = played;
         StateService.Save(_state);
-        UseWaitCursor = false;
+        _videoView.SetCursorForCurrentView();
         RefreshRecent();
-    }
-
-    private bool IsFullscreen => FormBorderStyle == FormBorderStyle.None;
-
-    private void SetCursorHidden(bool hide)
-    {
-        if (hide == _cursorHidden)
-            return;
-        if (hide)
-            Cursor.Hide();
-        else
-            Cursor.Show();
-        _cursorHidden = hide;
-    }
-
-    private void ToggleWindowState()
-    {
-        if (FormBorderStyle == FormBorderStyle.None)
-        {
-            FormBorderStyle = FormBorderStyle.Sizable;
-            WindowState = FormWindowState.Normal;
-            SetCursorHidden(false);
-        }
-        else
-        {
-            WindowState = FormWindowState.Normal;
-            FormBorderStyle = FormBorderStyle.None;
-            WindowState = FormWindowState.Maximized;
-            SetCursorHidden(true);
-        }
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            SetCursorHidden(false);
             _mediaPlayer.Playing -= OnPlaying;
             _mediaPlayer.EncounteredError -= OnLoadStopped;
             _mediaPlayer.Stopped -= OnLoadStopped;
