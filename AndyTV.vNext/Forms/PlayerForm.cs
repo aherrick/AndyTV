@@ -14,8 +14,9 @@ sealed class PlayerForm : Form
     private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
     private readonly ToolStripSeparator _recentSeparator = new();
     private AppState _state = new();
-    private ChannelRef? _pending;
-    private Rectangle _userBounds;
+    private ChannelRef _pending;
+    private FormWindowState _restoreState = FormWindowState.Maximized;
+    private Rectangle _restoreBounds;
 
     public PlayerForm()
     {
@@ -46,55 +47,70 @@ sealed class PlayerForm : Form
         };
         videoView.MouseDoubleClick += (_, _) =>
         {
-            this.ToggleFullscreen(_userBounds);
+            if (this.IsFullscreen())
+            {
+                this.ExitFullscreen(_restoreState, _restoreBounds);
+            }
+            else
+            {
+                _restoreState = WindowState;
+                _restoreBounds = Bounds;
+                this.EnterFullscreen();
+            }
             _videoView.SetCursorForCurrentView();
         };
         _videoView = videoView;
         Controls.Add(videoView);
 
-        ResizeEnd += (_, _) =>
-        {
-            if (WindowState == FormWindowState.Normal && FormBorderStyle == FormBorderStyle.Sizable)
-            {
-                _userBounds = Bounds;
-            }
-        };
-
         _menu.Opening += (_, _) => _videoView.ShowDefault();
         _menu.Closed += (_, _) => _videoView.SetCursorForCurrentView();
         KeyPreview = true;
-        KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape) Close(); };
+        KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                Close();
+            }
+        };
 
         Shown += async (_, _) =>
         {
             this.EnterFullscreen();
             _videoView.SetCursorForCurrentView();
-            await InitializeAsync();
+            await Initialize();
         };
     }
 
-    private async Task InitializeAsync()
+    private async Task Initialize()
     {
         _state = StateService.Load();
         foreach (var playlist in _state.Playlists)
-            await TryLoadAsync(playlist);
+        {
+            await TryLoad(playlist);
+        }
         RebuildMenu();
 
         if (_state.Last is { } last)
+        {
             Play(last);
+        }
     }
 
-    private async Task AddPlaylistAsync()
+    private async Task AddPlaylist()
     {
         var name = Interaction.InputBox("Playlist name", "Add Playlist");
         if (string.IsNullOrWhiteSpace(name))
+        {
             return;
+        }
         var source = Interaction.InputBox("M3U URL or file path", "Add Playlist");
         if (string.IsNullOrWhiteSpace(source))
+        {
             return;
+        }
 
         var playlist = new PlaylistRef { Name = name, Source = source };
-        if (await TryLoadAsync(playlist))
+        if (await TryLoad(playlist))
         {
             _state.Playlists.Add(playlist);
             StateService.Save(_state);
@@ -102,11 +118,11 @@ sealed class PlayerForm : Form
         }
     }
 
-    private async Task<bool> TryLoadAsync(PlaylistRef playlist)
+    private async Task<bool> TryLoad(PlaylistRef playlist)
     {
         try
         {
-            _loaded.Add((playlist, await PlaylistService.LoadAsync(playlist)));
+            _loaded.Add((playlist, await PlaylistService.Load(playlist)));
             return true;
         }
         catch (Exception ex)
@@ -130,20 +146,26 @@ sealed class PlayerForm : Form
         _menu.Items.Clear();
 
         foreach (var item in _recentItems)
+        {
             _menu.Items.Add(item);
+        }
         _menu.Items.Add(_recentSeparator);
         RefreshRecent();
 
         _menu.Items.Add(BuildTopMenu());
         _menu.Items.Add(new ToolStripSeparator());
 
-        _menu.Items.Add("Add Playlist\u2026", null, async (_, _) => await AddPlaylistAsync());
+        _menu.Items.Add("Add Playlist\u2026", null, async (_, _) => await AddPlaylist());
         if (_state.Playlists.Count > 0)
+        {
             _menu.Items.Add("Manage Playlists\u2026", null, (_, _) => ManagePlaylists());
+        }
 
         var visible = _loaded.Where(l => !l.Ref.Hidden).ToList();
         if (visible.Count > 0)
+        {
             _menu.Items.Add(new ToolStripSeparator());
+        }
         foreach (var (playlist, channels) in visible)
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
@@ -153,14 +175,18 @@ sealed class PlayerForm : Form
                 {
                     var groupItem = new ToolStripMenuItem(group.Key);
                     foreach (var channel in group)
+                    {
                         AddChannel(groupItem.DropDownItems, channel);
+                    }
                     item.DropDownItems.Add(groupItem);
                 }
             }
             else
             {
                 foreach (var channel in channels)
+                {
                     AddChannel(item.DropDownItems, channel);
+                }
             }
             _menu.Items.Add(item);
         }
@@ -188,10 +214,12 @@ sealed class PlayerForm : Form
         _recentSeparator.Visible = _state.Recent.Count > 0;
     }
 
-    private void OnRecentClick(object? sender, EventArgs e)
+    private void OnRecentClick(object sender, EventArgs e)
     {
         if (sender is ToolStripMenuItem { Tag: ChannelRef r })
+        {
             Play(r);
+        }
     }
 
     private ToolStripMenuItem BuildTopMenu()
@@ -217,10 +245,16 @@ sealed class PlayerForm : Form
                 var matches = ChannelService.Match(channel, lookup);
                 var item = new ToolStripMenuItem(channel.Name) { Enabled = matches.Count > 0 };
                 if (matches.Count == 1)
+                {
                     item.Click += (_, _) => Play(new ChannelRef { Name = channel.Name, Url = matches[0].Url });
+                }
                 else
+                {
                     foreach (var ch in matches)
+                    {
                         item.DropDownItems.Add(ch.Name, null, (_, _) => Play(new ChannelRef { Name = channel.Name, Url = ch.Url }));
+                    }
+                }
                 categoryItem.DropDownItems.Add(item);
             }
             regionItem.DropDownItems.Add(categoryItem);
@@ -236,18 +270,24 @@ sealed class PlayerForm : Form
         _mediaPlayer.Play(media);
     }
 
-    private void OnLoadStopped(object? sender, EventArgs e) =>
+    private void OnLoadStopped(object sender, EventArgs e) =>
         _videoView.SetCursorForCurrentView();
 
-    private void OnPlaying(object? sender, EventArgs e)
+    private void OnPlaying(object sender, EventArgs e)
     {
         if (_pending is not { } played)
+        {
             return;
+        }
 
         if (InvokeRequired)
+        {
             BeginInvoke(() => CommitRecent(played));
+        }
         else
+        {
             CommitRecent(played);
+        }
     }
 
     private void CommitRecent(ChannelRef played)
@@ -255,7 +295,9 @@ sealed class PlayerForm : Form
         _state.Recent.RemoveAll(r => r.Url == played.Url);
         _state.Recent.Insert(0, played);
         if (_state.Recent.Count > 5)
+        {
             _state.Recent.RemoveRange(5, _state.Recent.Count - 5);
+        }
         _state.Last = played;
         StateService.Save(_state);
         _videoView.SetCursorForCurrentView();

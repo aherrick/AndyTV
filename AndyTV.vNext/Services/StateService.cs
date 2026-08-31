@@ -12,7 +12,9 @@ static class StateService
         try
         {
             if (File.Exists(StatePath))
+            {
                 return JsonSerializer.Deserialize<AppState>(File.ReadAllText(StatePath)) ?? new();
+            }
         }
         catch { }
         return new();

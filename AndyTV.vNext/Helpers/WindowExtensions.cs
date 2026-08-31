@@ -2,6 +2,9 @@ namespace AndyTV.vNext;
 
 static class WindowExtensions
 {
+    public static bool IsFullscreen(this Form form) =>
+        form.FormBorderStyle == FormBorderStyle.None;
+
     public static void EnterFullscreen(this Form form)
     {
         form.FormBorderStyle = FormBorderStyle.None;
@@ -9,32 +12,13 @@ static class WindowExtensions
         form.Bounds = Screen.PrimaryScreen.Bounds;
     }
 
-    public static void ToggleFullscreen(this Form form, Rectangle userBounds)
-    {
-        if (form.IsFullscreen())
-        {
-            form.ExitFullscreen(userBounds);
-        }
-        else
-        {
-            form.EnterFullscreen();
-        }
-    }
-
-    private static bool IsFullscreen(this Form form) =>
-        form.FormBorderStyle == FormBorderStyle.None;
-
-    private static void ExitFullscreen(this Form form, Rectangle userBounds)
+    public static void ExitFullscreen(this Form form, FormWindowState state, Rectangle bounds)
     {
         form.FormBorderStyle = FormBorderStyle.Sizable;
-        if (userBounds == Rectangle.Empty)
+        form.WindowState = state;
+        if (state == FormWindowState.Normal)
         {
-            form.WindowState = FormWindowState.Maximized;
-        }
-        else
-        {
-            form.WindowState = FormWindowState.Normal;
-            form.Bounds = userBounds;
+            form.Bounds = bounds;
         }
     }
 }

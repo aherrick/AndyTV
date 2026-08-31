@@ -4,7 +4,7 @@ namespace AndyTV.vNext;
 
 static class PlaylistService
 {
-    public static async Task<List<ChannelRef>> LoadAsync(PlaylistRef playlist)
+    public static async Task<List<ChannelRef>> Load(PlaylistRef playlist)
     {
         var m3u = File.Exists(playlist.Source)
             ? Mgr.ParseFromFile(playlist.Source)
