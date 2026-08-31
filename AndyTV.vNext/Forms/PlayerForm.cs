@@ -61,8 +61,7 @@ sealed class PlayerForm : Form
         _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
 
         _mediaPlayer.Playing += OnPlaying;
-        _mediaPlayer.EncounteredError += OnLoadStopped;
-        _mediaPlayer.Stopped += OnLoadStopped;
+        _mediaPlayer.EncounteredError += OnPlaybackError;
         _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
         _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
 
@@ -281,7 +280,8 @@ sealed class PlayerForm : Form
         _mediaPlayer.Play(media);
     }
 
-    private void OnLoadStopped(object sender, EventArgs e) =>
+    // Only clears the loading cursor on real failure; success clears it in OnPlaying.
+    private void OnPlaybackError(object sender, EventArgs e) =>
         _videoView.SetCursorForCurrentView();
 
     private void OnPlaying(object sender, EventArgs e)
@@ -308,6 +308,7 @@ sealed class PlayerForm : Form
         _lastService.SaveLastChannel(played);
         _videoView.SetCursorForCurrentView();
         RefreshRecent();
+        Toast.Notify(this, played.DisplayName);
     }
 
     protected override void Dispose(bool disposing)
@@ -316,8 +317,7 @@ sealed class PlayerForm : Form
         {
             _healthTimer.Dispose();
             _mediaPlayer.Playing -= OnPlaying;
-            _mediaPlayer.EncounteredError -= OnLoadStopped;
-            _mediaPlayer.Stopped -= OnLoadStopped;
+            _mediaPlayer.EncounteredError -= OnPlaybackError;
             _mediaPlayer.Dispose();
             _libVLC.Dispose();
         }
