@@ -20,6 +20,7 @@ sealed class PlayerForm : Form
     {
         Text = "AndyTV vNext";
         BackColor = Color.Black;
+        FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
 
         for (var i = 0; i < _recentItems.Length; i++)
@@ -49,6 +50,7 @@ sealed class PlayerForm : Form
 
         _menu.Opening += (_, _) => SetCursorHidden(false);
         _menu.Closed += (_, _) => SetCursorHidden(IsFullscreen);
+        SetCursorHidden(true);
         KeyPreview = true;
         KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape) Close(); };
 
