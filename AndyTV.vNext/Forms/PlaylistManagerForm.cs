@@ -11,13 +11,14 @@ sealed class PlaylistManagerForm : Form
         Size = new Size(480, 320);
         StartPosition = FormStartPosition.CenterParent;
 
+        var source = new BindingList<Playlist>(playlists);
         var grid = new DataGridView
         {
             Dock = DockStyle.Fill,
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            DataSource = new BindingList<Playlist>(playlists),
+            DataSource = source,
         };
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -36,7 +37,22 @@ sealed class PlaylistManagerForm : Form
             DataPropertyName = nameof(Playlist.GroupByFirstChar),
         });
 
+        var deleteButton = new Button
+        {
+            Text = "Delete Selected",
+            Dock = DockStyle.Bottom,
+            Height = 32,
+        };
+        deleteButton.Click += (_, _) =>
+        {
+            if (grid.CurrentRow?.DataBoundItem is Playlist p)
+            {
+                source.Remove(p);
+            }
+        };
+
         FormClosing += (_, _) => grid.EndEdit();
         Controls.Add(grid);
+        Controls.Add(deleteButton);
     }
 }
