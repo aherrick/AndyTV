@@ -1,3 +1,5 @@
+using AndyTV.Data.Models;
+using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using Microsoft.VisualBasic;
@@ -10,16 +12,28 @@ sealed class PlayerForm : Form
     private readonly MediaPlayer _mediaPlayer;
     private readonly VideoView _videoView;
     private readonly ContextMenuStrip _menu = new();
-    private readonly List<(PlaylistRef Ref, List<ChannelRef> Channels)> _loaded = [];
     private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
     private readonly ToolStripSeparator _recentSeparator = new();
-    private AppState _state = new();
-    private ChannelRef _pending;
+
+    private readonly IStorageProvider _storage = new Storage();
+    private readonly PlaylistService _playlistService;
+    private readonly RecentChannelService _recentService;
+    private readonly LastChannelService _lastService;
+    private List<Playlist> _playlists = [];
+
+    private Channel _pending;
     private FormWindowState _restoreState = FormWindowState.Maximized;
     private Rectangle _restoreBounds;
 
+    private readonly StreamHealthMonitor _healthMonitor;
+    private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
+
     public PlayerForm()
     {
+        _playlistService = new PlaylistService(_storage);
+        _recentService = new RecentChannelService(_storage);
+        _lastService = new LastChannelService(_storage);
+
         Text = "AndyTV vNext";
         BackColor = Color.Black;
 
@@ -34,9 +48,23 @@ sealed class PlayerForm : Form
             EnableMouseInput = false,
             EnableKeyInput = false
         };
+
+        _healthMonitor = new StreamHealthMonitor(
+            isPaused: () => _mediaPlayer.State == VLCState.Paused,
+            restart: () =>
+            {
+                if (_pending is { } current)
+                {
+                    Play(current);
+                }
+            });
+        _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
+
         _mediaPlayer.Playing += OnPlaying;
         _mediaPlayer.EncounteredError += OnLoadStopped;
         _mediaPlayer.Stopped += OnLoadStopped;
+        _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
+        _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
 
         var videoView = new VideoView
         {
@@ -77,20 +105,18 @@ sealed class PlayerForm : Form
         {
             this.EnterFullscreen();
             _videoView.SetCursorForCurrentView();
+            _healthTimer.Start();
             await Initialize();
         };
     }
 
     private async Task Initialize()
     {
-        _state = StateService.Load();
-        foreach (var playlist in _state.Playlists)
-        {
-            await TryLoad(playlist);
-        }
+        _playlists = _playlistService.LoadPlaylists();
+        await _playlistService.RefreshChannelsAsync();
         RebuildMenu();
 
-        if (_state.Last is { } last)
+        if (_lastService.LoadLastChannel() is { } last)
         {
             Play(last);
         }
@@ -103,41 +129,24 @@ sealed class PlayerForm : Form
         {
             return;
         }
-        var source = Interaction.InputBox("M3U URL or file path", "Add Playlist");
-        if (string.IsNullOrWhiteSpace(source))
+        var url = Interaction.InputBox("M3U URL or file path", "Add Playlist");
+        if (string.IsNullOrWhiteSpace(url))
         {
             return;
         }
 
-        var playlist = new PlaylistRef { Name = name, Source = source };
-        if (await TryLoad(playlist))
-        {
-            _state.Playlists.Add(playlist);
-            StateService.Save(_state);
-            RebuildMenu();
-        }
+        _playlists.Add(new Playlist { Name = name, Url = url, ShowInMenu = true });
+        _playlistService.SavePlaylists(_playlists);
+        await _playlistService.RefreshChannelsAsync();
+        RebuildMenu();
     }
 
-    private async Task<bool> TryLoad(PlaylistRef playlist)
+    private async Task ManagePlaylists()
     {
-        try
-        {
-            _loaded.Add((playlist, await PlaylistService.Load(playlist)));
-            return true;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Failed to load playlist", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return false;
-        }
-    }
-
-    private void ManagePlaylists()
-    {
-        using var form = new PlaylistManagerForm(_state.Playlists);
+        using var form = new PlaylistManagerForm(_playlists);
         form.ShowDialog(this);
-        _loaded.RemoveAll(l => !_state.Playlists.Contains(l.Ref));
-        StateService.Save(_state);
+        _playlistService.SavePlaylists(_playlists);
+        await _playlistService.RefreshChannelsAsync();
         RebuildMenu();
     }
 
@@ -156,12 +165,12 @@ sealed class PlayerForm : Form
         _menu.Items.Add(new ToolStripSeparator());
 
         _menu.Items.Add("Add Playlist\u2026", null, async (_, _) => await AddPlaylist());
-        if (_state.Playlists.Count > 0)
+        if (_playlists.Count > 0)
         {
-            _menu.Items.Add("Manage Playlists\u2026", null, (_, _) => ManagePlaylists());
+            _menu.Items.Add("Manage Playlists\u2026", null, async (_, _) => await ManagePlaylists());
         }
 
-        var visible = _loaded.Where(l => !l.Ref.Hidden).ToList();
+        var visible = _playlistService.PlaylistChannels.Where(x => x.Playlist.ShowInMenu).ToList();
         if (visible.Count > 0)
         {
             _menu.Items.Add(new ToolStripSeparator());
@@ -169,9 +178,9 @@ sealed class PlayerForm : Form
         foreach (var (playlist, channels) in visible)
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
-            if (playlist.Grouped)
+            if (playlist.GroupByFirstChar)
             {
-                foreach (var group in ChannelService.GroupByFirst(channels))
+                foreach (var group in ChannelMatcher.GroupByFirst(channels))
                 {
                     var groupItem = new ToolStripMenuItem(group.Key);
                     foreach (var channel in group)
@@ -192,17 +201,18 @@ sealed class PlayerForm : Form
         }
     }
 
-    private void AddChannel(ToolStripItemCollection items, ChannelRef channel) =>
-        items.Add(channel.Name, null, (_, _) => Play(channel));
+    private void AddChannel(ToolStripItemCollection items, Channel channel) =>
+        items.Add(channel.DisplayName, null, (_, _) => Play(channel));
 
     private void RefreshRecent()
     {
+        var recents = _recentService.GetRecentChannels();
         for (var i = 0; i < _recentItems.Length; i++)
         {
-            if (i < _state.Recent.Count)
+            if (i < recents.Count)
             {
-                var r = _state.Recent[i];
-                _recentItems[i].Text = r.Name;
+                var r = recents[i];
+                _recentItems[i].Text = r.DisplayName;
                 _recentItems[i].Tag = r;
                 _recentItems[i].Visible = true;
             }
@@ -211,12 +221,12 @@ sealed class PlayerForm : Form
                 _recentItems[i].Visible = false;
             }
         }
-        _recentSeparator.Visible = _state.Recent.Count > 0;
+        _recentSeparator.Visible = recents.Count > 0;
     }
 
     private void OnRecentClick(object sender, EventArgs e)
     {
-        if (sender is ToolStripMenuItem { Tag: ChannelRef r })
+        if (sender is ToolStripMenuItem { Tag: Channel r })
         {
             Play(r);
         }
@@ -224,17 +234,17 @@ sealed class PlayerForm : Form
 
     private ToolStripMenuItem BuildTopMenu()
     {
-        var lookup = ChannelService.BuildLookup(_loaded);
+        var lookup = ChannelMatcher.BuildLookup(_playlistService.PlaylistChannels);
         var top = new ToolStripMenuItem("Top");
-        top.DropDownItems.Add(BuildRegionMenu("US", ChannelService.TopUs, lookup));
-        top.DropDownItems.Add(BuildRegionMenu("UK", ChannelService.TopUk, lookup));
+        top.DropDownItems.Add(BuildRegionMenu("US", ChannelService.TopUs(), lookup));
+        top.DropDownItems.Add(BuildRegionMenu("UK", ChannelService.TopUk(), lookup));
         return top;
     }
 
     private ToolStripMenuItem BuildRegionMenu(
         string region,
         Dictionary<string, List<ChannelTop>> categories,
-        Dictionary<string, List<ChannelRef>> lookup)
+        Dictionary<string, List<Channel>> lookup)
     {
         var regionItem = new ToolStripMenuItem(region);
         foreach (var (category, channels) in categories)
@@ -242,17 +252,17 @@ sealed class PlayerForm : Form
             var categoryItem = new ToolStripMenuItem(category);
             foreach (var channel in channels)
             {
-                var matches = ChannelService.Match(channel, lookup);
+                var matches = ChannelMatcher.Match(channel, lookup);
                 var item = new ToolStripMenuItem(channel.Name) { Enabled = matches.Count > 0 };
                 if (matches.Count == 1)
                 {
-                    item.Click += (_, _) => Play(new ChannelRef { Name = channel.Name, Url = matches[0].Url });
+                    item.Click += (_, _) => Play(matches[0]);
                 }
                 else
                 {
                     foreach (var ch in matches)
                     {
-                        item.DropDownItems.Add(ch.Name, null, (_, _) => Play(new ChannelRef { Name = channel.Name, Url = ch.Url }));
+                        item.DropDownItems.Add(ch.DisplayName, null, (_, _) => Play(ch));
                     }
                 }
                 categoryItem.DropDownItems.Add(item);
@@ -262,9 +272,10 @@ sealed class PlayerForm : Form
         return regionItem;
     }
 
-    private void Play(ChannelRef channel)
+    private void Play(Channel channel)
     {
         _pending = channel;
+        _healthMonitor.MarkActivity();
         _videoView.ShowWaiting();
         using var media = new Media(_libVLC, new Uri(channel.Url));
         _mediaPlayer.Play(media);
@@ -275,6 +286,7 @@ sealed class PlayerForm : Form
 
     private void OnPlaying(object sender, EventArgs e)
     {
+        _healthMonitor.MarkActivity();
         if (_pending is not { } played)
         {
             return;
@@ -290,16 +302,10 @@ sealed class PlayerForm : Form
         }
     }
 
-    private void CommitRecent(ChannelRef played)
+    private void CommitRecent(Channel played)
     {
-        _state.Recent.RemoveAll(r => r.Url == played.Url);
-        _state.Recent.Insert(0, played);
-        if (_state.Recent.Count > 5)
-        {
-            _state.Recent.RemoveRange(5, _state.Recent.Count - 5);
-        }
-        _state.Last = played;
-        StateService.Save(_state);
+        _recentService.AddOrPromote(played);
+        _lastService.SaveLastChannel(played);
         _videoView.SetCursorForCurrentView();
         RefreshRecent();
     }
@@ -308,6 +314,7 @@ sealed class PlayerForm : Form
     {
         if (disposing)
         {
+            _healthTimer.Dispose();
             _mediaPlayer.Playing -= OnPlaying;
             _mediaPlayer.EncounteredError -= OnLoadStopped;
             _mediaPlayer.Stopped -= OnLoadStopped;

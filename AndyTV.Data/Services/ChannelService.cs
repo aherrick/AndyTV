@@ -105,6 +105,18 @@ public partial class ChannelService
                     Name = "Crime + Investigation",
                     AltNames = ["Crime & Investigation", "Crime and Investigation"],
                 },
+                new ChannelTop { Name = "Animal Planet" },
+                new ChannelTop { Name = "Cooking Channel" },
+                new ChannelTop { Name = "Discovery Family" },
+                new ChannelTop { Name = "Freeform" },
+                new ChannelTop { Name = "Investigation Discovery", AltNames = ["ID"] },
+                new ChannelTop { Name = "Magnolia Network" },
+                new ChannelTop { Name = "MotorTrend", AltNames = ["Motor Trend"] },
+                new ChannelTop { Name = "OWN", AltNames = ["Oprah Winfrey Network"] },
+                new ChannelTop { Name = "Pop TV", AltNames = ["Pop"] },
+                new ChannelTop { Name = "Science Channel", AltNames = ["Science"] },
+                new ChannelTop { Name = "Sundance TV", AltNames = ["SundanceTV"] },
+                new ChannelTop { Name = "TLC" },
             ],
 
             ["Kids"] =
@@ -117,6 +129,8 @@ public partial class ChannelService
                 new ChannelTop { Name = "Nickelodeon", AltNames = ["Nick"] },
                 new ChannelTop { Name = "Nicktoons" },
                 new ChannelTop { Name = "Universal Kids" },
+                new ChannelTop { Name = "PBS Kids" },
+                new ChannelTop { Name = "TeenNick" },
             ],
 
             ["Locals"] =
@@ -136,6 +150,12 @@ public partial class ChannelService
                 new ChannelTop { Name = "MyNetworkTV", AltNames = ["MyNetwork TV", "MyTV"] },
                 new ChannelTop { Name = "NBC" },
                 new ChannelTop { Name = "PBS" },
+                new ChannelTop { Name = "Bounce" },
+                new ChannelTop { Name = "Charge!" },
+                new ChannelTop { Name = "Comet" },
+                new ChannelTop { Name = "Grit" },
+                new ChannelTop { Name = "Laff" },
+                new ChannelTop { Name = "Start TV", AltNames = ["StartTV"] },
             ],
 
             ["Movies"] =
@@ -184,6 +204,18 @@ public partial class ChannelService
                     AltNames = ["TMC Xtra", "TMCXtra"],
                     StreamingTVId = "TMC",
                 },
+                new ChannelTop { Name = "HBO Latino" },
+                new ChannelTop { Name = "Showtime Family Zone" },
+                new ChannelTop { Name = "Showtime Next" },
+                new ChannelTop { Name = "Showtime Women" },
+                new ChannelTop { Name = "Sony Movie Channel" },
+                new ChannelTop { Name = "Starz Encore" },
+                new ChannelTop { Name = "Starz Encore Action" },
+                new ChannelTop { Name = "Starz Encore Black" },
+                new ChannelTop { Name = "Starz Encore Classic" },
+                new ChannelTop { Name = "Starz Encore Family" },
+                new ChannelTop { Name = "Starz Encore Suspense" },
+                new ChannelTop { Name = "Starz Encore Westerns" },
             ],
 
             ["Music"] =
@@ -194,6 +226,14 @@ public partial class ChannelService
                 new ChannelTop { Name = "MTV" },
                 new ChannelTop { Name = "MTV2" },
                 new ChannelTop { Name = "Music Choice" },
+                new ChannelTop { Name = "BET Her" },
+                new ChannelTop { Name = "BET Jams" },
+                new ChannelTop { Name = "BET Soul" },
+                new ChannelTop { Name = "CMT Music" },
+                new ChannelTop { Name = "Fuse" },
+                new ChannelTop { Name = "MTV Classic" },
+                new ChannelTop { Name = "MTVU" },
+                new ChannelTop { Name = "Revolt" },
             ],
 
             ["News"] =
@@ -324,6 +364,13 @@ public partial class ChannelService
                     AltNames = ["SECN"],
                     StreamingTVId = "SEC",
                 },
+                new ChannelTop { Name = "Bally Sports" },
+                new ChannelTop { Name = "beIN Sports", AltNames = ["beIN Sports USA"] },
+                new ChannelTop { Name = "Marquee Sports Network", AltNames = ["Marquee"] },
+                new ChannelTop { Name = "MSG", AltNames = ["Madison Square Garden"] },
+                new ChannelTop { Name = "NESN", AltNames = ["New England Sports Network"] },
+                new ChannelTop { Name = "Tennis Channel" },
+                new ChannelTop { Name = "YES Network" },
             ],
         };
     }
@@ -367,28 +414,34 @@ public partial class ChannelService
                 },
                 new ChannelTop { Name = "Discovery History" },
                 new ChannelTop { Name = "Discovery Science" },
+                new ChannelTop { Name = "PBS America" },
                 new ChannelTop { Name = "Sky History", AltNames = ["History (UK)"] },
             ],
 
             ["Entertainment"] =
             [
-                new ChannelTop { Name = "Alibi" },
+                new ChannelTop { Name = "Alibi", AltNames = ["U&Alibi"] },
                 new ChannelTop { Name = "BBC Alba" },
+                new ChannelTop { Name = "Blaze" },
                 new ChannelTop { Name = "BritBox" },
-                new ChannelTop { Name = "Dave" },
-                new ChannelTop { Name = "Drama" },
-                new ChannelTop { Name = "Eden" },
-                new ChannelTop { Name = "Gold" },
+                new ChannelTop { Name = "Challenge" },
+                new ChannelTop { Name = "Dave", AltNames = ["U&Dave"] },
+                new ChannelTop { Name = "Drama", AltNames = ["U&Drama"] },
+                new ChannelTop { Name = "Eden", AltNames = ["U&Eden"] },
+                new ChannelTop { Name = "Gold", AltNames = ["U&Gold"] },
+                new ChannelTop { Name = "GREAT! TV" },
+                new ChannelTop { Name = "Legend" },
                 new ChannelTop { Name = "Pick" },
                 new ChannelTop { Name = "Quest" },
-                new ChannelTop { Name = "Really" },
+                new ChannelTop { Name = "Really", AltNames = ["U&Really"] },
                 new ChannelTop { Name = "Sky Atlantic" },
                 new ChannelTop { Name = "Sky Max" },
                 new ChannelTop { Name = "Sky Mix" },
                 new ChannelTop { Name = "Sky Showcase" },
                 new ChannelTop { Name = "Sky Witness" },
-                new ChannelTop { Name = "W" },
-                new ChannelTop { Name = "Yesterday" },
+                new ChannelTop { Name = "That's TV" },
+                new ChannelTop { Name = "W", AltNames = ["U&W"] },
+                new ChannelTop { Name = "Yesterday", AltNames = ["U&Yesterday"] },
             ],
 
             ["Kids"] =
@@ -441,6 +494,8 @@ public partial class ChannelService
                     AltNames = ["Sky Cinema Sci-Fi and Horror"],
                 },
                 new ChannelTop { Name = "Sky Cinema Thriller" },
+                new ChannelTop { Name = "GREAT! Movies" },
+                new ChannelTop { Name = "Talking Pictures TV" },
             ],
 
             ["Music"] =
@@ -461,6 +516,7 @@ public partial class ChannelService
                 new ChannelTop { Name = "GB News" },
                 new ChannelTop { Name = "Sky News" },
                 new ChannelTop { Name = "TalkTV" },
+                new ChannelTop { Name = "CNN International" },
             ],
 
             ["Sports"] =
@@ -478,6 +534,10 @@ public partial class ChannelService
                 new ChannelTop { Name = "TNT Sports 2" },
                 new ChannelTop { Name = "TNT Sports 3" },
                 new ChannelTop { Name = "TNT Sports 4" },
+                new ChannelTop { Name = "Sky Sports Arena" },
+                new ChannelTop { Name = "Sky Sports Mix" },
+                new ChannelTop { Name = "Sky Sports Premier League" },
+                new ChannelTop { Name = "Sky Sports Racing" },
             ],
         };
     }

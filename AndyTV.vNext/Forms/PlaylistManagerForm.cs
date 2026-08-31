@@ -1,10 +1,11 @@
 using System.ComponentModel;
+using AndyTV.Data.Models;
 
 namespace AndyTV.vNext;
 
 sealed class PlaylistManagerForm : Form
 {
-    public PlaylistManagerForm(List<PlaylistRef> playlists)
+    public PlaylistManagerForm(List<Playlist> playlists)
     {
         Text = "Manage Playlists";
         Size = new Size(480, 320);
@@ -16,23 +17,23 @@ sealed class PlaylistManagerForm : Form
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            DataSource = new BindingList<PlaylistRef>(playlists),
+            DataSource = new BindingList<Playlist>(playlists),
         };
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name",
-            DataPropertyName = nameof(PlaylistRef.Name),
+            DataPropertyName = nameof(Playlist.Name),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
         grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             HeaderText = "Show",
-            DataPropertyName = nameof(PlaylistRef.Visible),
+            DataPropertyName = nameof(Playlist.ShowInMenu),
         });
         grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             HeaderText = "Group A\u2013Z",
-            DataPropertyName = nameof(PlaylistRef.Grouped),
+            DataPropertyName = nameof(Playlist.GroupByFirstChar),
         });
 
         FormClosing += (_, _) => grid.EndEdit();
