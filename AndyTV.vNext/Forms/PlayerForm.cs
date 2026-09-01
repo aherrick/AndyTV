@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
@@ -46,6 +47,7 @@ internal sealed class PlayerForm : Form
         _favoriteService = new FavoriteChannelService(_storage);
 
         Text = "AndyTV vNext";
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
 
         for (var i = 0; i < _recentItems.Length; i++)
@@ -204,14 +206,13 @@ internal sealed class PlayerForm : Form
         RebuildMenu();
 
         _ = RunHourlyRefresh();
-        _ = UpdateService.Check();
     }
 
     private async Task RunHourlyRefresh()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
         // Dispose on shutdown so the wait returns false instead of throwing (no debugger break).
-        using var registration = _cts.Token.Register(timer.Dispose);
+        await using var registration = _cts.Token.Register(timer.Dispose);
         while (await timer.WaitForNextTickAsync())
         {
             try
@@ -245,7 +246,9 @@ internal sealed class PlayerForm : Form
         _menu.Items.Clear();
 
         var version = Application.ProductVersion.Split('+')[0];
-        _menu.Items.Add(new ToolStripMenuItem($"AndyTV vNext - {version}") { Enabled = false });
+        var header = new ToolStripMenuItem($"AndyTV vNext - {version}");
+        header.Click += (_, _) => OpenUrl("https://github.com/aherrick/AndyTV");
+        _menu.Items.Add(header);
         _menu.Items.Add(new ToolStripSeparator());
 
         var manage = new ToolStripMenuItem("Manage");
@@ -254,7 +257,11 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add(_addFavoriteItem);
         manage.DropDownItems.Add("Favorites\u2026", null, (_, _) => ManageFavorites());
         manage.DropDownItems.Add(new ToolStripSeparator());
-        manage.DropDownItems.Add("Update", null, async (_, _) => await UpdateService.Check());
+        manage.DropDownItems.Add(
+            "Check for Updates",
+            null,
+            async (_, _) => await UpdateService.Check()
+        );
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());
@@ -262,10 +269,7 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(new ToolStripSeparator());
 
         // Recent sits above the favorites list, separated only when both exist.
-        foreach (var item in _recentItems)
-        {
-            _menu.Items.Add(item);
-        }
+        _menu.Items.AddRange(_recentItems);
         _menu.Items.Add(_favoritesSeparator);
         foreach (
             var fav in _favoriteService.Favorites.Where(f => string.IsNullOrWhiteSpace(f.Group))
@@ -372,6 +376,9 @@ internal sealed class PlayerForm : Form
         leaf.Click += (_, _) => Play(fav);
         return leaf;
     }
+
+    private static void OpenUrl(string url) =>
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
     private void RefreshRecent()
     {

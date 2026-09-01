@@ -29,7 +29,7 @@ static class CursorExtensions
     public static void SetCursorForCurrentView(this Control control)
     {
         var form = control.FindForm();
-        if (form != null && form.IsFullscreen())
+        if (form?.IsFullscreen() == true)
         {
             control.HideCursor();
         }

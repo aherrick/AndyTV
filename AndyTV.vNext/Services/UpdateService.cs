@@ -7,8 +7,7 @@ static class UpdateService
 {
     private const string RepoUrl = "https://github.com/aherrick/AndyTV";
 
-    // Silent check on startup; applies and restarts only when an update exists
-    // and the app was installed via Velopack.
+    // Manual, menu-driven check: reports up-to-date, or prompts to download & restart.
     public static async Task Check()
     {
         try
@@ -17,25 +16,37 @@ static class UpdateService
             var updater = new UpdateManager(
                 new GithubSource(RepoUrl, accessToken: null, prerelease: true));
 
-            if (!updater.IsInstalled)
-            {
-                return;
-            }
-
             var info = await updater.CheckForUpdatesAsync();
             if (info is null)
             {
+                MessageBox.Show(
+                    "AndyTV vNext is already up to date.",
+                    "AndyTV vNext",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
                 return;
             }
 
-            Logger.Info($"[UPDATE] Downloading {info.TargetFullRelease.Version}");
-            await updater.DownloadUpdatesAsync(info);
-            Logger.Info($"[UPDATE] Applying {info.TargetFullRelease.Version} and restarting");
-            updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
+            var result = MessageBox.Show(
+                $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
+                "AndyTV vNext",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (result == DialogResult.Yes)
+            {
+                Logger.Info($"[UPDATE] Downloading {info.TargetFullRelease.Version}");
+                await updater.DownloadUpdatesAsync(info);
+                updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
+            }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Update check failed");
+            MessageBox.Show(
+                "Update check failed. See logs for details.",
+                "AndyTV vNext",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
     }
 }
