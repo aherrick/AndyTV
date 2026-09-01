@@ -7,7 +7,7 @@ using UIKit;
 
 namespace AndyTV.Maui.Services;
 
-public class OrientationLockService : IOrientationLockService
+public class OrientationLockService
 {
     internal static LockMode ActivePlaybackLockMode { get; private set; } = LockMode.Unlocked;
 
@@ -41,7 +41,7 @@ public class OrientationLockService : IOrientationLockService
         }
     }
 
-    public void UseDefaultOrientation()
+    public static void UseDefaultOrientation()
     {
         ActivePlaybackLockMode = LockMode.Unlocked;
         UnlockOrientation();

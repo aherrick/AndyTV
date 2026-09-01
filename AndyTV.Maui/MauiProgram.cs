@@ -33,8 +33,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILastChannelService, LastChannelService>();
         builder.Services.AddSingleton<IFavoriteChannelService, FavoriteChannelService>();
         builder.Services.AddSingleton<ILocalConfigService, LocalConfigService>();
-        builder.Services.AddSingleton<ILocalPlaybackService, LocalPlaybackService>();
-        builder.Services.AddSingleton<IOrientationLockService, OrientationLockService>();
+        builder.Services.AddSingleton<LocalPlaybackService>();
+        builder.Services.AddSingleton<OrientationLockService>();
 #if IOS
         builder.Services.AddSingleton<IRemoteCommandService, RemoteCommandService>();
 #else

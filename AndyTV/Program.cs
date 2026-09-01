@@ -41,8 +41,9 @@ internal static class Program
         Logger.WireGlobalHandlers();
         Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
 
-        // Force 60Hz refresh rate for optimal video playback
-        DisplayHelper.Force60Hz();
+        // Force 60Hz in the background so a display-mode change never blocks the
+        // window from appearing or the last channel from starting.
+        _ = Task.Run(DisplayHelper.Force60Hz);
 
         // Ensure we restore the original refresh rate when the app exits
         Application.ApplicationExit += (_, __) => DisplayHelper.RestoreOriginalRefreshRate();

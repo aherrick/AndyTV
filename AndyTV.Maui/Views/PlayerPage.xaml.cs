@@ -7,19 +7,22 @@ using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
+public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IRecipient<AppStoppedMessage>
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor;
-    private readonly IOrientationLockService _orientationLockService;
     private readonly IRemoteCommandService _remoteCommandService;
-    private readonly ILocalConfigService _localConfigService;
-    private readonly ILocalPlaybackService _localPlaybackService;
+    private readonly LocalPlaybackService _localPlaybackService;
+    private readonly OrientationLockService _orientationLockService;
+    private readonly IDispatcherTimer _controlsTimer;
 
     private const int HealthCheckMilliseconds = 1000;
+    private const int ControlsHideMilliseconds = 3000;
+
+    private int _backgroundVideoTrack = -1;
 
     public PlayerPage(string url, string channelName)
     {
@@ -28,13 +31,11 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _viewModel = new PlayerViewModel { Url = url, ChannelName = channelName };
         BindingContext = _viewModel;
         _orientationLockService =
-            IPlatformApplication.Current?.Services.GetService<IOrientationLockService>();
+            IPlatformApplication.Current?.Services.GetService<OrientationLockService>();
         _remoteCommandService =
             IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
-        _localConfigService =
-            IPlatformApplication.Current?.Services.GetService<ILocalConfigService>();
         _localPlaybackService =
-            IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
+            IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
 
         // Disable double-tap back when in Portrait lock mode
         if (_orientationLockService?.CurrentLockMode == LockMode.Portrait)
@@ -69,6 +70,12 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
         _healthTimer.Tick += OnHealthTimerTick;
 
+        _controlsTimer = Dispatcher.CreateTimer();
+        _controlsTimer.Interval = TimeSpan.FromMilliseconds(ControlsHideMilliseconds);
+        _controlsTimer.Tick += OnControlsTimerTick;
+
+        PlayerTapGesture.Tapped += (_, _) => ShowControls();
+
         Play(url);
         _healthTimer.Start();
     }
@@ -77,7 +84,9 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
     {
         base.OnAppearing();
         _orientationLockService?.ApplyForPlayback();
-        WeakReferenceMessenger.Default.Register(this);
+        ShowControls();
+        WeakReferenceMessenger.Default.Register<AppResumedMessage>(this);
+        WeakReferenceMessenger.Default.Register<AppStoppedMessage>(this);
 
         if (_remoteCommandService is not null)
         {
@@ -95,6 +104,15 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
 
         Dispatcher.Dispatch(() =>
         {
+            _healthTimer.Start();
+
+            // Re-enable the video track we disabled when the app was backgrounded
+            if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
+            {
+                _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
+                _backgroundVideoTrack = -1;
+            }
+
             if (ShouldRestartOnResume())
             {
                 Play(_viewModel.Url);
@@ -102,6 +120,22 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
             }
 
             _healthMonitor.MarkActivity();
+        });
+    }
+
+    public void Receive(AppStoppedMessage _)
+    {
+        Dispatcher.Dispatch(() =>
+        {
+            _healthTimer.Stop();
+
+            // Keep audio playing in the background: disable video so VLC doesn't stall rendering off-screen
+            var currentVideoTrack = _mediaPlayer.VideoTrack;
+            if (currentVideoTrack != -1)
+            {
+                _backgroundVideoTrack = currentVideoTrack;
+                _mediaPlayer.SetVideoTrack(-1);
+            }
         });
     }
 
@@ -131,11 +165,31 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         _healthMonitor.Tick();
     }
 
+    private void OnControlsTimerTick(object sender, EventArgs e)
+    {
+        _controlsTimer.Stop();
+        BackButton.Opacity = 0;
+        BackButton.InputTransparent = true;
+    }
+
+    private void ShowControls()
+    {
+        if (!_viewModel.CanGoBack)
+        {
+            return;
+        }
+
+        BackButton.Opacity = 1;
+        BackButton.InputTransparent = false;
+        _controlsTimer.Stop();
+        _controlsTimer.Start();
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
-        _orientationLockService?.UseDefaultOrientation();
+        OrientationLockService.UseDefaultOrientation();
 
         if (_remoteCommandService is not null)
         {
@@ -144,21 +198,14 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>
         }
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);
 
         _healthTimer.Stop();
+        _controlsTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
 
-        if (IsLocalModeActive())
-        {
-            _ = _localPlaybackService?.StopPlayback();
-        }
-    }
-
-    private bool IsLocalModeActive()
-    {
-        var config = _localConfigService?.Load();
-        return config?.Enabled == true && !string.IsNullOrWhiteSpace(config.ServerUrl);
+        _ = _localPlaybackService?.StopPlayback();
     }
 
     private void OnRemoteCommandReceived(object sender, RemoteCommandEventArgs e)

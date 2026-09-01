@@ -27,7 +27,7 @@ public partial class App : Application
 
             var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
             var localPlaybackService =
-                IPlatformApplication.Current?.Services.GetService<ILocalPlaybackService>();
+                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
             var lastChannel = lastChannelService?.LoadLastChannel();
             if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
             {
@@ -42,6 +42,18 @@ public partial class App : Application
 
         window.Resumed += (_, _) =>
             WeakReferenceMessenger.Default.Send(new AppResumedMessage());
+
+        // Backgrounding must NOT stop playback so audio keeps playing behind other apps (Spotify-style)
+        window.Stopped += (_, _) =>
+            WeakReferenceMessenger.Default.Send(new AppStoppedMessage());
+
+        // Only kill the server-side stream when the app is actually torn down, not on background
+        window.Destroying += (_, _) =>
+        {
+            var localPlaybackService =
+                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
+            _ = localPlaybackService?.StopPlayback();
+        };
 
         return window;
     }

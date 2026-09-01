@@ -2,7 +2,7 @@ using AndyTV.Data.Services;
 
 namespace AndyTV.Maui.Services;
 
-public class LocalPlaybackService(ILocalConfigService localConfigService) : ILocalPlaybackService
+public class LocalPlaybackService(ILocalConfigService localConfigService)
 {
     private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
     private string _currentSourceUrl;
@@ -40,7 +40,7 @@ public class LocalPlaybackService(ILocalConfigService localConfigService) : ILoc
     public async Task StopPlayback()
     {
         var config = localConfigService.Load();
-        if (string.IsNullOrWhiteSpace(config.ServerUrl))
+        if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
         {
             return;
         }

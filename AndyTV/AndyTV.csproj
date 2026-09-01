@@ -12,10 +12,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="LibVLCSharp.WinForms" Version="3.10.0" />
+		<PackageReference Include="LibVLCSharp.WinForms" Version="3.10.1" />
 		<PackageReference Include="M3UManager" Version="1.0.6" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.90" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.100" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
 		<PackageReference Include="Velopack" Version="1.2.110-ge826545" />
 		<!-- 3.0.23 causes freezing issues, staying on 3.0.21 -->
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
