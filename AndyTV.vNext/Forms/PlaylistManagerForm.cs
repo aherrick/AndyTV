@@ -8,7 +8,7 @@ sealed class PlaylistManagerForm : Form
     public PlaylistManagerForm(List<Playlist> playlists)
     {
         Text = "Manage Playlists";
-        Size = new Size(480, 320);
+        Size = new Size(640, 360);
         StartPosition = FormStartPosition.CenterParent;
 
         var source = new BindingList<Playlist>(playlists);
@@ -17,13 +17,19 @@ sealed class PlaylistManagerForm : Form
             Dock = DockStyle.Fill,
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            RowHeadersVisible = false,
             DataSource = source,
         };
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name",
             DataPropertyName = nameof(Playlist.Name),
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "URL / Path",
+            DataPropertyName = nameof(Playlist.Url),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
         grid.Columns.Add(new DataGridViewCheckBoxColumn
@@ -36,23 +42,33 @@ sealed class PlaylistManagerForm : Form
             HeaderText = "Group A\u2013Z",
             DataPropertyName = nameof(Playlist.GroupByFirstChar),
         });
-
-        var deleteButton = new Button
+        var deleteColumn = new DataGridViewButtonColumn
         {
-            Text = "Delete Selected",
-            Dock = DockStyle.Bottom,
-            Height = 32,
+            Text = "Delete",
+            UseColumnTextForButtonValue = true,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
         };
-        deleteButton.Click += (_, _) =>
+        grid.Columns.Add(deleteColumn);
+
+        grid.CellClick += (_, e) =>
         {
-            if (grid.CurrentRow?.DataBoundItem is Playlist p)
+            if (e.RowIndex >= 0 && grid.Columns[e.ColumnIndex] == deleteColumn)
             {
-                source.Remove(p);
+                source.RemoveAt(e.RowIndex);
             }
         };
 
+        var addButton = new Button
+        {
+            Text = "Add Playlist",
+            Dock = DockStyle.Bottom,
+            Height = 32,
+        };
+        addButton.Click += (_, _) =>
+            source.Add(new Playlist { Name = "New Playlist", ShowInMenu = true });
+
         FormClosing += (_, _) => grid.EndEdit();
         Controls.Add(grid);
-        Controls.Add(deleteButton);
+        Controls.Add(addButton);
     }
 }

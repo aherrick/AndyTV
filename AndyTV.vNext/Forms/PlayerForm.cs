@@ -2,7 +2,6 @@ using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
-using Microsoft.VisualBasic;
 
 namespace AndyTV.vNext;
 
@@ -21,10 +20,17 @@ sealed class PlayerForm : Form
     private readonly LastChannelService _lastService;
     private List<Playlist> _playlists = [];
 
+    private Channel _current;
     private Channel _pending;
+    private DateTime _leftDown = DateTime.MinValue;
+    private DateTime _rightDown = DateTime.MinValue;
     private FormWindowState _restoreState = FormWindowState.Maximized;
     private Rectangle _restoreBounds;
 
+    private const int LeftHoldSeconds = 1;
+    private const int RightHoldSeconds = 5;
+
+    private readonly CancellationTokenSource _cts = new();
     private readonly StreamHealthMonitor _healthMonitor;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
 
@@ -53,7 +59,7 @@ sealed class PlayerForm : Form
             isPaused: () => _mediaPlayer.State == VLCState.Paused,
             restart: () =>
             {
-                if (_pending is { } current)
+                if (_current is { } current)
                 {
                     Play(current);
                 }
@@ -86,11 +92,54 @@ sealed class PlayerForm : Form
             }
             _videoView.SetCursorForCurrentView();
         };
+        // Mouse gestures: left long-press = previous channel, middle = mute,
+        // right long-press = exit, wheel = channel up/down.
+        videoView.MouseDown += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _leftDown = DateTime.Now;
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                _rightDown = DateTime.Now;
+            }
+        };
+        videoView.MouseUp += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left
+                && _leftDown != DateTime.MinValue
+                && _leftDown.AddSeconds(LeftHoldSeconds) < DateTime.Now
+                && _recentService.GetPrevious() is { } previous)
+            {
+                Play(previous);
+            }
+            else if (e.Button == MouseButtons.Middle)
+            {
+                _mediaPlayer.Mute = !_mediaPlayer.Mute;
+            }
+            else if (e.Button == MouseButtons.Right
+                && _rightDown != DateTime.MinValue
+                && _rightDown.AddSeconds(RightHoldSeconds) < DateTime.Now)
+            {
+                Close();
+            }
+            _leftDown = DateTime.MinValue;
+            _rightDown = DateTime.MinValue;
+        };
+        videoView.MouseWheel += (_, e) =>
+        {
+            var direction = e.Delta > 0 ? 1 : -1;
+            if (_recentService.GetRelative(_current?.Url, direction) is { } next)
+            {
+                Play(next);
+            }
+        };
         _videoView = videoView;
         Controls.Add(videoView);
 
         _menu.Opening += (_, _) => _videoView.ShowDefault();
-        _menu.Closed += (_, _) => _videoView.SetCursorForCurrentView();
+        _menu.Closing += (_, _) => _videoView.SetCursorForCurrentView();
         KeyPreview = true;
         KeyDown += (_, e) =>
         {
@@ -119,25 +168,33 @@ sealed class PlayerForm : Form
         {
             Play(last);
         }
+
+        _ = RunHourlyRefresh();
+        _ = UpdateService.Check();
     }
 
-    private async Task AddPlaylist()
+    private async Task RunHourlyRefresh()
     {
-        var name = Interaction.InputBox("Playlist name", "Add Playlist");
-        if (string.IsNullOrWhiteSpace(name))
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
+        try
         {
-            return;
+            while (await timer.WaitForNextTickAsync(_cts.Token))
+            {
+                try
+                {
+                    await _playlistService.RefreshChannelsAsync();
+                    RebuildMenu();
+                    Logger.Info("[REFRESH] Hourly channel refresh complete");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Hourly refresh failed");
+                }
+            }
         }
-        var url = Interaction.InputBox("M3U URL or file path", "Add Playlist");
-        if (string.IsNullOrWhiteSpace(url))
+        catch (OperationCanceledException)
         {
-            return;
         }
-
-        _playlists.Add(new Playlist { Name = name, Url = url, ShowInMenu = true });
-        _playlistService.SavePlaylists(_playlists);
-        await _playlistService.RefreshChannelsAsync();
-        RebuildMenu();
     }
 
     private async Task ManagePlaylists()
@@ -163,11 +220,7 @@ sealed class PlayerForm : Form
         _menu.Items.Add(BuildTopMenu());
         _menu.Items.Add(new ToolStripSeparator());
 
-        _menu.Items.Add("Add Playlist\u2026", null, async (_, _) => await AddPlaylist());
-        if (_playlists.Count > 0)
-        {
-            _menu.Items.Add("Manage Playlists\u2026", null, async (_, _) => await ManagePlaylists());
-        }
+        _menu.Items.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
 
         var visible = _playlistService.PlaylistChannels.Where(x => x.Playlist.ShowInMenu).ToList();
         if (visible.Count > 0)
@@ -273,6 +326,7 @@ sealed class PlayerForm : Form
 
     private void Play(Channel channel)
     {
+        _current = channel;
         _pending = channel;
         _healthMonitor.MarkActivity();
         _videoView.ShowWaiting();
@@ -291,6 +345,7 @@ sealed class PlayerForm : Form
         {
             return;
         }
+        _pending = null;
 
         if (InvokeRequired)
         {
@@ -308,13 +363,27 @@ sealed class PlayerForm : Form
         _lastService.SaveLastChannel(played);
         _videoView.SetCursorForCurrentView();
         RefreshRecent();
-        Toast.Notify(this, played.DisplayName);
+        ShowNowPlaying(played.DisplayName);
+    }
+
+    // VLC renders this directly on the video frame and auto-hides after Timeout.
+    private void ShowNowPlaying(string text)
+    {
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Enable, 1);
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Size, 28);
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Color, 0xFF0000);
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Opacity, 255);
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Position, 10);
+        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Timeout, 2500);
+        _mediaPlayer.SetMarqueeString(VideoMarqueeOption.Text, text);
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            _cts.Cancel();
+            _cts.Dispose();
             _healthTimer.Dispose();
             _mediaPlayer.Playing -= OnPlaying;
             _mediaPlayer.EncounteredError -= OnPlaybackError;

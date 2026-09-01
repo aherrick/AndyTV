@@ -4,7 +4,7 @@ namespace AndyTV.vNext;
 
 sealed class Storage : IStorageProvider
 {
-    private static readonly string Folder = Init();
+    public static string Folder { get; } = Init();
 
     private static string Init()
     {
