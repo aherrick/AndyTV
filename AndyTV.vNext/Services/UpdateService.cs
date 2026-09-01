@@ -5,7 +5,7 @@ namespace AndyTV.vNext;
 
 static class UpdateService
 {
-    private const string RepoUrl = "https://github.com/aherrick/AndyTV";
+    public const string RepoUrl = "https://github.com/aherrick/AndyTV";
 
     // Manual, menu-driven check: reports up-to-date, or prompts to download & restart.
     public static async Task Check()

@@ -9,10 +9,10 @@ internal abstract class GridManagerForm<T> : Form
     protected DataGridView Grid { get; }
     protected BindingList<T> Source { get; }
 
-    // True when the dialog left the list different from how it opened.
+    // True when the list differs from how it opened; the caller persists after close.
     public bool Changed { get; private set; }
 
-    private readonly string _snapshot;
+    private readonly string _baseline;
 
     protected GridManagerForm(string title, List<T> items)
     {
@@ -21,7 +21,7 @@ internal abstract class GridManagerForm<T> : Form
         StartPosition = FormStartPosition.CenterParent;
 
         Source = new BindingList<T>(items);
-        _snapshot = JsonSerializer.Serialize(items);
+        _baseline = JsonSerializer.Serialize(items);
         Grid = new DataGridView
         {
             Dock = DockStyle.Fill,
@@ -33,12 +33,6 @@ internal abstract class GridManagerForm<T> : Form
             MultiSelect = false,
             DataSource = Source,
         };
-
-        FormClosing += (_, _) =>
-        {
-            Grid.EndEdit();
-            Changed = JsonSerializer.Serialize(Source) != _snapshot;
-        };
     }
 
     // Subclass adds its columns, then calls this with its left-side action buttons.
@@ -46,7 +40,7 @@ internal abstract class GridManagerForm<T> : Form
     {
         var close = new Button
         {
-            Text = "Save && Close",
+            Text = "Close",
             AutoSize = true,
             Padding = new Padding(14, 6, 14, 6),
         };
@@ -55,6 +49,18 @@ internal abstract class GridManagerForm<T> : Form
 
         Controls.Add(Grid);
         Controls.Add(IconButtonFactory.BottomBar(close, actions));
+    }
+
+    // Cleanup applied before the change check (e.g., drop invalid rows).
+    protected virtual void BeforeClose() { }
+
+    // Edits auto-save: on close, flag whether anything changed so the caller persists.
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        Grid.EndEdit();
+        BeforeClose();
+        Changed = JsonSerializer.Serialize(Source) != _baseline;
+        base.OnFormClosing(e);
     }
 
     protected void MoveSelected(int delta)

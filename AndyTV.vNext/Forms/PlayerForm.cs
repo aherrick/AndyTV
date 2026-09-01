@@ -247,7 +247,7 @@ internal sealed class PlayerForm : Form
 
         var version = Application.ProductVersion.Split('+')[0];
         var header = new ToolStripMenuItem($"AndyTV vNext - {version}");
-        header.Click += (_, _) => OpenUrl("https://github.com/aherrick/AndyTV");
+        header.Click += (_, _) => OpenUrl(UpdateService.RepoUrl);
         _menu.Items.Add(header);
         _menu.Items.Add(new ToolStripSeparator());
 

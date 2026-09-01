@@ -85,9 +85,9 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
         Compose(add, delete);
     }
 
-    protected override void Normalize()
+    // Never keep a playlist without a URL / path.
+    protected override void BeforeClose()
     {
-        // Never save a playlist without a URL / path.
         for (var i = Source.Count - 1; i >= 0; i--)
         {
             if (string.IsNullOrWhiteSpace(Source[i].Url))
