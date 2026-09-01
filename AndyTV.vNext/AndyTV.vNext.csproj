@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FontAwesome.Sharp" Version="6.6.0" />
     <PackageReference Include="LibVLCSharp.WinForms" Version="3.10.1" />
     <PackageReference Include="M3UManager" Version="1.0.6" />
     <PackageReference Include="Velopack" Version="1.2.110-ge826545" />

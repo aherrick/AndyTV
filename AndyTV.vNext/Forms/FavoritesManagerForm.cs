@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AndyTV.Data.Models;
+using FontAwesome.Sharp;
 
 namespace AndyTV.vNext;
 
@@ -8,7 +9,7 @@ sealed class FavoritesManagerForm : Form
     public FavoritesManagerForm(List<Channel> favorites)
     {
         Text = "Manage Favorites";
-        Size = new Size(640, 400);
+        Size = new Size(820, 560);
         StartPosition = FormStartPosition.CenterParent;
 
         var source = new BindingList<Channel>(favorites);
@@ -19,6 +20,8 @@ sealed class FavoritesManagerForm : Form
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
             RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            MultiSelect = false,
             DataSource = source,
         };
         grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -40,52 +43,56 @@ sealed class FavoritesManagerForm : Form
             DataPropertyName = nameof(Channel.Group),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
-        var upColumn = new DataGridViewButtonColumn
+        void Move(int delta)
         {
-            Text = "\u25B2",
-            UseColumnTextForButtonValue = true,
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-        };
-        var downColumn = new DataGridViewButtonColumn
-        {
-            Text = "\u25BC",
-            UseColumnTextForButtonValue = true,
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-        };
-        var removeColumn = new DataGridViewButtonColumn
-        {
-            Text = "Remove",
-            UseColumnTextForButtonValue = true,
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-        };
-        grid.Columns.Add(upColumn);
-        grid.Columns.Add(downColumn);
-        grid.Columns.Add(removeColumn);
-
-        grid.CellClick += (_, e) =>
-        {
-            if (e.RowIndex < 0)
+            grid.EndEdit();
+            var i = grid.CurrentRow?.Index ?? -1;
+            var j = i + delta;
+            if (i < 0 || j < 0 || j >= source.Count)
             {
                 return;
             }
-            grid.EndEdit();
-            var column = grid.Columns[e.ColumnIndex];
-            var i = e.RowIndex;
-            if (column == upColumn && i > 0)
+            (source[j], source[i]) = (source[i], source[j]);
+            grid.CurrentCell = grid.Rows[j].Cells[0];
+        }
+
+        var upButton = IconButtonFactory.Make(
+            IconChar.ArrowUp,
+            Color.SteelBlue,
+            "Move up",
+            (_, _) => Move(-1)
+        );
+        var downButton = IconButtonFactory.Make(
+            IconChar.ArrowDown,
+            Color.SteelBlue,
+            "Move down",
+            (_, _) => Move(1)
+        );
+        var deleteButton = IconButtonFactory.Make(
+            IconChar.TrashCan,
+            Color.Firebrick,
+            "Remove",
+            (_, _) =>
             {
-                (source[i - 1], source[i]) = (source[i], source[i - 1]);
-                grid.CurrentCell = grid.Rows[i - 1].Cells[e.ColumnIndex];
+                grid.EndEdit();
+                var i = grid.CurrentRow?.Index ?? -1;
+                if (i >= 0)
+                {
+                    source.RemoveAt(i);
+                }
             }
-            else if (column == downColumn && i < source.Count - 1)
-            {
-                (source[i + 1], source[i]) = (source[i], source[i + 1]);
-                grid.CurrentCell = grid.Rows[i + 1].Cells[e.ColumnIndex];
-            }
-            else if (column == removeColumn)
-            {
-                source.RemoveAt(i);
-            }
+        );
+
+        var closeButton = new Button
+        {
+            Text = "Save & Close",
+            UseMnemonic = false,
+            AutoSize = true,
+            Padding = new Padding(12, 4, 12, 4),
         };
+        closeButton.Click += (_, _) => Close();
+
+        var buttonBar = IconButtonFactory.BottomBar(closeButton, upButton, downButton, deleteButton);
 
         FormClosing += (_, _) =>
         {
@@ -103,6 +110,8 @@ sealed class FavoritesManagerForm : Form
                 }
             }
         };
+        CancelButton = closeButton;
         Controls.Add(grid);
+        Controls.Add(buttonBar);
     }
 }

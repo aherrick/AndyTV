@@ -209,23 +209,21 @@ internal sealed class PlayerForm : Form
     private async Task RunHourlyRefresh()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
-        try
+        // Dispose on shutdown so the wait returns false instead of throwing (no debugger break).
+        using var registration = _cts.Token.Register(timer.Dispose);
+        while (await timer.WaitForNextTickAsync())
         {
-            while (await timer.WaitForNextTickAsync(_cts.Token))
+            try
             {
-                try
-                {
-                    await _playlistService.RefreshChannelsAsync();
-                    RebuildMenu();
-                    Logger.Info("[REFRESH] Hourly channel refresh complete");
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Hourly refresh failed");
-                }
+                await _playlistService.RefreshChannelsAsync();
+                RebuildMenu();
+                Logger.Info("[REFRESH] Hourly channel refresh complete");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Hourly refresh failed");
             }
         }
-        catch (OperationCanceledException) { }
     }
 
     private async Task ManagePlaylists()
@@ -334,7 +332,17 @@ internal sealed class PlayerForm : Form
     {
         if (_current is { } current && !_favoriteService.IsFavorite(current))
         {
-            _favoriteService.AddFavorite(current);
+            // Favorites start ungrouped; the user assigns a Group in the manager.
+            _favoriteService.AddFavorite(
+                new Channel
+                {
+                    RawName = current.RawName,
+                    Name = current.Name,
+                    MappedName = current.MappedName,
+                    Url = current.Url,
+                    LogoUrl = current.LogoUrl,
+                }
+            );
             RebuildMenu();
         }
     }
