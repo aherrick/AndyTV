@@ -5,7 +5,7 @@ using LibVLCSharp.WinForms;
 
 namespace AndyTV.vNext;
 
-sealed class PlayerForm : Form
+internal sealed class PlayerForm : Form
 {
     private readonly LibVLC _libVLC = new();
     private readonly MediaPlayer _mediaPlayer;
@@ -40,7 +40,7 @@ sealed class PlayerForm : Form
         _recentService = new RecentChannelService(_storage);
         _lastService = new LastChannelService(_storage);
 
-        Text = "AndyTV vNext";
+        Text = "AndyTV";
         BackColor = Color.Black;
 
         for (var i = 0; i < _recentItems.Length; i++)
@@ -52,7 +52,7 @@ sealed class PlayerForm : Form
         _mediaPlayer = new MediaPlayer(_libVLC)
         {
             EnableMouseInput = false,
-            EnableKeyInput = false
+            EnableKeyInput = false,
         };
 
         _healthMonitor = new StreamHealthMonitor(
@@ -63,7 +63,8 @@ sealed class PlayerForm : Form
                 {
                     Play(current);
                 }
-            });
+            }
+        );
         _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
 
         _mediaPlayer.Playing += OnPlaying;
@@ -76,7 +77,7 @@ sealed class PlayerForm : Form
             Dock = DockStyle.Fill,
             MediaPlayer = _mediaPlayer,
             BackColor = Color.Black,
-            ContextMenuStrip = _menu
+            ContextMenuStrip = _menu,
         };
         // Mouse gestures: double-click = fullscreen, left long-press = previous channel,
         // middle = mute, right long-press = exit, wheel = channel up/down.
@@ -122,10 +123,12 @@ sealed class PlayerForm : Form
 
     private void OnVideoMouseUp(object sender, MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left
+        if (
+            e.Button == MouseButtons.Left
             && _leftDown != DateTime.MinValue
             && _leftDown.AddSeconds(LeftHoldSeconds) < DateTime.Now
-            && _recentService.GetPrevious() is { } previous)
+            && _recentService.GetPrevious() is { } previous
+        )
         {
             Play(previous);
         }
@@ -133,9 +136,11 @@ sealed class PlayerForm : Form
         {
             _mediaPlayer.Mute = !_mediaPlayer.Mute;
         }
-        else if (e.Button == MouseButtons.Right
+        else if (
+            e.Button == MouseButtons.Right
             && _rightDown != DateTime.MinValue
-            && _rightDown.AddSeconds(RightHoldSeconds) < DateTime.Now)
+            && _rightDown.AddSeconds(RightHoldSeconds) < DateTime.Now
+        )
         {
             Close();
         }
@@ -204,9 +209,7 @@ sealed class PlayerForm : Form
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) { }
     }
 
     private async Task ManagePlaylists()
@@ -230,8 +233,12 @@ sealed class PlayerForm : Form
         RefreshRecent();
 
         var topChannels = _playlistService.Channels;
-        _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels)));
-        _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels)));
+        _menu.Items.Add(
+            Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels))
+        );
+        _menu.Items.Add(
+            Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels))
+        );
         var menu247 = Render(ChannelMatcher.Build247(topChannels));
         if (menu247.DropDownItems.Count > 0)
         {

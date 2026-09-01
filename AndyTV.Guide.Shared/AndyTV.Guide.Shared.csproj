@@ -7,8 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.11" />
-    <PackageReference Include="Syncfusion.Blazor.Schedule" Version="34.2.5" />
-    <PackageReference Include="Syncfusion.Blazor.Themes" Version="34.2.5" />
+    <PackageReference Include="Syncfusion.Blazor.Schedule" Version="34.2.6" />
+    <PackageReference Include="Syncfusion.Blazor.Themes" Version="34.2.6" />
   </ItemGroup>
 
   <ItemGroup>
