@@ -27,6 +27,11 @@ internal sealed class PlayerForm : Form
 
     private Channel _current;
     private Channel _pending;
+    // Cursor/menu state: the wait spinner shows while channels are still loading
+    // (menu not ready) or a channel is connecting (pending); the menu is suppressed
+    // until ready so a huge playlist can't be right-clicked mid-build.
+    private bool _menuReady;
+    private bool _menuOpen;
     private DateTime _leftDown = DateTime.MinValue;
     private DateTime _rightDown = DateTime.MinValue;
     private FormWindowState _restoreState = FormWindowState.Maximized;
@@ -46,7 +51,7 @@ internal sealed class PlayerForm : Form
         _lastService = new LastChannelService(_storage);
         _favoriteService = new FavoriteChannelService(_storage);
 
-        Text = "AndyTV vNext";
+        Text = $"AndyTV vNext {Application.ProductVersion.Split('+')[0]}";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
 
@@ -101,13 +106,23 @@ internal sealed class PlayerForm : Form
         _videoView.MouseWheel += OnVideoMouseWheel;
         Controls.Add(_videoView);
 
-        _menu.Opening += (_, _) =>
+        _menu.Opening += (_, e) =>
         {
-            _videoView.ShowDefault();
+            if (!_menuReady)
+            {
+                e.Cancel = true;
+                return;
+            }
+            _menuOpen = true;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
             _addFavoriteItem.Enabled = _current is { } c && !_favoriteService.IsFavorite(c);
+            UpdateCursor();
         };
-        _menu.Closing += (_, _) => _videoView.SetCursorForCurrentView();
+        _menu.Closing += (_, _) =>
+        {
+            _menuOpen = false;
+            UpdateCursor();
+        };
         KeyPreview = true;
         KeyDown += OnFormKeyDown;
         Shown += OnFormShown;
@@ -125,7 +140,7 @@ internal sealed class PlayerForm : Form
             _restoreBounds = Bounds;
             this.EnterFullscreen();
         }
-        _videoView.SetCursorForCurrentView();
+        UpdateCursor();
     }
 
     private void OnVideoMouseDown(object sender, MouseEventArgs e)
@@ -187,13 +202,15 @@ internal sealed class PlayerForm : Form
     private async void OnFormShown(object sender, EventArgs e)
     {
         this.EnterFullscreen();
-        _videoView.SetCursorForCurrentView();
+        UpdateCursor();
         _healthTimer.Start();
         await Initialize();
     }
 
     private async Task Initialize()
     {
+        SetBusy(true);
+
         // Play the last channel first — it only needs local storage, so playback
         // starts without waiting on the (networked) playlist refresh below.
         if (_lastService.LoadLastChannel() is { } last)
@@ -204,8 +221,34 @@ internal sealed class PlayerForm : Form
         _playlists = _playlistService.LoadPlaylists();
         await _playlistService.RefreshChannelsAsync();
         RebuildMenu();
+        SetBusy(false);
 
         _ = RunHourlyRefresh();
+    }
+
+    private void SetBusy(bool busy)
+    {
+        _menuReady = !busy;
+        UpdateCursor();
+    }
+
+    // Single place that decides the cursor: spinner while loading (menu not ready)
+    // or connecting (pending); otherwise visible for the open menu, and hidden
+    // (fullscreen) or default (windowed) when idle.
+    private void UpdateCursor()
+    {
+        if (!_menuReady || _pending is not null)
+        {
+            _videoView.ShowWaiting();
+        }
+        else if (_menuOpen)
+        {
+            _videoView.ShowDefault();
+        }
+        else
+        {
+            _videoView.SetCursorForCurrentView();
+        }
     }
 
     private async Task RunHourlyRefresh()
@@ -217,6 +260,7 @@ internal sealed class PlayerForm : Form
         {
             try
             {
+                SetBusy(true);
                 await _playlistService.RefreshChannelsAsync();
                 RebuildMenu();
                 Logger.Info("[REFRESH] Hourly channel refresh complete");
@@ -224,6 +268,10 @@ internal sealed class PlayerForm : Form
             catch (Exception ex)
             {
                 Logger.Error(ex, "Hourly refresh failed");
+            }
+            finally
+            {
+                SetBusy(false);
             }
         }
     }
@@ -237,8 +285,10 @@ internal sealed class PlayerForm : Form
             return;
         }
         _playlistService.SavePlaylists(_playlists);
+        SetBusy(true);
         await _playlistService.RefreshChannelsAsync();
         RebuildMenu();
+        SetBusy(false);
     }
 
     private void RebuildMenu()
@@ -416,14 +466,18 @@ internal sealed class PlayerForm : Form
         _current = channel;
         _pending = channel;
         _healthMonitor.MarkActivity();
-        _videoView.ShowWaiting();
+        UpdateCursor();
         using var media = new Media(_libVLC, new Uri(channel.Url));
         _mediaPlayer.Play(media);
     }
 
-    // Only clears the loading cursor on real failure; success clears it in OnPlaying.
-    private void OnPlaybackError(object sender, EventArgs e) =>
-        _videoView.SetCursorForCurrentView();
+    // On real failure clear the pending state so the spinner resolves; success
+    // clears it in OnPlaying.
+    private void OnPlaybackError(object sender, EventArgs e)
+    {
+        _pending = null;
+        UpdateCursor();
+    }
 
     private void OnPlaying(object sender, EventArgs e)
     {
@@ -448,7 +502,7 @@ internal sealed class PlayerForm : Form
     {
         _recentService.AddOrPromote(played);
         _lastService.SaveLastChannel(played);
-        _videoView.SetCursorForCurrentView();
+        UpdateCursor();
         RefreshRecent();
         ShowNowPlaying(played.DisplayName);
     }
