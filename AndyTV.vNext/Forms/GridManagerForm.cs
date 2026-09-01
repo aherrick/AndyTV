@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 
 namespace AndyTV.vNext;
 
@@ -8,6 +9,11 @@ abstract class GridManagerForm<T> : Form
     protected DataGridView Grid { get; }
     protected BindingList<T> Source { get; }
 
+    // True when the dialog left the list different from how it opened.
+    public bool Changed { get; private set; }
+
+    private readonly string _snapshot;
+
     protected GridManagerForm(string title, List<T> items)
     {
         Text = title;
@@ -15,6 +21,7 @@ abstract class GridManagerForm<T> : Form
         StartPosition = FormStartPosition.CenterParent;
 
         Source = new BindingList<T>(items);
+        _snapshot = JsonSerializer.Serialize(items);
         Grid = new DataGridView
         {
             Dock = DockStyle.Fill,
@@ -31,6 +38,7 @@ abstract class GridManagerForm<T> : Form
         {
             Grid.EndEdit();
             Normalize();
+            Changed = JsonSerializer.Serialize(Source) != _snapshot;
         };
     }
 

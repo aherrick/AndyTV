@@ -56,20 +56,4 @@ sealed class FavoritesManagerForm : GridManagerForm<Channel>
 
         Compose(up, down, delete);
     }
-
-    protected override void Normalize()
-    {
-        // Store cleared overrides as null so DisplayName falls back to the source Name.
-        foreach (var fav in Source)
-        {
-            if (string.IsNullOrWhiteSpace(fav.MappedName))
-            {
-                fav.MappedName = null;
-            }
-            if (string.IsNullOrWhiteSpace(fav.Group))
-            {
-                fav.Group = null;
-            }
-        }
-    }
 }

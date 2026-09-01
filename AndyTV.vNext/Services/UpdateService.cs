@@ -13,8 +13,9 @@ static class UpdateService
     {
         try
         {
+            // vNext ships as GitHub prereleases on its own channel, separate from stable AndyTV.
             var updater = new UpdateManager(
-                new GithubSource(RepoUrl, accessToken: null, prerelease: false));
+                new GithubSource(RepoUrl, accessToken: null, prerelease: true));
 
             if (!updater.IsInstalled)
             {

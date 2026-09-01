@@ -45,7 +45,7 @@ internal sealed class PlayerForm : Form
         _lastService = new LastChannelService(_storage);
         _favoriteService = new FavoriteChannelService(_storage);
 
-        Text = "AndyTV";
+        Text = "AndyTV vNext";
         BackColor = Color.Black;
 
         for (var i = 0; i < _recentItems.Length; i++)
@@ -231,6 +231,10 @@ internal sealed class PlayerForm : Form
     {
         using var form = new PlaylistManagerForm(_playlists);
         form.ShowDialog(this);
+        if (!form.Changed)
+        {
+            return;
+        }
         _playlistService.SavePlaylists(_playlists);
         await _playlistService.RefreshChannelsAsync();
         RebuildMenu();
@@ -241,7 +245,7 @@ internal sealed class PlayerForm : Form
         _menu.Items.Clear();
 
         var version = Application.ProductVersion.Split('+')[0];
-        _menu.Items.Add(new ToolStripMenuItem($"AndyTV - {version}") { Enabled = false });
+        _menu.Items.Add(new ToolStripMenuItem($"AndyTV vNext - {version}") { Enabled = false });
         _menu.Items.Add(new ToolStripSeparator());
 
         var manage = new ToolStripMenuItem("Manage");
@@ -354,6 +358,10 @@ internal sealed class PlayerForm : Form
         var favorites = _favoriteService.LoadFavoriteChannels();
         using var form = new FavoritesManagerForm(favorites);
         form.ShowDialog(this);
+        if (!form.Changed)
+        {
+            return;
+        }
         _favoriteService.SaveFavoriteChannels(favorites);
         RebuildMenu();
     }

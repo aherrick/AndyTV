@@ -14,5 +14,5 @@ public class Channel
     public string Category { get; set; }
     public string LogoUrl { get; set; }
 
-    public string DisplayName => MappedName ?? Name;
+    public string DisplayName => string.IsNullOrWhiteSpace(MappedName) ? Name : MappedName;
 }

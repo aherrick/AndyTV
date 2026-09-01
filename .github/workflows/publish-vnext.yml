@@ -10,8 +10,7 @@ jobs:
   build-pack-publish:
     runs-on: [self-hosted, ajwin]
     env:
-      # 2.0.x so it upgrades over the existing 1.0.x AndyTV install.
-      VERSION: 2.0.${{ github.run_number }}
+      VERSION: 1.0.${{ github.run_number }}
 
     steps:
       # Clone the repository (checkout automatically cleans the workspace first)
@@ -40,8 +39,7 @@ jobs:
         run: |
           dotnet publish .\AndyTV.vNext\AndyTV.vNext.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
 
-      # Use Velopack (vpk) to create installer, download previous release, and publish new version to GitHub.
-      # Same packId + channel as AndyTV, so this installs as an update on top of the current version.
+      # Velopack: distinct packId + channel + tag so vNext installs side-by-side with the stable app.
       - name: Install vpk (local tool) + run
         shell: powershell
         run: |
@@ -50,23 +48,24 @@ jobs:
 
           dotnet tool run vpk download github `
             --repoUrl https://github.com/${{ github.repository }} `
-            --channel win `
+            --channel vnext `
             --token ${{ github.token }}
 
           dotnet tool run vpk pack `
-            --packId com.ajh.AndyTV `
+            --packId com.ajh.AndyTV.vNext `
             --packVersion $env:VERSION `
             --packDir publish `
             --mainExe AndyTV.vNext.exe `
-            --packTitle "AndyTV" `
+            --packTitle "AndyTV vNext" `
             --icon .\AndyTV.vNext\AndyTV.ico `
-            --channel win
+            --channel vnext
 
           dotnet tool run vpk upload github `
             --outputDir Releases `
-            --channel win `
+            --channel vnext `
             --repoUrl https://github.com/${{ github.repository }} `
             --publish `
-            --tag v$env:VERSION `
-            --releaseName "AndyTV $env:VERSION" `
+            --pre `
+            --tag vnext-v$env:VERSION `
+            --releaseName "AndyTV vNext $env:VERSION" `
             --token ${{ github.token }}

@@ -1,3 +1,4 @@
+using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
 using Velopack;
 
@@ -8,8 +9,10 @@ static class Program
     [STAThread]
     static void Main()
     {
-        // Single instance: bail out if another copy already holds the mutex.
-        using var mutex = new Mutex(initiallyOwned: true, @"Global\AndyTV_SingleInstance", out var isNew);
+        // Side-by-side with the stable app: separate data folder + single-instance mutex.
+        LocalStorageProvider.AppName = "com.ajh.AndyTV.vNext";
+
+        using var mutex = new Mutex(initiallyOwned: true, @"Global\AndyTV_vNext_SingleInstance", out var isNew);
         if (!isNew)
         {
             return;
