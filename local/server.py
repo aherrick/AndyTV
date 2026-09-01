@@ -1,4 +1,4 @@
-import os, time, subprocess, threading, zipfile, urllib.request
+import os, sys, time, subprocess, threading, zipfile, urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -90,6 +90,12 @@ class Handler(SimpleHTTPRequestHandler):
 
     def log_message(self, *a): pass
 
+    def handle_error(self, request, client_address):
+        exc_type = sys.exc_info()[0]
+        if exc_type in (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            return
+        super().handle_error(request, client_address)
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
@@ -101,29 +107,32 @@ class Handler(SimpleHTTPRequestHandler):
             pass
 
     def do_POST(self):
-        path = urlparse(self.path).path
-        if path == "/start":
-            q = parse_qs(urlparse(self.path).query)
-            url = q.get("url", [""])[0].strip()
-            if not url:
-                self.send_response(400)
+        try:
+            path = urlparse(self.path).path
+            if path == "/start":
+                q = parse_qs(urlparse(self.path).query)
+                url = q.get("url", [""])[0].strip()
+                if not url:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"missing required query parameter: url")
+                    return
+                quality = q.get("quality", ["320"])[0]
+                if quality not in QUALITY:
+                    quality = "320"
+                threading.Thread(target=start_stream, args=(url, quality), daemon=True).start()
+                self.send_response(200)
                 self.end_headers()
-                self.wfile.write(b"missing required query parameter: url")
-                return
-            quality = q.get("quality", ["320"])[0]
-            if quality not in QUALITY:
-                quality = "320"
-            threading.Thread(target=start_stream, args=(url, quality), daemon=True).start()
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"ok")
-        elif path == "/stop":
-            stop_stream()
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"ok")
-        else:
-            self.send_error(404)
+                self.wfile.write(b"ok")
+            elif path == "/stop":
+                stop_stream()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"ok")
+            else:
+                self.send_error(404)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass
 
 
 if __name__ == "__main__":
