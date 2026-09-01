@@ -13,6 +13,7 @@ internal sealed class PlayerForm : Form
     private readonly ContextMenuStrip _menu = new();
     private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
     private readonly ToolStripSeparator _recentSeparator = new();
+    private readonly ToolStripSeparator _favoritesSeparator = new();
 
     private readonly IStorageProvider _storage = new LocalStorageProvider();
     private readonly PlaylistService _playlistService;
@@ -256,11 +257,12 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(manage);
         _menu.Items.Add(new ToolStripSeparator());
 
-        // Recent sits directly above the favorites list; both share one section.
+        // Recent sits above the favorites list, separated only when both exist.
         foreach (var item in _recentItems)
         {
             _menu.Items.Add(item);
         }
+        _menu.Items.Add(_favoritesSeparator);
         foreach (
             var fav in _favoriteService.Favorites.Where(f => string.IsNullOrWhiteSpace(f.Group))
         )
@@ -380,8 +382,10 @@ internal sealed class PlayerForm : Form
                 _recentItems[i].Visible = false;
             }
         }
+        var hasFavorites = _favoriteService.Favorites.Count > 0;
+        _favoritesSeparator.Visible = recents.Count > 0 && hasFavorites;
         // Divider hidden only when nothing sits above it (no recents and no favorites).
-        _recentSeparator.Visible = recents.Count > 0 || _favoriteService.Favorites.Count > 0;
+        _recentSeparator.Visible = recents.Count > 0 || hasFavorites;
     }
 
     private void OnRecentClick(object sender, EventArgs e)

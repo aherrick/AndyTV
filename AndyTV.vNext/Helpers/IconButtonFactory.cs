@@ -23,35 +23,32 @@ static class IconButtonFactory
         return button;
     }
 
-    // Action buttons on the left, Save & Close on the right.
+    // Action buttons on the left, Save & Close on the right; auto-height so nothing clips.
     public static Panel BottomBar(Control closeButton, params Control[] actions)
     {
         var left = new FlowLayoutPanel
         {
-            Dock = DockStyle.Left,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
             AutoSize = true,
+            WrapContents = false,
+            Margin = new Padding(0),
+            Anchor = AnchorStyles.Left,
         };
         left.Controls.AddRange(actions);
 
-        var right = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Right,
-            FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false,
-            AutoSize = true,
-        };
-        right.Controls.Add(closeButton);
+        closeButton.Anchor = AnchorStyles.Right;
 
-        var bar = new Panel
+        var bar = new TableLayoutPanel
         {
             Dock = DockStyle.Bottom,
-            Height = 48,
+            AutoSize = true,
+            ColumnCount = 2,
+            RowCount = 1,
             Padding = new Padding(8),
         };
-        bar.Controls.Add(left);
-        bar.Controls.Add(right);
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        bar.Controls.Add(left, 0, 0);
+        bar.Controls.Add(closeButton, 1, 0);
         return bar;
     }
 }

@@ -16,7 +16,7 @@ public static class ChannelMatcher
             {
                 continue;
             }
-            if (!ContainsAny(name, entry.Terms))
+            if (!ContainsAnyToken(name, entry.Terms))
             {
                 continue;
             }
@@ -181,6 +181,34 @@ public static class ChannelMatcher
             if (name.Contains(term, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    // Whole-token match: the term must not be flanked by letters, so "HBO" hits
+    // "WBTV HBO" but not "Khushboo" or "Neighborhood".
+    private static bool ContainsAnyToken(string name, IEnumerable<string> terms)
+    {
+        foreach (var term in terms)
+        {
+            if (string.IsNullOrEmpty(term))
+            {
+                continue;
+            }
+            var index = 0;
+            while ((index = name.IndexOf(term, index, StringComparison.OrdinalIgnoreCase)) >= 0)
+            {
+                var before = index - 1;
+                var after = index + term.Length;
+                if (
+                    (before < 0 || !char.IsLetter(name[before]))
+                    && (after >= name.Length || !char.IsLetter(name[after]))
+                )
+                {
+                    return true;
+                }
+                index = after;
             }
         }
         return false;
