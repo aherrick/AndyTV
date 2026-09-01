@@ -112,7 +112,7 @@
                             <ImageButton
                                 Grid.Column="2"
                                 BackgroundColor="Transparent"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=DeleteCommand}"
                                 CommandParameter="{Binding .}"
                                 HeightRequest="36"
                                 WidthRequest="36">

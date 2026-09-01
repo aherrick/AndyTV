@@ -53,7 +53,7 @@
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FavoritesViewModel}}, Path=SelectChannelCommand}"
                                     CommandParameter="{Binding .}" />
                             </Grid.GestureRecognizers>
 
@@ -81,7 +81,7 @@
                             <ImageButton
                                 Grid.Column="2"
                                 BackgroundColor="Transparent"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveFavoriteCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FavoritesViewModel}}, Path=RemoveFavoriteCommand}"
                                 CommandParameter="{Binding .}"
                                 HeightRequest="36"
                                 WidthRequest="36">

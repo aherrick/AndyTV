@@ -133,7 +133,7 @@
                         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectChannelCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=SelectChannelCommand}"
                                 CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
 
@@ -169,7 +169,7 @@
                             <ImageButton
                                 Grid.Column="2"
                                 BackgroundColor="Transparent"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleFavoriteCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChannelsViewModel}}, Path=ToggleFavoriteCommand}"
                                 CommandParameter="{Binding .}"
                                 HeightRequest="38"
                                 WidthRequest="38">
