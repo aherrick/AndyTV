@@ -1,4 +1,5 @@
 using System.Text;
+using AndyTV.Data.Services;
 
 namespace AndyTV.vNext;
 
@@ -8,7 +9,7 @@ static class Logger
 
     private static string InitLogFolder()
     {
-        var path = Path.Combine(Storage.Folder, "logs");
+        var path = Path.Combine(LocalStorageProvider.Folder, "logs");
         Directory.CreateDirectory(path);
         return path;
     }

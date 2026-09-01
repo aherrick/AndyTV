@@ -86,18 +86,6 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                     var rawName = item.Title;
                     var name = rawName;
 
-                    if (!string.IsNullOrWhiteSpace(p.UrlFind) && p.UrlReplace != null)
-                    {
-                        try
-                        {
-                            url = Regex.Replace(url, p.UrlFind, p.UrlReplace);
-                        }
-                        catch
-                        {
-                            // Regex failed, use original URL
-                        }
-                    }
-
                     if (!string.IsNullOrWhiteSpace(p.NameFind) && p.NameReplace != null)
                     {
                         try

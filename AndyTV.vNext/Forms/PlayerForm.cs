@@ -14,7 +14,7 @@ sealed class PlayerForm : Form
     private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
     private readonly ToolStripSeparator _recentSeparator = new();
 
-    private readonly IStorageProvider _storage = new Storage();
+    private readonly IStorageProvider _storage = new LocalStorageProvider();
     private readonly PlaylistService _playlistService;
     private readonly RecentChannelService _recentService;
     private readonly LastChannelService _lastService;
@@ -71,91 +71,101 @@ sealed class PlayerForm : Form
         _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
         _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
 
-        var videoView = new VideoView
+        _videoView = new VideoView
         {
             Dock = DockStyle.Fill,
             MediaPlayer = _mediaPlayer,
             BackColor = Color.Black,
             ContextMenuStrip = _menu
         };
-        videoView.MouseDoubleClick += (_, _) =>
-        {
-            if (this.IsFullscreen())
-            {
-                this.ExitFullscreen(_restoreState, _restoreBounds);
-            }
-            else
-            {
-                _restoreState = WindowState;
-                _restoreBounds = Bounds;
-                this.EnterFullscreen();
-            }
-            _videoView.SetCursorForCurrentView();
-        };
-        // Mouse gestures: left long-press = previous channel, middle = mute,
-        // right long-press = exit, wheel = channel up/down.
-        videoView.MouseDown += (_, e) =>
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                _leftDown = DateTime.Now;
-            }
-            else if (e.Button == MouseButtons.Right)
-            {
-                _rightDown = DateTime.Now;
-            }
-        };
-        videoView.MouseUp += (_, e) =>
-        {
-            if (e.Button == MouseButtons.Left
-                && _leftDown != DateTime.MinValue
-                && _leftDown.AddSeconds(LeftHoldSeconds) < DateTime.Now
-                && _recentService.GetPrevious() is { } previous)
-            {
-                Play(previous);
-            }
-            else if (e.Button == MouseButtons.Middle)
-            {
-                _mediaPlayer.Mute = !_mediaPlayer.Mute;
-            }
-            else if (e.Button == MouseButtons.Right
-                && _rightDown != DateTime.MinValue
-                && _rightDown.AddSeconds(RightHoldSeconds) < DateTime.Now)
-            {
-                Close();
-            }
-            _leftDown = DateTime.MinValue;
-            _rightDown = DateTime.MinValue;
-        };
-        videoView.MouseWheel += (_, e) =>
-        {
-            var direction = e.Delta > 0 ? 1 : -1;
-            if (_recentService.GetRelative(_current?.Url, direction) is { } next)
-            {
-                Play(next);
-            }
-        };
-        _videoView = videoView;
-        Controls.Add(videoView);
+        // Mouse gestures: double-click = fullscreen, left long-press = previous channel,
+        // middle = mute, right long-press = exit, wheel = channel up/down.
+        _videoView.MouseDoubleClick += OnVideoDoubleClick;
+        _videoView.MouseDown += OnVideoMouseDown;
+        _videoView.MouseUp += OnVideoMouseUp;
+        _videoView.MouseWheel += OnVideoMouseWheel;
+        Controls.Add(_videoView);
 
         _menu.Opening += (_, _) => _videoView.ShowDefault();
         _menu.Closing += (_, _) => _videoView.SetCursorForCurrentView();
         KeyPreview = true;
-        KeyDown += (_, e) =>
-        {
-            if (e.KeyCode == Keys.Escape)
-            {
-                Close();
-            }
-        };
+        KeyDown += OnFormKeyDown;
+        Shown += OnFormShown;
+    }
 
-        Shown += async (_, _) =>
+    private void OnVideoDoubleClick(object sender, MouseEventArgs e)
+    {
+        if (this.IsFullscreen())
         {
+            this.ExitFullscreen(_restoreState, _restoreBounds);
+        }
+        else
+        {
+            _restoreState = WindowState;
+            _restoreBounds = Bounds;
             this.EnterFullscreen();
-            _videoView.SetCursorForCurrentView();
-            _healthTimer.Start();
-            await Initialize();
-        };
+        }
+        _videoView.SetCursorForCurrentView();
+    }
+
+    private void OnVideoMouseDown(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left)
+        {
+            _leftDown = DateTime.Now;
+        }
+        else if (e.Button == MouseButtons.Right)
+        {
+            _rightDown = DateTime.Now;
+        }
+    }
+
+    private void OnVideoMouseUp(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left
+            && _leftDown != DateTime.MinValue
+            && _leftDown.AddSeconds(LeftHoldSeconds) < DateTime.Now
+            && _recentService.GetPrevious() is { } previous)
+        {
+            Play(previous);
+        }
+        else if (e.Button == MouseButtons.Middle)
+        {
+            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+        }
+        else if (e.Button == MouseButtons.Right
+            && _rightDown != DateTime.MinValue
+            && _rightDown.AddSeconds(RightHoldSeconds) < DateTime.Now)
+        {
+            Close();
+        }
+        _leftDown = DateTime.MinValue;
+        _rightDown = DateTime.MinValue;
+    }
+
+    private void OnVideoMouseWheel(object sender, MouseEventArgs e)
+    {
+        var direction = e.Delta > 0 ? 1 : -1;
+        if (_recentService.GetRelative(_current?.Url, direction) is { } next)
+        {
+            Play(next);
+        }
+    }
+
+    private void OnFormKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape)
+        {
+            Close();
+        }
+    }
+
+    private async void OnFormShown(object sender, EventArgs e)
+    {
+        this.EnterFullscreen();
+        _videoView.SetCursorForCurrentView();
+        _healthTimer.Start();
+        await Initialize();
     }
 
     private async Task Initialize()
@@ -217,7 +227,9 @@ sealed class PlayerForm : Form
         _menu.Items.Add(_recentSeparator);
         RefreshRecent();
 
-        _menu.Items.Add(BuildTopMenu());
+        var topChannels = _playlistService.Channels;
+        _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels)));
+        _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels)));
         _menu.Items.Add(new ToolStripSeparator());
 
         _menu.Items.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
@@ -230,31 +242,33 @@ sealed class PlayerForm : Form
         foreach (var (playlist, channels) in visible)
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
-            if (playlist.GroupByFirstChar)
+            foreach (var node in ChannelMatcher.BuildPlaylistNodes(playlist, channels))
             {
-                foreach (var group in ChannelMatcher.GroupByFirst(channels))
-                {
-                    var groupItem = new ToolStripMenuItem(group.Key);
-                    foreach (var channel in group)
-                    {
-                        AddChannel(groupItem.DropDownItems, channel);
-                    }
-                    item.DropDownItems.Add(groupItem);
-                }
-            }
-            else
-            {
-                foreach (var channel in channels)
-                {
-                    AddChannel(item.DropDownItems, channel);
-                }
+                item.DropDownItems.Add(Render(node));
             }
             _menu.Items.Add(item);
         }
     }
 
-    private void AddChannel(ToolStripItemCollection items, Channel channel) =>
-        items.Add(channel.DisplayName, null, (_, _) => Play(channel));
+    private ToolStripMenuItem Render(MenuNode node)
+    {
+        if (node.Channel is { } channel)
+        {
+            var leaf = new ToolStripMenuItem(node.Text);
+            leaf.Click += (_, _) => Play(channel);
+            return leaf;
+        }
+
+        var item = new ToolStripMenuItem(node.Text);
+        if (node.Children is not null)
+        {
+            foreach (var child in node.Children)
+            {
+                item.DropDownItems.Add(Render(child));
+            }
+        }
+        return item;
+    }
 
     private void RefreshRecent()
     {
@@ -282,46 +296,6 @@ sealed class PlayerForm : Form
         {
             Play(r);
         }
-    }
-
-    private ToolStripMenuItem BuildTopMenu()
-    {
-        var lookup = ChannelMatcher.BuildLookup(_playlistService.PlaylistChannels);
-        var top = new ToolStripMenuItem("Top");
-        top.DropDownItems.Add(BuildRegionMenu("US", ChannelService.TopUs(), lookup));
-        top.DropDownItems.Add(BuildRegionMenu("UK", ChannelService.TopUk(), lookup));
-        return top;
-    }
-
-    private ToolStripMenuItem BuildRegionMenu(
-        string region,
-        Dictionary<string, List<ChannelTop>> categories,
-        Dictionary<string, List<Channel>> lookup)
-    {
-        var regionItem = new ToolStripMenuItem(region);
-        foreach (var (category, channels) in categories)
-        {
-            var categoryItem = new ToolStripMenuItem(category);
-            foreach (var channel in channels)
-            {
-                var matches = ChannelMatcher.Match(channel, lookup);
-                var item = new ToolStripMenuItem(channel.Name) { Enabled = matches.Count > 0 };
-                if (matches.Count == 1)
-                {
-                    item.Click += (_, _) => Play(matches[0]);
-                }
-                else
-                {
-                    foreach (var ch in matches)
-                    {
-                        item.DropDownItems.Add(ch.DisplayName, null, (_, _) => Play(ch));
-                    }
-                }
-                categoryItem.DropDownItems.Add(item);
-            }
-            regionItem.DropDownItems.Add(categoryItem);
-        }
-        return regionItem;
     }
 
     private void Play(Channel channel)

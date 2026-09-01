@@ -17,6 +17,7 @@ sealed class PlaylistManagerForm : Form
             Dock = DockStyle.Fill,
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
             RowHeadersVisible = false,
             DataSource = source,
         };
@@ -42,6 +43,18 @@ sealed class PlaylistManagerForm : Form
             HeaderText = "Group A\u2013Z",
             DataPropertyName = nameof(Playlist.GroupByFirstChar),
         });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Name Find",
+            DataPropertyName = nameof(Playlist.NameFind),
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Name Replace",
+            DataPropertyName = nameof(Playlist.NameReplace),
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+        });
         var deleteColumn = new DataGridViewButtonColumn
         {
             Text = "Delete",
@@ -54,7 +67,16 @@ sealed class PlaylistManagerForm : Form
         {
             if (e.RowIndex >= 0 && grid.Columns[e.ColumnIndex] == deleteColumn)
             {
-                source.RemoveAt(e.RowIndex);
+                var confirm = MessageBox.Show(
+                    this,
+                    $"Delete \"{source[e.RowIndex].Name}\"?",
+                    "Confirm Delete",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+                if (confirm == DialogResult.Yes)
+                {
+                    source.RemoveAt(e.RowIndex);
+                }
             }
         };
 
@@ -65,9 +87,27 @@ sealed class PlaylistManagerForm : Form
             Height = 32,
         };
         addButton.Click += (_, _) =>
-            source.Add(new Playlist { Name = "New Playlist", ShowInMenu = true });
+        {
+            grid.EndEdit();
+            // One incomplete playlist at a time.
+            if (!source.Any(p => string.IsNullOrWhiteSpace(p.Url)))
+            {
+                source.Add(new Playlist { Name = "New Playlist", ShowInMenu = true });
+            }
+        };
 
-        FormClosing += (_, _) => grid.EndEdit();
+        FormClosing += (_, _) =>
+        {
+            grid.EndEdit();
+            // Never save a playlist without a URL / path.
+            for (var i = source.Count - 1; i >= 0; i--)
+            {
+                if (string.IsNullOrWhiteSpace(source[i].Url))
+                {
+                    source.RemoveAt(i);
+                }
+            }
+        };
         Controls.Add(grid);
         Controls.Add(addButton);
     }

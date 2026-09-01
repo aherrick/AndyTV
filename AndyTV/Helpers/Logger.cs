@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using AndyTV.Data.Services;
 
 namespace AndyTV.Helpers;
 
@@ -9,7 +10,7 @@ public static class Logger
         Directory.CreateDirectory(LogFolder);
     }
 
-    public static string LogFolder { get; } = PathHelper.GetPath("logs");
+    public static string LogFolder { get; } = LocalStorageProvider.PathFor("logs");
 
     private static string CurrentFile =>
         Path.Combine(LogFolder, $"{DateTime.UtcNow:yyyy-MM-dd}.log");

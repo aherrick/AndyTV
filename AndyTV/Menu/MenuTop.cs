@@ -14,8 +14,12 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         // Build all menu items off the UI thread — this is the expensive part.
         var channels = playlistService.Channels;
         var playlistItems = BuildPlaylistItems(channelClick);
-        var (usItem, usCount) = BuildTopItems("US", ChannelService.TopUs(), channelClick, channels);
-        var (ukItem, ukCount) = BuildTopItems("UK", ChannelService.TopUk(), channelClick, channels);
+        var usRegion = ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), channels);
+        var ukRegion = ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), channels);
+        var usItem = Render(usRegion, channelClick);
+        var ukItem = Render(ukRegion, channelClick);
+        var usCount = CountLeaves(usRegion);
+        var ukCount = CountLeaves(ukRegion);
         var item247 = Build247Items("24/7", channelClick, channels);
 
         // Only the quick swap runs on the UI thread.
@@ -126,188 +130,58 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         return root.DropDownItems.Count > 0 ? root : null;
     }
 
-    private static (ToolStripMenuItem Root, int TotalMatches) BuildTopItems(
-        string rootTitle,
-        Dictionary<string, List<ChannelTop>> categories,
-        EventHandler channelClick,
-        List<Channel> channels
-    )
+    private static ToolStripMenuItem Render(MenuNode node, EventHandler channelClick)
     {
-        var rootItem = new ToolStripMenuItem(rootTitle);
-        var totalMatches = 0;
-
-        foreach (
-            var (catName, entries) in categories.OrderBy(
-                k => k.Key,
-                StringComparer.OrdinalIgnoreCase
-            )
-        )
+        if (node.Channel is { } channel)
         {
-            var catItem = new ToolStripMenuItem(catName);
-
-            foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                var matches = channels
-                    .Where(ch =>
-                        ch.DisplayName != null
-                        && entry.Terms.Any(term =>
-                            ch.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
-                        )
-                        && entry.ExcludeTerms?.Any(ex =>
-                            ch.DisplayName.Contains(ex, StringComparison.OrdinalIgnoreCase)
-                        ) != true
-                    )
-                    .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                if (matches.Count == 0)
-                {
-                    continue;
-                }
-
-                totalMatches += matches.Count;
-
-                var parent = new ToolStripMenuItem(entry.Name);
-                foreach (var ch in matches)
-                {
-                    MenuHelper.AddChildChannelItem(parent, ch, channelClick);
-                }
-
-                catItem.DropDownItems.Add(parent);
-            }
-
-            if (catItem.DropDownItems.Count > 0)
-            {
-                rootItem.DropDownItems.Add(catItem);
-            }
+            var leaf = new ToolStripMenuItem(node.Text) { Tag = channel };
+            leaf.Click += channelClick;
+            return leaf;
         }
 
-        return (rootItem, totalMatches);
+        var item = new ToolStripMenuItem(node.Text);
+        if (node.Children is not null)
+        {
+            foreach (var child in node.Children)
+            {
+                item.DropDownItems.Add(Render(child, channelClick));
+            }
+        }
+        return item;
+    }
+
+    private static int CountLeaves(MenuNode node)
+    {
+        if (node.Channel is not null)
+        {
+            return 1;
+        }
+
+        var total = 0;
+        if (node.Children is not null)
+        {
+            foreach (var child in node.Children)
+            {
+                total += CountLeaves(child);
+            }
+        }
+        return total;
     }
 
     private List<ToolStripMenuItem> BuildPlaylistItems(EventHandler channelClick)
     {
         var result = new List<ToolStripMenuItem>();
-        var playlistChannelsMenu = playlistService.PlaylistChannels.Where(x =>
-            x.Playlist.ShowInMenu || x.Playlist.Groups is { Count: > 0 }
-        );
-
-        foreach (var (Playlist, Channels) in playlistChannelsMenu)
+        foreach (var (playlist, channels) in playlistService.PlaylistChannels)
         {
-            var root = new ToolStripMenuItem(Playlist.Name);
-
-            if (Playlist.Groups is { Count: > 0 })
+            if (!playlist.ShowInMenu)
             {
-                foreach (var groupName in Playlist.Groups)
-                {
-                    var groupMenu = new ToolStripMenuItem(groupName);
-
-                    var groupChannels = Channels
-                        .Where(ch =>
-                            string.Equals(ch.Group, groupName, StringComparison.OrdinalIgnoreCase)
-                        )
-                        .OrderBy(ch => ch.DisplayName, StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var ch in groupChannels)
-                    {
-                        MenuHelper.AddChildChannelItem(groupMenu, ch, channelClick);
-                    }
-
-                    if (groupMenu.DropDownItems.Count > 0)
-                    {
-                        root.DropDownItems.Add(groupMenu);
-                    }
-                }
+                continue;
             }
-            else if (Playlist.GroupByFirstChar)
+
+            var root = new ToolStripMenuItem(playlist.Name);
+            foreach (var node in ChannelMatcher.BuildPlaylistNodes(playlist, channels))
             {
-                var firstCharGroups = Channels
-                    .GroupBy(ch => char.ToUpperInvariant(ch.DisplayName.FirstOrDefault()))
-                    .OrderBy(g => g.Key);
-
-                // Decide whether this playlist should have an extra "title" level
-                // (episodic grouping) based on NameFind/NameReplace being set.
-                var hasNameTransform =
-                    !string.IsNullOrWhiteSpace(Playlist.NameFind)
-                    && Playlist.NameReplace is not null;
-
-                foreach (var firstCharGroup in firstCharGroups)
-                {
-                    var groupKey = firstCharGroup.Key;
-                    if (!char.IsLetterOrDigit(groupKey))
-                        groupKey = '#';
-
-                    var firstCharMenu = new ToolStripMenuItem(groupKey.ToString());
-
-                    if (hasNameTransform)
-                    {
-                        // Three-level: letter -> base title (DisplayName, case-insensitive) -> entries
-                        var titleGroups = firstCharGroup
-                            .GroupBy(
-                                c => c.DisplayName,
-                                StringComparer.OrdinalIgnoreCase
-                            )
-                            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
-
-                        foreach (var titleGroup in titleGroups)
-                        {
-                            // If there is only one channel for this title, avoid creating
-                            // a one-item show submenu; just add the entry directly under
-                            // the letter group.
-                            if (titleGroup.Count() == 1)
-                            {
-                                var single = titleGroup.First();
-                                MenuHelper.AddChildChannelItem(firstCharMenu, single, channelClick, single.RawName);
-                                continue;
-                            }
-
-                            var titleMenu = new ToolStripMenuItem(titleGroup.Key);
-
-                            foreach (var ch in titleGroup.OrderBy(
-                                         c => c.DisplayName,
-                                         StringComparer.OrdinalIgnoreCase
-                                     ))
-                            {
-                                // For episode entries, use the raw name so the full
-                                // title (including episode code) is visible.
-                                MenuHelper.AddChildChannelItem(
-                                    titleMenu,
-                                    ch,
-                                    channelClick,
-                                    ch.RawName
-                                );
-                            }
-
-                            if (titleMenu.DropDownItems.Count > 0)
-                            {
-                                firstCharMenu.DropDownItems.Add(titleMenu);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Simple two-level: letter -> entries (using current display name)
-                        foreach (var ch in firstCharGroup.OrderBy(
-                                     c => c.DisplayName,
-                                     StringComparer.OrdinalIgnoreCase
-                                 ))
-                        {
-                            MenuHelper.AddChildChannelItem(firstCharMenu, ch, channelClick);
-                        }
-                    }
-
-                    if (firstCharMenu.DropDownItems.Count > 0)
-                    {
-                        root.DropDownItems.Add(firstCharMenu);
-                    }
-                }
-            }
-            else
-            {
-                foreach (var ch in Channels)
-                {
-                    MenuHelper.AddChildChannelItem(root, ch, channelClick);
-                }
+                root.DropDownItems.Add(Render(node, channelClick));
             }
 
             if (root.DropDownItems.Count > 0)

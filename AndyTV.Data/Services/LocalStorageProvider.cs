@@ -1,8 +1,7 @@
-using AndyTV.Data.Services;
+namespace AndyTV.Data.Services;
 
-namespace AndyTV.vNext;
-
-sealed class Storage : IStorageProvider
+// File-backed storage shared by the Windows desktop apps (AndyTV, vNext).
+public sealed class LocalStorageProvider : IStorageProvider
 {
     public static string Folder { get; } = Init();
 
@@ -22,5 +21,5 @@ sealed class Storage : IStorageProvider
     public void WriteText(string fileName, string content) =>
         File.WriteAllText(PathFor(fileName), content);
 
-    private static string PathFor(string fileName) => Path.Combine(Folder, fileName);
+    public static string PathFor(string fileName) => Path.Combine(Folder, fileName);
 }
