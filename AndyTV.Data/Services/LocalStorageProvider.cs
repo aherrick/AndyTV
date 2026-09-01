@@ -3,17 +3,13 @@ namespace AndyTV.Data.Services;
 // File-backed storage shared by the Windows desktop apps (AndyTV, vNext).
 public sealed class LocalStorageProvider : IStorageProvider
 {
-    // Data folder name under %APPDATA%; set once at startup for side-by-side apps (e.g. vNext).
-    public static string AppName { get; set; } = "com.ajh.AndyTV";
-
-    private static string _folder;
-    public static string Folder => _folder ??= Init();
+    public static string Folder { get; } = Init();
 
     private static string Init()
     {
         var path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            AppName);
+            "com.ajh.AndyTV");
         Directory.CreateDirectory(path);
         return path;
     }

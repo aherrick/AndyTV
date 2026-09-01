@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace AndyTV.vNext;
 
 // Shared scaffold for the grid-based manager dialogs (Favorites, Playlists).
-abstract class GridManagerForm<T> : Form
+internal abstract class GridManagerForm<T> : Form
 {
     protected DataGridView Grid { get; }
     protected BindingList<T> Source { get; }
@@ -37,7 +37,6 @@ abstract class GridManagerForm<T> : Form
         FormClosing += (_, _) =>
         {
             Grid.EndEdit();
-            Normalize();
             Changed = JsonSerializer.Serialize(Source) != _snapshot;
         };
     }
@@ -76,7 +75,4 @@ abstract class GridManagerForm<T> : Form
         Grid.EndEdit();
         return Grid.CurrentRow?.Index ?? -1;
     }
-
-    // Runs on close, before the caller persists the list.
-    protected virtual void Normalize() { }
 }

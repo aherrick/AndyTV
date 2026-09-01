@@ -10,7 +10,8 @@ jobs:
   build-pack-publish:
     runs-on: [self-hosted, ajwin]
     env:
-      VERSION: 1.0.${{ github.run_number }}
+      # 2.0.x just to visually distinguish vNext from stable AndyTV (1.0.x); versions are independent per channel.
+      VERSION: 2.0.${{ github.run_number }}
 
     steps:
       # Clone the repository (checkout automatically cleans the workspace first)
