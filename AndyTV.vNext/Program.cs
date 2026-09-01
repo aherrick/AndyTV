@@ -8,6 +8,13 @@ static class Program
     [STAThread]
     static void Main()
     {
+        // Single instance: bail out if another copy already holds the mutex.
+        using var mutex = new Mutex(initiallyOwned: true, @"Global\AndyTV_SingleInstance", out var isNew);
+        if (!isNew)
+        {
+            return;
+        }
+
         // Must run first so Velopack can handle install/update hooks.
         VelopackApp.Build().Run();
 

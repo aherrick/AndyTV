@@ -132,6 +132,45 @@ public static class ChannelMatcher
         return letters;
     }
 
+    // Builds the "24/7" tree: bucket (A, B, …, 1-9) -> optional show submenu -> channels.
+    // Entries arrive pre-sorted, so consecutive runs are grouped without extra lookups.
+    public static MenuNode Build247(IReadOnlyList<Channel> channels)
+    {
+        var root = new MenuNode { Text = "24/7", Children = [] };
+        MenuNode bucketNode = null;
+        MenuNode showNode = null;
+        string bucket = null;
+        string groupBase = null;
+
+        foreach (var entry in ChannelService.Get247Entries(channels))
+        {
+            if (bucketNode is null || entry.Bucket != bucket)
+            {
+                bucket = entry.Bucket;
+                bucketNode = new MenuNode { Text = bucket, Children = [] };
+                root.Children.Add(bucketNode);
+                showNode = null;
+            }
+
+            if (entry.GroupBase is null)
+            {
+                bucketNode.Children.Add(Leaf(entry.Channel, entry.DisplayText));
+                showNode = null;
+            }
+            else
+            {
+                if (showNode is null || entry.GroupBase != groupBase)
+                {
+                    groupBase = entry.GroupBase;
+                    showNode = new MenuNode { Text = groupBase, Children = [] };
+                    bucketNode.Children.Add(showNode);
+                }
+                showNode.Children.Add(Leaf(entry.Channel, entry.DisplayText));
+            }
+        }
+        return root;
+    }
+
     private static MenuNode Leaf(Channel channel, string text) =>
         new() { Text = text, Channel = channel };
 

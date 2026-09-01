@@ -20,7 +20,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
         var ukItem = Render(ukRegion, channelClick);
         var usCount = CountLeaves(usRegion);
         var ukCount = CountLeaves(ukRegion);
-        var item247 = Build247Items("24/7", channelClick, channels);
+        var item247 = Render(ChannelMatcher.Build247(channels), channelClick);
 
         // Only the quick swap runs on the UI thread.
         _ui.Post(
@@ -56,7 +56,7 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
                     _added.Add(ukItem);
                 }
 
-                if (item247 is not null)
+                if (item247.DropDownItems.Count > 0)
                 {
                     menu.Items.Add(item247);
                     _added.Add(item247);
@@ -68,66 +68,6 @@ public partial class MenuTop(ContextMenuStrip menu, SynchronizationContext ui, I
             },
             null
         );
-    }
-
-    private static ToolStripMenuItem Build247Items(string rootTitle, EventHandler channelClick, List<Channel> channels)
-    {
-        var root = new ToolStripMenuItem(rootTitle);
-        var entries = ChannelService.Get247Entries(channels);
-
-        string currentBucket = null;
-        ToolStripMenuItem currentMenu = null;
-
-        foreach (var entry in entries)
-        {
-            if (!string.Equals(entry.Bucket, currentBucket, StringComparison.Ordinal))
-            {
-                if (currentMenu?.DropDownItems.Count > 0)
-                {
-                    root.DropDownItems.Add(currentMenu);
-                }
-
-                currentBucket = entry.Bucket;
-                currentMenu = new ToolStripMenuItem(currentBucket);
-            }
-
-            if (entry.GroupBase == null)
-            {
-                MenuHelper.AddChildChannelItem(
-                    currentMenu,
-                    entry.Channel,
-                    channelClick,
-                    entry.DisplayText
-                );
-            }
-            else
-            {
-                var subMenu =
-                    currentMenu
-                        .DropDownItems.OfType<ToolStripMenuItem>()
-                        .FirstOrDefault(m => m.Text == entry.GroupBase)
-                    ?? new ToolStripMenuItem(entry.GroupBase);
-
-                if (!currentMenu.DropDownItems.Contains(subMenu))
-                {
-                    currentMenu.DropDownItems.Add(subMenu);
-                }
-
-                MenuHelper.AddChildChannelItem(
-                    subMenu,
-                    entry.Channel,
-                    channelClick,
-                    entry.DisplayText
-                );
-            }
-        }
-
-        if (currentMenu?.DropDownItems.Count > 0)
-        {
-            root.DropDownItems.Add(currentMenu);
-        }
-
-        return root.DropDownItems.Count > 0 ? root : null;
     }
 
     private static ToolStripMenuItem Render(MenuNode node, EventHandler channelClick)

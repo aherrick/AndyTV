@@ -1,0 +1,72 @@
+name: publish-vnext
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-pack-publish:
+    runs-on: [self-hosted, ajwin]
+    env:
+      # 2.0.x so it upgrades over the existing 1.0.x AndyTV install.
+      VERSION: 2.0.${{ github.run_number }}
+
+    steps:
+      # Clone the repository (checkout automatically cleans the workspace first)
+      - uses: actions/checkout@v4
+
+      # Install .NET SDKs locally in workspace to avoid conflicts with system installations
+      - name: Setup .NET (local install)
+        uses: actions/setup-dotnet@v5
+        env:
+          DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
+        with:
+          dotnet-version: |
+            10.0.x
+            9.0.x
+
+      # Configure environment to use the locally installed .NET instead of system version
+      - name: Add local dotnet to PATH
+        shell: powershell
+        run: |
+          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
+          echo "DOTNET_ROOT=${{ github.workspace }}\.dotnet" >> $env:GITHUB_ENV
+
+      # Build self-contained executable with all dependencies bundled (no .NET runtime required)
+      - name: Publish (self-contained win-x64)
+        shell: powershell
+        run: |
+          dotnet publish .\AndyTV.vNext\AndyTV.vNext.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
+
+      # Use Velopack (vpk) to create installer, download previous release, and publish new version to GitHub.
+      # Same packId + channel as AndyTV, so this installs as an update on top of the current version.
+      - name: Install vpk (local tool) + run
+        shell: powershell
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install vpk
+
+          dotnet tool run vpk download github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --channel win `
+            --token ${{ github.token }}
+
+          dotnet tool run vpk pack `
+            --packId com.ajh.AndyTV `
+            --packVersion $env:VERSION `
+            --packDir publish `
+            --mainExe AndyTV.vNext.exe `
+            --packTitle "AndyTV" `
+            --icon .\AndyTV.vNext\AndyTV.ico `
+            --channel win
+
+          dotnet tool run vpk upload github `
+            --outputDir Releases `
+            --channel win `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --publish `
+            --tag v$env:VERSION `
+            --releaseName "AndyTV $env:VERSION" `
+            --token ${{ github.token }}

@@ -170,14 +170,16 @@ sealed class PlayerForm : Form
 
     private async Task Initialize()
     {
-        _playlists = _playlistService.LoadPlaylists();
-        await _playlistService.RefreshChannelsAsync();
-        RebuildMenu();
-
+        // Play the last channel first — it only needs local storage, so playback
+        // starts without waiting on the (networked) playlist refresh below.
         if (_lastService.LoadLastChannel() is { } last)
         {
             Play(last);
         }
+
+        _playlists = _playlistService.LoadPlaylists();
+        await _playlistService.RefreshChannelsAsync();
+        RebuildMenu();
 
         _ = RunHourlyRefresh();
         _ = UpdateService.Check();
@@ -230,6 +232,11 @@ sealed class PlayerForm : Form
         var topChannels = _playlistService.Channels;
         _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels)));
         _menu.Items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels)));
+        var menu247 = Render(ChannelMatcher.Build247(topChannels));
+        if (menu247.DropDownItems.Count > 0)
+        {
+            _menu.Items.Add(menu247);
+        }
         _menu.Items.Add(new ToolStripSeparator());
 
         _menu.Items.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
