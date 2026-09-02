@@ -21,8 +21,13 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
         });
         Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
-            HeaderText = "Show",
+            HeaderText = "Show in Menu",
             DataPropertyName = nameof(Playlist.ShowInMenu),
+        });
+        Grid.Columns.Add(new DataGridViewCheckBoxColumn
+        {
+            HeaderText = "Show in US/UK",
+            DataPropertyName = nameof(Playlist.ShowInUsUk),
         });
         Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {

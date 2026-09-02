@@ -389,10 +389,17 @@ internal sealed class PlayerForm : Form
             items.Add(item);
         }
 
-        var topChannels = _playlistService.Channels;
-        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels)));
-        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels)));
-        var menu247 = Render(ChannelMatcher.Build247(topChannels));
+        // US/UK match only playlists flagged for it, so TV-show/movie playlists don't
+        // pollute the curated lists; 24-7 still spans all channels.
+        var usUkChannels = _playlistService
+            .PlaylistChannels.Where(x => x.Playlist.ShowInUsUk)
+            .SelectMany(x => x.Channels)
+            .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels)));
+        var menu247 = Render(ChannelMatcher.Build247(_playlistService.Channels));
         if (menu247.DropDownItems.Count > 0)
         {
             items.Add(menu247);
