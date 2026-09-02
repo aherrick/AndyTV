@@ -81,7 +81,7 @@ public class MenuFavorite
     private void ShowFavoritesSection()
     {
         // Refresh and get cached favorites
-        _favoriteChannelService.RefreshFavorites();
+        // RefreshFavorites() dropped from IFavoriteChannelService (vNext migration); cache refreshes on save.
         var favorites = _favoriteChannelService.Favorites;
 
         if (favorites.Count == 0)

@@ -63,7 +63,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         }
     }
 
-    public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
+    private async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
         List<Playlist> playlists
     )
     {

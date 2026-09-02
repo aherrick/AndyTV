@@ -5,14 +5,9 @@ namespace AndyTV.Data.Services;
 public interface IFavoriteChannelService
 {
     /// <summary>
-    /// Cached list of favorite channels. Call RefreshFavorites() to update.
+    /// Cached list of favorite channels, refreshed automatically on save.
     /// </summary>
     List<Channel> Favorites { get; }
-
-    /// <summary>
-    /// Refreshes the cached favorites from storage.
-    /// </summary>
-    void RefreshFavorites();
 
     List<Channel> LoadFavoriteChannels();
 

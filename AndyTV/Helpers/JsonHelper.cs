@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AndyTV.Data.Helpers;
+namespace AndyTV.Helpers;
 
 public static class JsonHelper
 {

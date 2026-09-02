@@ -202,7 +202,6 @@ internal sealed class PlayerForm : Form
     private async void OnFormShown(object sender, EventArgs e)
     {
         this.EnterFullscreen();
-        UpdateCursor();
         _healthTimer.Start();
         await Initialize();
     }
@@ -310,7 +309,12 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add(
             "Check for Updates",
             null,
-            async (_, _) => await UpdateService.Check()
+            async (_, _) =>
+            {
+                SetBusy(true);
+                await UpdateService.Check();
+                SetBusy(false);
+            }
         );
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(new ToolStripSeparator());
@@ -321,28 +325,8 @@ internal sealed class PlayerForm : Form
         // Recent sits above the favorites list, separated only when both exist.
         _menu.Items.AddRange(_recentItems);
         _menu.Items.Add(_favoritesSeparator);
-        foreach (
-            var fav in _favoriteService.Favorites.Where(f => string.IsNullOrWhiteSpace(f.Group))
-        )
-        {
-            _menu.Items.Add(FavoriteLeaf(fav));
-        }
-        foreach (
-            var group in _favoriteService
-                .Favorites.Where(f => !string.IsNullOrWhiteSpace(f.Group))
-                .GroupBy(f => f.Group, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-        )
-        {
-            var groupItem = new ToolStripMenuItem(group.Key);
-            foreach (var fav in group)
-            {
-                groupItem.DropDownItems.Add(FavoriteLeaf(fav));
-            }
-            _menu.Items.Add(groupItem);
-        }
         _menu.Items.Add(_recentSeparator);
-        RefreshRecent();
+        RebuildFavorites();
 
         foreach (var (playlist, channels) in _playlistService.PlaylistChannels.Where(x => x.Playlist.ShowInMenu))
         {
@@ -366,6 +350,39 @@ internal sealed class PlayerForm : Form
         {
             _menu.Items.Add(menu247);
         }
+    }
+
+    // Rebuilds only the favorites section (between the two separators) in place,
+    // so adding/editing a favorite never rebuilds the playlist channel tree.
+    private void RebuildFavorites()
+    {
+        var index = _menu.Items.IndexOf(_favoritesSeparator) + 1;
+        while (index < _menu.Items.Count && _menu.Items[index] != _recentSeparator)
+        {
+            _menu.Items.RemoveAt(index);
+        }
+
+        foreach (
+            var fav in _favoriteService.Favorites.Where(f => string.IsNullOrWhiteSpace(f.Group))
+        )
+        {
+            _menu.Items.Insert(index++, FavoriteLeaf(fav));
+        }
+        foreach (
+            var group in _favoriteService
+                .Favorites.Where(f => !string.IsNullOrWhiteSpace(f.Group))
+                .GroupBy(f => f.Group, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+        )
+        {
+            var groupItem = new ToolStripMenuItem(group.Key);
+            foreach (var fav in group)
+            {
+                groupItem.DropDownItems.Add(FavoriteLeaf(fav));
+            }
+            _menu.Items.Insert(index++, groupItem);
+        }
+        RefreshRecent();
     }
 
     private ToolStripMenuItem Render(MenuNode node)
@@ -403,7 +420,7 @@ internal sealed class PlayerForm : Form
                     LogoUrl = current.LogoUrl,
                 }
             );
-            RebuildMenu();
+            RebuildFavorites();
         }
     }
 
@@ -417,7 +434,7 @@ internal sealed class PlayerForm : Form
             return;
         }
         _favoriteService.SaveFavoriteChannels(favorites);
-        RebuildMenu();
+        RebuildFavorites();
     }
 
     private ToolStripMenuItem FavoriteLeaf(Channel fav)

@@ -21,7 +21,7 @@ public class FavoriteChannelService : IFavoriteChannelService
         RefreshFavorites();
     }
 
-    public void RefreshFavorites()
+    private void RefreshFavorites()
     {
         Favorites = LoadFavoriteChannels();
         RebuildUrlCache();
