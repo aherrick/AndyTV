@@ -27,10 +27,11 @@ internal sealed class PlayerForm : Form
 
     private Channel _current;
     private Channel _pending;
-    // Cursor/menu state: the wait spinner shows while channels are still loading
-    // (menu not ready) or a channel is connecting (pending); the menu is suppressed
-    // until ready so a huge playlist can't be right-clicked mid-build.
-    private bool _menuReady;
+    // Channel-tree items (playlists + Top US/UK/24-7) currently in the menu. Built off
+    // the UI thread and swapped in, so the menu is usable before they finish loading.
+    private readonly List<ToolStripItem> _channelItems = [];
+    // Spinner shows while channels are loading (_busy) or a channel is connecting (_pending).
+    private bool _busy;
     private bool _menuOpen;
     private DateTime _leftDown = DateTime.MinValue;
     private DateTime _rightDown = DateTime.MinValue;
@@ -106,13 +107,8 @@ internal sealed class PlayerForm : Form
         _videoView.MouseWheel += OnVideoMouseWheel;
         Controls.Add(_videoView);
 
-        _menu.Opening += (_, e) =>
+        _menu.Opening += (_, _) =>
         {
-            if (!_menuReady)
-            {
-                e.Cancel = true;
-                return;
-            }
             _menuOpen = true;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
             _addFavoriteItem.Enabled = _current is { } c && !_favoriteService.IsFavorite(c);
@@ -208,7 +204,9 @@ internal sealed class PlayerForm : Form
 
     private async Task Initialize()
     {
-        SetBusy(true);
+        // Static parts (header, Manage, recents, favorites) build instantly from local
+        // storage so the menu is usable right away; channels stream in afterwards.
+        BuildStaticMenu();
 
         // Play the last channel first — it only needs local storage, so playback
         // starts without waiting on the (networked) playlist refresh below.
@@ -218,31 +216,29 @@ internal sealed class PlayerForm : Form
         }
 
         _playlists = _playlistService.LoadPlaylists();
-        await _playlistService.RefreshChannelsAsync();
-        RebuildMenu();
-        SetBusy(false);
+        await RefreshChannels();
 
         _ = RunHourlyRefresh();
     }
 
     private void SetBusy(bool busy)
     {
-        _menuReady = !busy;
+        _busy = busy;
         UpdateCursor();
     }
 
-    // Single place that decides the cursor: spinner while loading (menu not ready)
-    // or connecting (pending); otherwise visible for the open menu, and hidden
-    // (fullscreen) or default (windowed) when idle.
+    // Single place that decides the cursor: visible while the menu is open, otherwise
+    // the spinner while channels load (_busy) or a channel connects (_pending), and
+    // hidden (fullscreen) / default (windowed) when idle.
     private void UpdateCursor()
     {
-        if (!_menuReady || _pending is not null)
-        {
-            _videoView.ShowWaiting();
-        }
-        else if (_menuOpen)
+        if (_menuOpen)
         {
             _videoView.ShowDefault();
+        }
+        else if (_busy || _pending is not null)
+        {
+            _videoView.ShowWaiting();
         }
         else
         {
@@ -259,18 +255,12 @@ internal sealed class PlayerForm : Form
         {
             try
             {
-                SetBusy(true);
-                await _playlistService.RefreshChannelsAsync();
-                RebuildMenu();
+                await RefreshChannels();
                 Logger.Info("[REFRESH] Hourly channel refresh complete");
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Hourly refresh failed");
-            }
-            finally
-            {
-                SetBusy(false);
             }
         }
     }
@@ -284,15 +274,13 @@ internal sealed class PlayerForm : Form
             return;
         }
         _playlistService.SavePlaylists(_playlists);
-        SetBusy(true);
-        await _playlistService.RefreshChannelsAsync();
-        RebuildMenu();
-        SetBusy(false);
+        await RefreshChannels();
     }
 
-    private void RebuildMenu()
+    private void BuildStaticMenu()
     {
         _menu.Items.Clear();
+        _channelItems.Clear();
 
         var version = Application.ProductVersion.Split('+')[0];
         var header = new ToolStripMenuItem($"AndyTV vNext - {version}");
@@ -327,29 +315,71 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(_favoritesSeparator);
         _menu.Items.Add(_recentSeparator);
         RebuildFavorites();
+    }
 
-        foreach (var (playlist, channels) in _playlistService.PlaylistChannels.Where(x => x.Playlist.ShowInMenu))
+    // Downloads/parses channels and builds the channel tree off the UI thread (only the
+    // final Add/Remove swap runs on the UI thread), so the menu never freezes on load.
+    private async Task RefreshChannels()
+    {
+        SetBusy(true);
+        try
+        {
+            var items = await Task.Run(async () =>
+            {
+                await _playlistService.RefreshChannelsAsync();
+                return BuildChannelItems();
+            });
+            SwapChannelItems(items);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private void SwapChannelItems(List<ToolStripItem> items)
+    {
+        foreach (var item in _channelItems)
+        {
+            _menu.Items.Remove(item);
+        }
+        _channelItems.Clear();
+        foreach (var item in items)
+        {
+            _menu.Items.Add(item);
+            _channelItems.Add(item);
+        }
+    }
+
+    // Runs off the UI thread; only creates ToolStripItems (safe until added to the menu).
+    private List<ToolStripItem> BuildChannelItems()
+    {
+        var items = new List<ToolStripItem>();
+
+        foreach (
+            var (playlist, channels) in _playlistService.PlaylistChannels.Where(x =>
+                x.Playlist.ShowInMenu
+            )
+        )
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
             foreach (var node in ChannelMatcher.BuildPlaylistNodes(playlist, channels))
             {
                 item.DropDownItems.Add(Render(node));
             }
-            _menu.Items.Add(item);
+            items.Add(item);
         }
 
         var topChannels = _playlistService.Channels;
-        _menu.Items.Add(
-            Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels))
-        );
-        _menu.Items.Add(
-            Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels))
-        );
+        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), topChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), topChannels)));
         var menu247 = Render(ChannelMatcher.Build247(topChannels));
         if (menu247.DropDownItems.Count > 0)
         {
-            _menu.Items.Add(menu247);
+            items.Add(menu247);
         }
+
+        return items;
     }
 
     // Rebuilds only the favorites section (between the two separators) in place,
