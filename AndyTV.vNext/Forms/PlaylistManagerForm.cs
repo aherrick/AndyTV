@@ -1,5 +1,4 @@
 using AndyTV.Data.Models;
-using FontAwesome.Sharp;
 
 namespace AndyTV.vNext;
 
@@ -43,10 +42,8 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
 
-        var add = IconButtonFactory.Make(
-            IconChar.Plus,
-            Color.ForestGreen,
-            "Add playlist",
+        var add = ActionButton(
+            "Add",
             (_, _) =>
             {
                 Grid.EndEdit();
@@ -57,10 +54,8 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
                 }
             }
         );
-        var delete = IconButtonFactory.Make(
-            IconChar.TrashCan,
-            Color.Firebrick,
-            "Delete playlist",
+        var delete = ActionButton(
+            "Delete",
             (_, _) =>
             {
                 var i = SelectedIndex();

@@ -33,6 +33,7 @@ internal sealed class PlayerForm : Form
     // Spinner shows while channels are loading (_busy) or a channel is connecting (_pending).
     private bool _busy;
     private bool _menuOpen;
+    private Form _toast;
     private DateTime _leftDown = DateTime.MinValue;
     private DateTime _rightDown = DateTime.MinValue;
     private FormWindowState _restoreState = FormWindowState.Maximized;
@@ -195,7 +196,14 @@ internal sealed class PlayerForm : Form
 
     private async void OnFormShown(object sender, EventArgs e)
     {
-        this.EnterFullscreen();
+        if (Program.StartOnRight)
+        {
+            this.SnapToHalf(left: false);
+        }
+        else
+        {
+            this.EnterFullscreen();
+        }
         _healthTimer.Start();
         await Initialize();
     }
@@ -304,6 +312,7 @@ internal sealed class PlayerForm : Form
         );
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
         manage.DropDownItems.Add(_muteItem);
+        manage.DropDownItems.Add("New Window", null, (_, _) => NewWindow());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());
         _menu.Items.Add(manage);
@@ -476,6 +485,25 @@ internal sealed class PlayerForm : Form
     private static void OpenUrl(string url) =>
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
+    // Snap this window to the left half and launch a second instance on the right.
+    private void NewWindow()
+    {
+        if (this.IsFullscreen())
+        {
+            this.SnapToHalf(left: true);
+            UpdateCursor();
+        }
+        Process.Start(
+            new ProcessStartInfo
+            {
+                FileName = Application.ExecutablePath,
+                Arguments = "--new-instance --right",
+                UseShellExecute = true,
+                WorkingDirectory = AppContext.BaseDirectory,
+            }
+        );
+    }
+
     private void RefreshRecent()
     {
         var recents = _recentService.GetRecentChannels();
@@ -545,16 +573,19 @@ internal sealed class PlayerForm : Form
         ShowNowPlaying(played.DisplayName);
     }
 
-    // VLC renders this directly on the video frame and auto-hides after Timeout.
+    // Brief "now playing" toast, replacing the previous one at each channel change.
     private void ShowNowPlaying(string text)
     {
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Enable, 1);
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Size, 28);
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Color, 0xFF0000);
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Opacity, 255);
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Position, 10);
-        _mediaPlayer.SetMarqueeInt(VideoMarqueeOption.Timeout, 2500);
-        _mediaPlayer.SetMarqueeString(VideoMarqueeOption.Text, text);
+        _toast?.Close();
+        var toast = Toast.Show(this, text);
+        _toast = toast;
+        toast.FormClosed += (_, _) =>
+        {
+            if (_toast == toast)
+            {
+                _toast = null;
+            }
+        };
     }
 
     protected override void Dispose(bool disposing)
