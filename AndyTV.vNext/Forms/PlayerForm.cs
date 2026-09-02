@@ -8,6 +8,8 @@ namespace AndyTV.vNext;
 
 internal sealed class PlayerForm : Form
 {
+    private static string AppVersionName => $"AndyTV vNext {Application.ProductVersion}";
+
     private readonly LibVLC _libVLC = new();
     private readonly MediaPlayer _mediaPlayer;
     private readonly VideoView _videoView;
@@ -53,7 +55,7 @@ internal sealed class PlayerForm : Form
         _lastService = new LastChannelService(_storage);
         _favoriteService = new FavoriteChannelService(_storage);
 
-        Text = $"AndyTV vNext {Application.ProductVersion.Split('+')[0]}";
+        Text = AppVersionName;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
 
@@ -304,8 +306,7 @@ internal sealed class PlayerForm : Form
         _menu.Items.Clear();
         _channelItems.Clear();
 
-        var version = Application.ProductVersion.Split('+')[0];
-        var header = new ToolStripMenuItem($"AndyTV vNext - {version}");
+        var header = new ToolStripMenuItem(AppVersionName);
         header.Click += (_, _) => OpenUrl(UpdateService.RepoUrl);
         _menu.Items.Add(header);
         _menu.Items.Add(new ToolStripSeparator());
