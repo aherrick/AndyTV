@@ -81,7 +81,6 @@ internal sealed class PlayerForm : Form
         _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
 
         _mediaPlayer.Playing += OnPlaying;
-        _mediaPlayer.EncounteredError += OnPlaybackError;
         _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
         _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
 
@@ -111,7 +110,6 @@ internal sealed class PlayerForm : Form
         {
             _menuOpen = true;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
-            _addFavoriteItem.Enabled = _current is { } c && !_favoriteService.IsFavorite(c);
             UpdateCursor();
         };
         _menu.Closing += (_, _) =>
@@ -304,6 +302,7 @@ internal sealed class PlayerForm : Form
                 SetBusy(false);
             }
         );
+        manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());
@@ -518,14 +517,6 @@ internal sealed class PlayerForm : Form
         _mediaPlayer.Play(media);
     }
 
-    // On real failure clear the pending state so the spinner resolves; success
-    // clears it in OnPlaying.
-    private void OnPlaybackError(object sender, EventArgs e)
-    {
-        _pending = null;
-        UpdateCursor();
-    }
-
     private void OnPlaying(object sender, EventArgs e)
     {
         _healthMonitor.MarkActivity();
@@ -574,7 +565,6 @@ internal sealed class PlayerForm : Form
             _cts.Dispose();
             _healthTimer.Dispose();
             _mediaPlayer.Playing -= OnPlaying;
-            _mediaPlayer.EncounteredError -= OnPlaybackError;
             _mediaPlayer.Dispose();
             _libVLC.Dispose();
         }

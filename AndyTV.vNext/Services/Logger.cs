@@ -5,7 +5,7 @@ namespace AndyTV.vNext;
 
 static class Logger
 {
-    private static readonly string LogFolder = InitLogFolder();
+    public static string LogFolder { get; } = InitLogFolder();
 
     private static string InitLogFolder()
     {
