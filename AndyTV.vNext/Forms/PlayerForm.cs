@@ -307,6 +307,7 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add("Search\u2026", null, (_, _) => SearchChannels());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
+        manage.DropDownItems.Add("Refresh", null, async (_, _) => await RefreshChannels());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add(_addFavoriteItem);
         manage.DropDownItems.Add("Favorites\u2026", null, (_, _) => ManageFavorites());
