@@ -283,6 +283,15 @@ internal sealed class PlayerForm : Form
         await RefreshChannels();
     }
 
+    private void SearchChannels()
+    {
+        using var form = new SearchForm(_playlistService.Channels);
+        if (form.ShowDialog(this) == DialogResult.OK && form.Selected is { } channel)
+        {
+            Play(channel);
+        }
+    }
+
     private void BuildStaticMenu()
     {
         _menu.Items.Clear();
@@ -295,6 +304,8 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(new ToolStripSeparator());
 
         var manage = new ToolStripMenuItem("Manage");
+        manage.DropDownItems.Add("Search\u2026", null, (_, _) => SearchChannels());
+        manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add(_addFavoriteItem);
