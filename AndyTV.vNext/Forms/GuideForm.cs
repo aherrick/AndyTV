@@ -13,11 +13,9 @@ sealed class GuideForm : Form
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "AndyTV Guide";
-        Width = 1400;
-        Height = 900;
-        StartPosition = FormStartPosition.CenterScreen;
+        Size = new Size(1400, 900);
         MinimumSize = new Size(1024, 720);
-        FormBorderStyle = FormBorderStyle.Sizable;
+        StartPosition = FormStartPosition.CenterScreen;
 
         SyncfusionLicenseProvider.RegisterLicense(
             "Ngo9BigBOggjHTQxAR8/V1JAaF5cX2pCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkJjXn5YcnxRR2dVUUd9XEY="
