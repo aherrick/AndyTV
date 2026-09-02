@@ -292,6 +292,13 @@ internal sealed class PlayerForm : Form
         }
     }
 
+    private void ShowGuide()
+    {
+        using var form = new GuideForm();
+        form.ShowDialog(this);
+        UpdateCursor();
+    }
+
     private void BuildStaticMenu()
     {
         _menu.Items.Clear();
@@ -305,6 +312,7 @@ internal sealed class PlayerForm : Form
 
         var manage = new ToolStripMenuItem("Manage");
         manage.DropDownItems.Add("Search\u2026", null, (_, _) => SearchChannels());
+        manage.DropDownItems.Add("Guide", null, (_, _) => ShowGuide());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
         manage.DropDownItems.Add("Refresh", null, async (_, _) => await RefreshChannels());
