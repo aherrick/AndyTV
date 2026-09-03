@@ -38,7 +38,7 @@ public sealed class SportsGuideFormatter
         foreach (var (sportsEvent, rankedEvent) in ranked.OrderBy(item => item.Event.StartTimeEastern))
         {
             timeline.AppendLine(
-                $"{sportsEvent.StartTimeEastern:h:mm tt} ET {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)}{Network(rankedEvent)}"
+                $"{TimeCol(sportsEvent.StartTimeEastern)} ET {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)}{Network(rankedEvent)}"
             );
         }
 
@@ -76,6 +76,14 @@ public sealed class SportsGuideFormatter
 
     private static string Network(RankedEvent rankedEvent) =>
         string.IsNullOrWhiteSpace(rankedEvent.Network) ? "" : $" - {rankedEvent.Network.Trim()}";
+
+    // Pad single-digit hours with a digit-width figure space (U+2007) so times align in X's proportional font.
+    private static string TimeCol(DateTimeOffset time)
+    {
+        var hour12 = time.Hour % 12 == 0 ? 12 : time.Hour % 12;
+        var pad = hour12 < 10 ? "\u2007" : "";
+        return $"{pad}{time:h:mm tt}";
+    }
 
     private static string RankedMatchup(SportsEvent sportsEvent, RankedEvent rankedEvent)
     {
