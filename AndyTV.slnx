@@ -13,6 +13,7 @@
   <Project Path="AndyTV.Tests/AndyTV.Tests.csproj" />
   <Project Path="AndyTV.VLC/AndyTV.VLC.csproj" />
   <Project Path="AndyTV.vNext/AndyTV.vNext.csproj" />
+  <Project Path="AndyTV.Watchlist/AndyTV.Watchlist.csproj" Id="f84ddcc9-85a4-4b84-a8c5-90e477bd6a28" />
   <Project Path="AndyTV.Web/AndyTV.Web.csproj" />
   <Project Path="AndyTV/AndyTV.csproj" />
 </Solution>
