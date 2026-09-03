@@ -14,11 +14,14 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
 
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
-#if DEBUG
-        [TimerTrigger("0 0 8 * * *", RunOnStartup = true)] TimerInfo myTimer,
-#else
-        [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
-#endif
+        //#if DEBUG
+
+        [TimerTrigger("0 0 * * * *", RunOnStartup = true)] // jsut for testing for now
+        // [TimerTrigger("0 0 8 * * *", RunOnStartup = true)]
+        //   TimerInfo myTimer,
+        //#else
+        //        [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
+        //#endif
         CancellationToken cancellationToken
     )
     {

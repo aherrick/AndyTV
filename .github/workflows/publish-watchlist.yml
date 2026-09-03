@@ -1,0 +1,28 @@
+name: deploy-function
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-function:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish
+        run: dotnet publish AndyTV.Watchlist/AndyTV.Watchlist.csproj --configuration Release --output ./publish
+
+      - name: Deploy to Azure Function
+        uses: Azure/functions-action@v1
+        with:
+          app-name: andytvwatchlistfn
+          package: ./publish
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_ANDYTVWATCHLIST_PUBLISH_PROFILE }}
+          sku: flexconsumption

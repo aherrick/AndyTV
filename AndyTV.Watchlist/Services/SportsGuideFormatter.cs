@@ -45,7 +45,7 @@ public sealed class SportsGuideFormatter
         return new SportsPosts(
             best.ToString().TrimEnd(),
             timeline.ToString().TrimEnd(),
-            $"🤖 ANDY TV AI WATCH PLAN\n\n{guide.WatchPlan.Trim()}\n\n{TopPicks(ranked)}"
+            $"{TopPicks(ranked)}\n\n🤖 ANDY TV AI WATCH PLAN\n\n{guide.WatchPlan.Trim()}"
         );
     }
 
