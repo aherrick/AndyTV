@@ -81,6 +81,16 @@ Planned highlights:
 
 This project is experimental and under active development; APIs and features may change.
 
+## 🏆 AndyTV.Watchlist (Daily Sports Guide)
+`AndyTV.Watchlist` is an Azure Functions app that creates and posts a daily sports watch guide to X. It gathers verified schedules for major baseball, football, hockey, basketball, and soccer events, then uses AI research to rank the best matchups and build a viewing plan.
+
+The daily thread includes:
+- 📺 Ranked sports to watch today
+- ⏰ A chronological sports timeline
+- ⭐ Top picks and an AI watch plan
+
+Follow [@AndyTVWatchlist on X](https://x.com/AndyTVWatchlist) for the daily guide.
+
 ## ▶️ AndyTV.VLC (Companion)
 `AndyTV.VLC` is a lightweight Blazor Server companion that lets you browse an IPTV playlist and launch any channel directly in VLC. Use it when you prefer VLC's player or want fast filtering/grouping.
 
