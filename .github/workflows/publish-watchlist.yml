@@ -1,4 +1,4 @@
-name: deploy-function
+name: publish-watchlist
 
 on:
   workflow_dispatch:
