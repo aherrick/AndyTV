@@ -81,12 +81,12 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
 
         _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
 
-        if (myTimer.ScheduleStatus is not null)
-        {
-            _logger.LogInformation(
-                "Next timer schedule at: {nextSchedule}",
-                myTimer.ScheduleStatus.Next
-            );
-        }
+        //if (myTimer.ScheduleStatus is not null)
+        //{
+        //    _logger.LogInformation(
+        //        "Next timer schedule at: {nextSchedule}",
+        //        myTimer.ScheduleStatus.Next
+        //    );
+        //}
     }
 }
