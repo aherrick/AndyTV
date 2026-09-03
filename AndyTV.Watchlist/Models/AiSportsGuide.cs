@@ -7,6 +7,12 @@ public sealed class AiSportsGuide
     public string WatchPlan { get; init; } = "";
 }
 
-public sealed record RankedEvent(int EventId, string Reason, string? Network);
+public sealed record RankedEvent(
+    int EventId,
+    string Reason,
+    string? Network,
+    int? HomeRank,
+    int? AwayRank
+);
 
 public sealed record SportsPosts(string Post1, string Post2, string Post3);

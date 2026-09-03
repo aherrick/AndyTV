@@ -24,7 +24,7 @@ public sealed class SportsGuideFormatter
         {
             var (sportsEvent, rankedEvent) = ranked[index];
             best.AppendLine(
-                    $"{index + 1}. {Icon(sportsEvent.Sport)} {sportsEvent.Matchup} - {sportsEvent.StartTimeEastern:h:mm tt} ET{Network(rankedEvent)}"
+                    $"{index + 1}. {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)} - {sportsEvent.StartTimeEastern:h:mm tt} ET{Network(rankedEvent)}"
                 )
                 .AppendLine(rankedEvent.Reason.Trim())
                 .AppendLine();
@@ -38,7 +38,7 @@ public sealed class SportsGuideFormatter
         foreach (var (sportsEvent, rankedEvent) in ranked.OrderBy(item => item.Event.StartTimeEastern))
         {
             timeline.AppendLine(
-                $"{sportsEvent.StartTimeEastern:h:mm tt} ET {Icon(sportsEvent.Sport)} {sportsEvent.Matchup}{Network(rankedEvent)}"
+                $"{sportsEvent.StartTimeEastern:h:mm tt} ET {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)}{Network(rankedEvent)}"
             );
         }
 
@@ -58,7 +58,7 @@ public sealed class SportsGuideFormatter
             if (source.Cast<(SportsEvent Event, RankedEvent Ranked)?>().FirstOrDefault() is { } pick)
             {
                 picks.AppendLine(
-                    $"{label} {pick.Event.Matchup} - {pick.Event.StartTimeEastern:h:mm tt} ET"
+                    $"{label} {RankedMatchup(pick.Event, pick.Ranked)} - {pick.Event.StartTimeEastern:h:mm tt} ET"
                 );
             }
         }
@@ -76,6 +76,13 @@ public sealed class SportsGuideFormatter
 
     private static string Network(RankedEvent rankedEvent) =>
         string.IsNullOrWhiteSpace(rankedEvent.Network) ? "" : $" - {rankedEvent.Network.Trim()}";
+
+    private static string RankedMatchup(SportsEvent sportsEvent, RankedEvent rankedEvent)
+    {
+        var away = rankedEvent.AwayRank is int ar ? $"#{ar} {sportsEvent.Away}" : sportsEvent.Away;
+        var home = rankedEvent.HomeRank is int hr ? $"#{hr} {sportsEvent.Home}" : sportsEvent.Home;
+        return $"{away} @ {home}";
+    }
 
     private static string Icon(string sport) => sport switch
     {

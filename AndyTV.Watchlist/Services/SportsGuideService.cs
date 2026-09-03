@@ -35,9 +35,11 @@ public sealed class SportsGuideService(AppSettings settings)
                 "properties": {
                   "eventId": { "type": "integer" },
                   "reason": { "type": "string" },
-                  "network": { "type": ["string", "null"] }
+                  "network": { "type": ["string", "null"] },
+                  "homeRank": { "type": ["integer", "null"] },
+                  "awayRank": { "type": ["integer", "null"] }
                 },
-                "required": ["eventId", "reason", "network"],
+                "required": ["eventId", "reason", "network", "homeRank", "awayRank"],
                 "additionalProperties": false
               }
             },
