@@ -116,6 +116,8 @@ public sealed class SportsGuideService(AppSettings settings)
         IEnumerable<ResponseItem> outputItems
     )
     {
+        // Counts all web actions (search + open_page + find_in_page), so the cost is an upper bound.
+        // TODO: when the SDK exposes WebSearchCallResponseItem.Action, count only WebSearchCallSearchAction for the exact billable-search cost.
         var webActions = outputItems.OfType<WebSearchCallResponseItem>().Count();
         var webMaxCost = webActions * WebSearchPerThousand / 1_000m;
         var web = $"Web: {webActions} actions (max-estimate: ${webMaxCost:F4})";

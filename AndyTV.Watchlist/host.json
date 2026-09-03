@@ -1,4 +1,5 @@
 {
-    "version": "2.0",
-    "telemetryMode": "OpenTelemetry"
+  "version": "2.0",
+  "telemetryMode": "OpenTelemetry",
+  "functionTimeout": "00:10:00"
 }
