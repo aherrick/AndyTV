@@ -84,6 +84,18 @@ internal sealed class HockeyGameDto
     public TeamsDto Teams { get; init; } = new();
 }
 
+internal sealed class BasketballGameDto
+{
+    [JsonPropertyName("timestamp")]
+    public long Timestamp { get; init; }
+
+    [JsonPropertyName("league")]
+    public LeagueDto League { get; init; } = new();
+
+    [JsonPropertyName("teams")]
+    public TeamsDto Teams { get; init; } = new();
+}
+
 internal sealed class SoccerFixtureDto
 {
     [JsonPropertyName("fixture")]

@@ -35,6 +35,12 @@ public sealed class ApiSportsService
         772, // Leagues Cup
     ];
 
+    private static readonly HashSet<int> TopBasketballLeagueIds =
+    [
+        12, // NBA
+        116, // NCAA
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -59,6 +65,7 @@ public sealed class ApiSportsService
         events.AddRange(await GetBaseballAsync(targetDate, cancellationToken));
         events.AddRange(await GetFootballAsync(targetDate, cancellationToken));
         events.AddRange(await GetHockeyAsync(targetDate, cancellationToken));
+        events.AddRange(await GetBasketballAsync(targetDate, cancellationToken));
         events.AddRange(await GetSoccerAsync(targetDate, cancellationToken));
 
         return events
@@ -112,6 +119,19 @@ public sealed class ApiSportsService
             game =>
                 game.League.Id == 57
                     ? ToSportsEvent("Hockey", game.League.Name, game.Teams, game.Timestamp)
+                    : null,
+            cancellationToken
+        );
+
+    private Task<IReadOnlyList<SportsEvent>> GetBasketballAsync(
+        DateOnly date,
+        CancellationToken cancellationToken
+    ) =>
+        LoadEventsAsync<BasketballGameDto>(
+            $"https://v1.basketball.api-sports.io/games?{DateQuery(date)}",
+            game =>
+                TopBasketballLeagueIds.Contains(game.League.Id)
+                    ? ToSportsEvent("Basketball", game.League.Name, game.Teams, game.Timestamp)
                     : null,
             cancellationToken
         );

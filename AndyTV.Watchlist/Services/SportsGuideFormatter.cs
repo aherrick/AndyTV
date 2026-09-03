@@ -67,6 +67,7 @@ public sealed class SportsGuideFormatter
         Add("🏈 Best football:", ranked.Where(item => item.Event.Sport == "Football"));
         Add("⚾ Best baseball:", ranked.Where(item => item.Event.Sport == "Baseball"));
         Add("🏒 Best hockey:", ranked.Where(item => item.Event.Sport == "Hockey"));
+        Add("🏀 Best basketball:", ranked.Where(item => item.Event.Sport == "Basketball"));
         Add("⚽ Best soccer:", ranked.Where(item => item.Event.Sport == "Soccer"));
         Add("🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
 
@@ -81,6 +82,7 @@ public sealed class SportsGuideFormatter
         "Baseball" => "⚾",
         "Football" => "🏈",
         "Hockey" => "🏒",
+        "Basketball" => "🏀",
         "Soccer" => "⚽",
         _ => "📺",
     };

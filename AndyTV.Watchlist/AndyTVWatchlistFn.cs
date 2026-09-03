@@ -16,7 +16,7 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
     public async Task Run(
 #if DEBUG
 
-        [TimerTrigger("0 0 8 * * *", RunOnStartup = true)] TimerInfo myTimer,
+        [TimerTrigger("0 0 8 * * *", RunOnStartup = true)] TimerInfo myTimer, // runs at 3/4 am EST
 #else
         [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
 #endif
