@@ -82,6 +82,15 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
                 foreach (var item in parsed.Channels)
                 {
+                    // Drop malformed entries at the source so a null title/URL can never reach the menu.
+                    if (
+                        string.IsNullOrWhiteSpace(item.MediaUrl)
+                        || string.IsNullOrWhiteSpace(item.Title)
+                    )
+                    {
+                        continue;
+                    }
+
                     var url = item.MediaUrl;
                     var rawName = item.Title;
                     var name = rawName;

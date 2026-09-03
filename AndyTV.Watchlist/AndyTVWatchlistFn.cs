@@ -14,14 +14,12 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
 
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
-        //#if DEBUG
+#if DEBUG
 
-        [TimerTrigger("0 0 * * * *", RunOnStartup = true)] // jsut for testing for now
-        // [TimerTrigger("0 0 8 * * *", RunOnStartup = true)]
-        //   TimerInfo myTimer,
-        //#else
-        //        [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
-        //#endif
+        [TimerTrigger("0 0 8 * * *", RunOnStartup = true)] TimerInfo myTimer,
+#else
+        [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
+#endif
         CancellationToken cancellationToken
     )
     {
@@ -81,12 +79,12 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
 
         _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
 
-        //if (myTimer.ScheduleStatus is not null)
-        //{
-        //    _logger.LogInformation(
-        //        "Next timer schedule at: {nextSchedule}",
-        //        myTimer.ScheduleStatus.Next
-        //    );
-        //}
+        if (myTimer.ScheduleStatus is not null)
+        {
+            _logger.LogInformation(
+                "Next timer schedule at: {nextSchedule}",
+                myTimer.ScheduleStatus.Next
+            );
+        }
     }
 }
