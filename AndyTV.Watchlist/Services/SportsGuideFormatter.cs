@@ -16,7 +16,7 @@ public sealed class SportsGuideFormatter
             .ToList();
 
         var best = new StringBuilder()
-            .AppendLine("📺 ANDY TV - BEST SPORTS TODAY")
+            .AppendLine("📺 AndyTV - BEST SPORTS TODAY")
             .AppendLine($"{targetDate:dddd, MMMM d}")
             .AppendLine();
 
@@ -31,7 +31,7 @@ public sealed class SportsGuideFormatter
         }
 
         var timeline = new StringBuilder()
-            .AppendLine("⏰ ANDY TV - TODAY'S SPORTS TIMELINE")
+            .AppendLine("⏰ AndyTV - TODAY'S SPORTS TIMELINE")
             .AppendLine($"{targetDate:dddd, MMMM d}")
             .AppendLine();
 
@@ -45,7 +45,7 @@ public sealed class SportsGuideFormatter
         return new SportsPosts(
             best.ToString().TrimEnd(),
             timeline.ToString().TrimEnd(),
-            $"{TopPicks(ranked)}\n\n🤖 ANDY TV AI WATCH PLAN\n\n{guide.WatchPlan.Trim()}"
+            $"{TopPicks(ranked)}\n\n🤖 AndyTV AI WATCH PLAN\n\n{guide.WatchPlan.Trim()}"
         );
     }
 
