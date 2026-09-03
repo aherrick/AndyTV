@@ -23,6 +23,9 @@ public sealed class SportsGuideService(AppSettings settings)
         PropertyNameCaseInsensitive = true,
     };
 
+    // Foundry web-search price per 1,000 transactions; all web actions are counted, so this is an upper bound.
+    private const decimal WebSearchPerThousand = 14.00m;
+
     private static readonly BinaryData ResponseSchema = BinaryData.FromString(
         """
         {
@@ -93,7 +96,11 @@ public sealed class SportsGuideService(AppSettings settings)
             .GetResponsesClient()
             .CreateResponseAsync(options, cancellationToken);
 
-        LogCost(settings.AzureOpenAiDeployment, response.Value.Usage);
+        LogUsage(
+            settings.AzureOpenAiDeployment,
+            response.Value.Usage,
+            response.Value.OutputItems
+        );
 
         var guide =
             JsonSerializer.Deserialize<AiSportsGuide>(response.Value.GetOutputText(), JsonOptions)
@@ -103,8 +110,16 @@ public sealed class SportsGuideService(AppSettings settings)
         return guide;
     }
 
-    private static void LogCost(string model, ResponseTokenUsage usage)
+    private static void LogUsage(
+        string model,
+        ResponseTokenUsage usage,
+        IEnumerable<ResponseItem> outputItems
+    )
     {
+        var webActions = outputItems.OfType<WebSearchCallResponseItem>().Count();
+        var webMaxCost = webActions * WebSearchPerThousand / 1_000m;
+        var web = $"Web: {webActions} actions (max-estimate: ${webMaxCost:F4})";
+
         var pricing = Pricing
             .FirstOrDefault(entry => model.Contains(entry.Key, StringComparison.OrdinalIgnoreCase))
             .Value;
@@ -112,7 +127,7 @@ public sealed class SportsGuideService(AppSettings settings)
         if (pricing is null)
         {
             Console.WriteLine(
-                $"AI model: {model} | {usage.InputTokenCount} in + {usage.OutputTokenCount} out | price: unknown"
+                $"AI model: {model} | {usage.InputTokenCount} in + {usage.OutputTokenCount} out | price: unknown | {web}"
             );
             return;
         }
@@ -123,7 +138,7 @@ public sealed class SportsGuideService(AppSettings settings)
             / 1_000_000m;
 
         Console.WriteLine(
-            $"AI model: {model} | {usage.InputTokenCount} in + {usage.OutputTokenCount} out | ${cost:F4}"
+            $"AI model: {model} | {usage.InputTokenCount} in + {usage.OutputTokenCount} out | ${cost:F4} | {web}"
         );
     }
 
