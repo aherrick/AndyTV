@@ -23,7 +23,10 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
         CancellationToken cancellationToken
     )
     {
-        _logger.LogInformation("Sports guide run started at: {executionTime}", DateTime.Now);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Sports guide run started at: {executionTime}", DateTime.Now);
+        }
 
         var settings = AppSettings.Load();
         var easternTimeZone = EasternTimeZone.Get();
@@ -38,11 +41,14 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
         );
 
         var events = await sportsService.GetEventsForDateAsync(targetDate, cancellationToken);
-        _logger.LogInformation(
-            "Verified events for {targetDate}: {count}",
-            targetDate,
-            events.Count
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Verified events for {targetDate}: {count}",
+                targetDate,
+                events.Count
+            );
+        }
 
         if (events.Count == 0)
         {
@@ -53,15 +59,17 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
         var guideService = new SportsGuideService(settings);
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
 
-        var formatter = new SportsGuideFormatter();
-        var posts = formatter.CreatePosts(events, guide, targetDate);
+        var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);
 
-        _logger.LogInformation(
-            "{post1}\n\n{post2}\n\n{post3}",
-            posts.Post1,
-            posts.Post2,
-            posts.Post3
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "{post1}\n\n{post2}\n\n{post3}",
+                posts.Post1,
+                posts.Post2,
+                posts.Post3
+            );
+        }
 
         if (!settings.CanPostToX)
         {
@@ -77,7 +85,10 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
         );
         var postId = await xPostingService.PostThreadAsync(posts, cancellationToken);
 
-        _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
+        }
 
         if (myTimer.ScheduleStatus is not null)
         {

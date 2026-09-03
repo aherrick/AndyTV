@@ -135,8 +135,8 @@ public sealed class SportsGuideService(AppSettings settings)
         }
 
         var cost =
-            (usage.InputTokenCount * pricing.InputPerMillion
-                + usage.OutputTokenCount * pricing.OutputPerMillion)
+            ((usage.InputTokenCount * pricing.InputPerMillion)
+                + (usage.OutputTokenCount * pricing.OutputPerMillion))
             / 1_000_000m;
 
         Console.WriteLine(

@@ -3,17 +3,17 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed class SportsGuideFormatter
+public static class SportsGuideFormatter
 {
-    public SportsPosts CreatePosts(
+    public static SportsPosts CreatePosts(
         IReadOnlyList<SportsEvent> events,
         AiSportsGuide guide,
         DateOnly targetDate
     )
     {
-        var ranked = guide.RankedEvents
-            .Select(rankedEvent => (Event: events[rankedEvent.EventId], Ranked: rankedEvent))
-            .ToList();
+        var ranked = guide.RankedEvents.ConvertAll(
+            rankedEvent => (Event: events[rankedEvent.EventId], Ranked: rankedEvent)
+        );
 
         var best = new StringBuilder()
             .AppendLine("📺 AndyTV - BEST SPORTS TODAY")

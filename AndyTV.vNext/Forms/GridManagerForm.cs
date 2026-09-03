@@ -66,7 +66,7 @@ internal abstract class GridManagerForm<T> : Form
     }
 
     // Action buttons on the left, Close on the right; auto-height so nothing clips.
-    private static Panel BottomBar(Control closeButton, Control[] actions)
+    private static TableLayoutPanel BottomBar(Button closeButton, Control[] actions)
     {
         var left = new FlowLayoutPanel
         {
