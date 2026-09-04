@@ -62,7 +62,9 @@ public sealed class SportsGuideService(AppSettings settings)
     {
         var client = new AzureOpenAIClient(
             settings.AzureOpenAiEndpoint,
-            new AzureKeyCredential(settings.AzureOpenAiApiKey)
+            new AzureKeyCredential(settings.AzureOpenAiApiKey),
+            // Reasoning + web search can run several minutes; raise the 100s default per-attempt timeout.
+            new AzureOpenAIClientOptions { NetworkTimeout = TimeSpan.FromMinutes(9) }
         );
 
         var developerPrompt =
