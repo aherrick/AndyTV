@@ -17,6 +17,8 @@ public class AndyTVWatchlistFn(
     SportsGuideService guideService,
     InstaCardRenderer cardRenderer,
     CloudflareScreenshotService screenshotService,
+    BlobImageStore blobStore,
+    InstagramPublishService instagramService,
     AppSettings settings
 )
 {
@@ -68,39 +70,30 @@ public class AndyTVWatchlistFn(
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
 
         var cards = cardRenderer.Render(events, guide, targetDate);
-        var dayDir = CardStorage.DayDir(targetDate);
-        Directory.CreateDirectory(dayDir);
 
-        foreach (var card in cards)
+        if (settings.CanScreenshot)
         {
-            if (settings.CanScreenshot)
+            var day = targetDate.ToString("yyyyMMdd");
+            var imageUrls = new List<Uri>();
+            foreach (var card in cards)
             {
                 var png = await screenshotService.Capture(card.Html, cancellationToken);
-                var pngName = Path.ChangeExtension(card.Name, ".png");
-                await File.WriteAllBytesAsync(
-                    Path.Combine(dayDir, pngName),
-                    png,
-                    cancellationToken
-                );
+                var blobName = $"{day}/{Path.ChangeExtension(card.Name, ".png")}";
+                imageUrls.Add(await blobStore.Upload(blobName, png, cancellationToken));
             }
-            else
+
+            _logger.LogInformation("Uploaded {count} cards to blob storage.", imageUrls.Count);
+
+            if (settings.CanPublishInstagram)
             {
-                // No Cloudflare secrets yet: keep the raw HTML so the cards are still previewable.
-                await File.WriteAllTextAsync(
-                    Path.Combine(dayDir, card.Name),
-                    card.Html,
-                    cancellationToken
-                );
+                var caption = $"AndyTV Watchlist — Best Sports Today\n{targetDate:dddd, MMMM d}";
+                await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
             }
         }
-
-        _logger.LogInformation(
-            "Saved {count} cards to {dir} (screenshots: {mode}). View: /api/cards/{day}",
-            cards.Count,
-            dayDir,
-            settings.CanScreenshot ? "on" : "html-only",
-            CardStorage.DayFolderName(targetDate)
-        );
+        else
+        {
+            _logger.LogInformation("Cloudflare secrets not set; skipping card images.");
+        }
 
         var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);
 
