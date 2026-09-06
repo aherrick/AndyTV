@@ -46,9 +46,22 @@ public sealed class SportsGuideService(AppSettings settings)
                 "additionalProperties": false
               }
             },
-            "watchPlan": { "type": "string" }
+            "watchPlan": { "type": "string" },
+            "watchPlanSteps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "eventId": { "type": "integer" },
+                  "note": { "type": "string" }
+                },
+                "required": ["eventId", "note"],
+                "additionalProperties": false
+              }
+            },
+            "anchorEventId": { "type": ["integer", "null"] }
           },
-          "required": ["rankedEvents", "watchPlan"],
+          "required": ["rankedEvents", "watchPlan", "watchPlanSteps", "anchorEventId"],
           "additionalProperties": false
         }
         """
@@ -173,6 +186,12 @@ public sealed class SportsGuideService(AppSettings settings)
             || guide.RankedEvents.Select(rankedEvent => rankedEvent.EventId).Distinct().Count()
                 != guide.RankedEvents.Count
             || string.IsNullOrWhiteSpace(guide.WatchPlan)
+            || guide.WatchPlanSteps.Any(step =>
+                step.EventId < 0
+                || step.EventId >= events.Count
+                || string.IsNullOrWhiteSpace(step.Note)
+            )
+            || (guide.AnchorEventId is int anchor && (anchor < 0 || anchor >= events.Count))
         )
         {
             throw new InvalidOperationException(

@@ -1,0 +1,123 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>AndyTV Watchlist</title>
+<style>
+:root{
+  --bg:#061524;
+  --bg2:#0a2740;
+  --gold:#f2c14e;
+  --blue:#1593e6;
+  --text:#f4f7fb;
+  --muted:#a9bfd1;
+  --line:#214967;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  width:1080px;
+  height:1350px;
+  overflow:hidden;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+body{
+  background:
+    radial-gradient(circle at 50% -10%, #12466d 0, transparent 38%),
+    linear-gradient(180deg,var(--bg2),var(--bg));
+}
+.post{
+  width:1080px;
+  height:1350px;
+  padding:48px 56px 42px;
+  display:flex;
+  flex-direction:column;
+}
+.banner{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:16px;
+  border:1px solid var(--line);
+  margin-bottom:22px;
+}
+.section-title{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:14px;
+}
+.section-title h2{margin:0;font-size:38px;line-height:1;font-weight:900}
+.date{
+  background:var(--gold);color:#09233a;
+  padding:14px 20px;border-radius:10px;
+  font-size:18px;font-weight:900;letter-spacing:1px;
+}
+.page-chip{
+  display:inline-block;margin-left:12px;
+  color:#09233a;background:var(--gold);
+  border-radius:999px;padding:8px 12px;
+  font-size:13px;font-weight:900;letter-spacing:.5px;
+}
+.card{
+  background:rgba(5,24,40,.92);
+  border:1px solid var(--line);
+  border-radius:20px;
+  overflow:hidden;
+}
+footer{
+  margin-top:auto;
+  padding-top:22px;
+  display:flex;justify-content:space-between;align-items:center;
+  color:var(--muted);font-size:14px;font-weight:700;letter-spacing:1.4px
+}
+.handle{
+  color:#09233a;background:var(--gold);
+  padding:10px 18px;border-radius:9px;font-size:17px;font-weight:900
+}
+
+/* Top 20 ranking cards */
+.ranking{flex:1;display:flex;flex-direction:column}
+.ranks{padding:20px 24px 24px;display:grid;grid-template-rows:repeat(10,1fr);height:100%;gap:7px}
+.rank-row{
+  display:grid;grid-template-columns:62px 54px 1fr 150px;
+  align-items:center;gap:16px;padding:0 16px;border-radius:14px;
+  background:linear-gradient(90deg,#082944,#0b2f4d);
+  border:1px solid rgba(62,133,180,.34)
+}
+.rank{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;background:#102f49;color:var(--gold);font-weight:900;font-size:20px}
+.sport{font-size:28px;text-align:center}
+.game{min-width:0;display:flex;flex-direction:column;gap:5px}
+.game strong{font-size:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.game span{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.7px}
+.time{justify-self:end;background:#123b5b;padding:12px 14px;border-radius:10px;font-size:18px;font-weight:900;white-space:nowrap}
+
+/* Timeline cards */
+.timeline-card{flex:1;padding:22px 30px 24px;display:grid;grid-template-rows:repeat(10,1fr)}
+.timeline-row{display:grid;grid-template-columns:145px 34px 1fr;align-items:center;position:relative}
+.timeline-time{justify-self:start;color:var(--gold);font-size:20px;font-weight:900;background:#0e304d;padding:11px 14px;border-radius:9px}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--blue);justify-self:center;position:relative}
+.dot:after{content:"";position:absolute;left:6px;top:14px;width:2px;height:74px;background:#1c5278}
+.timeline-row:last-child .dot:after{display:none}
+.timeline-main{padding:12px 0;border-bottom:1px solid rgba(55,100,132,.28)}
+.timeline-row:last-child .timeline-main{border-bottom:0}
+.timeline-game{font-size:22px;font-weight:900}
+.timeline-meta{margin-top:6px;font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.8px}
+
+/* Watch plan card */
+.watch-card{flex:1;padding:14px 20px}
+.watch-row{display:grid;grid-template-columns:130px 52px 1fr;align-items:center;gap:15px;min-height:113px;padding:12px 8px;border-bottom:1px solid rgba(55,100,132,.36)}
+.watch-row:last-child{border-bottom:0}
+.watch-time{background:#123c5d;color:white;padding:12px 10px;border-radius:10px;font-size:19px;font-weight:900;text-align:center}
+.watch-icon{font-size:30px;text-align:center}
+.watch-copy{display:flex;flex-direction:column;gap:7px}
+.watch-copy strong{font-size:23px}
+.watch-copy span{font-size:16px;color:#c3d3df;line-height:1.35;font-weight:650}
+.callout{margin-top:16px;padding:15px 18px;border-radius:12px;background:rgba(242,193,78,.12);border:1px solid rgba(242,193,78,.5);color:#ffe5a1;font-size:16px;font-weight:800}
+</style></head>
+<body>
+<div class="post">
+{{HEADER}}
+<div class="section-title"><h2>{{TITLE}}</h2><div class="date">{{DATE}}</div></div>
+{{BODY}}
+{{CALLOUT}}
+<footer><div class="handle">@AndyTVWatchlist</div><div>{{FOOTERNOTE}}</div></footer>
+</div>
+</body></html>

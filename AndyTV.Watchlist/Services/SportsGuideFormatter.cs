@@ -24,7 +24,7 @@ public static class SportsGuideFormatter
         {
             var (sportsEvent, rankedEvent) = ranked[index];
             best.AppendLine(
-                    $"{index + 1}. {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)} - {sportsEvent.StartTimeEastern:h:mm tt} ET{Network(rankedEvent)}"
+                    $"{index + 1}. {SportsFormat.Icon(sportsEvent.Sport)} {SportsFormat.RankedMatchup(sportsEvent, rankedEvent)} - {sportsEvent.StartTimeEastern:h:mm tt} ET{Network(rankedEvent)}"
                 )
                 .AppendLine(rankedEvent.Reason.Trim())
                 .AppendLine();
@@ -38,7 +38,7 @@ public static class SportsGuideFormatter
         foreach (var (sportsEvent, rankedEvent) in ranked.OrderBy(item => item.Event.StartTimeEastern))
         {
             timeline.AppendLine(
-                $"{TimeCol(sportsEvent.StartTimeEastern)} ET {Icon(sportsEvent.Sport)} {RankedMatchup(sportsEvent, rankedEvent)}{Network(rankedEvent)}"
+                $"{TimeCol(sportsEvent.StartTimeEastern)} ET {SportsFormat.Icon(sportsEvent.Sport)} {SportsFormat.RankedMatchup(sportsEvent, rankedEvent)}{Network(rankedEvent)}"
             );
         }
 
@@ -58,7 +58,7 @@ public static class SportsGuideFormatter
             if (source.Cast<(SportsEvent Event, RankedEvent Ranked)?>().FirstOrDefault() is { } pick)
             {
                 picks.AppendLine(
-                    $"{label} {RankedMatchup(pick.Event, pick.Ranked)} - {pick.Event.StartTimeEastern:h:mm tt} ET"
+                    $"{label} {SportsFormat.RankedMatchup(pick.Event, pick.Ranked)} - {pick.Event.StartTimeEastern:h:mm tt} ET"
                 );
             }
         }
@@ -69,8 +69,8 @@ public static class SportsGuideFormatter
         Add("🏒 Best hockey:", ranked.Where(item => item.Event.Sport == "Hockey"));
         Add("🏀 Best basketball:", ranked.Where(item => item.Event.Sport == "Basketball"));
         Add("⚽ Best soccer:", ranked.Where(item => item.Event.Sport == "Soccer"));
-        Add("� Best racing:", ranked.Where(item => item.Event.Sport == "Racing"));
-        Add("�🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
+        Add("🏁 Best racing:", ranked.Where(item => item.Event.Sport == "Racing"));
+        Add("🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
 
         return picks.ToString().TrimEnd();
     }
@@ -85,27 +85,4 @@ public static class SportsGuideFormatter
         var pad = hour12 < 10 ? "\u2007" : "";
         return $"{pad}{time:h:mm tt}";
     }
-
-    private static string RankedMatchup(SportsEvent sportsEvent, RankedEvent rankedEvent)
-    {
-        if (string.IsNullOrEmpty(sportsEvent.Away))
-        {
-            return sportsEvent.Home;
-        }
-
-        var away = rankedEvent.AwayRank is int ar ? $"#{ar} {sportsEvent.Away}" : sportsEvent.Away;
-        var home = rankedEvent.HomeRank is int hr ? $"#{hr} {sportsEvent.Home}" : sportsEvent.Home;
-        return $"{away} @ {home}";
-    }
-
-    private static string Icon(string sport) => sport switch
-    {
-        "Baseball" => "⚾",
-        "Football" => "🏈",
-        "Hockey" => "🏒",
-        "Basketball" => "🏀",
-        "Soccer" => "⚽",
-        "Racing" => "🏁",
-        _ => "📺",
-    };
 }

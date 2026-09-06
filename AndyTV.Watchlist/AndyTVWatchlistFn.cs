@@ -15,6 +15,8 @@ public class AndyTVWatchlistFn(
     ILoggerFactory loggerFactory,
     IEnumerable<SportsFeedService> feeds,
     SportsGuideService guideService,
+    InstaCardRenderer cardRenderer,
+    CloudflareScreenshotService screenshotService,
     AppSettings settings
 )
 {
@@ -39,20 +41,14 @@ public class AndyTVWatchlistFn(
         var easternNow = EasternTimeZone.Now;
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
 
-        var collected = new List<SportsEvent>();
+        var feedResults = await Task.WhenAll(
+            feeds.Select(feed => feed.GetEventsForDateAsync(targetDate, cancellationToken))
+        );
 
-        var activeFeeds = feeds;
-#if DEBUG
-        // Debug a single feed in isolation.
-        activeFeeds = feeds.OfType<EspnRacingService>();
-#endif
-
-        foreach (var feed in activeFeeds)
-        {
-            collected.AddRange(await feed.GetEventsForDateAsync(targetDate, cancellationToken));
-        }
-
-        var events = collected.OrderBy(sportsEvent => sportsEvent.StartTimeEastern).ToList();
+        var events = feedResults
+            .SelectMany(feedEvents => feedEvents)
+            .OrderBy(sportsEvent => sportsEvent.StartTimeEastern)
+            .ToList();
 
         if (_logger.IsEnabled(LogLevel.Information))
         {
@@ -70,6 +66,41 @@ public class AndyTVWatchlistFn(
         }
 
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
+
+        var cards = cardRenderer.Render(events, guide, targetDate);
+        var dayDir = CardStorage.DayDir(targetDate);
+        Directory.CreateDirectory(dayDir);
+
+        foreach (var card in cards)
+        {
+            if (settings.CanScreenshot)
+            {
+                var png = await screenshotService.Capture(card.Html, cancellationToken);
+                var pngName = Path.ChangeExtension(card.Name, ".png");
+                await File.WriteAllBytesAsync(
+                    Path.Combine(dayDir, pngName),
+                    png,
+                    cancellationToken
+                );
+            }
+            else
+            {
+                // No Cloudflare secrets yet: keep the raw HTML so the cards are still previewable.
+                await File.WriteAllTextAsync(
+                    Path.Combine(dayDir, card.Name),
+                    card.Html,
+                    cancellationToken
+                );
+            }
+        }
+
+        _logger.LogInformation(
+            "Saved {count} cards to {dir} (screenshots: {mode}). View: /api/cards/{day}",
+            cards.Count,
+            dayDir,
+            settings.CanScreenshot ? "on" : "html-only",
+            CardStorage.DayFolderName(targetDate)
+        );
 
         var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);
 

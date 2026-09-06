@@ -8,6 +8,8 @@ public sealed record AppSettings(
     string AzureOpenAiApiKey,
     string AzureOpenAiDeployment,
     string DeveloperPrompt,
+    string? CloudflareAccountId,
+    string? CloudflareApiToken,
     string? XConsumerKey,
     string? XConsumerSecret,
     string? XAccessToken,
@@ -19,6 +21,10 @@ public sealed record AppSettings(
         && !string.IsNullOrWhiteSpace(XConsumerSecret)
         && !string.IsNullOrWhiteSpace(XAccessToken)
         && !string.IsNullOrWhiteSpace(XAccessTokenSecret);
+
+    public bool CanScreenshot =>
+        !string.IsNullOrWhiteSpace(CloudflareAccountId)
+        && !string.IsNullOrWhiteSpace(CloudflareApiToken);
 
     public static AppSettings Load()
     {
@@ -33,6 +39,8 @@ public sealed record AppSettings(
             Required(config, "AZURE_OPENAI_API_KEY"),
             Required(config, "AZURE_OPENAI_DEPLOYMENT"),
             Required(config, "AI_DEVELOPER_PROMPT"),
+            config["CLOUDFLARE_ACCOUNT_ID"],
+            config["CLOUDFLARE_API_TOKEN"],
             config["X_CONSUMER_KEY"],
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
