@@ -37,7 +37,8 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
         var sportsService = new ApiSportsService(
             sportsHttpClient,
             settings.SportsApiKey,
-            easternTimeZone
+            easternTimeZone,
+            _logger
         );
 
         var events = await sportsService.GetEventsForDateAsync(targetDate, cancellationToken);

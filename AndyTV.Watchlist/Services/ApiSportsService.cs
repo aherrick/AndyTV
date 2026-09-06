@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AndyTV.Watchlist.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
@@ -39,6 +40,7 @@ public sealed class ApiSportsService
     [
         12, // NBA
         116, // NCAA
+        284, // FIBA World Cup (Women)
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -48,11 +50,18 @@ public sealed class ApiSportsService
 
     private readonly HttpClient _httpClient;
     private readonly TimeZoneInfo _easternTimeZone;
+    private readonly ILogger _logger;
 
-    public ApiSportsService(HttpClient httpClient, string apiKey, TimeZoneInfo easternTimeZone)
+    public ApiSportsService(
+        HttpClient httpClient,
+        string apiKey,
+        TimeZoneInfo easternTimeZone,
+        ILogger logger
+    )
     {
         _httpClient = httpClient;
         _easternTimeZone = easternTimeZone;
+        _logger = logger;
         _httpClient.DefaultRequestHeaders.Add("x-apisports-key", apiKey);
     }
 
@@ -82,6 +91,7 @@ public sealed class ApiSportsService
         CancellationToken cancellationToken
     ) =>
         LoadEventsAsync<BaseballGameDto>(
+            "Baseball",
             $"https://v1.baseball.api-sports.io/games?{DateQuery(date)}",
             game =>
                 game.League.Id == 1
@@ -95,6 +105,7 @@ public sealed class ApiSportsService
         CancellationToken cancellationToken
     ) =>
         LoadEventsAsync<FootballGameDto>(
+            "Football",
             $"https://v1.american-football.api-sports.io/games?{DateQuery(date)}",
             game =>
                 game.League.Id is 1 or 2
@@ -113,6 +124,7 @@ public sealed class ApiSportsService
         CancellationToken cancellationToken
     ) =>
         LoadEventsAsync<HockeyGameDto>(
+            "Hockey",
             $"https://v1.hockey.api-sports.io/games?{DateQuery(date)}",
             game =>
                 game.League.Id == 57
@@ -126,6 +138,7 @@ public sealed class ApiSportsService
         CancellationToken cancellationToken
     ) =>
         LoadEventsAsync<BasketballGameDto>(
+            "Basketball",
             $"https://v1.basketball.api-sports.io/games?{DateQuery(date)}",
             game =>
                 TopBasketballLeagueIds.Contains(game.League.Id)
@@ -139,6 +152,7 @@ public sealed class ApiSportsService
         CancellationToken cancellationToken
     ) =>
         LoadEventsAsync<SoccerFixtureDto>(
+            "Soccer",
             $"https://v3.football.api-sports.io/fixtures?{DateQuery(date)}",
             fixture =>
                 TopSoccerLeagueIds.Contains(fixture.League.Id)
@@ -153,10 +167,12 @@ public sealed class ApiSportsService
         );
 
     private async Task<IReadOnlyList<SportsEvent>> LoadEventsAsync<T>(
+        string sport,
         string url,
         Func<T, SportsEvent?> map,
         CancellationToken cancellationToken
     )
+        where T : IGameDto
     {
         var response =
             await _httpClient.GetFromJsonAsync<ApiSportsResponse<T>>(
@@ -173,7 +189,39 @@ public sealed class ApiSportsService
             throw new InvalidOperationException($"Sports API error: {response.Errors}");
         }
 
-        return response.Response.Select(map).OfType<SportsEvent>().ToList();
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "[{sport}] API returned {count} raw game(s).",
+                sport,
+                response.Response.Count
+            );
+        }
+
+        var events = new List<SportsEvent>();
+        foreach (var game in response.Response)
+        {
+            var mapped = map(game);
+            if (mapped is not null)
+            {
+                events.Add(mapped);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "[{sport}] {status} | league {leagueId} {leagueName} | {away} @ {home}",
+                    sport,
+                    mapped is null ? "SKIP" : "KEEP",
+                    game.League.Id,
+                    game.League.Name,
+                    game.Teams.Away.Name,
+                    game.Teams.Home.Name
+                );
+            }
+        }
+
+        return events;
     }
 
     private SportsEvent? ToSportsEvent(

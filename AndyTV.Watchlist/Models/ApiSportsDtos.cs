@@ -36,7 +36,13 @@ internal sealed class TeamsDto
     public TeamDto Away { get; init; } = new();
 }
 
-internal sealed class BaseballGameDto
+internal interface IGameDto
+{
+    LeagueDto League { get; }
+    TeamsDto Teams { get; }
+}
+
+internal sealed class BaseballGameDto : IGameDto
 {
     [JsonPropertyName("timestamp")]
     public long Timestamp { get; init; }
@@ -48,7 +54,7 @@ internal sealed class BaseballGameDto
     public TeamsDto Teams { get; init; } = new();
 }
 
-internal sealed class FootballGameDto
+internal sealed class FootballGameDto : IGameDto
 {
     [JsonPropertyName("game")]
     public FootballGameDetailsDto Game { get; init; } = new();
@@ -72,7 +78,7 @@ internal sealed class FootballGameDateDto
     public long Timestamp { get; init; }
 }
 
-internal sealed class HockeyGameDto
+internal sealed class HockeyGameDto : IGameDto
 {
     [JsonPropertyName("timestamp")]
     public long Timestamp { get; init; }
@@ -84,7 +90,7 @@ internal sealed class HockeyGameDto
     public TeamsDto Teams { get; init; } = new();
 }
 
-internal sealed class BasketballGameDto
+internal sealed class BasketballGameDto : IGameDto
 {
     [JsonPropertyName("timestamp")]
     public long Timestamp { get; init; }
@@ -96,7 +102,7 @@ internal sealed class BasketballGameDto
     public TeamsDto Teams { get; init; } = new();
 }
 
-internal sealed class SoccerFixtureDto
+internal sealed class SoccerFixtureDto : IGameDto
 {
     [JsonPropertyName("fixture")]
     public SoccerFixtureDetailsDto Fixture { get; init; } = new();
