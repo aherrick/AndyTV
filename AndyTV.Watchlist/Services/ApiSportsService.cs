@@ -1,12 +1,12 @@
 using System.Globalization;
-using System.Net.Http.Json;
 using System.Text.Json;
+using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed class ApiSportsService
+public sealed class ApiSportsService : SportsFeedService
 {
     private static readonly HashSet<int> TopSoccerLeagueIds =
     [
@@ -43,29 +43,19 @@ public sealed class ApiSportsService
         284, // FIBA World Cup (Women)
     ];
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
-    private readonly HttpClient _httpClient;
-    private readonly TimeZoneInfo _easternTimeZone;
-    private readonly ILogger _logger;
+    private readonly string _apiKey;
 
     public ApiSportsService(
         HttpClient httpClient,
-        string apiKey,
-        TimeZoneInfo easternTimeZone,
-        ILogger logger
+        AppSettings settings,
+        ILogger<ApiSportsService> logger
     )
+        : base(httpClient, logger)
     {
-        _httpClient = httpClient;
-        _easternTimeZone = easternTimeZone;
-        _logger = logger;
-        _httpClient.DefaultRequestHeaders.Add("x-apisports-key", apiKey);
+        _apiKey = settings.SportsApiKey;
     }
 
-    public async Task<IReadOnlyList<SportsEvent>> GetEventsForDateAsync(
+    public override async Task<IReadOnlyList<SportsEvent>> GetEventsForDateAsync(
         DateOnly targetDate,
         CancellationToken cancellationToken = default
     )
@@ -175,10 +165,10 @@ public sealed class ApiSportsService
         where T : IGameDto
     {
         var response =
-            await _httpClient.GetFromJsonAsync<ApiSportsResponse<T>>(
+            await GetJsonAsync<ApiSportsResponse<T>>(
                 url,
-                JsonOptions,
-                cancellationToken
+                cancellationToken,
+                ("x-apisports-key", _apiKey)
             ) ?? throw new InvalidOperationException("Sports API returned an empty response.");
 
         if (
@@ -189,9 +179,9 @@ public sealed class ApiSportsService
             throw new InvalidOperationException($"Sports API error: {response.Errors}");
         }
 
-        if (_logger.IsEnabled(LogLevel.Information))
+        if (Logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "[{sport}] API returned {count} raw game(s).",
                 sport,
                 response.Response.Count
@@ -207,24 +197,17 @@ public sealed class ApiSportsService
                 events.Add(mapped);
             }
 
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation(
-                    "[{sport}] {status} | league {leagueId} {leagueName} | {away} @ {home}",
-                    sport,
-                    mapped is null ? "SKIP" : "KEEP",
-                    game.League.Id,
-                    game.League.Name,
-                    game.Teams.Away.Name,
-                    game.Teams.Home.Name
-                );
-            }
+            LogResult(
+                sport,
+                mapped is not null,
+                $"league {game.League.Id} {game.League.Name} | {game.Teams.Away.Name} @ {game.Teams.Home.Name}"
+            );
         }
 
         return events;
     }
 
-    private SportsEvent? ToSportsEvent(
+    private static SportsEvent? ToSportsEvent(
         string sport,
         string league,
         TeamsDto teams,
@@ -241,9 +224,8 @@ public sealed class ApiSportsService
             return null;
         }
 
-        var startTimeEastern = TimeZoneInfo.ConvertTime(
-            DateTimeOffset.FromUnixTimeSeconds(unixTimestamp),
-            _easternTimeZone
+        var startTimeEastern = EasternTimeZone.Convert(
+            DateTimeOffset.FromUnixTimeSeconds(unixTimestamp)
         );
 
         return new SportsEvent(sport, league, teams.Home.Name, teams.Away.Name, startTimeEastern);

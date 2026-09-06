@@ -8,5 +8,5 @@ public sealed record SportsEvent(
     DateTimeOffset StartTimeEastern
 )
 {
-    public string Matchup => $"{Away} @ {Home}";
+    public string Matchup => string.IsNullOrEmpty(Away) ? Home : $"{Away} @ {Home}";
 }

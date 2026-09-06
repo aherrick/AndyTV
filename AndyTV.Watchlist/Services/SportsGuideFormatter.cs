@@ -69,7 +69,8 @@ public static class SportsGuideFormatter
         Add("🏒 Best hockey:", ranked.Where(item => item.Event.Sport == "Hockey"));
         Add("🏀 Best basketball:", ranked.Where(item => item.Event.Sport == "Basketball"));
         Add("⚽ Best soccer:", ranked.Where(item => item.Event.Sport == "Soccer"));
-        Add("🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
+        Add("� Best racing:", ranked.Where(item => item.Event.Sport == "Racing"));
+        Add("�🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
 
         return picks.ToString().TrimEnd();
     }
@@ -87,6 +88,11 @@ public static class SportsGuideFormatter
 
     private static string RankedMatchup(SportsEvent sportsEvent, RankedEvent rankedEvent)
     {
+        if (string.IsNullOrEmpty(sportsEvent.Away))
+        {
+            return sportsEvent.Home;
+        }
+
         var away = rankedEvent.AwayRank is int ar ? $"#{ar} {sportsEvent.Away}" : sportsEvent.Away;
         var home = rankedEvent.HomeRank is int hr ? $"#{hr} {sportsEvent.Home}" : sportsEvent.Home;
         return $"{away} @ {home}";
@@ -99,6 +105,7 @@ public static class SportsGuideFormatter
         "Hockey" => "🏒",
         "Basketball" => "🏀",
         "Soccer" => "⚽",
+        "Racing" => "🏁",
         _ => "📺",
     };
 }

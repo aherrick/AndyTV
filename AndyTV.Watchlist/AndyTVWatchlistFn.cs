@@ -1,14 +1,22 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AndyTV.Watchlist.Configuration;
+using AndyTV.Watchlist.Models;
 using AndyTV.Watchlist.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist;
 
-public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
+public class AndyTVWatchlistFn(
+    ILoggerFactory loggerFactory,
+    IEnumerable<SportsFeedService> feeds,
+    SportsGuideService guideService,
+    AppSettings settings
+)
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<AndyTVWatchlistFn>();
 
@@ -28,20 +36,24 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
             _logger.LogInformation("Sports guide run started at: {executionTime}", DateTime.Now);
         }
 
-        var settings = AppSettings.Load();
-        var easternTimeZone = EasternTimeZone.Get();
-        var easternNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, easternTimeZone);
+        var easternNow = EasternTimeZone.Now;
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
 
-        using var sportsHttpClient = new HttpClient();
-        var sportsService = new ApiSportsService(
-            sportsHttpClient,
-            settings.SportsApiKey,
-            easternTimeZone,
-            _logger
-        );
+        var collected = new List<SportsEvent>();
 
-        var events = await sportsService.GetEventsForDateAsync(targetDate, cancellationToken);
+        var activeFeeds = feeds;
+#if DEBUG
+        // Debug a single feed in isolation.
+        activeFeeds = feeds.OfType<EspnRacingService>();
+#endif
+
+        foreach (var feed in activeFeeds)
+        {
+            collected.AddRange(await feed.GetEventsForDateAsync(targetDate, cancellationToken));
+        }
+
+        var events = collected.OrderBy(sportsEvent => sportsEvent.StartTimeEastern).ToList();
+
         if (_logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation(
@@ -57,7 +69,6 @@ public class AndyTVWatchlistFn(ILoggerFactory loggerFactory)
             return;
         }
 
-        var guideService = new SportsGuideService(settings);
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
 
         var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);
