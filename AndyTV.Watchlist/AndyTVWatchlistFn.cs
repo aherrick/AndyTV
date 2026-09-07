@@ -15,7 +15,6 @@ public class AndyTVWatchlistFn(
     ILoggerFactory loggerFactory,
     IEnumerable<SportsFeedService> feeds,
     SportsGuideService guideService,
-    InstaCardRenderer cardRenderer,
     CloudflareScreenshotService screenshotService,
     BlobImageStore blobStore,
     InstagramPublishService instagramService,
@@ -69,7 +68,7 @@ public class AndyTVWatchlistFn(
 
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
 
-        var cards = cardRenderer.Render(events, guide, targetDate);
+        var cards = InstaCardRenderer.Render(events, guide, targetDate);
 
         if (settings.CanScreenshot)
         {
@@ -82,7 +81,10 @@ public class AndyTVWatchlistFn(
                 imageUrls.Add(await blobStore.Upload(blobName, png, cancellationToken));
             }
 
-            _logger.LogInformation("Uploaded {count} cards to blob storage.", imageUrls.Count);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Uploaded {count} cards to blob storage.", imageUrls.Count);
+            }
 
             if (settings.CanPublishInstagram)
             {

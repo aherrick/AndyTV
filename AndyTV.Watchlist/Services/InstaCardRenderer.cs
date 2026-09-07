@@ -19,7 +19,7 @@ public sealed class InstaCardRenderer
     // The v1 banner inlined as a data URI, since Cloudflare renders raw HTML with no base URL.
     private static readonly string Header = BuildHeader();
 
-    public IReadOnlyList<InstaCard> Render(
+    public static IReadOnlyList<InstaCard> Render(
         IReadOnlyList<SportsEvent> events,
         AiSportsGuide guide,
         DateOnly targetDate

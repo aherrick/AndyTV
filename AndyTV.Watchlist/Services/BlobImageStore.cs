@@ -22,7 +22,7 @@ public sealed class BlobImageStore(AppSettings settings)
         );
 
         var blob = container.GetBlobClient(blobName);
-        using var stream = new MemoryStream(content);
+        await using var stream = new MemoryStream(content);
         await blob.UploadAsync(
             stream,
             new BlobUploadOptions

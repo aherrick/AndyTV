@@ -50,7 +50,10 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
 
-        logger.LogInformation("Published Instagram carousel {mediaId}.", mediaId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Published Instagram carousel {mediaId}.", mediaId);
+        }
         return mediaId;
     }
 
