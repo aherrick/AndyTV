@@ -1,73 +1,44 @@
-using System.Diagnostics;
-using AndyTV.Helpers;
-using Microsoft.Extensions.DependencyInjection;
+using LibVLCSharp.Shared;
 using Velopack;
 
 namespace AndyTV;
 
-internal static class Program
+static class Program
 {
-    private static Mutex _mutex;
-    private const string MutexName = @"Global\AndyTV_SingleInstance";
-    private const string RestartArg = "--restart";
     private const string NewInstanceArg = "--new-instance";
     private const string RightArg = "--right";
 
     public static bool StartOnRight { get; private set; }
 
     [STAThread]
-    private static void Main(string[] args)
+    static void Main(string[] args)
     {
-        ApplicationConfiguration.Initialize();
-        Application.SetHighDpiMode(HighDpiMode.SystemAware);
-        Application.SetColorMode(SystemColorMode.Dark);
-
-        var isNewInstance = args.Any(a =>
-            a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase)
-        );
+        var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
         StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
 
+        // A New Window launches with --new-instance to bypass the single-instance mutex.
+        Mutex mutex = null;
         if (!isNewInstance)
         {
-            _mutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out bool isNew);
-            if (!isNew && !args.Any(a => a.Equals(RestartArg, StringComparison.OrdinalIgnoreCase)))
+            mutex = new Mutex(initiallyOwned: true, @"Global\AndyTV_SingleInstance", out var isNew);
+            if (!isNew)
             {
                 return;
             }
 
+            // Must run first so Velopack can handle install/update hooks.
             VelopackApp.Build().Run();
         }
 
-        Logger.WireGlobalHandlers();
-        Logger.Info($"[STARTUP] Args: {string.Join(", ", args)}");
+        using (mutex)
+        {
+            Logger.WireGlobalHandlers();
+            Logger.Info("[STARTUP] AndyTV starting");
 
-        // Force 60Hz in the background so a display-mode change never blocks the
-        // window from appearing or the last channel from starting.
-        _ = Task.Run(DisplayHelper.Force60Hz);
-
-        // Ensure we restore the original refresh rate when the app exits
-        Application.ApplicationExit += (_, __) => DisplayHelper.RestoreOriginalRefreshRate();
-
-        var services = ServiceConfiguration.ConfigureServices();
-        Application.Run(services.GetRequiredService<Form1>());
-    }
-
-    public static void Restart()
-    {
-        _mutex.ReleaseMutex();
-        _mutex.Dispose();
-        _mutex = null;
-
-        Process.Start(
-            new ProcessStartInfo
-            {
-                FileName = Environment.ProcessPath ?? Application.ExecutablePath,
-                Arguments = RestartArg,
-                UseShellExecute = true,
-                WorkingDirectory = AppContext.BaseDirectory,
-            }
-        );
-
-        Application.Exit();
+            Core.Initialize();
+            ApplicationConfiguration.Initialize();
+            Application.SetColorMode(SystemColorMode.System);
+            Application.Run(new PlayerForm());
+        }
     }
 }

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 // Shared scaffold for the grid-based manager dialogs (Favorites, Playlists).
 internal abstract class GridManagerForm<T> : Form

@@ -1,73 +1,51 @@
-using AndyTV.Helpers;
-using LibVLCSharp.WinForms;
 using Velopack;
 using Velopack.Sources;
 
-namespace AndyTV.Services;
+namespace AndyTV;
 
-public class UpdateService(VideoView videoView)
+static class UpdateService
 {
-    public async Task CheckForUpdates()
+    public const string RepoUrl = "https://github.com/aherrick/AndyTV";
+
+    // Manual, menu-driven check: reports up-to-date, or prompts to download & restart.
+    public static async Task Check()
     {
         try
         {
-            videoView.ShowWaiting();
-
             var updater = new UpdateManager(
-                new GithubSource(
-                    "https://github.com/aherrick/AndyTV",
-                    accessToken: null,
-                    prerelease: false
-                )
-            );
+                new GithubSource(RepoUrl, accessToken: null, prerelease: false));
 
             var info = await updater.CheckForUpdatesAsync();
-
-            // Show default cursor while prompting the user
-            videoView.ShowDefault();
-
-            if (info == null)
+            if (info is null)
             {
                 MessageBox.Show(
-                    "You're already up to date.",
-                    "Update",
+                    "AndyTV is already up to date.",
+                    "AndyTV",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
+                    MessageBoxIcon.Information);
                 return;
             }
 
             var result = MessageBox.Show(
                 $"Update {info.TargetFullRelease.Version} is available.\n\nDownload and restart to update?",
-                "Update Available",
+                "AndyTV",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question
-            );
-
+                MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
-                videoView.ShowWaiting();
-
+                Logger.Info($"[UPDATE] Downloading {info.TargetFullRelease.Version}");
                 await updater.DownloadUpdatesAsync(info);
-
                 updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }
         }
         catch (Exception ex)
         {
-            videoView.ShowDefault();
-
-            Logger.Error($"Unexpected error while checking updates: {ex}");
+            Logger.Error(ex, "Update check failed");
             MessageBox.Show(
-                "An error occurred while checking for updates. Please try again.",
-                "Update Error",
+                "Update check failed. See logs for details.",
+                "AndyTV",
                 MessageBoxButtons.OK,
-                MessageBoxIcon.Error
-            );
-        }
-        finally
-        {
-            videoView.SetCursorForCurrentView();
+                MessageBoxIcon.Warning);
         }
     }
 }

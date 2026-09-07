@@ -1,6 +1,6 @@
 namespace AndyTV.Data.Services;
 
-// File-backed storage shared by the Windows desktop apps (AndyTV, vNext).
+// File-backed storage shared by the Windows desktop app (AndyTV).
 public sealed class LocalStorageProvider : IStorageProvider
 {
     public static string Folder { get; } = Init();

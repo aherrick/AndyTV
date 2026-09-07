@@ -21,9 +21,10 @@
 ## 🖱️ Quick controls
 - **Left mouse:** click and hold for **1 second** → switch to **previous channel**
 - **Middle mouse:** click → **Mute / Unmute**
-- **Right mouse:** click → open **Menu**
+- **Right mouse:** click → open **Menu**; click and hold for **5 seconds** → **exit**
+- **Double-click:** toggle **fullscreen**
 - **Scroll wheel:** cycle through **recent channels**
-- **App → New Window:** launch a second instance snapped side-by-side
+- **Menu → New Window:** launch a second instance snapped side-by-side
 
 ## 📥 Download
 
@@ -42,7 +43,7 @@ or directly via:
 
 ## 📺 Playlist configuration
 
-Use **Settings → Manage Playlists** in the WinForms app to control how playlists show up in the menu.
+Use **Menu → Manage → Playlists** in the app to control how playlists show up in the menu.
 
 The **Source** field accepts either an HTTP URL or a local file path:
 

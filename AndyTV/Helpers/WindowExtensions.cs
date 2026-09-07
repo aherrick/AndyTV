@@ -1,4 +1,4 @@
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 static class WindowExtensions
 {

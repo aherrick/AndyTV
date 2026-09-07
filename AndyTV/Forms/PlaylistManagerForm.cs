@@ -1,6 +1,6 @@
 using AndyTV.Data.Models;
 
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 sealed class PlaylistManagerForm : GridManagerForm<Playlist>
 {

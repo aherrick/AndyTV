@@ -1,30 +1,22 @@
+using AndyTV.Guide.Shared.Components;
 using Microsoft.AspNetCore.Components.WebView.WindowsForms;
 using Microsoft.Extensions.DependencyInjection;
 using Syncfusion.Blazor;
 using Syncfusion.Licensing;
 
-namespace AndyTV.UI;
+namespace AndyTV;
 
-public partial class GuideForm : Form
+sealed class GuideForm : Form
 {
-    private readonly BlazorWebView _blazorWebView;
-
     public GuideForm()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "AndyTV Guide";
-        Width = 1400;
-        Height = 900;
-        StartPosition = FormStartPosition.CenterScreen;
+        Size = new Size(1400, 900);
         MinimumSize = new Size(1024, 720);
+        StartPosition = FormStartPosition.CenterScreen;
 
-        // Allow users to maximize if they want
-        MaximizeBox = true;
-        MinimizeBox = true;
-        FormBorderStyle = FormBorderStyle.Sizable;
-
-        // Register Syncfusion license
         SyncfusionLicenseProvider.RegisterLicense(
             "Ngo9BigBOggjHTQxAR8/V1JAaF5cX2pCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkJjXn5YcnxRR2dVUUd9XEY="
         );
@@ -32,19 +24,16 @@ public partial class GuideForm : Form
         var services = new ServiceCollection();
         services.AddWindowsFormsBlazorWebView();
         services.AddSyncfusionBlazor();
-
-        // Register HttpClient for the guide component
         services.AddScoped(_ => new HttpClient());
 
-        _blazorWebView = new BlazorWebView
+        var blazorWebView = new BlazorWebView
         {
             Dock = DockStyle.Fill,
             HostPage = "wwwroot/index.html",
             Services = services.BuildServiceProvider(),
         };
+        blazorWebView.RootComponents.Add<GuideComponent>("#app");
 
-        _blazorWebView.RootComponents.Add<Guide.Shared.Components.GuideComponent>("#app");
-
-        Controls.Add(_blazorWebView);
+        Controls.Add(blazorWebView);
     }
 }

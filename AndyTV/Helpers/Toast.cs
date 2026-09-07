@@ -1,4 +1,4 @@
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 // Brief "now playing" toast in the player's bottom-right corner. AutoSize keeps it
 // crisp across DPI; the caller shows one at a time.

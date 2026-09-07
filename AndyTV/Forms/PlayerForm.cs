@@ -4,11 +4,11 @@ using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 internal sealed class PlayerForm : Form
 {
-    private static string AppVersionName => $"AndyTV vNext {Application.ProductVersion}";
+    private static string AppVersionName => $"AndyTV {Application.ProductVersion}";
 
     private readonly LibVLC _libVLC = new();
     private readonly MediaPlayer _mediaPlayer;
@@ -72,7 +72,6 @@ internal sealed class PlayerForm : Form
         };
 
         _healthMonitor = new StreamHealthMonitor(
-            isPaused: () => _mediaPlayer.State == VLCState.Paused,
             restart: () =>
             {
                 if (_current is { } current)

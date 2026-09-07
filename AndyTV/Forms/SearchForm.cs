@@ -1,6 +1,6 @@
 using AndyTV.Data.Models;
 
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 // Type-to-filter picker over the already-loaded channel list; returns the chosen channel.
 sealed class SearchForm : Form

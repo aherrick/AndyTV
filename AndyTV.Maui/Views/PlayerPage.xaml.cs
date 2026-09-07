@@ -50,7 +50,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         VideoView.MediaPlayer = _mediaPlayer;
 
         _healthMonitor = new StreamHealthMonitor(
-            isPaused: () => _mediaPlayer.State == VLCState.Paused,
             restart: () =>
             {
                 if (string.IsNullOrEmpty(_viewModel.Url))

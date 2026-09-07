@@ -1,7 +1,7 @@
 using System.Text;
 using AndyTV.Data.Services;
 
-namespace AndyTV.vNext;
+namespace AndyTV;
 
 static class Logger
 {
