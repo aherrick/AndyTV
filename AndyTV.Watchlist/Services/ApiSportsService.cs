@@ -21,6 +21,7 @@ public sealed class ApiSportsService : SportsFeedService
         // England
         39, // Premier League
         40, // EFL Championship
+        41, // EFL League One
         45, // FA Cup
         48, // EFL Cup / Carabao Cup
         // Major European top divisions
