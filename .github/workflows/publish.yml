@@ -11,6 +11,7 @@ jobs:
     runs-on: [self-hosted, ajwin]
     env:
       VERSION: 2.0.${{ github.run_number }}
+      VPK_VERSION: 1.2.110-ge826545
 
     steps:
       # Clone the repository (checkout automatically cleans the workspace first)
@@ -39,28 +40,28 @@ jobs:
         run: |
           dotnet publish .\AndyTV\AndyTV.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
 
-      # Use Velopack (vpk) to create installer, download previous release, and publish new version to GitHub
-      - name: Install vpk (local tool) + run
+      # Use Velopack (vpk) via dnx to create installer, download previous release, and publish new version to GitHub
+      - name: Run vpk (via dnx)
         shell: powershell
         run: |
-          dotnet new tool-manifest
-          dotnet tool install vpk --version 1.2.110-ge826545
+          $vpk = "vpk@$env:VPK_VERSION"
 
-          dotnet tool run vpk download github `
+          dnx --yes $vpk -- download github `
             --repoUrl https://github.com/${{ github.repository }} `
             --channel win `
             --token ${{ github.token }}
 
-          dotnet tool run vpk pack `
+          dnx --yes $vpk -- pack `
             --packId com.ajh.AndyTV `
             --packVersion $env:VERSION `
             --packDir publish `
             --mainExe AndyTV.exe `
             --packTitle "AndyTV" `
             --icon .\AndyTV\AndyTV.ico `
+            --runtime win-x64 `
             --channel win
 
-          dotnet tool run vpk upload github `
+          dnx --yes $vpk -- upload github `
             --outputDir Releases `
             --channel win `
             --repoUrl https://github.com/${{ github.repository }} `
