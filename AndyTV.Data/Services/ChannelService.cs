@@ -28,17 +28,27 @@ public partial class ChannelService
 
             ["Entertainment"] =
             [
-                new ChannelTop { Name = "A&E", AltNames = ["AE"] },
-                new ChannelTop { Name = "AMC" },
+                new ChannelTop
+                {
+                    Name = "A&E",
+                    AltNames = ["AE"],
+                    StreamingTVId = "AETV",
+                },
+                new ChannelTop { Name = "AMC", StreamingTVId = "AMC" },
                 new ChannelTop { Name = "Bravo", StreamingTVId = "BRAVO" },
-                new ChannelTop { Name = "Comedy Central" },
+                new ChannelTop { Name = "Comedy Central", StreamingTVId = "COMEDY" },
                 new ChannelTop
                 {
                     Name = "Discovery Channel",
                     AltNames = ["Discovery"],
                     StreamingTVId = "DSCHD",
                 },
-                new ChannelTop { Name = "Disney Channel", AltNames = ["Disney"] },
+                new ChannelTop
+                {
+                    Name = "Disney Channel",
+                    AltNames = ["Disney"],
+                    StreamingTVId = "DISN",
+                },
                 new ChannelTop
                 {
                     Name = "E!",
@@ -51,16 +61,27 @@ public partial class ChannelService
                     AltNames = ["Food"],
                     StreamingTVId = "FOOD",
                 },
-                new ChannelTop { Name = "FX" },
-                new ChannelTop { Name = "FXX" },
-                new ChannelTop { Name = "FX Movie Channel", AltNames = ["FXM"] },
-                new ChannelTop { Name = "FYI" },
-                new ChannelTop { Name = "Hallmark Channel", AltNames = ["Hallmark"] },
+                new ChannelTop { Name = "FX", StreamingTVId = "FX" },
+                new ChannelTop { Name = "FXX", StreamingTVId = "FXX" },
+                new ChannelTop
+                {
+                    Name = "FX Movie Channel",
+                    AltNames = ["FXM"],
+                    StreamingTVId = "FXM",
+                },
+                new ChannelTop { Name = "FYI", StreamingTVId = "FYI" },
+                new ChannelTop
+                {
+                    Name = "Hallmark Channel",
+                    AltNames = ["Hallmark"],
+                    StreamingTVId = "HALL",
+                },
                 new ChannelTop { Name = "Hallmark Drama" },
                 new ChannelTop
                 {
                     Name = "Hallmark Movies & Mysteries",
                     AltNames = ["Hallmark Movies and Mysteries", "HMM"],
+                    StreamingTVId = "HMM",
                 },
                 new ChannelTop { Name = "HGTV", StreamingTVId = "HGTV" },
                 new ChannelTop
@@ -69,8 +90,8 @@ public partial class ChannelService
                     AltNames = ["History Channel"],
                     StreamingTVId = "HSTRYHD",
                 },
-                new ChannelTop { Name = "IFC" },
-                new ChannelTop { Name = "Lifetime" },
+                new ChannelTop { Name = "IFC", StreamingTVId = "IFC" },
+                new ChannelTop { Name = "Lifetime", StreamingTVId = "LIFE" },
                 new ChannelTop
                 {
                     Name = "National Geographic",
@@ -83,40 +104,86 @@ public partial class ChannelService
                     AltNames = ["Nat Geo Wild"],
                     StreamingTVId = "NGWIHD",
                 },
-                new ChannelTop { Name = "Oxygen" },
-                new ChannelTop { Name = "Paramount Network", AltNames = ["Paramount"] },
+                new ChannelTop { Name = "Oxygen", StreamingTVId = "OXYGEN" },
+                new ChannelTop
+                {
+                    Name = "Paramount Network",
+                    AltNames = ["Paramount"],
+                    StreamingTVId = "PAR",
+                },
                 new ChannelTop
                 {
                     Name = "Smithsonian Channel",
                     AltNames = ["Smithsonian"],
                     StreamingTVId = "SMTHHD",
                 },
-                new ChannelTop { Name = "Syfy", AltNames = ["Sci-Fi"] },
+                new ChannelTop
+                {
+                    Name = "Syfy",
+                    AltNames = ["Sci-Fi"],
+                    StreamingTVId = "SYFY",
+                },
                 new ChannelTop { Name = "TBS", StreamingTVId = "TBS" },
-                new ChannelTop { Name = "TCM", AltNames = ["Turner Classic Movies"] },
+                new ChannelTop
+                {
+                    Name = "TCM",
+                    AltNames = ["Turner Classic Movies"],
+                    StreamingTVId = "TCM",
+                },
                 new ChannelTop { Name = "TNT", StreamingTVId = "TNT" },
                 new ChannelTop { Name = "Travel Channel", StreamingTVId = "TRAVHD" },
                 new ChannelTop { Name = "TruTV", StreamingTVId = "TRUTV" },
                 new ChannelTop { Name = "USA Network", StreamingTVId = "USA" },
-                new ChannelTop { Name = "VH1" },
-                new ChannelTop { Name = "WE TV" },
+                new ChannelTop { Name = "VH1", StreamingTVId = "VH1" },
+                new ChannelTop { Name = "WE TV", StreamingTVId = "WE" },
                 new ChannelTop
                 {
                     Name = "Crime + Investigation",
                     AltNames = ["Crime & Investigation", "Crime and Investigation"],
+                    StreamingTVId = "CIN",
                 },
-                new ChannelTop { Name = "Animal Planet" },
-                new ChannelTop { Name = "Cooking Channel" },
-                new ChannelTop { Name = "Discovery Family" },
-                new ChannelTop { Name = "Freeform" },
-                new ChannelTop { Name = "Investigation Discovery", AltNames = ["ID"] },
-                new ChannelTop { Name = "Magnolia Network" },
-                new ChannelTop { Name = "MotorTrend", AltNames = ["Motor Trend"] },
-                new ChannelTop { Name = "OWN", AltNames = ["Oprah Winfrey Network"] },
-                new ChannelTop { Name = "Pop TV", AltNames = ["Pop"] },
-                new ChannelTop { Name = "Science Channel", AltNames = ["Science"] },
-                new ChannelTop { Name = "Sundance TV", AltNames = ["SundanceTV"] },
-                new ChannelTop { Name = "TLC" },
+                new ChannelTop { Name = "Animal Planet", StreamingTVId = "APL" },
+                new ChannelTop { Name = "Cooking Channel", StreamingTVId = "COOK" },
+                new ChannelTop { Name = "Discovery Family", StreamingTVId = "DFC" },
+                new ChannelTop { Name = "Freeform", StreamingTVId = "FREEFRM" },
+                new ChannelTop
+                {
+                    Name = "Investigation Discovery",
+                    AltNames = ["ID"],
+                    StreamingTVId = "ID",
+                },
+                new ChannelTop { Name = "Magnolia Network", StreamingTVId = "MAGN" },
+                new ChannelTop
+                {
+                    Name = "MotorTrend",
+                    AltNames = ["Motor Trend"],
+                    StreamingTVId = "MTHD",
+                },
+                new ChannelTop
+                {
+                    Name = "OWN",
+                    AltNames = ["Oprah Winfrey Network"],
+                    StreamingTVId = "OWN",
+                },
+                new ChannelTop
+                {
+                    Name = "Pop TV",
+                    AltNames = ["Pop"],
+                    StreamingTVId = "POPSD",
+                },
+                new ChannelTop
+                {
+                    Name = "Science Channel",
+                    AltNames = ["Science"],
+                    StreamingTVId = "SCI",
+                },
+                new ChannelTop
+                {
+                    Name = "Sundance TV",
+                    AltNames = ["SundanceTV"],
+                    StreamingTVId = "SUNDANC",
+                },
+                new ChannelTop { Name = "TLC", StreamingTVId = "TLC" },
             ],
 
             ["Kids"] =
