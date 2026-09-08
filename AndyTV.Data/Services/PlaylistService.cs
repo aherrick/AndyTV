@@ -19,6 +19,10 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
     public List<Channel> Channels { get; private set; } = [];
 
+    // Curated US/UK lists match only playlists flagged for it, so TV-show/movie
+    // playlists don't pollute them.
+    public List<Channel> UsUkChannels { get; private set; } = [];
+
     public List<Playlist> LoadPlaylists()
     {
         try
@@ -48,13 +52,17 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
             var playlists = LoadPlaylists();
             PlaylistChannels = await LoadChannelsAsync(playlists);
 
-            Channels =
-            [
-                .. PlaylistChannels
-                    .SelectMany(x => x.Channels)
-                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                    .Select(g => g.First()),
-            ];
+            Channels = Dedup(PlaylistChannels);
+            UsUkChannels = Dedup(PlaylistChannels.Where(x => x.Playlist.ShowInUsUk));
+
+            static List<Channel> Dedup(
+                IEnumerable<(Playlist Playlist, List<Channel> Channels)> source) =>
+                [
+                    .. source
+                        .SelectMany(x => x.Channels)
+                        .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+                        .Select(g => g.First()),
+                ];
         }
         catch (Exception ex)
         {

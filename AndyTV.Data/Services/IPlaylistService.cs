@@ -6,6 +6,7 @@ public interface IPlaylistService
 {
     List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels { get; }
     List<Channel> Channels { get; }
+    List<Channel> UsUkChannels { get; }
 
     List<Playlist> LoadPlaylists();
 

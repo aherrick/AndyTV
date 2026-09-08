@@ -303,8 +303,34 @@ internal sealed class PlayerForm : Form
     private void ShowGuide()
     {
         using var form = new GuideForm();
-        form.ShowDialog(this);
+        if (form.ShowDialog(this) == DialogResult.OK
+            && form.SelectedStreamingTvId is { } id
+            && ResolveByStreamingTvId(id) is { } channel)
+        {
+            Play(channel);
+        }
         UpdateCursor();
+    }
+
+    private Channel ResolveByStreamingTvId(string streamingTvId)
+    {
+        var channels = _playlistService.UsUkChannels;
+        foreach (var region in (Dictionary<string, List<ChannelTop>>[])[ChannelService.TopUs(), ChannelService.TopUk()])
+        {
+            foreach (var entry in region.Values.SelectMany(e => e))
+            {
+                if (!string.Equals(entry.StreamingTVId, streamingTvId, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                var matches = ChannelMatcher.MatchTop(entry, channels);
+                if (matches.Count > 0)
+                {
+                    return matches[0];
+                }
+            }
+        }
+        return null;
     }
 
     private void BuildStaticMenu()
@@ -408,12 +434,7 @@ internal sealed class PlayerForm : Form
 
         // US/UK match only playlists flagged for it, so TV-show/movie playlists don't
         // pollute the curated lists; 24-7 still spans all channels.
-        var usUkChannels = _playlistService
-            .PlaylistChannels.Where(x => x.Playlist.ShowInUsUk)
-            .SelectMany(x => x.Channels)
-            .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .ToList();
+        var usUkChannels = _playlistService.UsUkChannels;
         items.Add(
             Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels))
         );

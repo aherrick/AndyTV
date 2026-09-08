@@ -1,3 +1,4 @@
+using AndyTV.Guide.Shared;
 using AndyTV.Guide.Shared.Components;
 using Microsoft.AspNetCore.Components.WebView.WindowsForms;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,8 @@ namespace AndyTV;
 
 sealed class GuideForm : Form
 {
+    public string SelectedStreamingTvId { get; private set; }
+
     public GuideForm()
     {
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -21,10 +24,19 @@ sealed class GuideForm : Form
             "Ngo9BigBOggjHTQxAR8/V1JAaF5cX2pCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkJjXn5YcnxRR2dVUUd9XEY="
         );
 
+        var watchHandler = new GuideWatchHandler();
+        watchHandler.WatchRequested += id =>
+        {
+            SelectedStreamingTvId = id;
+            DialogResult = DialogResult.OK;
+            Close();
+        };
+
         var services = new ServiceCollection();
         services.AddWindowsFormsBlazorWebView();
         services.AddSyncfusionBlazor();
         services.AddScoped(_ => new HttpClient());
+        services.AddSingleton(watchHandler);
 
         var blazorWebView = new BlazorWebView
         {

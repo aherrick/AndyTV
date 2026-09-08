@@ -1,7 +1,9 @@
 @using System.Net.Http.Json
 @using AndyTV.Data.Models
+@using AndyTV.Guide.Shared
 @using Syncfusion.Blazor.Schedule
 @inject HttpClient Http
+@inject IServiceProvider Services
 
 <SfSchedule TValue="ShowEvent"
             @ref="ScheduleRef"
@@ -41,15 +43,15 @@
     </ScheduleViews>
 
     <ScheduleQuickInfoTemplates TemplateType="TemplateType.Event">
-    @*     <FooterTemplate Context="context">
+        <FooterTemplate Context="context">
             @{
                 var ev = context as ShowEvent;
             }
-            @if (ev is not null && !string.IsNullOrWhiteSpace(ev.Description))
+            @if (WatchHandler?.CanWatch == true && ev is not null && !string.IsNullOrWhiteSpace(ev.StreamingTVId))
             {
-                @ev.Description
+                <button class="e-btn e-primary" @onclick="() => WatchHandler.Watch(ev.StreamingTVId)">Watch</button>
             }
-        </FooterTemplate> *@
+        </FooterTemplate>
     </ScheduleQuickInfoTemplates>
 
     <ScheduleEventSettings TValue="ShowEvent"
@@ -71,6 +73,13 @@
     private List<CategoryData> Categories = new();
     private List<ChannelData> Channels = new();
     private List<ShowEvent> Events = new();
+
+    private GuideWatchHandler WatchHandler;
+
+    protected override void OnInitialized()
+    {
+        WatchHandler = Services.GetService(typeof(GuideWatchHandler)) as GuideWatchHandler;
+    }
 
     protected override async Task OnInitializedAsync()
     {
