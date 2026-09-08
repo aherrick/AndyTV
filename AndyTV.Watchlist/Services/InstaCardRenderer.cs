@@ -186,13 +186,12 @@ public sealed class InstaCardRenderer
         return $"<div class=\"callout\">🔥 PRIME-TIME ANCHOR: {Enc(SportsFormat.RankedMatchup(anchor, anchorRank))} at {Time(anchor)} ET</div>";
     }
 
-    private static string BuildHeader()
-    {
-        var bytes = File.ReadAllBytes(
-            Path.Combine(AppContext.BaseDirectory, "andytvwatchlist_header.png")
-        );
-        return $"<img class=\"banner\" src=\"data:image/png;base64,{Convert.ToBase64String(bytes)}\">";
-    }
+    // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
+    private const string HeaderImageUrl =
+        "https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/andytvwatchlist_header.png";
+
+    private static string BuildHeader() =>
+        $"<img class=\"banner\" src=\"{HeaderImageUrl}\">";
 
     private static string Time(SportsEvent sportsEvent) =>
         sportsEvent.StartTimeEastern.ToString("h:mm tt", CultureInfo.InvariantCulture);
