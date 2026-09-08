@@ -6,8 +6,6 @@ public sealed class StreamHealthMonitor(
     Action<string> logger = null
 )
 {
-    public const int DefaultStallSeconds = 4;
-
     private readonly long _stallThresholdTicks = TimeSpan.FromSeconds(stallSeconds).Ticks;
     private readonly Action _restart = restart;
     private readonly Action<string> _logger = logger;

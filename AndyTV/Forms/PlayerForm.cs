@@ -14,7 +14,7 @@ internal sealed class PlayerForm : Form
     private readonly MediaPlayer _mediaPlayer;
     private readonly VideoView _videoView;
     private readonly ContextMenuStrip _menu = new();
-    private readonly ToolStripMenuItem[] _recentItems = new ToolStripMenuItem[5];
+    private readonly List<ToolStripItem> _recentItems = [];
     private readonly ToolStripSeparator _recentSeparator = new();
     private readonly ToolStripSeparator _favoritesSeparator = new();
 
@@ -58,12 +58,6 @@ internal sealed class PlayerForm : Form
         Text = AppVersionName;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
-
-        for (var i = 0; i < _recentItems.Length; i++)
-        {
-            _recentItems[i] = new ToolStripMenuItem { Visible = false };
-            _recentItems[i].Click += OnRecentClick;
-        }
 
         _mediaPlayer = new MediaPlayer(_libVLC)
         {
@@ -339,7 +333,6 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(new ToolStripSeparator());
 
         // Recent sits above the favorites list, separated only when both exist.
-        _menu.Items.AddRange(_recentItems);
         _menu.Items.Add(_favoritesSeparator);
         _menu.Items.Add(_recentSeparator);
         RebuildFavorites();
@@ -533,21 +526,22 @@ internal sealed class PlayerForm : Form
 
     private void RefreshRecent()
     {
-        var recents = _recentService.GetRecentChannels();
-        for (var i = 0; i < _recentItems.Length; i++)
+        foreach (var item in _recentItems)
         {
-            if (i < recents.Count)
-            {
-                var r = recents[i];
-                _recentItems[i].Text = r.DisplayName;
-                _recentItems[i].Tag = r;
-                _recentItems[i].Visible = true;
-            }
-            else
-            {
-                _recentItems[i].Visible = false;
-            }
+            _menu.Items.Remove(item);
         }
+        _recentItems.Clear();
+
+        var recents = _recentService.GetRecentChannels();
+        var index = _menu.Items.IndexOf(_favoritesSeparator);
+        foreach (var recent in recents)
+        {
+            var leaf = new ToolStripMenuItem(recent.DisplayName) { Tag = recent };
+            leaf.Click += OnRecentClick;
+            _menu.Items.Insert(index++, leaf);
+            _recentItems.Add(leaf);
+        }
+
         var hasFavorites = _favoriteService.Favorites.Count > 0;
         _favoritesSeparator.Visible = recents.Count > 0 && hasFavorites;
         // Divider hidden only when nothing sits above it (no recents and no favorites).

@@ -44,7 +44,7 @@ jobs:
         shell: powershell
         run: |
           dotnet new tool-manifest
-          dotnet tool install vpk
+          dotnet tool install vpk --version 1.2.110-ge826545
 
           dotnet tool run vpk download github `
             --repoUrl https://github.com/${{ github.repository }} `

@@ -65,7 +65,7 @@ If you’d like to add new features, improve the UI, or just fix a typo, PRs are
 ## 📚 Tech Stack
 AndyTV is built with a modern .NET toolchain and a few carefully chosen libraries:
 
-- ⚡ **.NET 10 / C# 14 Preview** — bleeding-edge performance and language features  
+- ⚡ **.NET 10 / C# 14** — modern performance and language features
 - 🖼️ **WinForms** — classic, lightweight Windows desktop UI  
 - 🎵 **LibVLCSharp** — handles reliable media playback  
 - 📦 **Velopack** — simple auto-updates & packaging  

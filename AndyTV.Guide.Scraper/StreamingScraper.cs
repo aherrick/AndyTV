@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AngleSharp;
@@ -13,13 +14,10 @@ public static class StreamingScraper
         var top = ChannelService.TopUsGuide();
 
         var shows = new List<Show>();
-        var pstTz = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
-
         var channelsWithIds = 0;
 
         // Tracking for summary
         var zeroResultChannels = new List<(string Category, string Name, string Url)>();
-        var noCardBodyChannels = new List<(string Category, string Name, string Url)>();
 
         foreach (var kvp in top)
         {
@@ -46,96 +44,37 @@ public static class StreamingScraper
                     var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
                     var document = await context.OpenAsync(url);
 
-                    var cards = document.QuerySelectorAll(".card-body").ToList();
-                    if (cards.Count == 0)
+                    // The page embeds the full schedule as JSON-LD (CollectionPage -> BroadcastEvent items).
+                    var json = document
+                        .QuerySelectorAll("script[type='application/ld+json']")
+                        .Select(script => script.TextContent)
+                        .FirstOrDefault(text => text.Contains("\"CollectionPage\""));
+
+                    if (json is null)
                     {
                         Console.WriteLine(
-                            $"[WARN] No .card-body for [{category}] {tvChannelFav.Name}. URL: {url}"
+                            $"[WARN] No schedule JSON-LD for [{category}] {tvChannelFav.Name}. URL: {url}"
                         );
-                        Console.WriteLine("[DEBUG] Dumping first 500 chars of HTML:");
-                        Console.WriteLine(
-                            document
-                                .DocumentElement
-                                ?.OuterHtml[
-                                    ..Math.Min(500, document.DocumentElement.OuterHtml.Length)
-                                ] ?? ""
-                        );
-                        noCardBodyChannels.Add((category, tvChannelFav.Name, url));
+                        zeroResultChannels.Add((category, tvChannelFav.Name, url));
+                        continue;
                     }
 
-                    foreach (var showHtml in cards)
+                    foreach (var show in ParseSchedule(json, category, tvChannelFav))
                     {
-                        var title =
-                            showHtml
-                                .QuerySelector("h5")
-                                ?.TextContent.Replace(
-                                    "Playing Now!",
-                                    "",
-                                    StringComparison.OrdinalIgnoreCase
-                                )
-                                .Trim() ?? "";
-
-                        var sub = showHtml.QuerySelector("h6")?.TextContent ?? "";
-                        if (!string.IsNullOrWhiteSpace(sub))
-                        {
-                            title += " - " + sub.Trim();
-                        }
-
-                        var timeLine = showHtml
-                            .ChildNodes.OfType<IText>()
-                            .Select(m => m.Text.Trim())
-                            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
-                            ?.Replace("\n", "")
-                            ?.Replace("PST", "", StringComparison.OrdinalIgnoreCase)
-                            ?.Replace("PDT", "", StringComparison.OrdinalIgnoreCase);
-
-                        if (string.IsNullOrWhiteSpace(timeLine) || !timeLine.Contains('-'))
-                        {
-                            Console.WriteLine(
-                                $"[DEBUG] Skipping show (no timeline) → Title: {title}"
-                            );
-                            continue;
-                        }
-
-                        var parts = timeLine.Split(" - ", StringSplitOptions.TrimEntries);
-                        if (parts.Length != 2)
-                        {
-                            Console.WriteLine($"[DEBUG] Invalid timeline format: '{timeLine}'");
-                            continue;
-                        }
-
-                        var startUtc = TimeZoneInfo.ConvertTimeToUtc(
-                            DateTime.Parse(parts[0]),
-                            pstTz
-                        );
-                        var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Parse(parts[1]), pstTz);
-                        var desc = showHtml.QuerySelector("p.card-text")?.TextContent?.Trim() ?? "";
-
-                        var showDb = new Show
-                        {
-                            StreamingTVId = tvChannelFav.StreamingTVId,
-                            ChannelName = tvChannelFav.Name,
-                            Category = category,
-                            Subject = title,
-                            StartTime = startUtc,
-                            EndTime = endUtc,
-                            Description = desc,
-                        };
-
-                        var exists = shows.FirstOrDefault(p =>
-                            p.Subject == showDb.Subject
-                            && p.StartTime == showDb.StartTime
-                            && p.ChannelName == showDb.ChannelName
+                        var exists = shows.Any(p =>
+                            p.Subject == show.Subject
+                            && p.StartTime == show.StartTime
+                            && p.ChannelName == show.ChannelName
                         );
 
-                        if (exists == null && showDb.StartTime > DateTime.UtcNow.AddHours(-6))
+                        if (!exists && show.StartTime > DateTime.UtcNow.AddHours(-6))
                         {
-                            shows.Add(showDb);
+                            shows.Add(show);
                         }
                     }
 
                     var added = shows.Count - countBefore;
-                    Console.WriteLine($" → [{category}] {tvChannelFav.Name}: pulled {added} shows");
+                    Console.WriteLine($" -> [{category}] {tvChannelFav.Name}: pulled {added} shows");
 
                     if (added == 0)
                     {
@@ -175,24 +114,67 @@ public static class StreamingScraper
         {
             foreach (var z in zeroResultChannels.Distinct())
             {
-                Console.WriteLine($"  [{z.Category}] {z.Name} → {z.Url}");
-            }
-        }
-
-        Console.WriteLine();
-        Console.WriteLine("-- Channels with no `.card-body` elements --");
-        if (noCardBodyChannels.Count == 0)
-        {
-            Console.WriteLine("  None");
-        }
-        else
-        {
-            foreach (var n in noCardBodyChannels.Distinct())
-            {
-                Console.WriteLine($"  [{n.Category}] {n.Name} → {n.Url}");
+                Console.WriteLine($"  [{z.Category}] {z.Name} -> {z.Url}");
             }
         }
         Console.WriteLine("==== END SUMMARY ====");
+
+        return shows;
+    }
+
+    // Maps CollectionPage JSON-LD BroadcastEvent items to Show (startDate/endDate are UTC).
+    private static List<Show> ParseSchedule(string json, string category, ChannelTop channel)
+    {
+        var shows = new List<Show>();
+
+        using var doc = JsonDocument.Parse(json);
+        if (
+            !doc.RootElement.TryGetProperty("mainEntity", out var mainEntity)
+            || !mainEntity.TryGetProperty("itemListElement", out var list)
+            || list.ValueKind != JsonValueKind.Array
+        )
+        {
+            return shows;
+        }
+
+        foreach (var element in list.EnumerateArray())
+        {
+            if (!element.TryGetProperty("item", out var item))
+            {
+                continue;
+            }
+
+            var name = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            if (
+                !item.TryGetProperty("startDate", out var startEl)
+                || !item.TryGetProperty("endDate", out var endEl)
+                || !startEl.TryGetDateTimeOffset(out var start)
+                || !endEl.TryGetDateTimeOffset(out var end)
+            )
+            {
+                continue;
+            }
+
+            shows.Add(
+                new Show
+                {
+                    StreamingTVId = channel.StreamingTVId,
+                    ChannelName = channel.Name,
+                    Category = category,
+                    Subject = name,
+                    Description = item.TryGetProperty("description", out var descEl)
+                        ? descEl.GetString() ?? ""
+                        : "",
+                    StartTime = start.UtcDateTime,
+                    EndTime = end.UtcDateTime,
+                }
+            );
+        }
 
         return shows;
     }
