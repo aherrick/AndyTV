@@ -170,8 +170,10 @@ public static class StreamingScraper
                     Description = item.TryGetProperty("description", out var descEl)
                         ? descEl.GetString() ?? ""
                         : "",
-                    StartTime = start.UtcDateTime,
-                    EndTime = end.UtcDateTime,
+                    // Temporary upstream correction: ESPN, CNBC and CNN were one hour late
+                    // on 2026-09-08. Remove once the source timestamps are fixed.
+                    StartTime = start.UtcDateTime.AddMinutes(-60),
+                    EndTime = end.UtcDateTime.AddMinutes(-60),
                 }
             );
         }
