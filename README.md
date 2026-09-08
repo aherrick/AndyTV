@@ -13,6 +13,7 @@
 - 🖥️ Simple and clean Windows UI  
 - ⭐ Create and manage **Favorites** for one-click channel switching  
 - 🕑 Remembers your most recently watched channels  
+- ⏺️ Record the current channel to a local `.ts` file  
 - 🔄 Auto-update support via GitHub Releases  
 
 > ⚠️ **Note:** AndyTV does **not** include or ship with any IPTV channels or playlists.  
@@ -25,6 +26,13 @@
 - **Double-click:** toggle **fullscreen**
 - **Scroll wheel:** cycle through **recent channels**
 - **Menu → New Window:** launch a second instance snapped side-by-side
+- **Menu → Manage → Start / Stop Recording:** record the current channel to a local `.ts` file
+- **Menu → Manage → Open Recordings Folder:** open `Videos\Andy TV\Recordings` to watch saved files in VLC or another compatible player
+
+Recording briefly reconnects playback when started or stopped. Changing channels, automatic
+stream recovery, or exiting ends the recording. Filenames include the channel and start time;
+there is no scheduling or recordings database. Recording uses the original stream without
+transcoding, so compatibility depends on the stream's codecs.
 
 ## 📥 Download
 

@@ -24,16 +24,29 @@ internal sealed class PlayerForm : Form
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
+    private readonly ToolStripMenuItem _recordItem = new("Start Recording");
+    private string _recordingPath;
+
+    private static string RecordingsFolder =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            "AndyTV",
+            "Recordings"
+        );
+
     private readonly ToolStripMenuItem _addFavoriteItem = new("Add Current to Favorites");
     private List<Playlist> _playlists = [];
 
     private Channel _current;
     private Channel _pending;
+
     // Channel-tree items (playlists + Top US/UK/24-7) currently in the menu. Built off
     // the UI thread and swapped in, so the menu is usable before they finish loading.
     private readonly List<ToolStripItem> _channelItems = [];
+
     // Spinner shows while channels are loading (_busy) or a channel is connecting (_pending).
     private bool _busy;
+
     private bool _menuOpen;
     private Form _toast;
     private DateTime _leftDown = DateTime.MinValue;
@@ -65,15 +78,13 @@ internal sealed class PlayerForm : Form
             EnableKeyInput = false,
         };
 
-        _healthMonitor = new StreamHealthMonitor(
-            restart: () =>
+        _healthMonitor = new StreamHealthMonitor(restart: () =>
+        {
+            if (_current is { } current)
             {
-                if (_current is { } current)
-                {
-                    Play(current);
-                }
+                Play(current);
             }
-        );
+        });
         _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
 
         _mediaPlayer.Playing += OnPlaying;
@@ -86,6 +97,7 @@ internal sealed class PlayerForm : Form
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
         };
         _addFavoriteItem.Click += (_, _) => AddCurrentFavorite();
+        _recordItem.Click += (_, _) => ToggleRecording();
 
         _videoView = new VideoView
         {
@@ -106,6 +118,7 @@ internal sealed class PlayerForm : Form
         {
             _menuOpen = true;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
+            UpdateRecordingMenu();
             UpdateCursor();
         };
         _menu.Closing += (_, _) =>
@@ -326,6 +339,8 @@ internal sealed class PlayerForm : Form
         );
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
         manage.DropDownItems.Add(_muteItem);
+        manage.DropDownItems.Add(_recordItem);
+        manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
         manage.DropDownItems.Add("New Window", null, (_, _) => NewWindow());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());
@@ -399,8 +414,12 @@ internal sealed class PlayerForm : Form
             .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First())
             .ToList();
-        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels)));
-        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels)));
+        items.Add(
+            Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels))
+        );
+        items.Add(
+            Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels))
+        );
         var menu247 = Render(ChannelMatcher.Build247(_playlistService.Channels));
         if (menu247.DropDownItems.Count > 0)
         {
@@ -558,12 +577,90 @@ internal sealed class PlayerForm : Form
 
     private void Play(Channel channel)
     {
+        StopRecording();
+        StartPlayback(channel);
+    }
+
+    private void StartPlayback(Channel channel, string recordingPath = null)
+    {
         _current = channel;
         _pending = channel;
         _healthMonitor.MarkActivity();
         UpdateCursor();
         using var media = new Media(_libVLC, new Uri(channel.Url));
+        if (recordingPath is not null)
+        {
+            // Forward slashes avoid VLC treating Windows path separators as escapes.
+            var destination = recordingPath.Replace('\\', '/').Replace("'", "\\'");
+            media.AddOption(
+                $":sout=#duplicate{{dst=display,dst=std{{access=file,mux=ts,dst='{destination}'}}}}"
+            );
+            media.AddOption(":no-sout-keep");
+        }
         _mediaPlayer.Play(media);
+    }
+
+    private void UpdateRecordingMenu()
+    {
+        _recordItem.Text = _recordingPath is null ? "Start Recording" : "Stop Recording";
+        _recordItem.Checked = _recordingPath is not null;
+    }
+
+    private void ToggleRecording()
+    {
+        if (_recordingPath is not null)
+        {
+            Play(_current);
+            return;
+        }
+        if (_current is null || _pending is not null || !_mediaPlayer.IsPlaying)
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(RecordingsFolder);
+        var name = string.Concat(
+            _current.DisplayName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)
+        );
+        _recordingPath = Path.Combine(
+            RecordingsFolder,
+            $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{name}.ts"
+        );
+        _mediaPlayer.Stop();
+        StartPlayback(_current, _recordingPath);
+        UpdateRecordingMenu();
+    }
+
+    private void StopRecording()
+    {
+        if (_recordingPath is not { } path)
+        {
+            return;
+        }
+        _mediaPlayer.Stop(); // Flush and close the file before switching media or exiting.
+        _recordingPath = null;
+        UpdateRecordingMenu();
+        Logger.Info($"[RECORDING] Closed {path}");
+    }
+
+    private void OpenRecordingsFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(RecordingsFolder);
+            OpenUrl(RecordingsFolder);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Could not open recordings folder");
+            MessageBox.Show(
+                this,
+                ex.Message,
+                "Recordings",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
+        }
     }
 
     private void OnPlaying(object sender, EventArgs e)
@@ -616,6 +713,7 @@ internal sealed class PlayerForm : Form
             _cts.Cancel();
             _cts.Dispose();
             _healthTimer.Dispose();
+            StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
             _mediaPlayer.Dispose();
             _libVLC.Dispose();
