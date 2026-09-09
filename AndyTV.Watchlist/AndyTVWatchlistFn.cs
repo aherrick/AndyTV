@@ -70,18 +70,14 @@ public class AndyTVWatchlistFn(
 
         var html = WatchlistSiteBuilder.BuildHtml(events, guide, targetDate);
 
-        if (settings.PublishLocal || settings.CanPublishSite)
+        if (!settings.PublishLocal && settings.CanPublishSite)
         {
-            var target = await blobStore.PublishSite(html, cancellationToken);
+            var url = await blobStore.PublishSite(html, cancellationToken);
 
             if (_logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("Published site to {target}", target);
+                _logger.LogInformation("Published site to {url}", url);
             }
-        }
-        else
-        {
-            _logger.LogInformation("No blob connection string; skipping site publish.");
         }
 
         // Instagram carousel uses blob-hosted card images; skipped for local previews.
@@ -116,31 +112,45 @@ public class AndyTVWatchlistFn(
             );
         }
 
-        if (!settings.CanPostToX)
+        if (settings.CanPostToX)
+        {
+            using var xPostingService = new XPostingService(
+                settings.XConsumerKey!,
+                settings.XConsumerSecret!,
+                settings.XAccessToken!,
+                settings.XAccessTokenSecret!
+            );
+            var postId = await xPostingService.PostThreadAsync(posts, cancellationToken);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
+            }
+
+            if (myTimer.ScheduleStatus is not null)
+            {
+                _logger.LogInformation(
+                    "Next timer schedule at: {nextSchedule}",
+                    myTimer.ScheduleStatus.Next
+                );
+            }
+        }
+        else
         {
             _logger.LogInformation("Preview only. Add the four X_ secrets to publish the thread.");
-            return;
         }
 
-        using var xPostingService = new XPostingService(
-            settings.XConsumerKey!,
-            settings.XConsumerSecret!,
-            settings.XAccessToken!,
-            settings.XAccessTokenSecret!
-        );
-        var postId = await xPostingService.PostThreadAsync(posts, cancellationToken);
-
-        if (_logger.IsEnabled(LogLevel.Information))
+        // Local preview: write the finished page to disk as the final step.
+        if (settings.PublishLocal)
         {
-            _logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
-        }
+            Directory.CreateDirectory("publish");
+            var path = Path.GetFullPath(Path.Combine("publish", "index.html"));
+            await File.WriteAllTextAsync(path, html, cancellationToken);
 
-        if (myTimer.ScheduleStatus is not null)
-        {
-            _logger.LogInformation(
-                "Next timer schedule at: {nextSchedule}",
-                myTimer.ScheduleStatus.Next
-            );
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Saved local preview to {path}", path);
+            }
         }
     }
 }

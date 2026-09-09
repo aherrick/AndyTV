@@ -6,8 +6,7 @@ using Azure.Storage.Blobs.Models;
 namespace AndyTV.Watchlist.Services;
 
 // One storage account, two jobs: it hosts the static site ($web/index.html) and the
-// public Instagram card images (andytv-watchlist container). When PublishLocal is set
-// the site is written to a local publish/ folder instead of blob storage.
+// public Instagram card images (andytv-watchlist container).
 public sealed class BlobStore(AppSettings settings)
 {
     private const string ImageContainer = "andytv-watchlist";
@@ -30,27 +29,17 @@ public sealed class BlobStore(AppSettings settings)
         return blob.Uri;
     }
 
-    // Publishes index.html and returns the destination (local path or blob URL).
+    // Uploads index.html to the $web container and returns its blob URL.
     public async Task<string> PublishSite(
         string html,
         CancellationToken cancellationToken = default
     )
     {
-        var bytes = Encoding.UTF8.GetBytes(html);
-
-        if (settings.PublishLocal)
-        {
-            Directory.CreateDirectory(PublishFolder);
-            var path = Path.Combine(PublishFolder, "index.html");
-            await File.WriteAllBytesAsync(path, bytes, cancellationToken);
-            return path;
-        }
-
         var container = new BlobContainerClient(settings.BlobConnectionString, "$web");
         await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
         var blob = container.GetBlobClient("index.html");
-        await Upload(blob, bytes, "text/html; charset=utf-8", "no-cache", cancellationToken);
+        await Upload(blob, Encoding.UTF8.GetBytes(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
         return blob.Uri.ToString();
     }
 
@@ -75,21 +64,5 @@ public sealed class BlobStore(AppSettings settings)
             },
             cancellationToken
         );
-    }
-
-    // <repo root>/publish (repo root = the folder containing AndyTV.slnx).
-    private static string PublishFolder
-    {
-        get
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "AndyTV.slnx")))
-            {
-                dir = dir.Parent;
-            }
-
-            var root = dir?.FullName ?? Directory.GetCurrentDirectory();
-            return Path.Combine(root, "publish");
-        }
     }
 }
