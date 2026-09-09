@@ -10,7 +10,9 @@ namespace AndyTV.Watchlist.Services;
 public sealed class SportsGuideService(AppSettings settings)
 {
     // Pricing per 1M tokens (USD) by model; adjust to your deployment's rates.
-    private static readonly Dictionary<string, ModelPricing> Pricing = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, ModelPricing> Pricing = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
         ["6-astra"] = new(10.00m, 50.00m),
         ["5.6-terra"] = new(2.00m, 12.00m),
@@ -47,7 +49,6 @@ public sealed class SportsGuideService(AppSettings settings)
                 "additionalProperties": false
               }
             },
-            "watchPlan": { "type": "string" },
             "watchPlanSteps": {
               "type": "array",
               "items": {
@@ -62,7 +63,7 @@ public sealed class SportsGuideService(AppSettings settings)
             },
             "anchorEventId": { "type": ["integer", "null"] }
           },
-          "required": ["rankedEvents", "watchPlan", "watchPlanSteps", "anchorEventId"],
+          "required": ["rankedEvents", "watchPlanSteps", "anchorEventId"],
           "additionalProperties": false
         }
         """
@@ -94,7 +95,7 @@ public sealed class SportsGuideService(AppSettings settings)
         {
             ReasoningOptions = new ResponseReasoningOptions
             {
-                ReasoningEffortLevel = ResponseReasoningEffortLevel.Medium,
+                ReasoningEffortLevel = ResponseReasoningEffortLevel.High,
             },
             TextOptions = new ResponseTextOptions
             {
@@ -112,11 +113,7 @@ public sealed class SportsGuideService(AppSettings settings)
             .GetResponsesClient()
             .CreateResponseAsync(options, cancellationToken);
 
-        LogUsage(
-            settings.AzureOpenAiDeployment,
-            response.Value.Usage,
-            response.Value.OutputItems
-        );
+        LogUsage(settings.AzureOpenAiDeployment, response.Value.Usage, response.Value.OutputItems);
 
         var guide =
             JsonSerializer.Deserialize<AiSportsGuide>(response.Value.GetOutputText(), JsonOptions)
@@ -151,9 +148,10 @@ public sealed class SportsGuideService(AppSettings settings)
         }
 
         var cost =
-            ((usage.InputTokenCount * pricing.InputPerMillion)
-                + (usage.OutputTokenCount * pricing.OutputPerMillion))
-            / 1_000_000m;
+            (
+                (usage.InputTokenCount * pricing.InputPerMillion)
+                + (usage.OutputTokenCount * pricing.OutputPerMillion)
+            ) / 1_000_000m;
 
         Console.WriteLine(
             $"AI model: {model} | {usage.InputTokenCount} in + {usage.OutputTokenCount} out | ${cost:F4} | {web}"
@@ -186,7 +184,7 @@ public sealed class SportsGuideService(AppSettings settings)
             )
             || guide.RankedEvents.Select(rankedEvent => rankedEvent.EventId).Distinct().Count()
                 != guide.RankedEvents.Count
-            || string.IsNullOrWhiteSpace(guide.WatchPlan)
+            || guide.WatchPlanSteps.Count < 1
             || guide.WatchPlanSteps.Any(step =>
                 step.EventId < 0
                 || step.EventId >= events.Count

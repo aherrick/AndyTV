@@ -42,10 +42,12 @@ public static class SportsGuideFormatter
             );
         }
 
+        var plan = SportsFormat.WatchPlan(events, guide).Select(SportsFormat.PlanLine);
+
         return new SportsPosts(
             best.ToString().TrimEnd(),
             timeline.ToString().TrimEnd(),
-            $"{TopPicks(ranked)}\n\n🤖 AndyTV AI WATCH PLAN\n\n{guide.WatchPlan.Trim()}"
+            $"{TopPicks(ranked)}\n\n🤖 AndyTV AI WATCH PLAN\n\n{string.Join('\n', plan)}"
         );
     }
 
@@ -53,24 +55,12 @@ public static class SportsGuideFormatter
     {
         var picks = new StringBuilder().AppendLine("⭐ TOP PICKS");
 
-        void Add(string label, IEnumerable<(SportsEvent Event, RankedEvent Ranked)> source)
+        foreach (var (icon, label, sportsEvent, rankedEvent) in SportsFormat.TopPicks(ranked))
         {
-            if (source.Cast<(SportsEvent Event, RankedEvent Ranked)?>().FirstOrDefault() is { } pick)
-            {
-                picks.AppendLine(
-                    $"{label} {SportsFormat.RankedMatchup(pick.Event, pick.Ranked)} - {pick.Event.StartTimeEastern:h:mm tt} ET"
-                );
-            }
+            picks.AppendLine(
+                $"{icon} {label}: {SportsFormat.RankedMatchup(sportsEvent, rankedEvent)} - {sportsEvent.StartTimeEastern:h:mm tt} ET"
+            );
         }
-
-        Add("🔥 Best overall:", ranked);
-        Add("🏈 Best football:", ranked.Where(item => item.Event.Sport == "Football"));
-        Add("⚾ Best baseball:", ranked.Where(item => item.Event.Sport == "Baseball"));
-        Add("🏒 Best hockey:", ranked.Where(item => item.Event.Sport == "Hockey"));
-        Add("🏀 Best basketball:", ranked.Where(item => item.Event.Sport == "Basketball"));
-        Add("⚽ Best soccer:", ranked.Where(item => item.Event.Sport == "Soccer"));
-        Add("🏁 Best racing:", ranked.Where(item => item.Event.Sport == "Racing"));
-        Add("🌙 Best late-night:", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
 
         return picks.ToString().TrimEnd();
     }

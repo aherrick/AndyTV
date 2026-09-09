@@ -145,19 +145,7 @@ public sealed class InstaCardRenderer
 
     private static string WatchBody(IReadOnlyList<SportsEvent> events, AiSportsGuide guide)
     {
-        var steps = guide
-            .WatchPlanSteps.Where(step => step.EventId >= 0 && step.EventId < events.Count)
-            .Select(step =>
-                (
-                    Event: events[step.EventId],
-                    step.Note,
-                    Ranked: guide.RankedEvents.Find(rankedEvent =>
-                        rankedEvent.EventId == step.EventId
-                    )
-                )
-            )
-            .OrderBy(item => item.Event.StartTimeEastern)
-            .ToList();
+        var steps = SportsFormat.WatchPlan(events, guide);
 
         var body = string.Concat(
             steps.Select(step =>

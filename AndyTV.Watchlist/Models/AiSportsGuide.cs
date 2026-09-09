@@ -4,8 +4,6 @@ public sealed class AiSportsGuide
 {
     public List<RankedEvent> RankedEvents { get; init; } = [];
 
-    public string WatchPlan { get; init; } = "";
-
     public List<WatchPlanStep> WatchPlanSteps { get; init; } = [];
 
     public int? AnchorEventId { get; init; }
