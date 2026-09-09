@@ -6,7 +6,7 @@ namespace AndyTV.Watchlist.Services;
 
 public sealed record InstaCard(string Name, string Html);
 
-public sealed class InstaCardRenderer
+public static class InstaCardRenderer
 {
     private const string TopFooter = "THE BEST SPORTS • RANKED DAILY";
     private const string TimelineFooter = "YOUR DAY • IN WATCHING ORDER";

@@ -35,7 +35,6 @@ builder.Services.AddSingleton(_ =>
 
 builder.Services.AddSingleton(AppSettings.Load());
 builder.Services.AddSingleton<SportsGuideService>();
-builder.Services.AddSingleton<InstaCardRenderer>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();
 builder.Services.AddSingleton<InstagramPublishService>();
