@@ -12,6 +12,7 @@ public sealed class SportsGuideService(AppSettings settings)
     // Pricing per 1M tokens (USD) by model; adjust to your deployment's rates.
     private static readonly Dictionary<string, ModelPricing> Pricing = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["6-astra"] = new(10.00m, 50.00m),
         ["5.6-terra"] = new(2.00m, 12.00m),
         ["5.6-sol"] = new(4.00m, 20.00m),
         ["5.5"] = new(5.00m, 30.00m),
