@@ -92,10 +92,11 @@ footer{
 /* Timeline cards */
 .timeline-card{flex:1;padding:22px 30px 24px;display:grid;grid-template-rows:repeat(10,1fr)}
 .timeline-row{display:grid;grid-template-columns:145px 34px 1fr;align-items:center;position:relative}
-.timeline-time{justify-self:start;color:var(--gold);font-size:20px;font-weight:900;background:#0e304d;padding:11px 14px;border-radius:9px}
-.dot{width:14px;height:14px;border-radius:50%;background:var(--blue);justify-self:center;position:relative}
-.dot:after{content:"";position:absolute;left:6px;top:14px;width:2px;height:74px;background:#1c5278}
-.timeline-row:last-child .dot:after{display:none}
+.timeline-time{justify-self:start;color:var(--gold);font-size:20px;font-weight:900;background:#0e304d;padding:11px 14px;border-radius:9px;transform:translateY(-10px)}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--blue);justify-self:center;position:relative;z-index:1;transform:translateY(-10px)}
+.timeline-row::before{content:"";position:absolute;left:162px;top:0;bottom:0;width:2px;transform:translateX(-1px);background:#1c5278}
+.timeline-row:first-child::before{top:calc(50% - 10px)}
+.timeline-row:last-child::before{bottom:calc(50% + 10px)}
 .timeline-main{padding:12px 0;border-bottom:1px solid rgba(55,100,132,.28)}
 .timeline-row:last-child .timeline-main{border-bottom:0}
 .timeline-game{font-size:22px;font-weight:900}
