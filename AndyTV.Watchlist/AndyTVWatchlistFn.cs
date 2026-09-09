@@ -140,7 +140,7 @@ public class AndyTVWatchlistFn(
             _logger.LogInformation("Preview only. Add the four X_ secrets to publish the thread.");
         }
 
-        // Local preview: write the finished page and Instagram cards to disk as the final step.
+        // Local preview: write the finished page and Instagram card images to disk as the final step.
         if (settings.PublishLocal)
         {
             Directory.CreateDirectory("publish");
@@ -148,14 +148,15 @@ public class AndyTVWatchlistFn(
             await File.WriteAllTextAsync(path, html, cancellationToken);
 
             var instaDir = Path.GetFullPath(Path.Combine("publish", "insta"));
-            Directory.CreateDirectory(instaDir);
-            foreach (var card in InstaCardRenderer.Render(events, guide, targetDate))
+            if (settings.CanScreenshot)
             {
-                await File.WriteAllTextAsync(
-                    Path.Combine(instaDir, card.Name),
-                    card.Html,
-                    cancellationToken
-                );
+                Directory.CreateDirectory(instaDir);
+                foreach (var card in InstaCardRenderer.Render(events, guide, targetDate))
+                {
+                    var png = await screenshotService.Capture(card.Html, cancellationToken);
+                    var pngPath = Path.Combine(instaDir, Path.ChangeExtension(card.Name, ".png"));
+                    await File.WriteAllBytesAsync(pngPath, png, cancellationToken);
+                }
             }
 
             if (_logger.IsEnabled(LogLevel.Information))

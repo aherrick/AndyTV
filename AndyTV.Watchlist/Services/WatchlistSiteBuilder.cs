@@ -105,7 +105,7 @@ public static class WatchlistSiteBuilder
         var summary =
             steps.Count == 0
                 ? ""
-                : $"<h3 class=\"summary-title\">The Play-by-Play</h3><ul class=\"summary\">{string.Concat(steps.Select(step => $"<li>{Enc(SportsFormat.PlanLine(step))}</li>"))}</ul>";
+                : $"<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{string.Concat(steps.Select(step => $"<li>{Enc(SportsFormat.PlanLine(step))}</li>"))}</ul>";
 
         return $"{Anchor(events, guide)}{summary}";
     }
