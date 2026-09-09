@@ -16,7 +16,8 @@ public sealed record AppSettings(
     string? XConsumerKey,
     string? XConsumerSecret,
     string? XAccessToken,
-    string? XAccessTokenSecret
+    string? XAccessTokenSecret,
+    bool PublishLocal
 )
 {
     public bool CanPostToX =>
@@ -32,6 +33,8 @@ public sealed record AppSettings(
     public bool CanPublishInstagram =>
         !string.IsNullOrWhiteSpace(InstagramUserId)
         && !string.IsNullOrWhiteSpace(InstagramAccessToken);
+
+    public bool CanPublishSite => !string.IsNullOrWhiteSpace(BlobConnectionString);
 
     public static AppSettings Load()
     {
@@ -54,7 +57,8 @@ public sealed record AppSettings(
             config["X_CONSUMER_KEY"],
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
-            config["X_ACCESS_TOKEN_SECRET"]
+            config["X_ACCESS_TOKEN_SECRET"],
+            string.Equals(config["PUBLISH_LOCAL"], "true", StringComparison.OrdinalIgnoreCase)
         );
     }
 

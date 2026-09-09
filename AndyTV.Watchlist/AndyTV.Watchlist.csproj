@@ -30,6 +30,9 @@
     <None Update="instatemplates\*.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="site\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="andytvwatchlist_header.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

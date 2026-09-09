@@ -16,7 +16,7 @@ public class AndyTVWatchlistFn(
     IEnumerable<SportsFeedService> feeds,
     SportsGuideService guideService,
     CloudflareScreenshotService screenshotService,
-    BlobImageStore blobStore,
+    BlobStore blobStore,
     InstagramPublishService instagramService,
     AppSettings settings
 )
@@ -68,22 +68,33 @@ public class AndyTVWatchlistFn(
 
         var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
 
-        var cards = InstaCardRenderer.Render(events, guide, targetDate);
+        var html = WatchlistSiteBuilder.BuildHtml(events, guide, targetDate);
 
-        if (settings.CanScreenshot)
+        if (settings.PublishLocal || settings.CanPublishSite)
+        {
+            var target = await blobStore.PublishSite(html, cancellationToken);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Published site to {target}", target);
+            }
+        }
+        else
+        {
+            _logger.LogInformation("No blob connection string; skipping site publish.");
+        }
+
+        // Instagram carousel uses blob-hosted card images; skipped for local previews.
+        if (!settings.PublishLocal && settings.CanScreenshot)
         {
             var day = targetDate.ToString("yyyyMMdd");
+            var cards = InstaCardRenderer.Render(events, guide, targetDate);
             var imageUrls = new List<Uri>();
             foreach (var card in cards)
             {
                 var png = await screenshotService.Capture(card.Html, cancellationToken);
                 var blobName = $"{day}/{Path.ChangeExtension(card.Name, ".png")}";
-                imageUrls.Add(await blobStore.Upload(blobName, png, cancellationToken));
-            }
-
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation("Uploaded {count} cards to blob storage.", imageUrls.Count);
+                imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
             }
 
             if (settings.CanPublishInstagram)
@@ -91,10 +102,6 @@ public class AndyTVWatchlistFn(
                 var caption = $"AndyTV Watchlist — Best Sports Today\n{targetDate:dddd, MMMM d}";
                 await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
             }
-        }
-        else
-        {
-            _logger.LogInformation("Cloudflare secrets not set; skipping card images.");
         }
 
         var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);

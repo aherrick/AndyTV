@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AndyTV Watchlist — Best Sports Today</title>
+    <meta name="description" content="The best sports on TV today, ranked daily by AndyTV." />
+    <style>
+      :root {
+        --bg: #0b0e13;
+        --surface: #161b26;
+        --surface-2: #1e2534;
+        --border: #2a3242;
+        --text: #e8edf4;
+        --muted: #9aa7bd;
+        --accent: #f5c518;
+        --accent-2: #38bdf8;
+        --radius: 14px;
+        --wrap: 640px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+      }
+      .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 16px 48px; }
+
+      /* Header */
+      .site-header { max-width: var(--wrap); margin: 0 auto; padding: 20px 16px 8px; text-align: center; }
+      .banner { width: 100%; height: auto; border-radius: var(--radius); display: block; }
+      .kicker { margin: 18px 0 2px; letter-spacing: 0.18em; font-size: 0.8rem; font-weight: 700; color: var(--accent); }
+      .site-header h1 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 800; }
+
+      /* Tabs (pure CSS via radios) */
+      .tab-radio { position: absolute; opacity: 0; pointer-events: none; }
+      .tabs {
+        position: sticky; top: 0; z-index: 5;
+        max-width: var(--wrap); margin: 8px auto 0; padding: 8px 12px;
+        display: flex; gap: 8px; background: var(--bg);
+      }
+      .tabs label {
+        flex: 1; text-align: center; cursor: pointer; user-select: none;
+        padding: 10px 8px; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+        color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+      }
+      #tab-top:checked ~ .tabs label[for="tab-top"],
+      #tab-timeline:checked ~ .tabs label[for="tab-timeline"],
+      #tab-plan:checked ~ .tabs label[for="tab-plan"] {
+        color: #0b0e13; background: var(--accent); border-color: var(--accent);
+      }
+      .panel { display: none; margin-top: 20px; }
+      #tab-top:checked ~ .wrap .panel-top,
+      #tab-timeline:checked ~ .wrap .panel-timeline,
+      #tab-plan:checked ~ .wrap .panel-plan { display: block; }
+
+      /* Ranked games */
+      .games { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+      .game { display: grid; grid-template-columns: 40px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+      .game .rank { font-size: 1.4rem; font-weight: 800; color: var(--accent); text-align: center; line-height: 1.1; }
+      .game .title { font-weight: 700; font-size: 1.05rem; }
+      .game .meta { color: var(--muted); font-size: 0.85rem; margin: 2px 0 6px; }
+      .game .meta .net { color: var(--accent-2); font-weight: 600; }
+      .game .desc { font-size: 0.92rem; opacity: 0.92; }
+
+      /* Timeline + plan rows */
+      .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .rows li { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: baseline; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+      .row-time { color: var(--accent-2); font-weight: 700; font-size: 0.85rem; }
+      .row-game { font-weight: 700; }
+      .row-meta, .row-note { color: var(--muted); font-size: 0.82rem; }
+
+      /* Anchor + summary */
+      .anchor { background: linear-gradient(135deg, #2a1f00, #3a2c00); border: 1px solid #6b5200; color: #ffe38a; font-weight: 700; border-radius: var(--radius); padding: 14px 16px; text-align: center; margin-bottom: 14px; }
+      .summary-title { margin: 24px 0 10px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+      .summary { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .summary li { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: 10px; padding: 10px 14px; font-size: 0.9rem; opacity: 0.95; }
+
+      .site-footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 24px 16px 40px; }
+
+      @media (min-width: 560px) { .site-header h1 { font-size: 1.8rem; } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <img
+        class="banner"
+        src="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/andytvwatchlist_header.png"
+        alt="AndyTV Watchlist"
+      />
+      <p class="kicker">BEST SPORTS TODAY</p>
+      <h1>{{DATE}}</h1>
+    </header>
+
+    <input class="tab-radio" type="radio" name="tab" id="tab-top" checked />
+    <input class="tab-radio" type="radio" name="tab" id="tab-timeline" />
+    <input class="tab-radio" type="radio" name="tab" id="tab-plan" />
+
+    <nav class="tabs">
+      <label for="tab-top">🏆 Top</label>
+      <label for="tab-timeline">🕒 Timeline</label>
+      <label for="tab-plan">🤖 Watch Plan</label>
+    </nav>
+
+    <main class="wrap">
+      <section class="panel panel-top">{{TOP}}</section>
+      <section class="panel panel-timeline">{{TIMELINE}}</section>
+      <section class="panel panel-plan">{{PLAN}}</section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Generated daily by <strong>AndyTV</strong>.</p>
+    </footer>
+  </body>
+</html>
