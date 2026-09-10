@@ -21,6 +21,10 @@ public static class WatchlistSiteBuilder
                 "{{DATE}}",
                 Enc(targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture))
             )
+            .Replace(
+                "{{UPDATED}}",
+                Enc($"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}")
+            )
             .Replace("{{TOP}}", TopBody(games))
             .Replace("{{TIMELINE}}", TimelineBody(games))
             .Replace("{{PLAN}}", PlanBody(watchlist));
@@ -34,7 +38,7 @@ public static class WatchlistSiteBuilder
                 .Select(game =>
                     $"""
                     <li>
-                      <div class="row-time">{Enc(SportsFormat.Time(game.StartTimeIso))}</div>
+                      <div class="row-time">{TimeTag(game.StartTimeIso)}</div>
                       <div>
                         <div class="row-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
                         <div class="row-meta">#{game.Rank} overall · {Enc(game.League)}{Network(game)}</div>
@@ -56,7 +60,7 @@ public static class WatchlistSiteBuilder
                   <div class="rank">{game.Rank}</div>
                   <div class="body">
                     <div class="title">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                    <div class="meta">{Enc(SportsFormat.Time(game.StartTimeIso))}{Network(game)} · {Enc(game.League)}</div>
+                    <div class="meta">{TimeTag(game.StartTimeIso)}{Network(game)} · {Enc(game.League)}</div>
                     <div class="desc">{Enc(game.Reason.Trim())}</div>
                   </div>
                 </li>
@@ -78,7 +82,7 @@ public static class WatchlistSiteBuilder
 
         var items = string.Concat(
             picks.Select(pick =>
-                $"<li>{pick.Icon} <strong>{Enc(pick.Label)}:</strong> {Enc(pick.Game.Matchup)} · {Enc(SportsFormat.Time(pick.Game.StartTimeIso))}</li>"
+                $"<li>{pick.Icon} <strong>{Enc(pick.Label)}:</strong> {Enc(pick.Game.Matchup)} · {TimeTag(pick.Game.StartTimeIso)}</li>"
             )
         );
 
@@ -98,7 +102,7 @@ public static class WatchlistSiteBuilder
             steps.Select(step =>
             {
                 var matchup = step.Matchup.Length == 0 ? "" : $"{Enc(step.Matchup)} — ";
-                return $"<li>{step.Icon} {Enc(SportsFormat.Time(step.Time))} {matchup}{Enc(step.Instruction)}</li>";
+                return $"<li>{step.Icon} {TimeTag(step.Time)} {matchup}{Enc(step.Instruction)}</li>";
             })
         );
 
@@ -113,6 +117,10 @@ public static class WatchlistSiteBuilder
         string.IsNullOrWhiteSpace(game.Network)
             ? ""
             : $" · <span class=\"net\">{Enc(game.Network.Trim())}</span>";
+
+    // Semantic <time>: machine-readable ISO timestamp wrapping the human "h:mm tt ET" label.
+    private static string TimeTag(DateTimeOffset value) =>
+        $"<time datetime=\"{value.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)}\">{Enc(SportsFormat.Time(value))}</time>";
 
     private static string Enc(string value) => WebUtility.HtmlEncode(value);
 }

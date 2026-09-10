@@ -13,8 +13,21 @@
 
   <meta
     name="description"
-    content="The best sports on TV today, ranked daily by AndyTV."
+    content="The best sports to watch today, ranked daily by AndyTV."
   />
+
+  <meta name="theme-color" content="#0b0e13" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="AndyTV Watchlist — Best Sports Today" />
+  <meta property="og:description" content="The best sports to watch today, ranked daily by AndyTV." />
+  <meta property="og:url" content="https://andytvwatchlist.z19.web.core.windows.net/" />
+  <meta property="og:image" content="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AndyTV Watchlist — Best Sports Today" />
+  <meta name="twitter:description" content="The best sports to watch today, ranked daily by AndyTV." />
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png" />
 
   <style>
     :root {
@@ -96,6 +109,15 @@
       font-weight: 800;
     }
 
+    .times-note {
+      margin: 0;
+
+      color: var(--muted);
+
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+    }
+
     /* ========================================================
        TABS
        ======================================================== */
@@ -152,6 +174,13 @@
       color: #0b0e13;
       background: var(--accent);
       border-color: var(--accent);
+    }
+
+    #tab-top:focus-visible ~ .tabs label[for="tab-top"],
+    #tab-timeline:focus-visible ~ .tabs label[for="tab-timeline"],
+    #tab-plan:focus-visible ~ .tabs label[for="tab-plan"] {
+      outline: 2px solid var(--accent-2);
+      outline-offset: 2px;
     }
 
     .panel {
@@ -374,6 +403,13 @@
       text-decoration: underline;
     }
 
+    .updated {
+      margin-top: 8px;
+
+      opacity: 0.75;
+      font-size: 0.78rem;
+    }
+
     /* ========================================================
        RESPONSIVE
        ======================================================== */
@@ -416,6 +452,10 @@
       {{DATE}}
     </h1>
 
+    <p class="times-note">
+      All times ET
+    </p>
+
   </header>
 
   <!-- ======================================================
@@ -448,7 +488,7 @@
        NAVIGATION
        ====================================================== -->
 
-  <nav class="tabs">
+  <nav class="tabs" aria-label="Watchlist sections">
 
     <label for="tab-top">
       🏆 Top
@@ -511,6 +551,10 @@
         @andytvwatchlist
       </a>
 
+    </p>
+
+    <p class="updated">
+      {{UPDATED}}
     </p>
 
   </footer>

@@ -31,7 +31,8 @@ public static class SportsFormat
 
         void Add(string icon, string label, IEnumerable<WatchlistGame> source)
         {
-            if (source.FirstOrDefault() is { } game)
+            // Skip a category whose top game is already shown (e.g. "Best football" == "Best overall").
+            if (source.FirstOrDefault() is { } game && picks.TrueForAll(pick => pick.Game != game))
             {
                 picks.Add((icon, label, game));
             }
