@@ -72,6 +72,9 @@ internal sealed class PlayerForm : Form
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
 
+        // Native VLC breadcrumbs (decoder/network errors) that often precede a hard crash.
+        _libVLC.Log += OnLibVlcLog;
+
         _mediaPlayer = new MediaPlayer(_libVLC)
         {
             EnableMouseInput = false,
@@ -732,6 +735,19 @@ internal sealed class PlayerForm : Form
         };
     }
 
+    // Native-thread callback: stay cheap, never throw, and only WARN/ERROR to avoid huge logs.
+    private static void OnLibVlcLog(object sender, LogEventArgs e)
+    {
+        if (e.Level is LogLevel.Warning)
+        {
+            Logger.Warn($"[VLC/{e.Module}] {e.Message}");
+        }
+        else if (e.Level is LogLevel.Error)
+        {
+            Logger.Error($"[VLC/{e.Module}] {e.Message}");
+        }
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -742,6 +758,7 @@ internal sealed class PlayerForm : Form
             StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
             _mediaPlayer.Dispose();
+            _libVLC.Log -= OnLibVlcLog;
             _libVLC.Dispose();
         }
         base.Dispose(disposing);

@@ -13,6 +13,12 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
+        // Wire crash logging before anything else so failures during update handling
+        // or native init are still recorded.
+        Logger.WireGlobalHandlers();
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Logger.Info("[STARTUP] AndyTV starting");
+
         var isNewInstance = args.Any(a => a.Equals(NewInstanceArg, StringComparison.OrdinalIgnoreCase));
         StartOnRight = args.Any(a => a.Equals(RightArg, StringComparison.OrdinalIgnoreCase));
 
@@ -32,13 +38,18 @@ static class Program
 
         using (mutex)
         {
-            Logger.WireGlobalHandlers();
-            Logger.Info("[STARTUP] AndyTV starting");
-
-            Core.Initialize();
-            ApplicationConfiguration.Initialize();
-            Application.SetColorMode(SystemColorMode.System);
-            Application.Run(new PlayerForm());
+            try
+            {
+                Core.Initialize();
+                ApplicationConfiguration.Initialize();
+                Application.SetColorMode(SystemColorMode.System);
+                Application.Run(new PlayerForm());
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "[STARTUP] Fatal error during startup");
+                throw;
+            }
         }
     }
 }

@@ -71,7 +71,6 @@ public sealed class ApiSportsService : SportsFeedService
         return events
             .Where(sportsEvent =>
                 DateOnly.FromDateTime(sportsEvent.StartTimeEastern.DateTime) == targetDate
-                && sportsEvent.StartTimeEastern.TimeOfDay >= TimeSpan.FromHours(7)
             )
             .OrderBy(sportsEvent => sportsEvent.StartTimeEastern)
             .ToList();

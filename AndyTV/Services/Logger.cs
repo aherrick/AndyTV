@@ -33,13 +33,15 @@ static class Logger
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             Error(
                 e.ExceptionObject as Exception ?? new Exception("Unknown"),
-                "Unhandled AppDomain exception");
+                $"Unhandled AppDomain exception (terminating={e.IsTerminating})");
 
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             Error(e.Exception, "Unobserved task exception");
             e.SetObserved();
         };
+
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Info("[SHUTDOWN] Process exiting");
     }
 
     private static void Write(string level, string message)
