@@ -56,27 +56,25 @@ public static class SportsGuideFormatter
 
     private static string WatchPlan(DailyWatchlist watchlist)
     {
-        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
+        var steps = SportsFormat.WatchPlanSteps(watchlist);
+
+        if (steps.Count == 0)
         {
             return "";
         }
 
-        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
         var lines = new StringBuilder();
+        var summary = watchlist.WatchPlan!.Summary;
 
-        if (!string.IsNullOrWhiteSpace(plan.Summary))
+        if (!string.IsNullOrWhiteSpace(summary))
         {
-            lines.AppendLine(plan.Summary.Trim()).AppendLine();
+            lines.AppendLine(summary.Trim()).AppendLine();
         }
 
-        foreach (var step in plan.Steps.OrderBy(step => step.StartTimeIso))
+        foreach (var step in steps)
         {
-            var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
-            var icon = hasPrimary ? SportsFormat.Icon(primary!.Sport) : "📺";
-            var matchup = hasPrimary ? $"{primary!.Matchup} - " : "";
-            lines.AppendLine(
-                $"{icon} {SportsFormat.Time(step.StartTimeIso)} {matchup}{step.Instruction.Trim()}"
-            );
+            var matchup = step.Matchup.Length == 0 ? "" : $"{step.Matchup} - ";
+            lines.AppendLine($"{step.Icon} {SportsFormat.Time(step.Time)} {matchup}{step.Instruction}");
         }
 
         return lines.ToString().TrimEnd();

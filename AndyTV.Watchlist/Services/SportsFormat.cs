@@ -52,4 +52,31 @@ public static class SportsFormat
 
         return picks;
     }
+
+    // Watch-plan steps in time order with the primary game resolved by rank; shared by X, site, and IG.
+    public static List<(DateTimeOffset Time, string Icon, string Matchup, string Instruction)> WatchPlanSteps(
+        DailyWatchlist watchlist
+    )
+    {
+        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
+        {
+            return [];
+        }
+
+        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
+
+        return plan
+            .Steps.OrderBy(step => step.StartTimeIso)
+            .Select(step =>
+            {
+                var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
+                return (
+                    step.StartTimeIso,
+                    hasPrimary ? Icon(primary!.Sport) : "📺",
+                    hasPrimary ? primary!.Matchup : "",
+                    step.Instruction.Trim()
+                );
+            })
+            .ToList();
+    }
 }

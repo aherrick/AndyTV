@@ -87,31 +87,26 @@ public static class WatchlistSiteBuilder
 
     private static string PlanBody(DailyWatchlist watchlist)
     {
-        var plan = watchlist.WatchPlan;
+        var steps = SportsFormat.WatchPlanSteps(watchlist);
 
-        if (plan is null || plan.Steps.Count == 0)
+        if (steps.Count == 0)
         {
             return "";
         }
 
-        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
-
-        var steps = string.Concat(
-            plan.Steps.OrderBy(step => step.StartTimeIso)
-                .Select(step =>
-                {
-                    var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
-                    var icon = hasPrimary ? SportsFormat.Icon(primary!.Sport) : "📺";
-                    var matchup = hasPrimary ? $"{Enc(primary!.Matchup)} — " : "";
-                    return $"<li>{icon} {Enc(SportsFormat.Time(step.StartTimeIso))} {matchup}{Enc(step.Instruction.Trim())}</li>";
-                })
+        var rows = string.Concat(
+            steps.Select(step =>
+            {
+                var matchup = step.Matchup.Length == 0 ? "" : $"{Enc(step.Matchup)} — ";
+                return $"<li>{step.Icon} {Enc(SportsFormat.Time(step.Time))} {matchup}{Enc(step.Instruction)}</li>";
+            })
         );
 
-        var summary = string.IsNullOrWhiteSpace(plan.Summary)
+        var summary = string.IsNullOrWhiteSpace(watchlist.WatchPlan!.Summary)
             ? ""
-            : $"<div class=\"plan-summary\"><strong>Game Plan</strong>{Enc(plan.Summary.Trim())}</div>";
+            : $"<div class=\"plan-summary\"><strong>Game Plan</strong>{Enc(watchlist.WatchPlan.Summary.Trim())}</div>";
 
-        return $"{summary}<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{steps}</ul>";
+        return $"{summary}<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{rows}</ul>";
     }
 
     private static string Network(WatchlistGame game) =>

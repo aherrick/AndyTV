@@ -131,28 +131,17 @@ public static class InstaCardRenderer
 
     private static string WatchBody(DailyWatchlist watchlist)
     {
-        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
-        {
-            return "<div class=\"card watch-card\"></div>";
-        }
-
-        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
-
         var body = string.Concat(
-            plan.Steps.OrderBy(step => step.StartTimeIso)
+            SportsFormat.WatchPlanSteps(watchlist)
                 .Select(step =>
-                {
-                    var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
-                    var icon = hasPrimary ? SportsFormat.Icon(primary!.Sport) : "📺";
-                    var matchup = hasPrimary ? primary!.Matchup : "";
-                    return $"""
-                        <div class="watch-row">
-                          <div class="watch-time">{Time(step.StartTimeIso)}</div>
-                          <div class="watch-icon">{icon}</div>
-                          <div class="watch-copy"><strong>{Enc(matchup)}</strong><span>{Enc(step.Instruction.Trim())}</span></div>
-                        </div>
-                        """;
-                })
+                    $"""
+                    <div class="watch-row">
+                      <div class="watch-time">{Time(step.Time)}</div>
+                      <div class="watch-icon">{step.Icon}</div>
+                      <div class="watch-copy"><strong>{Enc(step.Matchup)}</strong><span>{Enc(step.Instruction)}</span></div>
+                    </div>
+                    """
+                )
         );
 
         return $"<div class=\"card watch-card\">{body}</div>";
