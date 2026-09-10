@@ -4,7 +4,7 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Renders the whole single-page site from the events + AiSportsGuide, filling the
+// Renders the whole single-page site straight from the emailed DailyWatchlist, filling the
 // index template's Top / Timeline / Plan tab bodies.
 public static class WatchlistSiteBuilder
 {
@@ -12,43 +12,32 @@ public static class WatchlistSiteBuilder
         Path.Combine(AppContext.BaseDirectory, "assets", "templates", "site", "index.template.html")
     );
 
-    public static string BuildHtml(
-        IReadOnlyList<SportsEvent> events,
-        AiSportsGuide guide,
-        DateOnly targetDate
-    )
+    public static string BuildHtml(DailyWatchlist watchlist, DateOnly targetDate)
     {
-        var ranked = guide
-            .RankedEvents.Select(
-                (rankedEvent, index) =>
-                    (Rank: index + 1, Event: events[rankedEvent.EventId], Ranked: rankedEvent)
-            )
-            .ToList();
+        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
 
         return Template
             .Replace(
                 "{{DATE}}",
                 Enc(targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture))
             )
-            .Replace("{{TOP}}", TopBody(ranked))
-            .Replace("{{TIMELINE}}", TimelineBody(ranked))
-            .Replace("{{PLAN}}", PlanBody(events, guide));
+            .Replace("{{TOP}}", TopBody(games))
+            .Replace("{{TIMELINE}}", TimelineBody(games))
+            .Replace("{{PLAN}}", PlanBody(watchlist));
     }
 
-    private static string TimelineBody(
-        List<(int Rank, SportsEvent Event, RankedEvent Ranked)> ranked
-    )
+    private static string TimelineBody(List<WatchlistGame> games)
     {
         var rows = string.Concat(
-            ranked
-                .OrderBy(item => item.Event.StartTimeEastern)
-                .Select(row =>
+            games
+                .OrderBy(game => game.StartTimeIso)
+                .Select(game =>
                     $"""
                     <li>
-                      <div class="row-time">{Enc(Time(row.Event))}</div>
+                      <div class="row-time">{Enc(SportsFormat.Time(game.StartTimeIso))}</div>
                       <div>
-                        <div class="row-game">{SportsFormat.Icon(row.Event.Sport)} {Enc(SportsFormat.RankedMatchup(row.Event, row.Ranked))}</div>
-                        <div class="row-meta">#{row.Rank} overall · {Enc(row.Event.League)}</div>
+                        <div class="row-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
+                        <div class="row-meta">#{game.Rank} overall · {Enc(game.League)}</div>
                       </div>
                     </li>
                     """
@@ -58,31 +47,29 @@ public static class WatchlistSiteBuilder
         return $"<ul class=\"rows\">{rows}</ul>";
     }
 
-    private static string TopBody(List<(int Rank, SportsEvent Event, RankedEvent Ranked)> ranked)
+    private static string TopBody(List<WatchlistGame> games)
     {
         var rows = string.Concat(
-            ranked.Select(row =>
+            games.Select(game =>
                 $"""
                 <li class="game">
-                  <div class="rank">{row.Rank}</div>
+                  <div class="rank">{game.Rank}</div>
                   <div class="body">
-                    <div class="title">{SportsFormat.Icon(row.Event.Sport)} {Enc(SportsFormat.RankedMatchup(row.Event, row.Ranked))}</div>
-                    <div class="meta">{Enc(Time(row.Event))}{Network(row.Ranked)} · {Enc(row.Event.League)}</div>
-                    <div class="desc">{Enc(row.Ranked.Reason.Trim())}</div>
+                    <div class="title">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
+                    <div class="meta">{Enc(SportsFormat.Time(game.StartTimeIso))}{Network(game)} · {Enc(game.League)}</div>
+                    <div class="desc">{Enc(game.Reason.Trim())}</div>
                   </div>
                 </li>
                 """
             )
         );
 
-        return $"{TopPicksBody(ranked)}<ol class=\"games\">{rows}</ol>";
+        return $"{TopPicksBody(games)}<ol class=\"games\">{rows}</ol>";
     }
 
-    private static string TopPicksBody(
-        List<(int Rank, SportsEvent Event, RankedEvent Ranked)> ranked
-    )
+    private static string TopPicksBody(List<WatchlistGame> games)
     {
-        var picks = SportsFormat.TopPicks(ranked.ConvertAll(row => (row.Event, row.Ranked)));
+        var picks = SportsFormat.TopPicks(games);
 
         if (picks.Count == 0)
         {
@@ -91,44 +78,46 @@ public static class WatchlistSiteBuilder
 
         var items = string.Concat(
             picks.Select(pick =>
-                $"<li>{pick.Icon} <strong>{Enc(pick.Label)}:</strong> {Enc(SportsFormat.RankedMatchup(pick.Event, pick.Ranked))} · {Enc(Time(pick.Event))}</li>"
+                $"<li>{pick.Icon} <strong>{Enc(pick.Label)}:</strong> {Enc(pick.Game.Matchup)} · {Enc(SportsFormat.Time(pick.Game.StartTimeIso))}</li>"
             )
         );
 
         return $"<h3 class=\"summary-title top-picks-title\">⭐ Top Picks</h3><ul class=\"summary\">{items}</ul>";
     }
 
-    private static string PlanBody(IReadOnlyList<SportsEvent> events, AiSportsGuide guide)
+    private static string PlanBody(DailyWatchlist watchlist)
     {
-        var steps = SportsFormat.WatchPlan(events, guide);
+        var plan = watchlist.WatchPlan;
 
-        var summary =
-            steps.Count == 0
-                ? ""
-                : $"<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{string.Concat(steps.Select(step => $"<li>{Enc(SportsFormat.PlanLine(step))}</li>"))}</ul>";
-
-        return $"{Anchor(events, guide)}{summary}";
-    }
-
-    private static string Anchor(IReadOnlyList<SportsEvent> events, AiSportsGuide guide)
-    {
-        if (guide.AnchorEventId is not int anchorId || anchorId < 0 || anchorId >= events.Count)
+        if (plan is null || plan.Steps.Count == 0)
         {
             return "";
         }
 
-        var anchor = events[anchorId];
-        var anchorRank = guide.RankedEvents.Find(rankedEvent => rankedEvent.EventId == anchorId);
-        return $"<div class=\"anchor\">🔥 Prime-time anchor: {Enc(SportsFormat.RankedMatchup(anchor, anchorRank))} · {Enc(Time(anchor))}</div>";
+        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
+
+        var steps = string.Concat(
+            plan.Steps.OrderBy(step => step.StartTimeIso)
+                .Select(step =>
+                {
+                    var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
+                    var icon = hasPrimary ? SportsFormat.Icon(primary!.Sport) : "📺";
+                    var matchup = hasPrimary ? $"{Enc(primary!.Matchup)} — " : "";
+                    return $"<li>{icon} {Enc(SportsFormat.Time(step.StartTimeIso))} {matchup}{Enc(step.Instruction.Trim())}</li>";
+                })
+        );
+
+        var summary = string.IsNullOrWhiteSpace(plan.Summary)
+            ? ""
+            : $"<div class=\"plan-summary\"><strong>Game Plan</strong>{Enc(plan.Summary.Trim())}</div>";
+
+        return $"{summary}<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{steps}</ul>";
     }
 
-    private static string Network(RankedEvent rankedEvent) =>
-        string.IsNullOrWhiteSpace(rankedEvent.Network)
+    private static string Network(WatchlistGame game) =>
+        string.IsNullOrWhiteSpace(game.Network)
             ? ""
-            : $" · <span class=\"net\">{Enc(rankedEvent.Network.Trim())}</span>";
-
-    private static string Time(SportsEvent sportsEvent) =>
-        $"{sportsEvent.StartTimeEastern.ToString("h:mm tt", CultureInfo.InvariantCulture)} ET";
+            : $" · <span class=\"net\">{Enc(game.Network.Trim())}</span>";
 
     private static string Enc(string value) => WebUtility.HtmlEncode(value);
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
@@ -13,73 +14,41 @@ public static class SportsFormat
             "Basketball" => "🏀",
             "Soccer" => "⚽",
             "Racing" => "🏁",
+            "Golf" => "⛳",
+            "Tennis" => "🎾",
             _ => "📺",
         };
 
-    public static string RankedMatchup(SportsEvent sportsEvent, RankedEvent? rankedEvent)
-    {
-        if (string.IsNullOrEmpty(sportsEvent.Away))
-        {
-            return sportsEvent.Home;
-        }
+    public static string Time(DateTimeOffset value) =>
+        $"{EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture)} ET";
 
-        var away = rankedEvent?.AwayRank is int ar ? $"#{ar} {sportsEvent.Away}" : sportsEvent.Away;
-        var home = rankedEvent?.HomeRank is int hr ? $"#{hr} {sportsEvent.Home}" : sportsEvent.Home;
-        return $"{away} @ {home}";
-    }
-
-    // Ordered watch-plan steps (icon/time via callers) — the single source shared by X, site, and IG.
-    public static List<(SportsEvent Event, RankedEvent? Ranked, string Note)> WatchPlan(
-        IReadOnlyList<SportsEvent> events,
-        AiSportsGuide guide
-    ) =>
-        guide
-            .WatchPlanSteps.Where(step => step.EventId >= 0 && step.EventId < events.Count)
-            .Select(step =>
-                (
-                    Event: events[step.EventId],
-                    Ranked: guide.RankedEvents.Find(rankedEvent =>
-                        rankedEvent.EventId == step.EventId
-                    ),
-                    Note: step.Note.Trim()
-                )
-            )
-            .OrderBy(item => item.Event.StartTimeEastern)
-            .ToList();
-
-    // One watch-plan line, identical for the X post and the site's Play-by-Play.
-    public static string PlanLine((SportsEvent Event, RankedEvent? Ranked, string Note) step) =>
-        $"{Icon(step.Event.Sport)} {step.Event.StartTimeEastern:h:mm tt} ET {step.Note}";
-
-    // Best-per-category picks, shared by the X post and the site's Top tab.
-    public static List<(string Icon, string Label, SportsEvent Event, RankedEvent Ranked)> TopPicks(
-        IReadOnlyList<(SportsEvent Event, RankedEvent Ranked)> ranked
+    // Best-per-category picks, shared by the X post and the site's Top tab. Games arrive in rank order.
+    public static List<(string Icon, string Label, WatchlistGame Game)> TopPicks(
+        IReadOnlyList<WatchlistGame> games
     )
     {
-        var picks = new List<(string Icon, string Label, SportsEvent Event, RankedEvent Ranked)>();
+        var picks = new List<(string Icon, string Label, WatchlistGame Game)>();
 
-        void Add(
-            string icon,
-            string label,
-            IEnumerable<(SportsEvent Event, RankedEvent Ranked)> source
-        )
+        void Add(string icon, string label, IEnumerable<WatchlistGame> source)
         {
-            if (
-                source.Cast<(SportsEvent Event, RankedEvent Ranked)?>().FirstOrDefault() is { } pick
-            )
+            if (source.FirstOrDefault() is { } game)
             {
-                picks.Add((icon, label, pick.Event, pick.Ranked));
+                picks.Add((icon, label, game));
             }
         }
 
-        Add("🔥", "Best overall", ranked);
-        Add("🏈", "Best football", ranked.Where(item => item.Event.Sport == "Football"));
-        Add("⚾", "Best baseball", ranked.Where(item => item.Event.Sport == "Baseball"));
-        Add("🏒", "Best hockey", ranked.Where(item => item.Event.Sport == "Hockey"));
-        Add("🏀", "Best basketball", ranked.Where(item => item.Event.Sport == "Basketball"));
-        Add("⚽", "Best soccer", ranked.Where(item => item.Event.Sport == "Soccer"));
-        Add("🏁", "Best racing", ranked.Where(item => item.Event.Sport == "Racing"));
-        Add("🌙", "Best late-night", ranked.Where(item => item.Event.StartTimeEastern.Hour >= 22));
+        Add("🔥", "Best overall", games);
+        Add("🏈", "Best football", games.Where(game => game.Sport == "Football"));
+        Add("⚾", "Best baseball", games.Where(game => game.Sport == "Baseball"));
+        Add("🏒", "Best hockey", games.Where(game => game.Sport == "Hockey"));
+        Add("🏀", "Best basketball", games.Where(game => game.Sport == "Basketball"));
+        Add("⚽", "Best soccer", games.Where(game => game.Sport == "Soccer"));
+        Add("⛳", "Best golf", games.Where(game => game.Sport == "Golf"));
+        Add(
+            "🌙",
+            "Best late-night",
+            games.Where(game => EasternTimeZone.Convert(game.StartTimeIso).Hour >= 22)
+        );
 
         return picks;
     }

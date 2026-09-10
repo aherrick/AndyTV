@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AndyTV.Watchlist.Configuration;
-using AndyTV.Watchlist.Models;
 using AndyTV.Watchlist.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -13,8 +11,7 @@ namespace AndyTV.Watchlist;
 
 public class AndyTVWatchlistFn(
     ILoggerFactory loggerFactory,
-    IEnumerable<SportsFeedService> feeds,
-    SportsGuideService guideService,
+    GmailWatchlistService gmailService,
     CloudflareScreenshotService screenshotService,
     BlobStore blobStore,
     InstagramPublishService instagramService,
@@ -27,48 +24,31 @@ public class AndyTVWatchlistFn(
     public async Task Run(
 #if DEBUG
 
-        [TimerTrigger("0 0 8 * * *", RunOnStartup = true)] TimerInfo myTimer, // runs at 3/4 am EST
+        [TimerTrigger("0 30 3 * * *", RunOnStartup = true)] TimerInfo myTimer,
 #else
-        [TimerTrigger("0 0 8 * * *")] TimerInfo myTimer,
+        // 3:30 AM in the app's WEBSITE_TIME_ZONE (Eastern Standard Time); Azure adjusts for DST.
+        [TimerTrigger("0 30 3 * * *")] TimerInfo myTimer,
 #endif
         CancellationToken cancellationToken
     )
     {
         if (_logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation("Sports guide run started at: {executionTime}", DateTime.Now);
+            _logger.LogInformation("Watchlist run started at: {executionTime}", DateTime.Now);
         }
 
         var easternNow = EasternTimeZone.Now;
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
 
-        var feedResults = await Task.WhenAll(
-            feeds.Select(feed => feed.GetEventsForDateAsync(targetDate, cancellationToken))
-        );
+        var watchlist = await gmailService.GetLatest(targetDate, cancellationToken);
 
-        var events = feedResults
-            .SelectMany(feedEvents => feedEvents)
-            .OrderBy(sportsEvent => sportsEvent.StartTimeEastern)
-            .ToList();
-
-        if (_logger.IsEnabled(LogLevel.Information))
+        if (watchlist is null || watchlist.BestWatches.Count == 0)
         {
-            _logger.LogInformation(
-                "Verified events for {targetDate}: {count}",
-                targetDate,
-                events.Count
-            );
-        }
-
-        if (events.Count == 0)
-        {
-            _logger.LogInformation("No eligible events were returned by the sports APIs.");
+            _logger.LogInformation("No emailed watchlist found for {targetDate}.", targetDate);
             return;
         }
 
-        var guide = await guideService.CreateGuideAsync(events, easternNow, cancellationToken);
-
-        var html = WatchlistSiteBuilder.BuildHtml(events, guide, targetDate);
+        var html = WatchlistSiteBuilder.BuildHtml(watchlist, targetDate);
 
         if (!settings.PublishLocal && settings.CanPublishSite)
         {
@@ -84,7 +64,7 @@ public class AndyTVWatchlistFn(
         if (!settings.PublishLocal && settings.CanScreenshot)
         {
             var day = targetDate.ToString("yyyyMMdd");
-            var cards = InstaCardRenderer.Render(events, guide, targetDate);
+            var cards = InstaCardRenderer.Render(watchlist, targetDate);
             var imageUrls = new List<Uri>();
             foreach (var card in cards)
             {
@@ -100,7 +80,7 @@ public class AndyTVWatchlistFn(
             }
         }
 
-        var posts = SportsGuideFormatter.CreatePosts(events, guide, targetDate);
+        var posts = SportsGuideFormatter.CreatePosts(watchlist, targetDate);
 
         if (_logger.IsEnabled(LogLevel.Information))
         {
@@ -151,7 +131,7 @@ public class AndyTVWatchlistFn(
             if (settings.CanScreenshot)
             {
                 Directory.CreateDirectory(instaDir);
-                foreach (var card in InstaCardRenderer.Render(events, guide, targetDate))
+                foreach (var card in InstaCardRenderer.Render(watchlist, targetDate))
                 {
                     var png = await screenshotService.Capture(card.Html, cancellationToken);
                     var pngPath = Path.Combine(instaDir, Path.ChangeExtension(card.Name, ".png"));

@@ -6,14 +6,13 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);OPENAI001</NoWarn>
     <UserSecretsId>630ebcdf-86f3-4a8f-9082-1d406b3a891a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.30.0-beta.2" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Polly.Core" Version="8.7.0" />
     <PackageReference Include="RestSharp" Version="114.0.1-alpha.0.10" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />

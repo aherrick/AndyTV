@@ -3,11 +3,10 @@ using Microsoft.Extensions.Configuration;
 namespace AndyTV.Watchlist.Configuration;
 
 public sealed record AppSettings(
-    string SportsApiKey,
-    Uri AzureOpenAiEndpoint,
-    string AzureOpenAiApiKey,
-    string AzureOpenAiDeployment,
-    string DeveloperPrompt,
+    string GmailAddress,
+    string GmailAppPassword,
+    string GmailSender,
+    string GmailSubject,
     string? CloudflareAccountId,
     string? CloudflareApiToken,
     string BlobConnectionString,
@@ -44,11 +43,10 @@ public sealed record AppSettings(
             .Build();
 
         return new AppSettings(
-            Required(config, "SPORTS_API_KEY"),
-            new Uri(Required(config, "AZURE_OPENAI_ENDPOINT")),
-            Required(config, "AZURE_OPENAI_API_KEY"),
-            Required(config, "AZURE_OPENAI_DEPLOYMENT"),
-            Required(config, "AI_DEVELOPER_PROMPT"),
+            Required(config, "GMAIL_ADDRESS"),
+            Required(config, "GMAIL_APP_PASSWORD"),
+            config["GMAIL_SENDER"] ?? "andy.ai.automation@gmail.com",
+            config["GMAIL_SUBJECT"] ?? "AndyTV Daily Watchlist JSON",
             config["CLOUDFLARE_ACCOUNT_ID"],
             config["CLOUDFLARE_API_TOKEN"],
             config["BLOB_CONNECTION_STRING"] ?? config["AzureWebJobsStorage"] ?? "",

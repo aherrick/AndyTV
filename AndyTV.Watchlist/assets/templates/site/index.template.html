@@ -277,24 +277,32 @@
        WATCH PLAN
        ======================================================== */
 
-    .anchor {
+    .plan-summary {
       margin-bottom: 18px;
       padding: 14px 16px;
 
-      color: #ffe38a;
+      color: var(--text);
 
-      background:
-        linear-gradient(
-          135deg,
-          #2a1f00,
-          #3a2c00
-        );
+      background: var(--surface);
 
-      border: 1px solid #6b5200;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
       border-radius: var(--radius);
 
+      font-size: 0.95rem;
+    }
+
+    .plan-summary strong {
+      display: block;
+      margin-bottom: 4px;
+
+      color: var(--accent);
+
+      font-size: 0.75rem;
       font-weight: 700;
-      text-align: center;
+
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
     .summary-title {

@@ -19,22 +19,12 @@ public static class InstaCardRenderer
     // The v1 banner inlined as a data URI, since Cloudflare renders raw HTML with no base URL.
     private static readonly string Header = BuildHeader();
 
-    public static IReadOnlyList<InstaCard> Render(
-        IReadOnlyList<SportsEvent> events,
-        AiSportsGuide guide,
-        DateOnly targetDate
-    )
+    public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, DateOnly targetDate)
     {
         var date = $"{targetDate:dddd} • {targetDate:MMM d}".ToUpper(CultureInfo.InvariantCulture);
 
-        var ranked = guide
-            .RankedEvents.Select(
-                (rankedEvent, index) =>
-                    (Rank: index + 1, Event: events[rankedEvent.EventId], Ranked: rankedEvent)
-            )
-            .ToList();
-
-        var byTime = ranked.OrderBy(item => item.Event.StartTimeEastern).ToList();
+        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
+        var byTime = games.OrderBy(game => game.StartTimeIso).ToList();
 
         return
         [
@@ -42,7 +32,7 @@ public static class InstaCardRenderer
                 "01-top20-1-10.html",
                 date,
                 "🏆 TOP 20 TODAY <span class=\"page-chip\">1–10</span>",
-                RankBody(ranked.Take(10)),
+                RankBody(games.Take(10)),
                 "",
                 TopFooter
             ),
@@ -50,7 +40,7 @@ public static class InstaCardRenderer
                 "02-top20-11-20.html",
                 date,
                 "🏆 TOP 20 TODAY <span class=\"page-chip\">11–20</span>",
-                RankBody(ranked.Skip(10).Take(10)),
+                RankBody(games.Skip(10).Take(10)),
                 "",
                 TopFooter
             ),
@@ -73,9 +63,9 @@ public static class InstaCardRenderer
             Compose(
                 "05-watchlist.html",
                 date,
-                "🤖 AI WATCH PLAN",
-                WatchBody(events, guide),
-                WatchCallout(events, guide),
+                "🗺️ WATCH PLAN",
+                WatchBody(watchlist),
+                WatchCallout(watchlist),
                 WatchFooter
             ),
         ];
@@ -101,18 +91,16 @@ public static class InstaCardRenderer
         return new InstaCard(name, html);
     }
 
-    private static string RankBody(
-        IEnumerable<(int Rank, SportsEvent Event, RankedEvent Ranked)> rows
-    )
+    private static string RankBody(IEnumerable<WatchlistGame> games)
     {
         var body = string.Concat(
-            rows.Select(row =>
+            games.Select(game =>
                 $"""
                 <div class="rank-row">
-                  <div class="rank">{row.Rank}</div>
-                  <div class="sport">{SportsFormat.Icon(row.Event.Sport)}</div>
-                  <div class="game"><strong>{Enc(SportsFormat.RankedMatchup(row.Event, row.Ranked))}</strong><span>{Enc(row.Event.League)}</span></div>
-                  <div class="time">{Time(row.Event)}</div>
+                  <div class="rank">{game.Rank}</div>
+                  <div class="sport">{SportsFormat.Icon(game.Sport)}</div>
+                  <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(game.League)}</span></div>
+                  <div class="time">{Time(game.StartTimeIso)}</div>
                 </div>
                 """
             )
@@ -121,19 +109,17 @@ public static class InstaCardRenderer
         return $"<div class=\"card ranking\"><div class=\"ranks\">{body}</div></div>";
     }
 
-    private static string TimelineBody(
-        IEnumerable<(int Rank, SportsEvent Event, RankedEvent Ranked)> rows
-    )
+    private static string TimelineBody(IEnumerable<WatchlistGame> games)
     {
         var body = string.Concat(
-            rows.Select(row =>
+            games.Select(game =>
                 $"""
                 <div class="timeline-row">
-                  <div class="timeline-time">{Time(row.Event)}</div>
+                  <div class="timeline-time">{Time(game.StartTimeIso)}</div>
                   <div class="dot"></div>
                   <div class="timeline-main">
-                    <div class="timeline-game">{SportsFormat.Icon(row.Event.Sport)} {Enc(SportsFormat.RankedMatchup(row.Event, row.Ranked))}</div>
-                    <div class="timeline-meta">#{row.Rank} OVERALL • {Enc(row.Event.League)}</div>
+                    <div class="timeline-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
+                    <div class="timeline-meta">#{game.Rank} OVERALL • {Enc(game.League)}</div>
                   </div>
                 </div>
                 """
@@ -143,46 +129,51 @@ public static class InstaCardRenderer
         return $"<div class=\"card timeline-card\">{body}</div>";
     }
 
-    private static string WatchBody(IReadOnlyList<SportsEvent> events, AiSportsGuide guide)
+    private static string WatchBody(DailyWatchlist watchlist)
     {
-        var steps = SportsFormat.WatchPlan(events, guide);
+        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
+        {
+            return "<div class=\"card watch-card\"></div>";
+        }
+
+        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
 
         var body = string.Concat(
-            steps.Select(step =>
-                $"""
-                <div class="watch-row">
-                  <div class="watch-time">{Time(step.Event)}</div>
-                  <div class="watch-icon">{SportsFormat.Icon(step.Event.Sport)}</div>
-                  <div class="watch-copy"><strong>{Enc(SportsFormat.RankedMatchup(step.Event, step.Ranked))}</strong><span>{Enc(step.Note)}</span></div>
-                </div>
-                """
-            )
+            plan.Steps.OrderBy(step => step.StartTimeIso)
+                .Select(step =>
+                {
+                    var hasPrimary = byRank.TryGetValue(step.PrimaryRank, out var primary);
+                    var icon = hasPrimary ? SportsFormat.Icon(primary!.Sport) : "📺";
+                    var matchup = hasPrimary ? primary!.Matchup : "";
+                    return $"""
+                        <div class="watch-row">
+                          <div class="watch-time">{Time(step.StartTimeIso)}</div>
+                          <div class="watch-icon">{icon}</div>
+                          <div class="watch-copy"><strong>{Enc(matchup)}</strong><span>{Enc(step.Instruction.Trim())}</span></div>
+                        </div>
+                        """;
+                })
         );
 
         return $"<div class=\"card watch-card\">{body}</div>";
     }
 
-    private static string WatchCallout(IReadOnlyList<SportsEvent> events, AiSportsGuide guide)
+    private static string WatchCallout(DailyWatchlist watchlist)
     {
-        if (guide.AnchorEventId is not int anchorId || anchorId < 0 || anchorId >= events.Count)
-        {
-            return "";
-        }
-
-        var anchor = events[anchorId];
-        var anchorRank = guide.RankedEvents.Find(rankedEvent => rankedEvent.EventId == anchorId);
-        return $"<div class=\"callout\">🔥 PRIME-TIME ANCHOR: {Enc(SportsFormat.RankedMatchup(anchor, anchorRank))} at {Time(anchor)} ET</div>";
+        var summary = watchlist.WatchPlan?.Summary;
+        return string.IsNullOrWhiteSpace(summary)
+            ? ""
+            : $"<div class=\"callout\">🔥 {Enc(summary.Trim())}</div>";
     }
 
     // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
     private const string HeaderImageUrl =
         "https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png";
 
-    private static string BuildHeader() =>
-        $"<img class=\"banner\" src=\"{HeaderImageUrl}\">";
+    private static string BuildHeader() => $"<img class=\"banner\" src=\"{HeaderImageUrl}\">";
 
-    private static string Time(SportsEvent sportsEvent) =>
-        sportsEvent.StartTimeEastern.ToString("h:mm tt", CultureInfo.InvariantCulture);
+    private static string Time(DateTimeOffset value) =>
+        EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture);
 
     private static string Enc(string value) => WebUtility.HtmlEncode(value);
 }
