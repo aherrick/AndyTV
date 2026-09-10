@@ -102,7 +102,7 @@ public static class WatchlistSiteBuilder
             steps.Select(step =>
             {
                 var matchup = step.Matchup.Length == 0 ? "" : $"{Enc(step.Matchup)} — ";
-                return $"<li>{step.Icon} {TimeTag(step.Time)} {matchup}{Enc(step.Instruction)}</li>";
+                return $"<li>{step.Icon} {TimeTag(step.Time)} {matchup}{Enc(step.Instruction)}{Alternates(step)}</li>";
             })
         );
 
@@ -117,6 +117,29 @@ public static class WatchlistSiteBuilder
         string.IsNullOrWhiteSpace(game.Network)
             ? ""
             : $" · <span class=\"net\">{Enc(game.Network.Trim())}</span>";
+
+    // Lightweight "Also" line: up to two secondary options plus a "+N more" overflow.
+    private static string Alternates(WatchPlanEntry step)
+    {
+        if (step.Secondaries.Count == 0)
+        {
+            return "";
+        }
+
+        const int max = 2;
+        var chips = string.Join(
+            " · ",
+            step.Secondaries.Take(max).Select(game => $"{game.Icon} {Enc(game.Matchup)}")
+        );
+
+        var extra = step.Secondaries.Count - max;
+        if (extra > 0)
+        {
+            chips += $" · +{extra} more";
+        }
+
+        return $"<div class=\"plan-alts\"><strong>Also:</strong> {chips}</div>";
+    }
 
     // Semantic <time>: machine-readable ISO timestamp wrapping the human "h:mm tt ET" label.
     private static string TimeTag(DateTimeOffset value) =>
