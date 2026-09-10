@@ -119,7 +119,7 @@ public static class InstaCardRenderer
                   <div class="dot"></div>
                   <div class="timeline-main">
                     <div class="timeline-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                    <div class="timeline-meta">#{game.Rank} OVERALL • {Enc(game.League)}</div>
+                    <div class="timeline-meta">#{game.Rank} OVERALL • {Enc(game.League)}{Network(game)}</div>
                   </div>
                 </div>
                 """
@@ -163,6 +163,11 @@ public static class InstaCardRenderer
 
     private static string Time(DateTimeOffset value) =>
         EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+    private static string Network(WatchlistGame game) =>
+        string.IsNullOrWhiteSpace(game.Network)
+            ? ""
+            : $" \u2022 <span class=\"net\">{Enc(game.Network.Trim())}</span>";
 
     private static string Enc(string value) => WebUtility.HtmlEncode(value);
 }

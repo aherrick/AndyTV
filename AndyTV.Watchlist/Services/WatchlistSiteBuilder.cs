@@ -37,7 +37,7 @@ public static class WatchlistSiteBuilder
                       <div class="row-time">{Enc(SportsFormat.Time(game.StartTimeIso))}</div>
                       <div>
                         <div class="row-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                        <div class="row-meta">#{game.Rank} overall · {Enc(game.League)}</div>
+                        <div class="row-meta">#{game.Rank} overall · {Enc(game.League)}{Network(game)}</div>
                       </div>
                     </li>
                     """
