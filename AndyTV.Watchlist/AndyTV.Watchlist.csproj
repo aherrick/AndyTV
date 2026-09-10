@@ -26,13 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="instatemplates\*.html">
+    <None Update="assets\templates\insta\*.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="site\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="andytvwatchlist_header.png">
+    <None Update="assets\templates\site\*.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

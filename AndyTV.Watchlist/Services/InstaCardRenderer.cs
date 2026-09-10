@@ -13,7 +13,7 @@ public static class InstaCardRenderer
     private const string WatchFooter = "YOUR SPORTS DAY • PLANNED";
 
     private static readonly string BaseTemplate = File.ReadAllText(
-        Path.Combine(AppContext.BaseDirectory, "instatemplates", "_base.html")
+        Path.Combine(AppContext.BaseDirectory, "assets", "templates", "insta", "_base.html")
     );
 
     // The v1 banner inlined as a data URI, since Cloudflare renders raw HTML with no base URL.
@@ -176,7 +176,7 @@ public static class InstaCardRenderer
 
     // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
     private const string HeaderImageUrl =
-        "https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/andytvwatchlist_header.png";
+        "https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png";
 
     private static string BuildHeader() =>
         $"<img class=\"banner\" src=\"{HeaderImageUrl}\">";

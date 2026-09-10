@@ -9,7 +9,7 @@ namespace AndyTV.Watchlist.Services;
 public static class WatchlistSiteBuilder
 {
     private static readonly string Template = File.ReadAllText(
-        Path.Combine(AppContext.BaseDirectory, "site", "index.template.html")
+        Path.Combine(AppContext.BaseDirectory, "assets", "templates", "site", "index.template.html")
     );
 
     public static string BuildHtml(
