@@ -736,7 +736,7 @@ internal sealed class PlayerForm : Form
     }
 
     // Native-thread callback: stay cheap, never throw, and only WARN/ERROR to avoid huge logs.
-    private static void OnLibVlcLog(object sender, LogEventArgs e)
+    private static void OnLibVlcLog(object _, LogEventArgs e)
     {
         if (e.Level is LogLevel.Warning)
         {
