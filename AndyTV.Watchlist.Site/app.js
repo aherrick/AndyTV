@@ -17,10 +17,12 @@ function andyTv() {
     activeTab: "top",
     shareOpen: false,
     copied: false,
+    a2hs: null,
 
     init() {
       // Static control/tab icons are present at parse time; sport icons in the data are emojis.
       lucide.createIcons();
+      this.initAddToHomeScreen();
       this.syncTabFromPath();
       window.addEventListener("popstate", () => this.syncTabFromPath());
       this.load();
@@ -105,6 +107,25 @@ function andyTv() {
         }, 1500);
       }
       this.shareOpen = false;
+    },
+
+    // ---- add to home screen (pwa-add-to-homescreen) ----
+
+    initAddToHomeScreen() {
+      if (typeof window.AddToHomeScreen !== "function") {
+        return;
+      }
+      this.a2hs = window.AddToHomeScreen({
+        appName: "AndyTV Watchlist",
+        appIconUrl: "img/apple-touch-icon.png",
+        assetUrl: "https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/assets/img/",
+        maxModalDisplayCount: -1,
+      });
+    },
+
+    addToHomeScreen() {
+      this.shareOpen = false;
+      this.a2hs?.show();
     },
   };
 }

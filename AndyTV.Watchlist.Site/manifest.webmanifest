@@ -1,0 +1,22 @@
+{
+  "name": "AndyTV Watchlist",
+  "short_name": "AndyTV",
+  "description": "The best sports to watch today, ranked daily by AndyTV.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "icons": [
+    {
+      "src": "/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

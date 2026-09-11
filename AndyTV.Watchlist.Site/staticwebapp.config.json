@@ -1,6 +1,18 @@
 {
+    "routes": [
+    {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/styles.css", "/app.js", "/*.json", "/*.ico", "/*.png"]
+    "exclude": ["/styles.css", "/app.js", "/*.json", "/*.webmanifest", "/*.ico", "/*.png"]
+  },
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json"
   }
 }
+
