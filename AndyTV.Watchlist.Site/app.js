@@ -125,11 +125,8 @@ function andyTv() {
         appName: "AndyTV Watchlist",
         appIconUrl: "/img/apple-touch-icon.png",
         assetUrl: "https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/assets/img/",
-        maxModalDisplayCount: 2,
         displayOptions: { showMobile: true, showDesktop: false },
       });
-      // Prompt on load; show() no-ops if already installed and picks the device-specific guide.
-      this.a2hs.show();
     },
 
     // Mobile-only install affordance; hidden on desktop and once installed.
@@ -143,8 +140,6 @@ function andyTv() {
 
     addToHomeScreen() {
       this.shareOpen = false;
-      // A manual tap is explicit intent, so bypass the auto-prompt cap.
-      this.a2hs?.clearModalDisplayCount();
       this.a2hs?.show();
     },
   };
