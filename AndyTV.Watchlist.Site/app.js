@@ -11,7 +11,6 @@ function andyTv() {
       date: "",
       updated: "",
       top: { picks: [], games: [] },
-      timeline: [],
       plan: { summary: "", steps: [] },
     },
     tabs: ["top", "timeline", "plan"],
@@ -46,6 +45,11 @@ function andyTv() {
     go(tab) {
       this.activeTab = tab;
       history.pushState({ tab }, "", tab === "top" ? "/" : "/" + tab);
+    },
+
+    // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
+    timeline() {
+      return [...this.model.top.games].sort((a, b) => new Date(a.timeIso) - new Date(b.timeIso));
     },
 
     // ---- watch-plan alternates: up to two options plus a "+N more" overflow ----

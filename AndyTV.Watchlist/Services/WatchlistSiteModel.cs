@@ -5,7 +5,6 @@ public sealed record WatchlistSiteModel(
     string Date,
     string Updated,
     TopTab Top,
-    List<Game> Timeline,
     PlanTab Plan
 );
 

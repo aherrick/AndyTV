@@ -15,7 +15,6 @@ public static class WatchlistSiteBuilder
             Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
             Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
             Top: new TopTab(TopPicks(games), games.Select(ToGame).ToList()),
-            Timeline: games.OrderBy(game => game.StartTimeIso).Select(ToGame).ToList(),
             Plan: PlanTab(watchlist)
         );
     }
@@ -32,7 +31,7 @@ public static class WatchlistSiteBuilder
             ))
             .ToList();
 
-    // Same shape powers both the ranked Top tab and the time-ordered Timeline tab.
+    // Ranked games for the Top tab; the client re-sorts these by time for the Timeline tab.
     private static Game ToGame(WatchlistGame game) =>
         new(
             game.Rank,

@@ -178,7 +178,7 @@
     <!-- TIMELINE -->
     <section class="panel" :class="{ active: activeTab === 'timeline' }" data-panel="timeline">
       <ul class="rows">
-        <template x-for="row in model.timeline" :key="row.rank">
+        <template x-for="row in timeline()" :key="row.rank">
           <li>
             <div class="row-time">
               <time :datetime="row.timeIso" x-text="row.time"></time>
