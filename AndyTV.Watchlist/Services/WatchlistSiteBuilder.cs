@@ -1,149 +1,83 @@
 using System.Globalization;
-using System.Net;
 using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Renders the whole single-page site straight from the emailed DailyWatchlist, filling the
-// index template's Top / Timeline / Plan tab bodies.
+// Builds the render-ready view model the static site fetches as latest.json. All presentation
+// logic (Eastern times, sport icons, top picks, watch plan) stays here so app.js just fills the template.
 public static class WatchlistSiteBuilder
 {
-    private static readonly string Template = File.ReadAllText(
-        Path.Combine(AppContext.BaseDirectory, "assets", "templates", "site", "index.template.html")
-    );
-
-    public static string BuildHtml(DailyWatchlist watchlist, DateOnly targetDate)
+    public static WatchlistSiteModel Build(DailyWatchlist watchlist, DateOnly targetDate)
     {
         var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
 
-        return Template
-            .Replace(
-                "{{DATE}}",
-                Enc(targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture))
-            )
-            .Replace(
-                "{{UPDATED}}",
-                Enc($"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}")
-            )
-            .Replace("{{TOP}}", TopBody(games))
-            .Replace("{{TIMELINE}}", TimelineBody(games))
-            .Replace("{{PLAN}}", PlanBody(watchlist));
-    }
-
-    private static string TimelineBody(List<WatchlistGame> games)
-    {
-        var rows = string.Concat(
-            games
-                .OrderBy(game => game.StartTimeIso)
-                .Select(game =>
-                    $"""
-                    <li>
-                      <div class="row-time">{TimeTag(game.StartTimeIso)}</div>
-                      <div>
-                        <div class="row-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                        <div class="row-meta">#{game.Rank} overall · {Enc(game.League)}{Network(game)}</div>
-                      </div>
-                    </li>
-                    """
-                )
+        return new WatchlistSiteModel(
+            Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
+            Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
+            Top: new TopTab(TopPicks(games), TopGames(games)),
+            Timeline: TimelineRows(games),
+            Plan: PlanTab(watchlist)
         );
-
-        return $"<ul class=\"rows\">{rows}</ul>";
     }
 
-    private static string TopBody(List<WatchlistGame> games)
+    private static List<TopPick> TopPicks(List<WatchlistGame> games) =>
+        SportsFormat
+            .TopPicks(games)
+            .Select(pick => new TopPick(
+                pick.Icon,
+                pick.Label,
+                pick.Game.Matchup,
+                SportsFormat.Time(pick.Game.StartTimeIso),
+                Iso(pick.Game.StartTimeIso)
+            ))
+            .ToList();
+
+    private static List<TopGame> TopGames(List<WatchlistGame> games) =>
+        games
+            .Select(game => new TopGame(
+                game.Rank,
+                SportsFormat.Icon(game.Sport),
+                game.Matchup,
+                SportsFormat.Time(game.StartTimeIso),
+                Iso(game.StartTimeIso),
+                game.Network?.Trim() ?? "",
+                game.League,
+                game.Reason.Trim()
+            ))
+            .ToList();
+
+    private static List<TimelineRow> TimelineRows(List<WatchlistGame> games) =>
+        games
+            .OrderBy(game => game.StartTimeIso)
+            .Select(game => new TimelineRow(
+                Iso(game.StartTimeIso),
+                SportsFormat.Time(game.StartTimeIso),
+                SportsFormat.Icon(game.Sport),
+                game.Matchup,
+                game.Rank,
+                game.League,
+                game.Network?.Trim() ?? ""
+            ))
+            .ToList();
+
+    private static PlanTab PlanTab(DailyWatchlist watchlist)
     {
-        var rows = string.Concat(
-            games.Select(game =>
-                $"""
-                <li class="game">
-                  <div class="rank">{game.Rank}</div>
-                  <div class="body">
-                    <div class="title">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                    <div class="meta">{TimeTag(game.StartTimeIso)}{Network(game)} · {Enc(game.League)}</div>
-                    <div class="desc">{Enc(game.Reason.Trim())}</div>
-                  </div>
-                </li>
-                """
-            )
-        );
+        var steps = SportsFormat
+            .WatchPlanSteps(watchlist)
+            .Select(step => new PlanStep(
+                Iso(step.Time),
+                SportsFormat.Time(step.Time),
+                step.Icon,
+                step.Matchup,
+                step.Instruction,
+                step.Secondaries.Select(s => new PlanAlt(s.Icon, s.Matchup)).ToList()
+            ))
+            .ToList();
 
-        return $"{TopPicksBody(games)}<ol class=\"games\">{rows}</ol>";
+        return new PlanTab(watchlist.WatchPlan?.Summary?.Trim() ?? "", steps);
     }
 
-    private static string TopPicksBody(List<WatchlistGame> games)
-    {
-        var picks = SportsFormat.TopPicks(games);
-
-        if (picks.Count == 0)
-        {
-            return "";
-        }
-
-        var items = string.Concat(
-            picks.Select(pick =>
-                $"<li>{pick.Icon} <strong>{Enc(pick.Label)}:</strong> {Enc(pick.Game.Matchup)} · {TimeTag(pick.Game.StartTimeIso)}</li>"
-            )
-        );
-
-        return $"<h3 class=\"summary-title top-picks-title\"><i data-lucide=\"star\"></i> Top Picks</h3><ul class=\"summary\">{items}</ul>";
-    }
-
-    private static string PlanBody(DailyWatchlist watchlist)
-    {
-        var steps = SportsFormat.WatchPlanSteps(watchlist);
-
-        if (steps.Count == 0)
-        {
-            return "";
-        }
-
-        var rows = string.Concat(
-            steps.Select(step =>
-            {
-                var matchup = step.Matchup.Length == 0 ? "" : $"{Enc(step.Matchup)} — ";
-                return $"<li>{step.Icon} {TimeTag(step.Time)} {matchup}{Enc(step.Instruction)}{Alternates(step)}</li>";
-            })
-        );
-
-        var summary = string.IsNullOrWhiteSpace(watchlist.WatchPlan!.Summary)
-            ? ""
-            : $"<div class=\"plan-summary\"><strong>Game Plan</strong>{Enc(watchlist.WatchPlan.Summary.Trim())}</div>";
-
-        return $"{summary}<h3 class=\"summary-title\">The Watch Plan</h3><ul class=\"summary\">{rows}</ul>";
-    }
-
-    private static string Network(WatchlistGame game) =>
-        string.IsNullOrWhiteSpace(game.Network)
-            ? ""
-            : $" · <span class=\"net\">{Enc(game.Network.Trim())}</span>";
-
-    // Lightweight "Also" line: up to two secondary options plus a "+N more" overflow.
-    private static string Alternates(WatchPlanEntry step)
-    {
-        if (step.Secondaries.Count == 0)
-        {
-            return "";
-        }
-
-        const int max = 2;
-        var chips = string.Join(
-            " · ",
-            step.Secondaries.Take(max).Select(game => $"{game.Icon} {Enc(game.Matchup)}")
-        );
-
-        var extra = step.Secondaries.Count - max;
-        if (extra > 0)
-        {
-            chips += $" · +{extra} more";
-        }
-
-        return $"<div class=\"plan-alts\"><strong>Also:</strong> {chips}</div>";
-    }
-
-    // Semantic <time>: machine-readable ISO timestamp wrapping the human "h:mm tt ET" label.
-    private static string TimeTag(DateTimeOffset value) =>
-        $"<time datetime=\"{value.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)}\">{Enc(SportsFormat.Time(value))}</time>";
-
-    private static string Enc(string value) => WebUtility.HtmlEncode(value);
+    // Machine-readable ISO timestamp for the client's <time datetime="...">.
+    private static string Iso(DateTimeOffset value) =>
+        value.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
 }

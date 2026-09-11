@@ -1,0 +1,533 @@
+:root {
+  --bg: #0b0e13;
+  --surface: #161b26;
+  --surface-2: #1e2534;
+  --border: #2a3242;
+
+  --text: #e8edf4;
+  --muted: #9aa7bd;
+
+  --accent: #f5c518;
+  --accent-2: #38bdf8;
+
+  --radius: 14px;
+  --wrap: 640px;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --border: #d9dfe8;
+
+  --text: #1a2230;
+  --muted: #5b6675;
+
+  --accent: #c99700;
+  --accent-2: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  line-height: 1.45;
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+/* ========================================================
+   HEADER
+   ======================================================== */
+
+.site-header {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 20px 16px 8px;
+  text-align: center;
+}
+
+.banner {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+}
+
+.kicker {
+  margin: 18px 0 2px;
+
+  color: var(--accent);
+
+  font-size: 0.8rem;
+  font-weight: 700;
+
+  letter-spacing: 0.18em;
+}
+
+.site-header h1 {
+  margin: 0 0 8px;
+
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.times-note {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+/* ========================================================
+   TABS
+   ======================================================== */
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
+  max-width: var(--wrap);
+  margin: 8px auto 0;
+  padding: 8px 12px;
+
+  display: flex;
+  gap: 8px;
+
+  background: var(--bg);
+}
+
+.tabs button {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 10px 8px;
+
+  cursor: pointer;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--surface);
+  color: var(--muted);
+
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.tabs button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tabs button.active {
+  color: #0b0e13;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tabs button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.tabs svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.2;
+}
+
+.summary-title svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+}
+
+/* ========================================================
+   TOP CONTROLS (share + theme)
+   ======================================================== */
+
+.top-controls {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  display: grid;
+  place-items: center;
+
+  width: 40px;
+  height: 40px;
+
+  cursor: pointer;
+
+  color: var(--text);
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.control-btn:hover {
+  background: var(--surface-2);
+}
+
+.control-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-sun,
+.icon-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .icon-sun {
+  display: block;
+}
+
+:root[data-theme="light"] .icon-moon {
+  display: block;
+}
+
+.share {
+  position: relative;
+}
+
+.share-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+
+  min-width: 160px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  padding: 6px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+.share-menu[hidden] {
+  display: none;
+}
+
+.share-menu a,
+.share-menu button {
+  padding: 8px 10px;
+
+  cursor: pointer;
+
+  color: var(--text);
+  background: transparent;
+
+  border: 0;
+  border-radius: 7px;
+
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  text-decoration: none;
+}
+
+.share-menu a:hover,
+.share-menu button:hover {
+  background: var(--surface-2);
+}
+
+.panel {
+  display: none;
+  margin-top: 20px;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* ========================================================
+   TOP PICKS / RANKED GAMES
+   ======================================================== */
+
+.games {
+  list-style: none;
+
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.game {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+
+  padding: 14px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.game .rank {
+  color: var(--accent);
+
+  font-size: 1.4rem;
+  font-weight: 800;
+
+  text-align: center;
+  line-height: 1.1;
+}
+
+.game .title {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.game .meta {
+  margin: 2px 0 6px;
+
+  color: var(--muted);
+
+  font-size: 0.85rem;
+}
+
+.net {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.game .desc {
+  font-size: 0.92rem;
+  opacity: 0.92;
+}
+
+/* ========================================================
+   TIMELINE
+   ======================================================== */
+
+.rows {
+  list-style: none;
+
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rows li {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+
+  align-items: baseline;
+
+  padding: 10px 12px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.row-time {
+  color: var(--accent-2);
+
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.row-game {
+  font-weight: 700;
+}
+
+.row-meta,
+.row-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* ========================================================
+   WATCH PLAN
+   ======================================================== */
+
+.plan-summary {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+
+  color: var(--text);
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+
+  font-size: 0.95rem;
+}
+
+.plan-summary strong {
+  display: block;
+  margin-bottom: 4px;
+
+  color: var(--accent);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.summary-title {
+  margin: 24px 0 10px;
+
+  color: var(--muted);
+
+  font-size: 0.8rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.top-picks-title {
+  letter-spacing: 0.08em;
+}
+
+.summary {
+  list-style: none;
+
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-picks {
+  margin-bottom: 18px;
+}
+
+.summary li {
+  padding: 10px 14px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-2);
+  border-radius: 10px;
+
+  font-size: 0.9rem;
+
+  opacity: 0.95;
+}
+
+.plan-alts {
+  margin-top: 6px;
+
+  color: var(--muted);
+
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+
+/* ========================================================
+   FOOTER
+   ======================================================== */
+
+.site-footer {
+  padding: 24px 16px 40px;
+
+  color: var(--muted);
+
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.site-footer a {
+  color: var(--accent-2);
+
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.updated {
+  margin-top: 8px;
+
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+/* ========================================================
+   RESPONSIVE
+   ======================================================== */
+
+@media (min-width: 560px) {
+  .site-header h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rows li {
+    grid-template-columns: 82px 1fr;
+    gap: 8px;
+  }
+
+  .tabs button {
+    padding: 9px 5px;
+    font-size: 0.85rem;
+  }
+}

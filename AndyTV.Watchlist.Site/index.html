@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>AndyTV Watchlist — Best Sports Today</title>
+
+  <link
+    rel="icon"
+    href="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV/AndyTV.ico"
+  />
+
+  <meta
+    name="description"
+    content="The best sports to watch today, ranked daily by AndyTV."
+  />
+
+  <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)" />
+
+  <!-- Set theme before paint to avoid a flash; a saved choice wins, otherwise follow the OS. -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem("andytv-theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="AndyTV Watchlist — Best Sports Today" />
+  <meta property="og:description" content="The best sports to watch today, ranked daily by AndyTV." />
+  <meta property="og:url" content="https://wonderful-smoke-06f4e1f10.5.azurestaticapps.net/" />
+  <meta property="og:image" content="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AndyTV Watchlist — Best Sports Today" />
+  <meta name="twitter:description" content="The best sports to watch today, ranked daily by AndyTV." />
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body x-data="andyTv()" x-init="init()">
+
+  <div class="top-controls">
+
+    <div class="share">
+      <button
+        class="control-btn"
+        id="share-btn"
+        type="button"
+        aria-label="Share"
+        aria-haspopup="true"
+        :aria-expanded="shareOpen"
+        @click="onShare()"
+      >
+        <i data-lucide="share-2"></i>
+      </button>
+
+      <div
+        class="share-menu"
+        x-show="shareOpen"
+        @click.outside="shareOpen = false"
+        x-cloak
+      >
+        <a class="share-x" :href="xUrl()" target="_blank" rel="noopener" @click="shareOpen = false">X</a>
+        <a class="share-fb" :href="fbUrl()" target="_blank" rel="noopener" @click="shareOpen = false">Facebook</a>
+        <a class="share-reddit" :href="redditUrl()" target="_blank" rel="noopener" @click="shareOpen = false">Reddit</a>
+        <button type="button" class="share-copy" @click="copyLink()" x-text="copied ? 'Copied!' : 'Copy link'"></button>
+      </div>
+    </div>
+
+    <button
+      class="control-btn"
+      id="theme-toggle"
+      type="button"
+      aria-label="Toggle light or dark theme"
+      @click="toggleTheme()"
+    >
+      <i data-lucide="sun" class="icon-sun"></i>
+      <i data-lucide="moon" class="icon-moon"></i>
+    </button>
+
+  </div>
+
+  <header class="site-header">
+
+    <img
+      class="banner"
+      src="https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png"
+      alt="AndyTV Watchlist"
+    />
+
+    <p class="kicker">
+      BEST SPORTS TODAY
+    </p>
+
+    <h1 x-text="model.date"></h1>
+
+    <p class="times-note">
+      All times ET
+    </p>
+
+  </header>
+
+  <!-- ======================================================
+       NAVIGATION
+       ====================================================== -->
+
+  <nav class="tabs" aria-label="Watchlist sections">
+
+    <button type="button" :class="{ active: activeTab === 'top' }" :aria-selected="activeTab === 'top'" @click="go('top')">
+      <i data-lucide="trophy"></i>
+      Top
+    </button>
+
+    <button type="button" :class="{ active: activeTab === 'timeline' }" :aria-selected="activeTab === 'timeline'" @click="go('timeline')">
+      <i data-lucide="clock-3"></i>
+      Timeline
+    </button>
+
+    <button type="button" :class="{ active: activeTab === 'plan' }" :aria-selected="activeTab === 'plan'" @click="go('plan')">
+      <i data-lucide="tv"></i>
+      Plan
+    </button>
+
+  </nav>
+
+  <!-- ======================================================
+       CONTENT
+       ====================================================== -->
+
+  <main class="wrap">
+
+    <!-- TOP -->
+    <section class="panel" :class="{ active: activeTab === 'top' }" data-panel="top">
+
+      <template x-if="model.top.picks.length">
+        <div class="top-picks">
+          <h3 class="summary-title top-picks-title">⭐ Top Picks</h3>
+          <ul class="summary">
+            <template x-for="pick in model.top.picks" :key="pick.label">
+              <li>
+                <span x-text="pick.icon"></span>
+                <strong x-text="pick.label + ':'"></strong>
+                <span x-text="pick.matchup"></span> ·
+                <time :datetime="pick.timeIso" x-text="pick.time"></time>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
+
+      <ol class="games">
+        <template x-for="game in model.top.games" :key="game.rank">
+          <li class="game">
+            <div class="rank" x-text="game.rank"></div>
+            <div class="body">
+              <div class="title">
+                <span x-text="game.icon"></span>
+                <span x-text="game.matchup"></span>
+              </div>
+              <div class="meta">
+                <time :datetime="game.timeIso" x-text="game.time"></time>
+                <template x-if="game.network"><span> · <span class="net" x-text="game.network"></span></span></template>
+                <span x-text="' · ' + game.league"></span>
+              </div>
+              <div class="desc" x-text="game.reason"></div>
+            </div>
+          </li>
+        </template>
+      </ol>
+
+    </section>
+
+    <!-- TIMELINE -->
+    <section class="panel" :class="{ active: activeTab === 'timeline' }" data-panel="timeline">
+      <ul class="rows">
+        <template x-for="row in model.timeline" :key="row.rank">
+          <li>
+            <div class="row-time">
+              <time :datetime="row.timeIso" x-text="row.time"></time>
+            </div>
+            <div>
+              <div class="row-game">
+                <span x-text="row.icon"></span>
+                <span x-text="row.matchup"></span>
+              </div>
+              <div class="row-meta">
+                <span x-text="'#' + row.rank + ' overall · ' + row.league"></span>
+                <template x-if="row.network"><span> · <span class="net" x-text="row.network"></span></span></template>
+              </div>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </section>
+
+    <!-- PLAN -->
+    <section class="panel" :class="{ active: activeTab === 'plan' }" data-panel="plan">
+
+      <template x-if="model.plan.summary">
+        <div class="plan-summary">
+          <strong>Game Plan</strong>
+          <span x-text="model.plan.summary"></span>
+        </div>
+      </template>
+
+      <template x-if="model.plan.steps.length">
+        <div>
+          <h3 class="summary-title">The Watch Plan</h3>
+          <ul class="summary">
+            <template x-for="(step, i) in model.plan.steps" :key="i">
+              <li>
+                <span x-text="step.icon"></span>
+                <time :datetime="step.timeIso" x-text="step.time"></time>
+                <span x-text="(step.matchup ? step.matchup + ' — ' : '') + step.instruction"></span>
+                <template x-if="step.alternates.length">
+                  <div class="plan-alts">
+                    <strong>Also:</strong>
+                    <span x-text="altText(step.alternates)"></span>
+                  </div>
+                </template>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
+
+    </section>
+
+  </main>
+
+  <!-- ======================================================
+       FOOTER
+       ====================================================== -->
+
+  <footer class="site-footer">
+
+    <p>
+      Made with ❤️ by
+
+      <a href="https://x.com/andrew_herrick" target="_blank" rel="noopener">@andrew_herrick</a>
+
+      ·
+
+      <a href="https://x.com/andytvwatchlist" target="_blank" rel="noopener">@andytvwatchlist</a>
+
+    </p>
+
+    <p class="updated" x-text="model.updated"></p>
+
+  </footer>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="app.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+
+</body>
+</html>

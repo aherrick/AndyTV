@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AndyTV.Watchlist.Configuration;
@@ -19,6 +20,11 @@ public class AndyTVWatchlistFn(
 )
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<AndyTVWatchlistFn>();
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
@@ -58,15 +64,18 @@ public class AndyTVWatchlistFn(
             return;
         }
 
-        var html = WatchlistSiteBuilder.BuildHtml(watchlist, targetDate);
+        var json = JsonSerializer.Serialize(
+            WatchlistSiteBuilder.Build(watchlist, targetDate),
+            JsonOptions
+        );
 
         if (!settings.PublishLocal && settings.CanPublishSite)
         {
-            var url = await blobStore.PublishSite(html, cancellationToken);
+            var url = await blobStore.PublishData(json, cancellationToken);
 
             if (_logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("Published site to {url}", url);
+                _logger.LogInformation("Published data to {url}", url);
             }
         }
 
@@ -130,12 +139,12 @@ public class AndyTVWatchlistFn(
             _logger.LogInformation("Preview only. Add the four X_ secrets to publish the thread.");
         }
 
-        // Local preview: write the finished page and Instagram card images to disk as the final step.
+        // Local preview: write the data feed and Instagram card images to disk as the final step.
         if (settings.PublishLocal)
         {
             Directory.CreateDirectory("publish");
-            var path = Path.GetFullPath(Path.Combine("publish", "index.html"));
-            await File.WriteAllTextAsync(path, html, cancellationToken);
+            var path = Path.GetFullPath(Path.Combine("publish", "latest.json"));
+            await File.WriteAllTextAsync(path, json, cancellationToken);
 
             var instaDir = Path.GetFullPath(Path.Combine("publish", "insta"));
             if (settings.CanScreenshot)

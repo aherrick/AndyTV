@@ -5,8 +5,8 @@ using Azure.Storage.Blobs.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// One storage account, two jobs: it hosts the static site ($web/index.html) and the
-// public Instagram card images (andytv-watchlist container).
+// One public container (andytv-watchlist) hosts both the daily data feed (latest.json) and
+// the Instagram card images.
 public sealed class BlobStore(AppSettings settings)
 {
     private const string ImageContainer = "andytv-watchlist";
@@ -29,17 +29,20 @@ public sealed class BlobStore(AppSettings settings)
         return blob.Uri;
     }
 
-    // Uploads index.html to the $web container and returns its blob URL.
-    public async Task<string> PublishSite(
-        string html,
+    // Uploads latest.json to the container root and returns its blob URL.
+    public async Task<string> PublishData(
+        string json,
         CancellationToken cancellationToken = default
     )
     {
-        var container = new BlobContainerClient(settings.BlobConnectionString, "$web");
-        await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+        var container = new BlobContainerClient(settings.BlobConnectionString, ImageContainer);
+        await container.CreateIfNotExistsAsync(
+            PublicAccessType.Blob,
+            cancellationToken: cancellationToken
+        );
 
-        var blob = container.GetBlobClient("index.html");
-        await Upload(blob, Encoding.UTF8.GetBytes(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
+        var blob = container.GetBlobClient("latest.json");
+        await Upload(blob, Encoding.UTF8.GetBytes(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
         return blob.Uri.ToString();
     }
 
