@@ -167,18 +167,12 @@ body {
   stroke-width: 2.2;
 }
 
-.summary-title svg {
-  width: 15px;
-  height: 15px;
-  vertical-align: -2px;
-}
-
 /* ========================================================
-   TOP CONTROLS (share + theme)
+   TOP CONTROLS (install + share + theme)
    ======================================================== */
 
 .top-controls {
-  position: fixed;
+  position: absolute;
   top: 12px;
   right: 12px;
   z-index: 10;
@@ -285,7 +279,9 @@ body {
    TOP PICKS / RANKED GAMES
    ======================================================== */
 
-.games {
+.games,
+.rows,
+.summary {
   list-style: none;
 
   margin: 0;
@@ -293,6 +289,10 @@ body {
 
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.games {
   gap: 10px;
 }
 
@@ -346,17 +346,6 @@ body {
    TIMELINE
    ======================================================== */
 
-.rows {
-  list-style: none;
-
-  margin: 0;
-  padding: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .rows li {
   display: grid;
   grid-template-columns: 90px 1fr;
@@ -383,8 +372,7 @@ body {
   font-weight: 700;
 }
 
-.row-meta,
-.row-note {
+.row-meta {
   color: var(--muted);
   font-size: 0.82rem;
 }
@@ -435,17 +423,6 @@ body {
 
 .top-picks-title {
   letter-spacing: 0.08em;
-}
-
-.summary {
-  list-style: none;
-
-  margin: 0;
-  padding: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .top-picks {

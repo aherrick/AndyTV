@@ -15,8 +15,8 @@ public sealed class CloudflareScreenshotService(
     ILogger<CloudflareScreenshotService> logger
 )
 {
-    // Retry Workers Free rate limits (1 Quick Action / 10s) and transient render stalls with a flat
-    // 11s backoff; the inner timeout turns a stalled render into a retryable failure.
+    // Retry Workers Free rate limits (1 Quick Action / 10s) and transient render stalls;
+    // honor Retry-After, otherwise wait 11s. The inner timeout makes stalled renders retryable.
     private readonly ResiliencePipeline<HttpResponseMessage> _pipeline =
         new ResiliencePipelineBuilder<HttpResponseMessage>()
             .AddRetry(
@@ -29,7 +29,11 @@ public sealed class CloudflareScreenshotService(
                         .Handle<HttpRequestException>()
                         .Handle<TimeoutRejectedException>(),
                     MaxRetryAttempts = 5,
-                    Delay = TimeSpan.FromSeconds(11),
+                    DelayGenerator = args =>
+                        ValueTask.FromResult<TimeSpan?>(
+                            args.Outcome.Result?.Headers.RetryAfter?.Delta
+                                ?? TimeSpan.FromSeconds(11)
+                        ),
                     OnRetry = args =>
                     {
                         logger.LogWarning(

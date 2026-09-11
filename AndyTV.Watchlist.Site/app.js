@@ -31,6 +31,7 @@ function andyTv() {
     async load() {
       try {
         const response = await fetch(DATA_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Watchlist request failed: ${response.status}`);
         this.model = await response.json();
       } catch (err) {
         this.model.date = "Could not load the watchlist.";
@@ -46,7 +47,11 @@ function andyTv() {
 
     go(tab) {
       this.activeTab = tab;
-      history.pushState({ tab }, "", tab === "top" ? "/" : "/" + tab);
+      history.pushState({ tab }, "", this.tabPath);
+    },
+
+    get tabPath() {
+      return this.activeTab === "top" ? "/" : "/" + this.activeTab;
     },
 
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
@@ -81,7 +86,7 @@ function andyTv() {
     // ---- share ----
 
     shareLinks() {
-      const url = encodeURIComponent(location.href);
+      const url = encodeURIComponent(location.origin + this.tabPath);
       const title = encodeURIComponent(document.title);
       return [
         { label: "X", href: `https://twitter.com/intent/tweet?url=${url}&text=${title}` },
@@ -98,15 +103,16 @@ function andyTv() {
       this.shareOpen = !this.shareOpen;
     },
 
-    copyLink() {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(location.href);
+    async copyLink() {
+      try {
+        await navigator.clipboard.writeText(location.href);
         this.copied = true;
         setTimeout(() => {
           this.copied = false;
         }, 1500);
+      } catch {
+        this.copied = false;
       }
-      this.shareOpen = false;
     },
 
     // ---- add to home screen (pwa-add-to-homescreen) ----
@@ -117,10 +123,12 @@ function andyTv() {
       }
       this.a2hs = window.AddToHomeScreen({
         appName: "AndyTV Watchlist",
-        appIconUrl: "img/apple-touch-icon.png",
+        appIconUrl: "/img/apple-touch-icon.png",
         assetUrl: "https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/assets/img/",
-        maxModalDisplayCount: -1,
+        maxModalDisplayCount: 2,
       });
+      // Prompt on load; show() no-ops if already installed and picks the device-specific guide.
+      this.a2hs.show();
     },
 
     addToHomeScreen() {

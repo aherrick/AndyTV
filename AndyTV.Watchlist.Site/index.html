@@ -8,11 +8,11 @@
 
   <link
     rel="icon"
-    href="img/AndyTV.ico"
+    href="/img/AndyTV.ico"
   />
 
-  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
 
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -47,13 +47,25 @@
   <meta name="twitter:description" content="The best sports to watch today, ranked daily by AndyTV." />
   <meta name="twitter:image" content="https://andytv.today/img/andytvwatchlist_header.png" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.css" />
 </head>
 
-<body x-data="andyTv()" x-init="init()">
+<body x-data="andyTv()">
 
   <div class="top-controls">
+
+    <button
+      class="control-btn"
+      type="button"
+      aria-label="Add to Home Screen"
+      title="Add to Home Screen"
+      x-show="a2hs && !a2hs.isStandAlone()"
+      x-cloak
+      @click="addToHomeScreen()"
+    >
+      <i data-lucide="download"></i>
+    </button>
 
     <div class="share">
       <button
@@ -78,7 +90,6 @@
           <a :href="link.href" target="_blank" rel="noopener" @click="shareOpen = false" x-text="link.label"></a>
         </template>
         <button type="button" class="share-copy" @click="copyLink()" x-text="copied ? 'Copied!' : 'Copy link'"></button>
-        <button type="button" class="share-a2hs" @click="addToHomeScreen()">Add to Home Screen</button>
       </div>
     </div>
 
@@ -99,7 +110,7 @@
 
     <img
       class="banner"
-      src="img/andytvwatchlist_header.png"
+      src="/img/andytvwatchlist_header.png"
       alt="AndyTV Watchlist"
     />
 
@@ -266,7 +277,7 @@
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.js"></script>
-  <script src="app.js" defer></script>
+  <script src="/app.js" defer></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 
 </body>
