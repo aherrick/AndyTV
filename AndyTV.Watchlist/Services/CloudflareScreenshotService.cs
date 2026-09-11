@@ -5,6 +5,7 @@ using AndyTV.Watchlist.Configuration;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace AndyTV.Watchlist.Services;
 
@@ -14,32 +15,33 @@ public sealed class CloudflareScreenshotService(
     ILogger<CloudflareScreenshotService> logger
 )
 {
-    // Workers Free allows only 1 Quick Action every 10s; honor Retry-After, else back off ~11s.
+    // Retry Workers Free rate limits (1 Quick Action / 10s) and transient render stalls with a flat
+    // 11s backoff; the inner timeout turns a stalled render into a retryable failure.
     private readonly ResiliencePipeline<HttpResponseMessage> _pipeline =
         new ResiliencePipelineBuilder<HttpResponseMessage>()
             .AddRetry(
                 new RetryStrategyOptions<HttpResponseMessage>
                 {
-                    ShouldHandle = new PredicateBuilder<HttpResponseMessage>().HandleResult(
-                        response => response.StatusCode == HttpStatusCode.TooManyRequests
-                    ),
+                    ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                        .HandleResult(response =>
+                            response.StatusCode == HttpStatusCode.TooManyRequests
+                        )
+                        .Handle<HttpRequestException>()
+                        .Handle<TimeoutRejectedException>(),
                     MaxRetryAttempts = 5,
-                    DelayGenerator = args =>
-                        ValueTask.FromResult<TimeSpan?>(
-                            args.Outcome.Result?.Headers.RetryAfter?.Delta
-                                ?? TimeSpan.FromSeconds(11)
-                        ),
+                    Delay = TimeSpan.FromSeconds(11),
                     OnRetry = args =>
                     {
                         logger.LogWarning(
-                            "Cloudflare rate limited (429); retry {attempt} after {seconds}s.",
-                            args.AttemptNumber + 1,
-                            args.RetryDelay.TotalSeconds
+                            "Cloudflare screenshot retry {attempt} of 5.",
+                            args.AttemptNumber + 1
                         );
                         return ValueTask.CompletedTask;
                     },
                 }
             )
+            // Per-attempt cap so a stalled render surfaces as a retryable timeout, not a hard cancellation.
+            .AddTimeout(TimeSpan.FromSeconds(60))
             .Build();
 
     public async Task<byte[]> Capture(string html, CancellationToken cancellationToken = default)
