@@ -86,7 +86,7 @@ public static class WatchlistSiteBuilder
             )
         );
 
-        return $"<h3 class=\"summary-title top-picks-title\">⭐ Top Picks</h3><ul class=\"summary\">{items}</ul>";
+        return $"<h3 class=\"summary-title top-picks-title\"><i data-lucide=\"star\"></i> Top Picks</h3><ul class=\"summary\">{items}</ul>";
     }
 
     private static string PlanBody(DailyWatchlist watchlist)

@@ -16,7 +16,17 @@
     content="The best sports to watch today, ranked daily by AndyTV."
   />
 
-  <meta name="theme-color" content="#0b0e13" />
+  <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)" />
+
+  <!-- Set theme before paint to avoid a flash; a saved choice wins, otherwise follow the OS. -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem("andytv-theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="AndyTV Watchlist — Best Sports Today" />
@@ -44,6 +54,19 @@
 
       --radius: 14px;
       --wrap: 640px;
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface-2: #eef1f6;
+      --border: #d9dfe8;
+
+      --text: #1a2230;
+      --muted: #5b6675;
+
+      --accent: #c99700;
+      --accent-2: #2563eb;
     }
 
     * {
@@ -122,12 +145,6 @@
        TABS
        ======================================================== */
 
-    .tab-radio {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
     .tabs {
       position: sticky;
       top: 0;
@@ -143,15 +160,17 @@
       background: var(--bg);
     }
 
-    .tabs label {
+    .tabs button {
       flex: 1;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
 
       padding: 10px 8px;
 
-      text-align: center;
-
       cursor: pointer;
-      user-select: none;
 
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -159,28 +178,140 @@
       background: var(--surface);
       color: var(--muted);
 
+      font-family: inherit;
       font-size: 0.9rem;
       font-weight: 700;
     }
 
-    .tabs label:hover {
+    .tabs button:hover {
       background: var(--surface-2);
       color: var(--text);
     }
 
-    #tab-top:checked ~ .tabs label[for="tab-top"],
-    #tab-timeline:checked ~ .tabs label[for="tab-timeline"],
-    #tab-plan:checked ~ .tabs label[for="tab-plan"] {
+    .tabs button.active {
       color: #0b0e13;
       background: var(--accent);
       border-color: var(--accent);
     }
 
-    #tab-top:focus-visible ~ .tabs label[for="tab-top"],
-    #tab-timeline:focus-visible ~ .tabs label[for="tab-timeline"],
-    #tab-plan:focus-visible ~ .tabs label[for="tab-plan"] {
+    .tabs button:focus-visible {
       outline: 2px solid var(--accent-2);
       outline-offset: 2px;
+    }
+
+    .tabs svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.2;
+    }
+
+    .summary-title svg {
+      width: 15px;
+      height: 15px;
+      vertical-align: -2px;
+    }
+
+    /* ========================================================
+       TOP CONTROLS (share + theme)
+       ======================================================== */
+
+    .top-controls {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+
+      display: flex;
+      gap: 8px;
+    }
+
+    .control-btn {
+      display: grid;
+      place-items: center;
+
+      width: 40px;
+      height: 40px;
+
+      cursor: pointer;
+
+      color: var(--text);
+      background: var(--surface);
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .control-btn:hover {
+      background: var(--surface-2);
+    }
+
+    .control-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .icon-sun,
+    .icon-moon {
+      display: none;
+    }
+
+    :root[data-theme="dark"] .icon-sun {
+      display: block;
+    }
+
+    :root[data-theme="light"] .icon-moon {
+      display: block;
+    }
+
+    .share {
+      position: relative;
+    }
+
+    .share-menu {
+      position: absolute;
+      top: 46px;
+      right: 0;
+
+      min-width: 160px;
+
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      padding: 6px;
+
+      background: var(--surface);
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+    }
+
+    .share-menu[hidden] {
+      display: none;
+    }
+
+    .share-menu a,
+    .share-menu button {
+      padding: 8px 10px;
+
+      cursor: pointer;
+
+      color: var(--text);
+      background: transparent;
+
+      border: 0;
+      border-radius: 7px;
+
+      font: inherit;
+      font-size: 0.9rem;
+      text-align: left;
+      text-decoration: none;
+    }
+
+    .share-menu a:hover,
+    .share-menu button:hover {
+      background: var(--surface-2);
     }
 
     .panel {
@@ -188,9 +319,7 @@
       margin-top: 20px;
     }
 
-    #tab-top:checked ~ .wrap .panel-top,
-    #tab-timeline:checked ~ .wrap .panel-timeline,
-    #tab-plan:checked ~ .wrap .panel-plan {
+    .panel.active {
       display: block;
     }
 
@@ -435,7 +564,7 @@
         gap: 8px;
       }
 
-      .tabs label {
+      .tabs button {
         padding: 9px 5px;
         font-size: 0.85rem;
       }
@@ -444,6 +573,40 @@
 </head>
 
 <body>
+
+  <div class="top-controls">
+
+    <div class="share">
+      <button
+        class="control-btn"
+        id="share-btn"
+        type="button"
+        aria-label="Share"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i data-lucide="share-2"></i>
+      </button>
+
+      <div class="share-menu" id="share-menu" hidden>
+        <a class="share-x" target="_blank" rel="noopener">X</a>
+        <a class="share-fb" target="_blank" rel="noopener">Facebook</a>
+        <a class="share-reddit" target="_blank" rel="noopener">Reddit</a>
+        <button type="button" class="share-copy">Copy link</button>
+      </div>
+    </div>
+
+    <button
+      class="control-btn"
+      id="theme-toggle"
+      type="button"
+      aria-label="Toggle light or dark theme"
+    >
+      <i data-lucide="sun" class="icon-sun"></i>
+      <i data-lucide="moon" class="icon-moon"></i>
+    </button>
+
+  </div>
 
   <header class="site-header">
 
@@ -468,48 +631,25 @@
   </header>
 
   <!-- ======================================================
-       TAB STATE
-       ====================================================== -->
-
-  <input
-    class="tab-radio"
-    type="radio"
-    name="tab"
-    id="tab-top"
-    checked
-  />
-
-  <input
-    class="tab-radio"
-    type="radio"
-    name="tab"
-    id="tab-timeline"
-  />
-
-  <input
-    class="tab-radio"
-    type="radio"
-    name="tab"
-    id="tab-plan"
-  />
-
-  <!-- ======================================================
        NAVIGATION
        ====================================================== -->
 
   <nav class="tabs" aria-label="Watchlist sections">
 
-    <label for="tab-top">
-      🏆 Top
-    </label>
+    <button type="button" class="active" data-tab="top" aria-selected="true">
+      <i data-lucide="trophy"></i>
+      Top
+    </button>
 
-    <label for="tab-timeline">
-      🕒 Timeline
-    </label>
+    <button type="button" data-tab="timeline" aria-selected="false">
+      <i data-lucide="clock-3"></i>
+      Timeline
+    </button>
 
-    <label for="tab-plan">
-      📺 Plan
-    </label>
+    <button type="button" data-tab="plan" aria-selected="false">
+      <i data-lucide="tv"></i>
+      Plan
+    </button>
 
   </nav>
 
@@ -519,15 +659,15 @@
 
   <main class="wrap">
 
-    <section class="panel panel-top">
+    <section class="panel active" data-panel="top">
       {{TOP}}
     </section>
 
-    <section class="panel panel-timeline">
+    <section class="panel" data-panel="timeline">
       {{TIMELINE}}
     </section>
 
-    <section class="panel panel-plan">
+    <section class="panel" data-panel="plan">
       {{PLAN}}
     </section>
 
@@ -567,6 +707,82 @@
     </p>
 
   </footer>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    document.getElementById("theme-toggle").addEventListener("click", function () {
+      var next =
+        document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("andytv-theme", next);
+    });
+
+    document.querySelectorAll(".tabs button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".tabs button").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-selected", on);
+        });
+        document.querySelectorAll(".panel").forEach(function (p) {
+          p.classList.toggle("active", p.dataset.panel === btn.dataset.tab);
+        });
+      });
+    });
+
+    var shareUrl = location.href;
+    var shareTitle = document.title;
+    var shareBtn = document.getElementById("share-btn");
+    var shareMenu = document.getElementById("share-menu");
+    var enc = encodeURIComponent;
+
+    shareMenu.querySelector(".share-x").href =
+      "https://twitter.com/intent/tweet?url=" + enc(shareUrl) + "&text=" + enc(shareTitle);
+    shareMenu.querySelector(".share-fb").href =
+      "https://www.facebook.com/sharer/sharer.php?u=" + enc(shareUrl);
+    shareMenu.querySelector(".share-reddit").href =
+      "https://www.reddit.com/submit?url=" + enc(shareUrl) + "&title=" + enc(shareTitle);
+
+    function closeShare() {
+      shareMenu.setAttribute("hidden", "");
+      shareBtn.setAttribute("aria-expanded", "false");
+    }
+
+    shareBtn.addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: shareTitle, url: shareUrl }).catch(function () {});
+        return;
+      }
+      var open = shareMenu.hasAttribute("hidden");
+      shareMenu.toggleAttribute("hidden", !open);
+      shareBtn.setAttribute("aria-expanded", String(open));
+    });
+
+    shareMenu.querySelector(".share-copy").addEventListener("click", function () {
+      var copy = shareMenu.querySelector(".share-copy");
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(function () {
+          copy.textContent = "Copied!";
+          setTimeout(function () {
+            copy.textContent = "Copy link";
+          }, 1500);
+        });
+      }
+      closeShare();
+    });
+
+    shareMenu.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", closeShare);
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".share")) {
+        closeShare();
+      }
+    });
+  </script>
 
 </body>
 </html>
