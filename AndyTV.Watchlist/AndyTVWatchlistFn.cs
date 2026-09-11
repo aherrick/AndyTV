@@ -24,10 +24,10 @@ public class AndyTVWatchlistFn(
     public async Task Run(
 #if DEBUG
 
-        [TimerTrigger("0 30 3 * * *", RunOnStartup = true)] TimerInfo myTimer,
+        [TimerTrigger("0 30 7,8 * * *", RunOnStartup = true)] TimerInfo myTimer,
 #else
-        // 3:30 AM in the app's WEBSITE_TIME_ZONE (Eastern Standard Time); Azure adjusts for DST.
-        [TimerTrigger("0 30 3 * * *")] TimerInfo myTimer,
+        // Host stays on UTC; fires 07:30 + 08:30 UTC and the Eastern-hour guard below runs work only at 3:30 AM ET (DST-proof).
+        [TimerTrigger("0 30 7,8 * * *")] TimerInfo myTimer,
 #endif
         CancellationToken cancellationToken
     )
@@ -38,6 +38,16 @@ public class AndyTVWatchlistFn(
         }
 
         var easternNow = EasternTimeZone.Now;
+
+#if !DEBUG
+        // Only one of the two UTC firings lands on 3 AM Eastern; skip the other so the work runs once at 3:30 AM ET.
+        if (easternNow.Hour != 3)
+        {
+            _logger.LogInformation("Skipping {easternNow:h:mm tt} ET run; waiting for 3:30 AM ET.", easternNow);
+            return;
+        }
+#endif
+
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
 
         var watchlist = await gmailService.GetLatest(targetDate, cancellationToken);
