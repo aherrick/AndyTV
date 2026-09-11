@@ -65,9 +65,9 @@
         @click.outside="shareOpen = false"
         x-cloak
       >
-        <a class="share-x" :href="xUrl()" target="_blank" rel="noopener" @click="shareOpen = false">X</a>
-        <a class="share-fb" :href="fbUrl()" target="_blank" rel="noopener" @click="shareOpen = false">Facebook</a>
-        <a class="share-reddit" :href="redditUrl()" target="_blank" rel="noopener" @click="shareOpen = false">Reddit</a>
+        <template x-for="link in shareLinks()" :key="link.label">
+          <a :href="link.href" target="_blank" rel="noopener" @click="shareOpen = false" x-text="link.label"></a>
+        </template>
         <button type="button" class="share-copy" @click="copyLink()" x-text="copied ? 'Copied!' : 'Copy link'"></button>
       </div>
     </div>

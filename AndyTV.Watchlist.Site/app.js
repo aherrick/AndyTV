@@ -74,6 +74,16 @@ function andyTv() {
 
     // ---- share ----
 
+    shareLinks() {
+      const url = encodeURIComponent(location.href);
+      const title = encodeURIComponent(document.title);
+      return [
+        { label: "X", href: `https://twitter.com/intent/tweet?url=${url}&text=${title}` },
+        { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${url}` },
+        { label: "Reddit", href: `https://www.reddit.com/submit?url=${url}&title=${title}` },
+      ];
+    },
+
     onShare() {
       if (navigator.share) {
         navigator.share({ title: document.title, url: location.href }).catch(() => {});
@@ -91,28 +101,6 @@ function andyTv() {
         }, 1500);
       }
       this.shareOpen = false;
-    },
-
-    xUrl() {
-      return (
-        "https://twitter.com/intent/tweet?url=" +
-        encodeURIComponent(location.href) +
-        "&text=" +
-        encodeURIComponent(document.title)
-      );
-    },
-
-    fbUrl() {
-      return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(location.href);
-    },
-
-    redditUrl() {
-      return (
-        "https://www.reddit.com/submit?url=" +
-        encodeURIComponent(location.href) +
-        "&title=" +
-        encodeURIComponent(document.title)
-      );
     },
   };
 }
