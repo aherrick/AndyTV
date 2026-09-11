@@ -352,7 +352,7 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add(
             "Watchlist",
             null,
-            (_, _) => OpenUrl("https://andytvwatchlist.z19.web.core.windows.net/")
+            (_, _) => OpenUrl("https://andytv.today/")
         );
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
