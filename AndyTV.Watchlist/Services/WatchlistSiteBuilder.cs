@@ -14,8 +14,8 @@ public static class WatchlistSiteBuilder
         return new WatchlistSiteModel(
             Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
             Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
-            Top: new TopTab(TopPicks(games), TopGames(games)),
-            Timeline: TimelineRows(games),
+            Top: new TopTab(TopPicks(games), games.Select(ToGame).ToList()),
+            Timeline: games.OrderBy(game => game.StartTimeIso).Select(ToGame).ToList(),
             Plan: PlanTab(watchlist)
         );
     }
@@ -32,33 +32,18 @@ public static class WatchlistSiteBuilder
             ))
             .ToList();
 
-    private static List<TopGame> TopGames(List<WatchlistGame> games) =>
-        games
-            .Select(game => new TopGame(
-                game.Rank,
-                SportsFormat.Icon(game.Sport),
-                game.Matchup,
-                SportsFormat.Time(game.StartTimeIso),
-                Iso(game.StartTimeIso),
-                Net(game),
-                game.League,
-                game.Reason.Trim()
-            ))
-            .ToList();
-
-    private static List<TimelineRow> TimelineRows(List<WatchlistGame> games) =>
-        games
-            .OrderBy(game => game.StartTimeIso)
-            .Select(game => new TimelineRow(
-                Iso(game.StartTimeIso),
-                SportsFormat.Time(game.StartTimeIso),
-                SportsFormat.Icon(game.Sport),
-                game.Matchup,
-                game.Rank,
-                game.League,
-                Net(game)
-            ))
-            .ToList();
+    // Same shape powers both the ranked Top tab and the time-ordered Timeline tab.
+    private static Game ToGame(WatchlistGame game) =>
+        new(
+            game.Rank,
+            SportsFormat.Icon(game.Sport),
+            game.Matchup,
+            SportsFormat.Time(game.StartTimeIso),
+            Iso(game.StartTimeIso),
+            Net(game),
+            game.League,
+            game.Reason.Trim()
+        );
 
     private static PlanTab PlanTab(DailyWatchlist watchlist)
     {

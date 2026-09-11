@@ -5,15 +5,15 @@ public sealed record WatchlistSiteModel(
     string Date,
     string Updated,
     TopTab Top,
-    List<TimelineRow> Timeline,
+    List<Game> Timeline,
     PlanTab Plan
 );
 
-public sealed record TopTab(List<TopPick> Picks, List<TopGame> Games);
+public sealed record TopTab(List<TopPick> Picks, List<Game> Games);
 
 public sealed record TopPick(string Icon, string Label, string Matchup, string Time, string TimeIso);
 
-public sealed record TopGame(
+public sealed record Game(
     int Rank,
     string Icon,
     string Matchup,
@@ -22,16 +22,6 @@ public sealed record TopGame(
     string Network,
     string League,
     string Reason
-);
-
-public sealed record TimelineRow(
-    string TimeIso,
-    string Time,
-    string Icon,
-    string Matchup,
-    int Rank,
-    string League,
-    string Network
 );
 
 public sealed record PlanTab(string Summary, List<PlanStep> Steps);
