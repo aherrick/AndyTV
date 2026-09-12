@@ -26,7 +26,7 @@ public static class WatchlistSiteBuilder
                 pick.Icon,
                 pick.Label,
                 pick.Game.Matchup,
-                SportsFormat.Time(pick.Game.StartTimeIso),
+                SportsFormat.TimeNoZone(pick.Game.StartTimeIso),
                 Iso(pick.Game.StartTimeIso)
             ))
             .ToList();
@@ -37,7 +37,7 @@ public static class WatchlistSiteBuilder
             game.Rank,
             SportsFormat.Icon(game.Sport),
             game.Matchup,
-            SportsFormat.Time(game.StartTimeIso),
+            SportsFormat.TimeNoZone(game.StartTimeIso),
             Iso(game.StartTimeIso),
             Net(game),
             game.League,
@@ -50,7 +50,7 @@ public static class WatchlistSiteBuilder
             .WatchPlanSteps(watchlist)
             .Select(step => new PlanStep(
                 Iso(step.Time),
-                SportsFormat.Time(step.Time),
+                SportsFormat.TimeNoZone(step.Time),
                 step.Icon,
                 step.Matchup,
                 step.Instruction,

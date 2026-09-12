@@ -19,8 +19,11 @@ public static class SportsFormat
             _ => "📺",
         };
 
-    public static string Time(DateTimeOffset value) =>
-        $"{EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture)} ET";
+    // Zone-less time for the site, which already shows an "All times ET" header.
+    public static string TimeNoZone(DateTimeOffset value) =>
+        EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+    public static string Time(DateTimeOffset value) => $"{TimeNoZone(value)} ET";
 
     // Best-per-category picks, shared by the X post and the site's Top tab. Games arrive in rank order.
     public static List<(string Icon, string Label, WatchlistGame Game)> TopPicks(
