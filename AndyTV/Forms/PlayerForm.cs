@@ -60,6 +60,7 @@ internal sealed class PlayerForm : Form
     private readonly CancellationTokenSource _cts = new();
     private readonly StreamHealthMonitor _healthMonitor;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
+    private int _lastDisplayedPictures;
 
     public PlayerForm()
     {
@@ -88,11 +89,9 @@ internal sealed class PlayerForm : Form
                 Play(current);
             }
         });
-        _healthTimer.Tick += (_, _) => _healthMonitor.Tick();
+        _healthTimer.Tick += OnHealthTick;
 
         _mediaPlayer.Playing += OnPlaying;
-        _mediaPlayer.TimeChanged += (_, _) => _healthMonitor.MarkActivity();
-        _mediaPlayer.PositionChanged += (_, _) => _healthMonitor.MarkActivity();
 
         _muteItem.Click += (_, _) =>
         {
@@ -604,6 +603,21 @@ internal sealed class PlayerForm : Form
         }
     }
 
+    // Real motion = new video frames actually displayed. VLC's clock (TimeChanged/PositionChanged)
+    // can keep advancing while the picture is frozen, so the displayed-frame count is the only
+    // reliable freeze signal; if it hasn't moved the monitor will restart after the stall window.
+    private void OnHealthTick(object sender, EventArgs e)
+    {
+        using var media = _mediaPlayer.Media;
+        var displayed = media?.Statistics.DisplayedPictures ?? 0;
+        if (displayed != _lastDisplayedPictures)
+        {
+            _lastDisplayedPictures = displayed;
+            _healthMonitor.MarkActivity();
+        }
+        _healthMonitor.Tick();
+    }
+
     private void Play(Channel channel)
     {
         StopRecording();
@@ -614,6 +628,7 @@ internal sealed class PlayerForm : Form
     {
         _current = channel;
         _pending = channel;
+        _lastDisplayedPictures = 0;
         _healthMonitor.MarkActivity();
         UpdateCursor();
         using var media = new Media(_libVLC, new Uri(channel.Url));
@@ -754,6 +769,7 @@ internal sealed class PlayerForm : Form
         {
             _cts.Cancel();
             _cts.Dispose();
+            _healthTimer.Tick -= OnHealthTick;
             _healthTimer.Dispose();
             StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
