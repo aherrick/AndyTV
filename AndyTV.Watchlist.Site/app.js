@@ -5,8 +5,8 @@
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 
-// Azure Function that returns the live watchlist entries (score overlaid). Set the real host.
-const SCORES_URL = "https://andytvwatchlist.azurewebsites.net/api/scores";
+// Azure Function that returns the live watchlist entries (score overlaid).
+const SCORES_URL = "https://andytvwatchlistfn-cpfshybvcbfafpdr.centralus-01.azurewebsites.net/api/scores";
 
 function andyTv() {
   return {
