@@ -4,12 +4,12 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Reads latest.json and returns the live (in-progress) games with ESPN scores attached.
+// Reads latest.json and returns the watchlist entries that are live, with ESPN scores attached.
 public sealed class WatchlistScoreService(HttpClient http, EspnScoreService scores)
 {
     private const string Source = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 
-    public async Task<LiveScoreFeed> GetAsync(CancellationToken cancellationToken = default)
+    public async Task<List<Game>> GetAsync(CancellationToken cancellationToken = default)
     {
         var feed = (await http.GetFromJsonAsync<WatchlistSiteModel>(Source, cancellationToken))!;
         var games = feed.Top.Games
@@ -22,12 +22,11 @@ public sealed class WatchlistScoreService(HttpClient http, EspnScoreService scor
             .ToList();
 
         await scores.EnrichAsync(games, cancellationToken);
-        return new(DateTimeOffset.UtcNow, games
+
+        // Same shape the site already renders, with live scores overlaid; live games only.
+        return feed.Top.Games
+            .Zip(games, (entry, enriched) => entry with { Score = enriched.Score })
             .Where(x => x.Score?.State == "in")
-            .Select(x => new LiveGame(x.Rank, x.Matchup, x.League, x.AwayTeam!, x.HomeTeam!, x.Score!))
-            .ToList());
+            .ToList();
     }
 }
-
-public sealed record LiveScoreFeed(DateTimeOffset CheckedAt, List<LiveGame> Games);
-public sealed record LiveGame(int Rank, string Matchup, string League, string AwayTeam, string HomeTeam, GameScore Score);

@@ -188,6 +188,9 @@
                 <template x-if="game.network"><span> · <span class="net" x-text="game.network"></span></span></template>
                 <span x-text="' · ' + game.league"></span>
               </div>
+              <template x-if="game.score">
+                <div class="live">🔴 LIVE · <span x-text="game.score.detail"></span> · <span x-text="game.score.away + '–' + game.score.home"></span></div>
+              </template>
               <div class="desc" x-text="game.reason"></div>
             </div>
           </li>
@@ -213,6 +216,9 @@
                 <span x-text="'#' + row.rank + ' overall · ' + row.league"></span>
                 <template x-if="row.network"><span> · <span class="net" x-text="row.network"></span></span></template>
               </div>
+              <template x-if="row.score">
+                <div class="live">🔴 LIVE · <span x-text="row.score.detail"></span> · <span x-text="row.score.away + '–' + row.score.home"></span></div>
+              </template>
             </div>
           </li>
         </template>

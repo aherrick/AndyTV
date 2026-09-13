@@ -5,6 +5,9 @@
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 
+// Azure Function that returns the live watchlist entries (score overlaid). Set the real host.
+const SCORES_URL = "https://andytvwatchlist.azurewebsites.net/api/scores";
+
 function andyTv() {
   return {
     model: {
@@ -25,7 +28,8 @@ function andyTv() {
       this.initAddToHomeScreen();
       this.syncTabFromPath();
       window.addEventListener("popstate", () => this.syncTabFromPath());
-      this.load();
+      this.load().then(() => this.pollScores());
+      setInterval(() => this.pollScores(), 120000);
     },
 
     async load() {
@@ -35,6 +39,19 @@ function andyTv() {
         this.model = await response.json();
       } catch (err) {
         this.model.date = "Could not load the watchlist.";
+      }
+    },
+
+    // Overlay live scores onto the rendered games by rank; the API returns live games only.
+    async pollScores() {
+      try {
+        const response = await fetch(SCORES_URL, { cache: "no-store" });
+        if (!response.ok) return;
+        const live = await response.json();
+        const byRank = new Map(live.map((g) => [g.rank, g.score]));
+        this.model.top.games = this.model.top.games.map((g) => ({ ...g, score: byRank.get(g.rank) ?? null }));
+      } catch {
+        // Leave the last-known scores in place on a failed poll.
       }
     },
 

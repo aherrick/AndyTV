@@ -337,6 +337,13 @@ body {
   font-weight: 600;
 }
 
+.live {
+  margin: 2px 0 6px;
+  color: #e5484d;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 .game .desc {
   font-size: 0.92rem;
   opacity: 0.92;
