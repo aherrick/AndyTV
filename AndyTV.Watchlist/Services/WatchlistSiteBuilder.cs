@@ -41,7 +41,11 @@ public static class WatchlistSiteBuilder
             Iso(game.StartTimeIso),
             Net(game),
             game.League,
-            game.Reason.Trim()
+            game.Reason.Trim(),
+            game.AwayTeam,
+            game.HomeTeam,
+            game.Score,
+            game.Sport
         );
 
     private static PlanTab PlanTab(DailyWatchlist watchlist)

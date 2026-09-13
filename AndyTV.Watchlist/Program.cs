@@ -20,11 +20,12 @@ builder.Services.AddSingleton(_ =>
     return new HttpClient(handler);
 });
 
-builder.Services.AddSingleton(AppSettings.Load());
+builder.Services.AddSingleton(_ => AppSettings.Load());
 builder.Services.AddSingleton<GmailWatchlistService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();
 builder.Services.AddSingleton<InstagramPublishService>();
+builder.Services.AddWatchlistScores();
 
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
 {

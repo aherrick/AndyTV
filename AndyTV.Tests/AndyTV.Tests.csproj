@@ -22,6 +22,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\AndyTV.Data\AndyTV.Data.csproj" />
+		<ProjectReference Include="..\AndyTV.Watchlist\AndyTV.Watchlist.csproj" />
 	</ItemGroup>
 
 </Project>

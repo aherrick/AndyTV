@@ -16,7 +16,8 @@ public class AndyTVWatchlistFn(
     CloudflareScreenshotService screenshotService,
     BlobStore blobStore,
     InstagramPublishService instagramService,
-    AppSettings settings
+    AppSettings settings,
+    EspnScoreService scoreService
 )
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<AndyTVWatchlistFn>();
@@ -63,6 +64,8 @@ public class AndyTVWatchlistFn(
             _logger.LogInformation("No emailed watchlist found for {targetDate}.", targetDate);
             return;
         }
+
+        await scoreService.EnrichAsync(watchlist.BestWatches, cancellationToken);
 
         var json = JsonSerializer.Serialize(
             WatchlistSiteBuilder.Build(watchlist, targetDate),

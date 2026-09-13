@@ -22,7 +22,14 @@ public sealed record WatchlistGame(
     DateTimeOffset StartTimeIso,
     string? Network,
     string Reason
-);
+)
+{
+    public string? AwayTeam { get; init; }
+    public string? HomeTeam { get; init; }
+    public GameScore? Score { get; set; }
+}
+
+public sealed record GameScore(string? Away, string? Home, string State, string? Detail, DateTimeOffset? UpdatedAt = null);
 
 public sealed class WatchPlan
 {
