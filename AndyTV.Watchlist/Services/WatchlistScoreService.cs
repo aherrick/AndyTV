@@ -4,8 +4,8 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Reads latest.json and returns the watchlist entries that are live, with ESPN scores attached.
-public sealed class WatchlistScoreService(HttpClient http, EspnScoreService scores)
+// Reads latest.json and returns the watchlist entries that are live, with scores attached.
+public sealed class WatchlistScoreService(HttpClient http, ApiSportsScoreService scores)
 {
     private const string Source = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 

@@ -15,7 +15,7 @@ public sealed class WatchlistScoresFn(WatchlistScoreService scores)
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scores")] HttpRequest request,
         CancellationToken cancellationToken)
     {
-        // Reject callers that aren't the site before doing any ESPN work.
+        // Reject callers that aren't the site before doing any score work.
         if (!IsAllowed(request))
         {
             return new StatusCodeResult(StatusCodes.Status403Forbidden);

@@ -16,6 +16,8 @@ public sealed record AppSettings(
     string? XConsumerSecret,
     string? XAccessToken,
     string? XAccessTokenSecret,
+    string? ApiSportsKey1,
+    string? ApiSportsKey2,
     bool PublishLocal
 )
 {
@@ -56,6 +58,8 @@ public sealed record AppSettings(
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
             config["X_ACCESS_TOKEN_SECRET"],
+            config["ApiSportsKey1"] ?? config["API_SPORTS_KEY1"],
+            config["ApiSportsKey2"] ?? config["API_SPORTS_KEY2"],
             string.Equals(config["PUBLISH_LOCAL"], "true", StringComparison.OrdinalIgnoreCase)
         );
     }

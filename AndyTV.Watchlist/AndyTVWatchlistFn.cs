@@ -17,7 +17,7 @@ public class AndyTVWatchlistFn(
     BlobStore blobStore,
     InstagramPublishService instagramService,
     AppSettings settings,
-    EspnScoreService scoreService
+    ApiSportsScoreService scoreService
 )
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<AndyTVWatchlistFn>();

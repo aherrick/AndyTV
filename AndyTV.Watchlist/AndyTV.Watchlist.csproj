@@ -16,7 +16,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
     <PackageReference Include="Polly.Core" Version="8.7.0" />
     <PackageReference Include="Raffinert.FuzzySharp" Version="6.0.0" />
-    <PackageReference Include="Refit.HttpClientFactory" Version="15.2.0" />
     <PackageReference Include="RestSharp" Version="114.0.1-alpha.0.10" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
