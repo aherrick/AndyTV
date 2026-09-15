@@ -189,6 +189,13 @@
                 <span x-text="' · ' + game.league"></span>
               </div>
               <div class="desc" x-text="game.reason"></div>
+              <template x-if="game.sources && game.sources.length">
+                <div class="sources">
+                  <template x-for="source in game.sources" :key="source.url">
+                    <a :href="source.url" target="_blank" rel="noopener" x-text="source.title"></a>
+                  </template>
+                </div>
+              </template>
             </div>
           </li>
         </template>

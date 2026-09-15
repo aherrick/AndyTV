@@ -45,7 +45,8 @@ public static class WatchlistSiteBuilder
             game.AwayTeam,
             game.HomeTeam,
             game.Score,
-            game.Sport
+            game.Sport,
+            game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList()
         );
 
     private static PlanTab PlanTab(DailyWatchlist watchlist)

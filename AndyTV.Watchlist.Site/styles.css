@@ -342,6 +342,27 @@ body {
   opacity: 0.92;
 }
 
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+
+  margin-top: 8px;
+}
+
+.sources a {
+  color: var(--accent-2);
+
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.sources a:hover {
+  text-decoration: underline;
+}
+
 /* ========================================================
    TIMELINE
    ======================================================== */

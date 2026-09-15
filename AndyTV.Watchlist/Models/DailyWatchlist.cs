@@ -27,7 +27,10 @@ public sealed record WatchlistGame(
     public string? AwayTeam { get; init; }
     public string? HomeTeam { get; init; }
     public GameScore? Score { get; set; }
+    public List<WatchSource>? Sources { get; init; }
 }
+
+public sealed record WatchSource(string Title, string Url);
 
 public sealed record GameScore(string? Away, string? Home, string State, string? Detail, DateTimeOffset? UpdatedAt = null);
 

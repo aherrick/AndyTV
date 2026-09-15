@@ -26,8 +26,11 @@ public sealed record Game(
     string? AwayTeam = null,
     string? HomeTeam = null,
     GameScore? Score = null,
-    string Sport = ""
+    string Sport = "",
+    List<SourceLink>? Sources = null
 );
+
+public sealed record SourceLink(string Title, string Url);
 
 public sealed record PlanTab(string Summary, List<PlanStep> Steps);
 

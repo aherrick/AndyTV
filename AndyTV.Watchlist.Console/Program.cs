@@ -1,10 +1,12 @@
 using System.Text.Json;
+using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 var services = new ServiceCollection();
 services.AddLogging(logging => logging.AddSimpleConsole().SetMinimumLevel(LogLevel.Warning));
+services.AddSingleton(_ => AppSettings.Load());
 services.AddWatchlistScores();
 await using var provider = services.BuildServiceProvider();
 var service = provider.GetRequiredService<WatchlistScoreService>();
