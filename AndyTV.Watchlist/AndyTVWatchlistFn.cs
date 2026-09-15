@@ -61,7 +61,11 @@ public class AndyTVWatchlistFn(
 
         if (watchlist is null || watchlist.BestWatches.Count == 0)
         {
-            _logger.LogInformation("No emailed watchlist found for {targetDate}.", targetDate);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("No emailed watchlist found for {targetDate}.", targetDate);
+            }
+
             return;
         }
 

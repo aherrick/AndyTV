@@ -12,14 +12,12 @@ public sealed class WatchlistScoreService(HttpClient http, ApiSportsScoreService
     public async Task<List<Game>> GetAsync(CancellationToken cancellationToken = default)
     {
         var feed = (await http.GetFromJsonAsync<WatchlistSiteModel>(Source, cancellationToken))!;
-        var games = feed.Top.Games
-            .Select(x => new WatchlistGame(x.Rank, x.Sport, x.League, x.Matchup,
+        var games = feed.Top.Games.ConvertAll(x => new WatchlistGame(x.Rank, x.Sport, x.League, x.Matchup,
                 DateTimeOffset.Parse(x.TimeIso, CultureInfo.InvariantCulture), x.Network, x.Reason)
             {
                 AwayTeam = x.AwayTeam,
                 HomeTeam = x.HomeTeam,
-            })
-            .ToList();
+            });
 
         await scores.EnrichAsync(games, cancellationToken);
 

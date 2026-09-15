@@ -14,22 +14,19 @@ public static class WatchlistSiteBuilder
         return new WatchlistSiteModel(
             Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
             Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
-            Top: new TopTab(TopPicks(games), games.Select(ToGame).ToList()),
+            Top: new TopTab(TopPicks(games), games.ConvertAll(ToGame)),
             Plan: PlanTab(watchlist)
         );
     }
 
     private static List<TopPick> TopPicks(List<WatchlistGame> games) =>
-        SportsFormat
-            .TopPicks(games)
-            .Select(pick => new TopPick(
+        SportsFormat.TopPicks(games).ConvertAll(pick => new TopPick(
                 pick.Icon,
                 pick.Label,
                 pick.Game.Matchup,
                 SportsFormat.TimeNoZone(pick.Game.StartTimeIso),
                 Iso(pick.Game.StartTimeIso)
-            ))
-            .ToList();
+            ));
 
     // Ranked games for the Top tab; the client re-sorts these by time for the Timeline tab.
     private static Game ToGame(WatchlistGame game) =>
@@ -51,17 +48,14 @@ public static class WatchlistSiteBuilder
 
     private static PlanTab PlanTab(DailyWatchlist watchlist)
     {
-        var steps = SportsFormat
-            .WatchPlanSteps(watchlist)
-            .Select(step => new PlanStep(
+        var steps = SportsFormat.WatchPlanSteps(watchlist).ConvertAll(step => new PlanStep(
                 Iso(step.Time),
                 SportsFormat.TimeNoZone(step.Time),
                 step.Icon,
                 step.Matchup,
                 step.Instruction,
-                step.Secondaries.Select(s => new PlanAlt(s.Icon, s.Matchup)).ToList()
-            ))
-            .ToList();
+                step.Secondaries.ConvertAll(s => new PlanAlt(s.Icon, s.Matchup))
+            ));
 
         return new PlanTab(watchlist.WatchPlan?.Summary?.Trim() ?? "", steps);
     }

@@ -72,16 +72,24 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
 
                 if (watchlist is not null && watchlist.Date == targetDate.ToString("yyyy-MM-dd"))
                 {
-                    logger.LogInformation(
-                        "Loaded emailed watchlist for {date} with {count} games.",
-                        watchlist.Date,
-                        watchlist.BestWatches.Count
-                    );
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation(
+                            "Loaded emailed watchlist for {date} with {count} games.",
+                            watchlist.Date,
+                            watchlist.BestWatches.Count
+                        );
+                    }
+
                     return watchlist;
                 }
             }
 
-            logger.LogInformation("No matching watchlist email found for {date}.", targetDate);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("No matching watchlist email found for {date}.", targetDate);
+            }
+
             return null;
         }
         finally
