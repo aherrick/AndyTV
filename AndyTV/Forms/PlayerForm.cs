@@ -26,10 +26,7 @@ internal sealed class PlayerForm : Form
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
-    private readonly ToolStripMenuItem _hardwareAccelerationItem = new("Hardware Acceleration")
-    {
-        CheckOnClick = true,
-    };
+    private readonly ToolStripMenuItem _hardwareAccelerationItem = new("Hardware Acceleration");
     private readonly ToolStripMenuItem _recordItem = new("Start Recording");
     private string _recordingPath;
 
@@ -112,9 +109,19 @@ internal sealed class PlayerForm : Form
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
         };
         _hardwareAccelerationItem.Checked = !_config.DisableHardwareAcceleration;
-        _hardwareAccelerationItem.CheckedChanged += (_, _) =>
+        _hardwareAccelerationItem.Click += (_, _) =>
         {
-            _config.DisableHardwareAcceleration = !_hardwareAccelerationItem.Checked;
+            var result = MessageBox.Show(
+                "Are you sure? AndyTV will restart to apply.",
+                "AndyTV",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Question
+            );
+            if (result != DialogResult.OK)
+            {
+                return;
+            }
+            _config.DisableHardwareAcceleration = !_config.DisableHardwareAcceleration;
             _configService.Save(_config);
             Application.Restart();
         };
