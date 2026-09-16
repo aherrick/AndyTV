@@ -15,8 +15,6 @@ function andyTv() {
     },
     tabs: ["top", "timeline", "plan"],
     activeTab: "top",
-    shareOpen: false,
-    copied: false,
     a2hs: null,
 
     init() {
@@ -83,36 +81,14 @@ function andyTv() {
       localStorage.setItem("andytv-theme", next);
     },
 
-    // ---- share ----
+    // ---- share (native Web Share only; button hidden when unsupported) ----
 
-    shareLinks() {
-      const url = encodeURIComponent(location.origin + this.tabPath);
-      const title = encodeURIComponent(document.title);
-      return [
-        { label: "X", href: `https://twitter.com/intent/tweet?url=${url}&text=${title}` },
-        { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${url}` },
-        { label: "Reddit", href: `https://www.reddit.com/submit?url=${url}&title=${title}` },
-      ];
+    canShare() {
+      return typeof navigator.share === "function";
     },
 
-    onShare() {
-      if (navigator.share) {
-        navigator.share({ title: document.title, url: location.href }).catch(() => {});
-        return;
-      }
-      this.shareOpen = !this.shareOpen;
-    },
-
-    async copyLink() {
-      try {
-        await navigator.clipboard.writeText(location.href);
-        this.copied = true;
-        setTimeout(() => {
-          this.copied = false;
-        }, 1500);
-      } catch {
-        this.copied = false;
-      }
+    share() {
+      navigator.share({ title: document.title, url: location.href }).catch(() => {});
     },
 
     // ---- add to home screen (pwa-add-to-homescreen) ----
@@ -139,7 +115,6 @@ function andyTv() {
     },
 
     addToHomeScreen() {
-      this.shareOpen = false;
       this.a2hs?.show();
     },
   };

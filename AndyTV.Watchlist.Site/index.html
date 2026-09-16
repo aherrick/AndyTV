@@ -67,31 +67,17 @@
       <i data-lucide="download"></i>
     </button>
 
-    <div class="share">
-      <button
-        class="control-btn"
-        id="share-btn"
-        type="button"
-        aria-label="Share"
-        aria-haspopup="true"
-        :aria-expanded="shareOpen"
-        @click="onShare()"
-      >
-        <i data-lucide="share-2"></i>
-      </button>
-
-      <div
-        class="share-menu"
-        x-show="shareOpen"
-        @click.outside="shareOpen = false"
-        x-cloak
-      >
-        <template x-for="link in shareLinks()" :key="link.label">
-          <a :href="link.href" target="_blank" rel="noopener" @click="shareOpen = false" x-text="link.label"></a>
-        </template>
-        <button type="button" class="share-copy" @click="copyLink()" x-text="copied ? 'Copied!' : 'Copy link'"></button>
-      </div>
-    </div>
+    <button
+      class="control-btn"
+      id="share-btn"
+      type="button"
+      aria-label="Share"
+      x-show="canShare()"
+      x-cloak
+      @click="share()"
+    >
+      <i data-lucide="share-2"></i>
+    </button>
 
     <button
       class="control-btn"
