@@ -10,7 +10,7 @@ internal sealed class PlayerForm : Form
 {
     private static string AppVersionName => $"AndyTV {Application.ProductVersion}";
 
-    private readonly LibVLC _libVLC = new();
+    private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
     private readonly VideoView _videoView;
     private readonly ContextMenuStrip _menu = new();
@@ -19,11 +19,17 @@ internal sealed class PlayerForm : Form
     private readonly ToolStripSeparator _favoritesSeparator = new();
 
     private readonly IStorageProvider _storage = new LocalStorageProvider();
+    private readonly LocalConfigService _configService;
+    private readonly LocalConfig _config;
     private readonly PlaylistService _playlistService;
     private readonly RecentChannelService _recentService;
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
+    private readonly ToolStripMenuItem _hardwareAccelerationItem = new("Hardware Acceleration")
+    {
+        CheckOnClick = true,
+    };
     private readonly ToolStripMenuItem _recordItem = new("Start Recording");
     private string _recordingPath;
 
@@ -64,6 +70,8 @@ internal sealed class PlayerForm : Form
 
     public PlayerForm()
     {
+        _configService = new LocalConfigService(_storage);
+        _config = _configService.Load();
         _playlistService = new PlaylistService(_storage);
         _recentService = new RecentChannelService(_storage);
         _lastService = new LastChannelService(_storage);
@@ -72,6 +80,11 @@ internal sealed class PlayerForm : Form
         Text = AppVersionName;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
+
+        // Decode mode is fixed at LibVLC creation, so a toggle requires an app restart.
+        _libVLC = new LibVLC(
+            _config.DisableHardwareAcceleration ? "--avcodec-hw=none" : "--avcodec-hw=any"
+        );
 
         // Native VLC breadcrumbs (decoder/network errors) that often precede a hard crash.
         _libVLC.Log += OnLibVlcLog;
@@ -97,6 +110,13 @@ internal sealed class PlayerForm : Form
         {
             _mediaPlayer.Mute = !_mediaPlayer.Mute;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
+        };
+        _hardwareAccelerationItem.Checked = !_config.DisableHardwareAcceleration;
+        _hardwareAccelerationItem.CheckedChanged += (_, _) =>
+        {
+            _config.DisableHardwareAcceleration = !_hardwareAccelerationItem.Checked;
+            _configService.Save(_config);
+            Application.Restart();
         };
         _addFavoriteItem.Click += (_, _) => AddCurrentFavorite();
         _recordItem.Click += (_, _) => ToggleRecording();
@@ -371,6 +391,7 @@ internal sealed class PlayerForm : Form
             }
         );
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
+        manage.DropDownItems.Add(_hardwareAccelerationItem);
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(_recordItem);
         manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
