@@ -428,8 +428,6 @@ internal sealed class PlayerForm : Form
             };
             acceleration.DropDownItems.Add(item);
         }
-        acceleration.DropDownItems.Add(new ToolStripSeparator());
-        acceleration.DropDownItems.Add(new ToolStripMenuItem("Restarts AndyTV") { Enabled = false });
         advanced.DropDownItems.Add(acceleration);
 
         var buffer = new ToolStripMenuItem("Network Buffer");
