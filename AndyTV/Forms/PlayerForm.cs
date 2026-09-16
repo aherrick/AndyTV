@@ -26,7 +26,6 @@ internal sealed class PlayerForm : Form
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
-    private readonly ToolStripMenuItem _hardwareAccelerationItem = new("Hardware Acceleration");
     private readonly ToolStripMenuItem _recordItem = new("Start Recording");
     private string _recordingPath;
 
@@ -107,23 +106,6 @@ internal sealed class PlayerForm : Form
         {
             _mediaPlayer.Mute = !_mediaPlayer.Mute;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
-        };
-        _hardwareAccelerationItem.Checked = !_config.DisableHardwareAcceleration;
-        _hardwareAccelerationItem.Click += (_, _) =>
-        {
-            var result = MessageBox.Show(
-                "Are you sure? AndyTV will restart to apply.",
-                "AndyTV",
-                MessageBoxButtons.OKCancel,
-                MessageBoxIcon.Question
-            );
-            if (result != DialogResult.OK)
-            {
-                return;
-            }
-            _config.DisableHardwareAcceleration = !_config.DisableHardwareAcceleration;
-            _configService.Save(_config);
-            Application.Restart();
         };
         _addFavoriteItem.Click += (_, _) => AddCurrentFavorite();
         _recordItem.Click += (_, _) => ToggleRecording();
@@ -398,7 +380,7 @@ internal sealed class PlayerForm : Form
             }
         );
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
-        manage.DropDownItems.Add(_hardwareAccelerationItem);
+        manage.DropDownItems.Add(BuildAdvancedMenu());
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(_recordItem);
         manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
@@ -412,6 +394,74 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(_favoritesSeparator);
         _menu.Items.Add(_recentSeparator);
         RebuildFavorites();
+    }
+
+    private ToolStripMenuItem BuildAdvancedMenu()
+    {
+        var advanced = new ToolStripMenuItem("Advanced");
+        var acceleration = new ToolStripMenuItem("Hardware Acceleration");
+        foreach (var (label, disabled) in new[] { ("Auto", false), ("Disabled", true) })
+        {
+            var item = new ToolStripMenuItem(label)
+            {
+                Checked = _config.DisableHardwareAcceleration == disabled,
+            };
+            item.Click += (_, _) =>
+            {
+                if (_config.DisableHardwareAcceleration == disabled)
+                {
+                    return;
+                }
+                if (MessageBox.Show(
+                    this,
+                    "AndyTV will restart to apply hardware acceleration. Continue?",
+                    "Hardware Acceleration",
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Question
+                ) != DialogResult.OK)
+                {
+                    return;
+                }
+                _config.DisableHardwareAcceleration = disabled;
+                _configService.Save(_config);
+                Application.Restart();
+            };
+            acceleration.DropDownItems.Add(item);
+        }
+        acceleration.DropDownItems.Add(new ToolStripSeparator());
+        acceleration.DropDownItems.Add(new ToolStripMenuItem("Restarts AndyTV") { Enabled = false });
+        advanced.DropDownItems.Add(acceleration);
+
+        var buffer = new ToolStripMenuItem("Network Buffer");
+        (string Label, int? Milliseconds)[] presets =
+        [
+            ("Default (VLC)", null),
+            ("None (0 ms)", 0),
+            ("Low Latency (300 ms)", 300),
+            ("Extra Buffer (2000 ms)", 2000),
+            ("High Stability (5000 ms)", 5000),
+        ];
+        foreach (var (label, milliseconds) in presets)
+        {
+            var item = new ToolStripMenuItem(label)
+            {
+                Checked = _config.NetworkBufferMilliseconds == milliseconds,
+            };
+            item.Click += (_, _) =>
+            {
+                _config.NetworkBufferMilliseconds = milliseconds;
+                _configService.Save(_config);
+                foreach (var option in buffer.DropDownItems.OfType<ToolStripMenuItem>())
+                {
+                    option.Checked = option == item;
+                }
+            };
+            buffer.DropDownItems.Add(item);
+        }
+        buffer.DropDownItems.Add(new ToolStripSeparator());
+        buffer.DropDownItems.Add(new ToolStripMenuItem("Applies on next channel change") { Enabled = false });
+        advanced.DropDownItems.Add(buffer);
+        return advanced;
     }
 
     // Downloads/parses channels and builds the channel tree off the UI thread (only the
@@ -660,6 +710,10 @@ internal sealed class PlayerForm : Form
         _healthMonitor.MarkActivity();
         UpdateCursor();
         using var media = new Media(_libVLC, new Uri(channel.Url));
+        if (_config.NetworkBufferMilliseconds is >= 0 and <= 60000)
+        {
+            media.AddOption($":network-caching={_config.NetworkBufferMilliseconds.Value}");
+        }
         if (recordingPath is not null)
         {
             // Forward slashes avoid VLC treating Windows path separators as escapes.

@@ -6,4 +6,5 @@ public class LocalConfig
     public string Quality { get; set; }
     public bool Enabled { get; set; }
     public bool DisableHardwareAcceleration { get; set; }
+    public int? NetworkBufferMilliseconds { get; set; }
 }
