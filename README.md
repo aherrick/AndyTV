@@ -98,7 +98,7 @@ The daily thread includes:
 - ⏰ A chronological sports timeline
 - ⭐ Top picks and an AI watch plan
 
-Follow [@AndyTVWatchlist on X](https://x.com/AndyTVWatchlist) for the daily guide.
+Follow the daily guide at [andytv.today](https://andytv.today) or [@AndyTVWatchlist on X](https://x.com/AndyTVWatchlist).
 
 ## ▶️ AndyTV.VLC (Companion)
 `AndyTV.VLC` is a lightweight Blazor Server companion that lets you browse an IPTV playlist and launch any channel directly in VLC. Use it when you prefer VLC's player or want fast filtering/grouping.
