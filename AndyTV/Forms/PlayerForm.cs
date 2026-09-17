@@ -382,8 +382,10 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
         manage.DropDownItems.Add(BuildAdvancedMenu());
         manage.DropDownItems.Add(_muteItem);
+        manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add(_recordItem);
         manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
+        manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("New Window", null, (_, _) => NewWindow());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());

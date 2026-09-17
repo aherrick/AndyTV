@@ -28,7 +28,10 @@ static class KeyboardHelper
         {
             try
             {
-                p.Kill();
+                if (!p.CloseMainWindow())
+                {
+                    p.Kill();
+                }
                 Logger.Info("OSK closed");
             }
             catch (Exception ex)
