@@ -609,6 +609,133 @@ public partial class ChannelService
         };
     }
 
+    public static Dictionary<string, List<ChannelTop>> TopGlobal()
+    {
+        return new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Australia"] =
+            [
+                new ChannelTop { Name = "ABC TV", AltNames = ["ABC Australia"] },
+                new ChannelTop { Name = "SBS" },
+                new ChannelTop { Name = "SBS VICELAND", AltNames = ["SBS Viceland"] },
+                new ChannelTop { Name = "Seven", AltNames = ["Channel 7", "Seven Network"] },
+                new ChannelTop { Name = "7mate" },
+                new ChannelTop { Name = "7Bravo" },
+                new ChannelTop { Name = "7flix" },
+                new ChannelTop { Name = "Nine", AltNames = ["Channel 9", "Nine Network"] },
+                new ChannelTop { Name = "9Gem" },
+                new ChannelTop { Name = "9Go!" },
+                new ChannelTop { Name = "9Life" },
+                new ChannelTop { Name = "Network 10", AltNames = ["Channel 10"] },
+                new ChannelTop { Name = "10 Drama" },
+                new ChannelTop { Name = "10 Comedy" },
+                new ChannelTop
+                {
+                    Name = "Fox Sports News 500",
+                    AltNames = ["Fox Sports News", "FOX SPORTS News 500"],
+                },
+                new ChannelTop
+                {
+                    Name = "Fox Cricket 501",
+                    AltNames = ["Fox Cricket", "FOX CRICKET 501"],
+                },
+                new ChannelTop
+                {
+                    Name = "Fox League 502",
+                    AltNames = ["Fox League", "FOX LEAGUE 502"],
+                },
+                new ChannelTop { Name = "Fox Sports 503", AltNames = ["FOX SPORTS 503"] },
+                new ChannelTop
+                {
+                    Name = "Fox Footy 504",
+                    AltNames = ["Fox Footy", "FOX FOOTY 504"],
+                },
+                new ChannelTop { Name = "Fox Sports 505", AltNames = ["FOX SPORTS 505"] },
+                new ChannelTop { Name = "Fox Sports 506", AltNames = ["FOX SPORTS 506"] },
+                new ChannelTop { Name = "Fox Sports 507", AltNames = ["FOX SPORTS 507"] },
+            ],
+
+            ["Canada"] =
+            [
+                new ChannelTop { Name = "CBC", AltNames = ["CBC Television"] },
+                new ChannelTop { Name = "CTV" },
+                new ChannelTop { Name = "CTV2", AltNames = ["CTV 2"] },
+                new ChannelTop { Name = "Global", AltNames = ["Global TV"] },
+                new ChannelTop { Name = "Citytv", AltNames = ["City TV"] },
+                new ChannelTop { Name = "CBC News Network" },
+                new ChannelTop { Name = "CTV News Channel" },
+                new ChannelTop { Name = "CP24" },
+                new ChannelTop { Name = "TSN1", AltNames = ["TSN 1"] },
+                new ChannelTop { Name = "TSN2", AltNames = ["TSN 2"] },
+                new ChannelTop { Name = "TSN3", AltNames = ["TSN 3"] },
+                new ChannelTop { Name = "TSN4", AltNames = ["TSN 4"] },
+                new ChannelTop { Name = "TSN5", AltNames = ["TSN 5"] },
+                new ChannelTop { Name = "Sportsnet East" },
+                new ChannelTop { Name = "Sportsnet Ontario" },
+                new ChannelTop { Name = "Sportsnet West" },
+                new ChannelTop { Name = "Sportsnet Pacific" },
+                new ChannelTop { Name = "Sportsnet ONE", AltNames = ["Sportsnet One", "SN ONE"] },
+                new ChannelTop { Name = "Sportsnet 360", AltNames = ["SN 360"] },
+            ],
+
+            ["New Zealand"] =
+            [
+                new ChannelTop { Name = "TVNZ 1", AltNames = ["TVNZ1"] },
+                new ChannelTop { Name = "TVNZ 2", AltNames = ["TVNZ2"] },
+                new ChannelTop { Name = "TVNZ DUKE", AltNames = ["DUKE"] },
+                new ChannelTop { Name = "Three", AltNames = ["Three NZ"] },
+                new ChannelTop { Name = "Sky Open" },
+                new ChannelTop { Name = "Sky Sport Select" },
+                new ChannelTop { Name = "Sky Sport 1" },
+                new ChannelTop { Name = "Sky Sport 2" },
+                new ChannelTop { Name = "Sky Sport 3" },
+                new ChannelTop { Name = "Sky Sport 4" },
+                new ChannelTop { Name = "Sky Sport 5" },
+                new ChannelTop { Name = "Sky Sport 6" },
+                new ChannelTop { Name = "Sky Sport 7" },
+                new ChannelTop { Name = "Sky Sport Premier League" },
+                new ChannelTop { Name = "Sky Sport 9" },
+            ],
+
+            ["Ireland"] =
+            [
+                new ChannelTop { Name = "RTÉ One", AltNames = ["RTE One", "RTE 1"] },
+                new ChannelTop { Name = "RTÉ2", AltNames = ["RTE2", "RTE Two"] },
+                new ChannelTop { Name = "RTÉ News", AltNames = ["RTE News"] },
+                new ChannelTop { Name = "Virgin Media One", AltNames = ["Virgin Media 1"] },
+                new ChannelTop { Name = "Virgin Media Two", AltNames = ["Virgin Media 2"] },
+                new ChannelTop { Name = "Virgin Media Three", AltNames = ["Virgin Media 3"] },
+                new ChannelTop { Name = "Virgin Media Four", AltNames = ["Virgin Media 4"] },
+            ],
+
+            ["South Africa"] =
+            [
+                new ChannelTop { Name = "M-Net", AltNames = ["MNet"] },
+                new ChannelTop { Name = "e.tv", AltNames = ["eTV"] },
+                new ChannelTop { Name = "eNCA" },
+                new ChannelTop { Name = "SABC News" },
+                new ChannelTop { Name = "SABC 1", AltNames = ["SABC1"] },
+                new ChannelTop { Name = "SABC 2", AltNames = ["SABC2"] },
+                new ChannelTop { Name = "SABC 3", AltNames = ["SABC3"] },
+                new ChannelTop { Name = "SuperSport Blitz", AltNames = ["SS Blitz"] },
+                new ChannelTop { Name = "SuperSport Grandstand", AltNames = ["SS Grandstand"] },
+                new ChannelTop { Name = "SuperSport PSL", AltNames = ["SS PSL"] },
+                new ChannelTop { Name = "SuperSport Premier League", AltNames = ["SS Premier League"] },
+                new ChannelTop { Name = "SuperSport Football", AltNames = ["SS Football"] },
+                new ChannelTop { Name = "SuperSport Football Plus", AltNames = ["SS Football Plus"] },
+                new ChannelTop { Name = "SuperSport Action", AltNames = ["SS Action"] },
+                new ChannelTop { Name = "SuperSport Rugby", AltNames = ["SS Rugby"] },
+                new ChannelTop { Name = "SuperSport Cricket", AltNames = ["SS Cricket"] },
+                new ChannelTop { Name = "SuperSport Golf", AltNames = ["SS Golf"] },
+                new ChannelTop
+                {
+                    Name = "SuperSport Motorsport",
+                    AltNames = ["SS Motorsport", "SS MotorSport"],
+                },
+            ],
+        };
+    }
+
     // Pure/static version for tests
     public static List<MenuEntry> Get247Entries(IEnumerable<Channel> channels)
     {

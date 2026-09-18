@@ -526,6 +526,15 @@ internal sealed class PlayerForm : Form
         items.Add(
             Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels))
         );
+        items.Add(
+            Render(
+                ChannelMatcher.BuildTopRegion(
+                    "Global",
+                    ChannelService.TopGlobal(),
+                    _playlistService.Channels
+                )
+            )
+        );
         var menu247 = Render(ChannelMatcher.Build247(_playlistService.Channels));
         if (menu247.DropDownItems.Count > 0)
         {
