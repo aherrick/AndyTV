@@ -5,6 +5,13 @@
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 
+// The watchlist regenerates at 3:45 AM ET, so shift the clock back 3h45m before taking the ET
+// date: anything before 3:45 AM still counts as the prior day's watchlist.
+function watchlistDay() {
+  const shifted = new Date(Date.now() - (3 * 60 + 45) * 60_000);
+  return shifted.toLocaleDateString("en-US", { timeZone: "America/New_York" });
+}
+
 function andyTv() {
   return {
     model: {
@@ -16,6 +23,7 @@ function andyTv() {
     tabs: ["top", "timeline", "plan"],
     activeTab: "top",
     a2hs: null,
+    loadedDay: "",
 
     init() {
       // Static control/tab icons are present at parse time; sport icons in the data are emojis.
@@ -23,6 +31,7 @@ function andyTv() {
       this.initAddToHomeScreen();
       this.syncTabFromPath();
       window.addEventListener("popstate", () => this.syncTabFromPath());
+      this.initResumeRefresh();
       this.load();
     },
 
@@ -31,9 +40,22 @@ function andyTv() {
         const response = await fetch(DATA_URL, { cache: "no-store" });
         if (!response.ok) throw new Error(`Watchlist request failed: ${response.status}`);
         this.model = await response.json();
+        this.loadedDay = watchlistDay();
       } catch (err) {
         this.model.date = "Could not load the watchlist.";
       }
+    },
+
+    // Home-screen PWAs are suspended rather than reloaded, so a page opened yesterday would keep
+    // showing yesterday's watchlist. The data only changes daily, so only refetch across the 3:45 AM ET cutover.
+    initResumeRefresh() {
+      const refreshIfNewDay = () => {
+        if (document.visibilityState === "visible" && this.loadedDay && this.loadedDay !== watchlistDay()) {
+          this.load();
+        }
+      };
+      document.addEventListener("visibilitychange", refreshIfNewDay);
+      window.addEventListener("pageshow", refreshIfNewDay);
     },
 
     // ---- clean-path tab routing (no '#') ----

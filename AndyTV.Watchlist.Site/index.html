@@ -58,6 +58,16 @@
     <button
       class="control-btn"
       type="button"
+      aria-label="Refresh"
+      title="Refresh"
+      @click="load()"
+    >
+      <i data-lucide="refresh-cw"></i>
+    </button>
+
+    <button
+      class="control-btn"
+      type="button"
       aria-label="Add to Home Screen"
       title="Add to Home Screen"
       x-show="canInstall()"
