@@ -64,6 +64,10 @@ internal sealed class PlayerForm : Form
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
     private int _lastDisplayedPictures;
 
+    // LibVLC play/stop block for seconds (vout teardown, network probing), which deadlocks the
+    // WinForms message loop. All callers are on the UI thread, so chaining keeps them in order.
+    private Task _playback = Task.CompletedTask;
+
     public PlayerForm()
     {
         _configService = new LocalConfigService(_storage);
@@ -705,6 +709,24 @@ internal sealed class PlayerForm : Form
         _healthMonitor.Tick();
     }
 
+    private void RunPlayback(Action action)
+    {
+        _playback = _playback.ContinueWith(
+            _ =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Playback failed");
+                }
+            },
+            TaskScheduler.Default
+        );
+    }
+
     private void Play(Channel channel)
     {
         StopRecording();
@@ -718,21 +740,26 @@ internal sealed class PlayerForm : Form
         _lastDisplayedPictures = 0;
         _healthMonitor.MarkActivity();
         UpdateCursor();
-        using var media = new Media(_libVLC, new Uri(channel.Url));
-        if (_config.NetworkBufferMilliseconds is >= 0 and <= 60000)
+        var bufferMilliseconds = _config.NetworkBufferMilliseconds;
+        RunPlayback(() =>
         {
-            media.AddOption($":network-caching={_config.NetworkBufferMilliseconds.Value}");
-        }
-        if (recordingPath is not null)
-        {
-            // Forward slashes avoid VLC treating Windows path separators as escapes.
-            var destination = recordingPath.Replace('\\', '/').Replace("'", "\\'");
-            media.AddOption(
-                $":sout=#duplicate{{dst=display,dst=std{{access=file,mux=ts,dst='{destination}'}}}}"
-            );
-            media.AddOption(":no-sout-keep");
-        }
-        _mediaPlayer.Play(media);
+            _mediaPlayer.Stop(); // Also flushes and closes any recording file.
+            using var media = new Media(_libVLC, new Uri(channel.Url));
+            if (bufferMilliseconds is >= 0 and <= 60000)
+            {
+                media.AddOption($":network-caching={bufferMilliseconds.Value}");
+            }
+            if (recordingPath is not null)
+            {
+                // Forward slashes avoid VLC treating Windows path separators as escapes.
+                var destination = recordingPath.Replace('\\', '/').Replace("'", "\\'");
+                media.AddOption(
+                    $":sout=#duplicate{{dst=display,dst=std{{access=file,mux=ts,dst='{destination}'}}}}"
+                );
+                media.AddOption(":no-sout-keep");
+            }
+            _mediaPlayer.Play(media);
+        });
     }
 
     private void UpdateRecordingMenu()
@@ -761,18 +788,17 @@ internal sealed class PlayerForm : Form
             RecordingsFolder,
             $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{name}.ts"
         );
-        _mediaPlayer.Stop();
         StartPlayback(_current, _recordingPath);
         UpdateRecordingMenu();
     }
 
+    // State only; the file is flushed by the Stop() in the queued playback call.
     private void StopRecording()
     {
         if (_recordingPath is not { } path)
         {
             return;
         }
-        _mediaPlayer.Stop(); // Flush and close the file before switching media or exiting.
         _recordingPath = null;
         UpdateRecordingMenu();
         Logger.Info($"[RECORDING] Closed {path}");
@@ -864,9 +890,17 @@ internal sealed class PlayerForm : Form
             _healthTimer.Dispose();
             StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
-            _mediaPlayer.Dispose();
             _libVLC.Log -= OnLibVlcLog;
-            _libVLC.Dispose();
+
+            // Detach the video output first: tearing VLC down while it still owns the VideoView
+            // window makes it wait on the UI thread, which is the thread doing the teardown.
+            _videoView.MediaPlayer = null;
+            RunPlayback(() =>
+            {
+                _mediaPlayer.Stop();
+                _mediaPlayer.Dispose();
+                _libVLC.Dispose();
+            });
         }
         base.Dispose(disposing);
     }
