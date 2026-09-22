@@ -74,7 +74,8 @@ public static class SportsGuideFormatter
         foreach (var step in steps)
         {
             var matchup = step.Matchup.Length == 0 ? "" : $"{step.Matchup} - ";
-            lines.AppendLine($"{step.Icon} {SportsFormat.Time(step.Time)} {matchup}{step.Instruction}");
+            lines.AppendLine($"{step.Icon} {SportsFormat.Time(step.Time)} {matchup}{step.Instruction}")
+                .AppendLine();
         }
 
         return lines.ToString().TrimEnd();
