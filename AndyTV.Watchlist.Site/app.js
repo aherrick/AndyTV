@@ -4,12 +4,28 @@
 
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
+const WEEKEND_DATA_URL = DATA_URL.replace("latest.json", "latest_weekend.json");
+const TIME_ZONE = "America/New_York";
 
-// The watchlist regenerates at 3:45 AM ET, so shift the clock back 3h45m before taking the ET
-// date: anything before 3:45 AM still counts as the prior day's watchlist.
-function watchlistDay() {
-  const shifted = new Date(Date.now() - (3 * 60 + 45) * 60_000);
-  return shifted.toLocaleDateString("en-US", { timeZone: "America/New_York" });
+// Friday at 4 AM through Sunday before 4 AM, in Eastern time.
+function isWeekendWindow(now = new Date()) {
+  const { weekday, hour } = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: TIME_ZONE, weekday: "short", hour: "numeric", hourCycle: "h23",
+    }).formatToParts(now).map(({ type, value }) => [type, value])
+  );
+  return (weekday === "Fri" && hour >= 4) || weekday === "Sat" || (weekday === "Sun" && hour < 4);
+}
+
+// The daily watchlist rolls over at 3:30 AM ET, including on daylight-saving days.
+function watchlistDay(now = new Date()) {
+  const { year, month, day, hour, minute } = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(now).map(({ type, value }) => [type, Number(value)])
+  );
+  return new Date(Date.UTC(year, month - 1, day, hour, minute - (3 * 60 + 30))).toISOString().slice(0, 10);
 }
 
 function andyTv() {
@@ -20,7 +36,13 @@ function andyTv() {
       top: { picks: [], games: [] },
       plan: { summary: "", steps: [] },
     },
-    tabs: ["top", "timeline", "plan"],
+    weekendModel: null,
+    get tabs() {
+      return ["top", "timeline", "plan", ...(this.weekendModel ? ["weekend"] : [])];
+    },
+    get displayedModel() {
+      return this.activeTab === "weekend" && this.weekendModel ? this.weekendModel : this.model;
+    },
     activeTab: "top",
     a2hs: null,
     loadedDay: "",
@@ -30,32 +52,46 @@ function andyTv() {
       lucide.createIcons();
       this.initAddToHomeScreen();
       this.syncTabFromPath();
-      window.addEventListener("popstate", () => this.syncTabFromPath());
-      this.initResumeRefresh();
       this.load();
+      this.loadWeekend();
     },
 
     async load() {
+      const day = watchlistDay();
       try {
         const response = await fetch(DATA_URL, { cache: "no-store" });
         if (!response.ok) throw new Error(`Watchlist request failed: ${response.status}`);
         this.model = await response.json();
-        this.loadedDay = watchlistDay();
-      } catch (err) {
+        this.loadedDay = day;
+      } catch {
         this.model.date = "Could not load the watchlist.";
       }
     },
 
-    // Home-screen PWAs are suspended rather than reloaded, so a page opened yesterday would keep
-    // showing yesterday's watchlist. The data only changes daily, so only refetch across the 3:45 AM ET cutover.
-    initResumeRefresh() {
-      const refreshIfNewDay = () => {
-        if (document.visibilityState === "visible" && this.loadedDay && this.loadedDay !== watchlistDay()) {
-          this.load();
-        }
-      };
-      document.addEventListener("visibilitychange", refreshIfNewDay);
-      window.addEventListener("pageshow", refreshIfNewDay);
+    // Called only on page load. Outside the window, never request the weekend file.
+    async loadWeekend() {
+      if (!isWeekendWindow()) return;
+      try {
+        const response = await fetch(WEEKEND_DATA_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Weekend request failed: ${response.status}`);
+        this.weekendModel = await response.json();
+        this.syncTabFromPath();
+      } catch {
+        // The weekend file is optional; leave its tab hidden if unavailable.
+      }
+    },
+
+    // Resume refresh is only for the existing daily watchlist.
+    refreshIfNewDay() {
+      if (document.visibilityState === "visible" && this.loadedDay && this.loadedDay !== watchlistDay()) this.load();
+    },
+
+    eventTime(event) {
+      if (this.activeTab !== "weekend") return event.time;
+      const day = new Date(event.timeIso).toLocaleDateString("en-US", {
+        timeZone: TIME_ZONE, weekday: "long",
+      });
+      return `${day} · ${event.time}`;
     },
 
     // ---- clean-path tab routing (no '#') ----
@@ -67,11 +103,7 @@ function andyTv() {
 
     go(tab) {
       this.activeTab = tab;
-      history.pushState({ tab }, "", this.tabPath);
-    },
-
-    get tabPath() {
-      return this.activeTab === "top" ? "/" : "/" + this.activeTab;
+      history.pushState({ tab }, "", tab === "top" ? "/" : "/" + tab);
     },
 
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
@@ -82,16 +114,12 @@ function andyTv() {
     // ---- watch-plan alternates: up to two options plus a "+N more" overflow ----
 
     altText(alternates) {
-      const max = 2;
-      let chips = alternates
-        .slice(0, max)
+      const chips = alternates
+        .slice(0, 2)
         .map((a) => `${a.icon} ${a.matchup}`)
         .join(" · ");
-      const extra = alternates.length - max;
-      if (extra > 0) {
-        chips += ` · +${extra} more`;
-      }
-      return chips;
+      const extra = alternates.length - 2;
+      return chips + (extra > 0 ? ` · +${extra} more` : "");
     },
 
     // ---- theme ----

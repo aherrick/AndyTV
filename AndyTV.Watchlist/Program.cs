@@ -25,6 +25,7 @@ builder.Services.AddSingleton<GmailWatchlistService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();
 builder.Services.AddSingleton<InstagramPublishService>();
+builder.Services.AddSingleton<WatchlistPublishingService>();
 builder.Services.AddWatchlistScores();
 
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))

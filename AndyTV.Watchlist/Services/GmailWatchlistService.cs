@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Reads the newest "AndyTV Daily Watchlist JSON" email over Gmail IMAP and parses its JSON body.
+// Reads the newest Daily or Weekend Watchlist email over Gmail IMAP and parses its JSON body.
 // Requires the JSON's date to equal the target date so a stale watchlist is never used.
 public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWatchlistService> logger)
 {
@@ -21,6 +21,7 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
 
     public async Task<DailyWatchlist?> GetLatest(
         DateOnly targetDate,
+        WatchlistKind kind,
         CancellationToken cancellationToken = default
     )
     {
@@ -40,12 +41,16 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
         var inbox = client.Inbox;
         await inbox.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
+        // Subjects contain either "Daily Watchlist" or "Weekend Watchlist".
+        // Keep the searches independent even when both emails arrive on Friday.
+        var subject = kind.EmailSubject();
         var query = SearchQuery
             .FromContains(settings.GmailSender)
-            .And(SearchQuery.SubjectContains(settings.GmailSubject))
-            .And(SearchQuery.DeliveredAfter(DateTime.Today.AddDays(-1)));
+            .And(SearchQuery.SubjectContains(subject))
+            .And(SearchQuery.DeliveredAfter(targetDate.ToDateTime(TimeOnly.MinValue).AddDays(-1)));
 
         var uids = await inbox.SearchAsync(query, cancellationToken);
+        var expectedDate = targetDate.ToString("yyyy-MM-dd");
 
         try
         {
@@ -70,24 +75,17 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
                     continue;
                 }
 
-                if (watchlist is not null && watchlist.Date == targetDate.ToString("yyyy-MM-dd"))
+                if (watchlist is not null && watchlist.Date == expectedDate)
                 {
-                    if (logger.IsEnabled(LogLevel.Information))
-                    {
-                        logger.LogInformation(
-                            "Loaded emailed watchlist for {date} with {count} games.",
-                            watchlist.Date,
-                            watchlist.BestWatches.Count
-                        );
-                    }
+                    logger.LogInformation(
+                        "Loaded emailed {kind} watchlist for {date} with {count} games.",
+                        kind,
+                        watchlist.Date,
+                        watchlist.BestWatches.Count
+                    );
 
                     return watchlist;
                 }
-            }
-
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("No matching watchlist email found for {date}.", targetDate);
             }
 
             return null;

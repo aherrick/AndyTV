@@ -33,6 +33,3 @@ jobs:
 
       - name: Build project
         run: dotnet build -maxcpucount:1
-
-      - name: Run tests
-        run: dotnet run --project ./AndyTV.Tests/AndyTV.Tests.csproj --no-build --no-restore

@@ -1,6 +1,7 @@
 namespace AndyTV.Watchlist.Models;
 
-// Shape of the daily JSON emailed by the OpenAI scheduled task (subject "AndyTV Daily Watchlist JSON").
+// Shared JSON shape for the Daily and Weekend Watchlist emails. The date is the
+// publication date (Friday for weekend); game start times can span multiple days.
 public sealed class DailyWatchlist
 {
     public string? Date { get; init; }

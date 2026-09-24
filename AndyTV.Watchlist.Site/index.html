@@ -51,7 +51,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.css" />
 </head>
 
-<body x-data="andyTv()">
+<body
+  x-data="andyTv()"
+  @popstate.window="syncTabFromPath()"
+  @pageshow.window="refreshIfNewDay()"
+  @visibilitychange.document="refreshIfNewDay()"
+>
 
   <div class="top-controls">
 
@@ -114,7 +119,7 @@
       BEST SPORTS TODAY
     </p>
 
-    <h1 x-text="model.date"></h1>
+    <h1 x-text="displayedModel.date"></h1>
 
     <p class="times-note">
       All times ET
@@ -143,6 +148,11 @@
       Plan
     </button>
 
+    <button type="button" x-show="weekendModel" x-cloak :class="{ active: activeTab === 'weekend' }" :aria-selected="activeTab === 'weekend'" @click="go('weekend')">
+      <i data-lucide="calendar-days"></i>
+      Weekend
+    </button>
+
   </nav>
 
   <!-- ======================================================
@@ -151,19 +161,19 @@
 
   <main class="wrap">
 
-    <!-- TOP -->
-    <section class="panel" :class="{ active: activeTab === 'top' }" data-panel="top">
+    <!-- TOP / WEEKEND: same ranked-list layout, separate data -->
+    <section class="panel" :class="{ active: activeTab === 'top' || activeTab === 'weekend' }" :data-panel="activeTab === 'weekend' ? 'weekend' : 'top'">
 
-      <template x-if="model.top.picks.length">
+      <template x-if="displayedModel.top.picks.length">
         <div class="top-picks">
           <h3 class="summary-title top-picks-title">⭐ Top Picks</h3>
           <ul class="summary">
-            <template x-for="pick in model.top.picks" :key="pick.label">
+            <template x-for="pick in displayedModel.top.picks" :key="pick.label">
               <li>
                 <span x-text="pick.icon"></span>
                 <strong x-text="pick.label + ':'"></strong>
                 <span x-text="pick.matchup"></span> ·
-                <time :datetime="pick.timeIso" x-text="pick.time"></time>
+                <time :datetime="pick.timeIso" x-text="eventTime(pick)"></time>
               </li>
             </template>
           </ul>
@@ -171,7 +181,7 @@
       </template>
 
       <ol class="games">
-        <template x-for="game in model.top.games" :key="game.rank">
+        <template x-for="game in displayedModel.top.games" :key="game.rank">
           <li class="game">
             <div class="rank" x-text="game.rank"></div>
             <div class="body">
@@ -180,12 +190,12 @@
                 <span x-text="game.matchup"></span>
               </div>
               <div class="meta">
-                <time :datetime="game.timeIso" x-text="game.time"></time>
+                <time :datetime="game.timeIso" x-text="eventTime(game)"></time>
                 <template x-if="game.network"><span> · <span class="net" x-text="game.network"></span></span></template>
                 <span x-text="' · ' + game.league"></span>
               </div>
               <div class="desc" x-text="game.reason"></div>
-              <template x-if="game.sources && game.sources.length">
+              <template x-if="game.sources?.length">
                 <div class="sources">
                   <template x-for="source in game.sources" :key="source.url">
                     <a :href="source.url" target="_blank" rel="noopener" x-text="source.title"></a>
@@ -274,7 +284,7 @@
 
     </p>
 
-    <p class="updated" x-text="model.updated"></p>
+    <p class="updated" x-text="displayedModel.updated"></p>
 
   </footer>
 
