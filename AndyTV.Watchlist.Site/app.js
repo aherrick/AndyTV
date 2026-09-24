@@ -28,6 +28,14 @@ function watchlistDay(now = new Date()) {
   return new Date(Date.UTC(year, month - 1, day, hour, minute - (3 * 60 + 30))).toISOString().slice(0, 10);
 }
 
+async function fetchJson(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  return response.json();
+}
+
+const byTime = (games) => [...games].sort((a, b) => new Date(a.timeIso) - new Date(b.timeIso));
+
 function andyTv() {
   return {
     model: {
@@ -41,9 +49,15 @@ function andyTv() {
       return ["top", "timeline", "plan", ...(this.weekendModel ? ["weekend"] : [])];
     },
     get displayedModel() {
-      return this.activeTab === "weekend" && this.weekendModel ? this.weekendModel : this.model;
+      return this.activeTab === "weekend" ? this.weekendModel : this.model;
+    },
+    // The feed arrives in rank order; Weekend can flip it to start-time order and back.
+    get rankedGames() {
+      const games = this.displayedModel.top.games;
+      return this.activeTab === "weekend" && this.weekendView === "timeline" ? byTime(games) : games;
     },
     activeTab: "top",
+    weekendView: "top",
     a2hs: null,
     loadedDay: "",
 
@@ -59,9 +73,7 @@ function andyTv() {
     async load() {
       const day = watchlistDay();
       try {
-        const response = await fetch(DATA_URL, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Watchlist request failed: ${response.status}`);
-        this.model = await response.json();
+        this.model = await fetchJson(DATA_URL);
         this.loadedDay = day;
       } catch {
         this.model.date = "Could not load the watchlist.";
@@ -72,9 +84,7 @@ function andyTv() {
     async loadWeekend() {
       if (!isWeekendWindow()) return;
       try {
-        const response = await fetch(WEEKEND_DATA_URL, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Weekend request failed: ${response.status}`);
-        this.weekendModel = await response.json();
+        this.weekendModel = await fetchJson(WEEKEND_DATA_URL);
         this.syncTabFromPath();
       } catch {
         // The weekend file is optional; leave its tab hidden if unavailable.
@@ -108,7 +118,7 @@ function andyTv() {
 
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
     timeline() {
-      return [...this.model.top.games].sort((a, b) => new Date(a.timeIso) - new Date(b.timeIso));
+      return byTime(this.model.top.games);
     },
 
     // ---- watch-plan alternates: up to two options plus a "+N more" overflow ----

@@ -162,7 +162,12 @@
   <main class="wrap">
 
     <!-- TOP / WEEKEND: same ranked-list layout, separate data -->
-    <section class="panel" :class="{ active: activeTab === 'top' || activeTab === 'weekend' }" :data-panel="activeTab === 'weekend' ? 'weekend' : 'top'">
+    <section class="panel" :class="{ active: activeTab === 'top' || activeTab === 'weekend' }">
+
+      <div class="subtabs" x-show="activeTab === 'weekend'" x-cloak>
+        <button type="button" :class="{ active: weekendView === 'top' }" @click="weekendView = 'top'">Top</button>
+        <button type="button" :class="{ active: weekendView === 'timeline' }" @click="weekendView = 'timeline'">Timeline</button>
+      </div>
 
       <template x-if="displayedModel.top.picks.length">
         <div class="top-picks">
@@ -181,7 +186,7 @@
       </template>
 
       <ol class="games">
-        <template x-for="game in displayedModel.top.games" :key="game.rank">
+        <template x-for="game in rankedGames" :key="game.rank">
           <li class="game">
             <div class="rank" x-text="game.rank"></div>
             <div class="body">
@@ -210,7 +215,7 @@
     </section>
 
     <!-- TIMELINE -->
-    <section class="panel" :class="{ active: activeTab === 'timeline' }" data-panel="timeline">
+    <section class="panel" :class="{ active: activeTab === 'timeline' }">
       <ul class="rows">
         <template x-for="row in timeline()" :key="row.rank">
           <li>
@@ -233,7 +238,7 @@
     </section>
 
     <!-- PLAN -->
-    <section class="panel" :class="{ active: activeTab === 'plan' }" data-panel="plan">
+    <section class="panel" :class="{ active: activeTab === 'plan' }">
 
       <template x-if="model.plan.summary">
         <div class="plan-summary">

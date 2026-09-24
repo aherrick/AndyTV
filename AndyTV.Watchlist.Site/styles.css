@@ -228,6 +228,38 @@ body {
   display: block;
 }
 
+/* Weekend Top / Timeline switch */
+.subtabs {
+  display: flex;
+  width: fit-content;
+  margin: 0 auto 16px;
+  padding: 3px;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.subtabs button {
+  padding: 6px 16px;
+
+  cursor: pointer;
+
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.subtabs button.active {
+  color: #0b0e13;
+  background: var(--accent);
+}
+
 /* ========================================================
    TOP PICKS / RANKED GAMES
    ======================================================== */
