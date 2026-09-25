@@ -21,8 +21,6 @@ public sealed class WatchlistPublishingService(
     ILogger<WatchlistPublishingService> logger
 )
 {
-    private const string PreviewDirectory = "publish";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -42,10 +40,10 @@ public sealed class WatchlistPublishingService(
         }
 
         // A missing or empty email leaves the existing feed alone.
-        var watchlist = await gmailService.GetLatest(targetDate, kind, cancellationToken);
+        var watchlist = await gmailService.GetLatest(kind, cancellationToken);
         if (watchlist is null || watchlist.BestWatches.Count == 0)
         {
-            logger.LogInformation("No emailed {kind} watchlist with games found for {targetDate}.", kind, targetDate);
+            logger.LogInformation("No emailed {kind} watchlist with games found.", kind);
             return;
         }
 
@@ -70,18 +68,7 @@ public sealed class WatchlistPublishingService(
     private async Task DeleteWeekendFeedAsync(CancellationToken cancellationToken)
     {
         // Deletion is idempotent: an absent file is already the desired state.
-        // Local preview runs must only remove their local copy, never the live blob.
-        if (settings.PublishLocal)
-        {
-            var path = Path.Combine(PreviewDirectory, WatchlistKind.Weekend.FeedFileName());
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-
-            logger.LogInformation("Cleared local weekend feed.");
-        }
-        else if (settings.CanPublishSite)
+        if (settings.CanPublishSite)
         {
             await blobStore.DeleteWeekendData(cancellationToken);
             logger.LogInformation("Cleared published weekend feed.");
@@ -94,16 +81,8 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken
     )
     {
-        // Write the same JSON to either disk or the site's public blob. Save it
-        // before social publishing so it is available even if a later step fails.
-        if (settings.PublishLocal)
-        {
-            Directory.CreateDirectory(PreviewDirectory);
-            var path = Path.GetFullPath(Path.Combine(PreviewDirectory, kind.FeedFileName()));
-            await File.WriteAllTextAsync(path, json, cancellationToken);
-            logger.LogInformation("Saved {kind} feed preview to {path}.", kind, path);
-        }
-        else if (settings.CanPublishSite)
+        // Save before social publishing so the feed is live even if a later step fails.
+        if (settings.CanPublishSite)
         {
             var url = await blobStore.PublishData(json, kind, cancellationToken);
             logger.LogInformation("Published {kind} feed to {url}.", kind, url);
@@ -116,41 +95,20 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken
     )
     {
-        // Both local previews and Instagram use the same rendered cards and
-        // Cloudflare capture call. Only the PNG destination changes in local mode.
         if (!settings.CanScreenshot)
         {
             return;
-        }
-
-        var instaDir = Path.GetFullPath(Path.Combine(PreviewDirectory, "insta"));
-        if (settings.PublishLocal)
-        {
-            Directory.CreateDirectory(instaDir);
         }
 
         var imageUrls = new List<Uri>();
         foreach (var card in InstaCardRenderer.Render(watchlist, targetDate))
         {
             var png = await screenshotService.Capture(card.Html, cancellationToken);
-            var fileName = Path.ChangeExtension(card.Name, ".png");
-            if (settings.PublishLocal)
-            {
-                await File.WriteAllBytesAsync(Path.Combine(instaDir, fileName), png, cancellationToken);
-            }
-            else
-            {
-                var blobName = $"{targetDate:yyyyMMdd}/{fileName}";
-                imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
-            }
+            var blobName = $"{targetDate:yyyyMMdd}/{Path.ChangeExtension(card.Name, ".png")}";
+            imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
         }
 
-        // Instagram requires public URLs; local files are only previews.
-        if (settings.PublishLocal)
-        {
-            logger.LogInformation("Saved daily Instagram previews to {instaDir}.", instaDir);
-        }
-        else if (settings.CanPublishInstagram)
+        if (settings.CanPublishInstagram)
         {
             var caption = $"AndyTV Watchlist — Best Sports Today\n{targetDate:dddd, MMMM d}";
             await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
@@ -164,7 +122,7 @@ public sealed class WatchlistPublishingService(
     )
     {
         // Always log the three formatted posts for inspection. Actual posting is
-        // enabled only when all four X credentials are present, including in local mode.
+        // enabled only when all four X credentials are present.
         var posts = SportsGuideFormatter.CreatePosts(watchlist, targetDate);
         logger.LogInformation("{post1}\n\n{post2}\n\n{post3}", posts.Post1, posts.Post2, posts.Post3);
         if (!settings.CanPostToX)

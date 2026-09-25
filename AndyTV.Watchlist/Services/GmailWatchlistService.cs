@@ -20,7 +20,6 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
     };
 
     public async Task<DailyWatchlist?> GetLatest(
-        DateOnly targetDate,
         WatchlistKind kind,
         CancellationToken cancellationToken = default
     )
@@ -46,15 +45,13 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
         var subject = kind.EmailSubject();
         var query = SearchQuery
             .FromContains(settings.GmailSender)
-            .And(SearchQuery.SubjectContains(subject))
-            .And(SearchQuery.DeliveredAfter(targetDate.ToDateTime(TimeOnly.MinValue).AddDays(-1)));
+            .And(SearchQuery.SubjectContains(subject));
 
         var uids = await inbox.SearchAsync(query, cancellationToken);
-        var expectedDate = targetDate.ToString("yyyy-MM-dd");
 
         try
         {
-            // Highest UID is the most recently delivered message; take the newest match for the date.
+            // Highest UID is the most recently delivered message; take the newest valid one.
             foreach (var uid in uids.Reverse())
             {
                 var message = await inbox.GetMessageAsync(uid, cancellationToken);
@@ -75,7 +72,7 @@ public sealed class GmailWatchlistService(AppSettings settings, ILogger<GmailWat
                     continue;
                 }
 
-                if (watchlist is not null && watchlist.Date == expectedDate)
+                if (watchlist is not null)
                 {
                     logger.LogInformation(
                         "Loaded emailed {kind} watchlist for {date} with {count} games.",

@@ -161,6 +161,17 @@
 
   <main class="wrap">
 
+    <div class="sport-filter" x-show="activeTab !== 'plan' && sports.length > 1" x-cloak>
+      <button type="button" :class="{ active: !sport }" @click="sport = ''">
+        All <span class="count" x-text="displayedModel.top.games.length"></span>
+      </button>
+      <template x-for="s in sports" :key="s.name">
+        <button type="button" :class="{ active: sport === s.name }" @click="sport = s.name">
+          <span x-text="s.icon + ' ' + s.name"></span> <span class="count" x-text="s.count"></span>
+        </button>
+      </template>
+    </div>
+
     <!-- TOP / WEEKEND: same ranked-list layout, separate data -->
     <section class="panel" :class="{ active: activeTab === 'top' || activeTab === 'weekend' }">
 

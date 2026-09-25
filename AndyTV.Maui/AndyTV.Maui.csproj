@@ -75,7 +75,7 @@
 		
 		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.1" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="34.2.8" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="34.2.9" />
 	</ItemGroup>
 
 
@@ -90,7 +90,7 @@
 		<MtouchInterpreter>LibVLCSharp.MAUI.dll</MtouchInterpreter>
 	</PropertyGroup>
 	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
 	</ItemGroup>
 
 	<ItemGroup>

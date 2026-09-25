@@ -16,8 +16,5 @@ jobs:
       - name: Check for outdated NuGet packages
         uses: aherrick/nuget-outdated@main
         with:
-          # Velopack: pinned intentionally
-          # VideoLAN.LibVLC.Windows: 3.0.23 causes freezing issues, staying on 3.0.21
-          ignore: 'AndyTV=Velopack&AndyTV=VideoLAN.LibVLC.Windows'
           includeprelease: 'true'
           currentmajorprereleaseonly: 'true'

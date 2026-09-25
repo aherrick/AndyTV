@@ -260,6 +260,53 @@ body {
   background: var(--accent);
 }
 
+/* Sport filter chips; scroll sideways on narrow screens */
+.sport-filter {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sport-filter::-webkit-scrollbar {
+  display: none;
+}
+
+.sport-filter button {
+  flex: none;
+  padding: 6px 12px;
+
+  cursor: pointer;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sport-filter .count {
+  margin-left: 2px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.sport-filter button.active {
+  border-color: var(--accent);
+  color: #0b0e13;
+  background: var(--accent);
+}
+
+.sport-filter button.active .count {
+  color: inherit;
+  opacity: 0.7;
+}
+
 /* ========================================================
    TOP PICKS / RANKED GAMES
    ======================================================== */

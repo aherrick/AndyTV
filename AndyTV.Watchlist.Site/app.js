@@ -53,9 +53,20 @@ function andyTv() {
     },
     // The feed arrives in rank order; Weekend can flip it to start-time order and back.
     get rankedGames() {
-      const games = this.displayedModel.top.games;
+      const games = this.bySport(this.displayedModel.top.games);
       return this.activeTab === "weekend" && this.weekendView === "timeline" ? byTime(games) : games;
     },
+    // Sports in the current list, most games first, for the filter chips.
+    get sports() {
+      const counts = new Map();
+      for (const game of this.displayedModel.top.games) {
+        const entry = counts.get(game.sport) ?? { name: game.sport, icon: game.icon, count: 0 };
+        entry.count++;
+        counts.set(game.sport, entry);
+      }
+      return [...counts.values()].sort((a, b) => b.count - a.count);
+    },
+    sport: "",
     activeTab: "top",
     weekendView: "top",
     a2hs: null,
@@ -109,16 +120,22 @@ function andyTv() {
     syncTabFromPath() {
       const segment = location.pathname.replace(/^\/+|\/+$/g, "");
       this.activeTab = this.tabs.includes(segment) ? segment : "top";
+      this.sport = "";
     },
 
     go(tab) {
       this.activeTab = tab;
+      this.sport = "";
       history.pushState({ tab }, "", tab === "top" ? "/" : "/" + tab);
+    },
+
+    bySport(games) {
+      return this.sport ? games.filter((game) => game.sport === this.sport) : games;
     },
 
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
     timeline() {
-      return byTime(this.model.top.games);
+      return byTime(this.bySport(this.model.top.games));
     },
 
     // ---- watch-plan alternates: up to two options plus a "+N more" overflow ----
