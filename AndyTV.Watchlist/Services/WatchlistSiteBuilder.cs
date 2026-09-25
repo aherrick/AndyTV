@@ -36,12 +36,9 @@ public static class WatchlistSiteBuilder
             game.Matchup,
             SportsFormat.TimeNoZone(game.StartTimeIso),
             Iso(game.StartTimeIso),
-            Net(game),
+            game.Network?.Trim() ?? "",
             game.League,
             game.Reason.Trim(),
-            game.AwayTeam,
-            game.HomeTeam,
-            game.Score,
             game.Sport,
             game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList()
         );
@@ -63,6 +60,4 @@ public static class WatchlistSiteBuilder
     // Machine-readable ISO timestamp for the client's <time datetime="...">.
     private static string Iso(DateTimeOffset value) =>
         value.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
-
-    private static string Net(WatchlistGame game) => game.Network?.Trim() ?? "";
 }

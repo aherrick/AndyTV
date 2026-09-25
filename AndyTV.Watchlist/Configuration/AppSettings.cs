@@ -14,9 +14,7 @@ public sealed record AppSettings(
     string? XConsumerKey,
     string? XConsumerSecret,
     string? XAccessToken,
-    string? XAccessTokenSecret,
-    string? ApiSportsKey1,
-    string? ApiSportsKey2
+    string? XAccessTokenSecret
 )
 {
     public bool CanPostToX =>
@@ -54,9 +52,7 @@ public sealed record AppSettings(
             config["X_CONSUMER_KEY"],
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
-            config["X_ACCESS_TOKEN_SECRET"],
-            config["ApiSportsKey1"] ?? config["API_SPORTS_KEY1"],
-            config["ApiSportsKey2"] ?? config["API_SPORTS_KEY2"]
+            config["X_ACCESS_TOKEN_SECRET"]
         );
     }
 

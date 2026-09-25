@@ -1,5 +1,3 @@
-using AndyTV.Watchlist.Models;
-
 namespace AndyTV.Watchlist.Services;
 
 // Render-ready shape serialized to latest.json and consumed by the static site's app.js.
@@ -23,11 +21,8 @@ public sealed record Game(
     string Network,
     string League,
     string Reason,
-    string? AwayTeam = null,
-    string? HomeTeam = null,
-    GameScore? Score = null,
-    string Sport = "",
-    List<SourceLink>? Sources = null
+    string Sport,
+    List<SourceLink>? Sources
 );
 
 public sealed record SourceLink(string Title, string Url);

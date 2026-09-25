@@ -16,8 +16,9 @@ public static class InstaCardRenderer
         Path.Combine(AppContext.BaseDirectory, "assets", "templates", "insta", "_base.html")
     );
 
-    // The v1 banner inlined as a data URI, since Cloudflare renders raw HTML with no base URL.
-    private static readonly string Header = BuildHeader();
+    // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
+    private const string Header =
+        "<img class=\"banner\" src=\"https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png\">";
 
     public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, DateOnly targetDate)
     {
@@ -28,57 +29,17 @@ public static class InstaCardRenderer
 
         return
         [
-            Compose(
-                "01-top20-1-10.html",
-                date,
-                "🏆 TOP 20 TODAY <span class=\"page-chip\">1–10</span>",
-                RankBody(games.Take(10)),
-                "",
-                TopFooter
-            ),
-            Compose(
-                "02-top20-11-20.html",
-                date,
-                "🏆 TOP 20 TODAY <span class=\"page-chip\">11–20</span>",
-                RankBody(games.Skip(10).Take(10)),
-                "",
-                TopFooter
-            ),
-            Compose(
-                "03-timeline-1-10.html",
-                date,
-                "🕒 TOP 20 TIMELINE <span class=\"page-chip\">1–10</span>",
-                TimelineBody(byTime.Take(10)),
-                "",
-                TimelineFooter
-            ),
-            Compose(
-                "04-timeline-11-20.html",
-                date,
-                "🕒 TOP 20 TIMELINE <span class=\"page-chip\">11–20</span>",
-                TimelineBody(byTime.Skip(10).Take(10)),
-                "",
-                TimelineFooter
-            ),
-            Compose(
-                "05-watchlist.html",
-                date,
-                "🗺️ WATCH PLAN",
-                WatchBody(watchlist),
-                WatchCallout(watchlist),
-                WatchFooter
-            ),
+            Compose("01-top20-1-10.html", date, $"🏆 TOP 20 TODAY {Chip("1–10")}", RankBody(games.Take(10)), "", TopFooter),
+            Compose("02-top20-11-20.html", date, $"🏆 TOP 20 TODAY {Chip("11–20")}", RankBody(games.Skip(10).Take(10)), "", TopFooter),
+            Compose("03-timeline-1-10.html", date, $"🕒 TOP 20 TIMELINE {Chip("1–10")}", TimelineBody(byTime.Take(10)), "", TimelineFooter),
+            Compose("04-timeline-11-20.html", date, $"🕒 TOP 20 TIMELINE {Chip("11–20")}", TimelineBody(byTime.Skip(10).Take(10)), "", TimelineFooter),
+            Compose("05-watchlist.html", date, "🗺️ WATCH PLAN", WatchBody(watchlist), WatchCallout(watchlist), WatchFooter),
         ];
     }
 
-    private static InstaCard Compose(
-        string name,
-        string date,
-        string title,
-        string body,
-        string callout,
-        string footerNote
-    )
+    private static string Chip(string range) => $"<span class=\"page-chip\">{range}</span>";
+
+    private static InstaCard Compose(string name, string date, string title, string body, string callout, string footerNote)
     {
         var html = BaseTemplate
             .Replace("{{HEADER}}", Header)
@@ -155,14 +116,7 @@ public static class InstaCardRenderer
             : $"<div class=\"callout\">🔥 {Enc(summary.Trim())}</div>";
     }
 
-    // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
-    private const string HeaderImageUrl =
-        "https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png";
-
-    private static string BuildHeader() => $"<img class=\"banner\" src=\"{HeaderImageUrl}\">";
-
-    private static string Time(DateTimeOffset value) =>
-        EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture);
+    private static string Time(DateTimeOffset value) => SportsFormat.TimeNoZone(value);
 
     private static string Network(WatchlistGame game) =>
         string.IsNullOrWhiteSpace(game.Network)

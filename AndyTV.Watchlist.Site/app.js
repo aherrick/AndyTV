@@ -28,6 +28,8 @@ function watchlistDay(now = new Date()) {
   return new Date(Date.UTC(year, month - 1, day, hour, minute - (3 * 60 + 30))).toISOString().slice(0, 10);
 }
 
+const weekdayFormat = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, weekday: "long" });
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Request failed: ${response.status}`);
@@ -109,10 +111,7 @@ function andyTv() {
 
     eventTime(event) {
       if (this.activeTab !== "weekend") return event.time;
-      const day = new Date(event.timeIso).toLocaleDateString("en-US", {
-        timeZone: TIME_ZONE, weekday: "long",
-      });
-      return `${day} · ${event.time}`;
+      return `${weekdayFormat.format(new Date(event.timeIso))} · ${event.time}`;
     },
 
     // ---- clean-path tab routing (no '#') ----
@@ -134,7 +133,7 @@ function andyTv() {
     },
 
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
-    timeline() {
+    get timelineGames() {
       return byTime(this.bySport(this.model.top.games));
     },
 
@@ -158,12 +157,7 @@ function andyTv() {
       localStorage.setItem("andytv-theme", next);
     },
 
-    // ---- share (native Web Share only; button hidden when unsupported) ----
-
-    canShare() {
-      return typeof navigator.share === "function";
-    },
-
+    // Native Web Share only; the button is hidden when unsupported.
     share() {
       navigator.share({ title: document.title, url: location.href }).catch(() => {});
     },
@@ -189,10 +183,6 @@ function andyTv() {
         !this.a2hs.isStandAlone() &&
         (this.a2hs.isDeviceIOS() || this.a2hs.isDeviceAndroid())
       );
-    },
-
-    addToHomeScreen() {
-      this.a2hs?.show();
     },
   };
 }

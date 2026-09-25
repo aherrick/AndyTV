@@ -7,7 +7,7 @@ namespace AndyTV.Watchlist.Services;
 
 /// <summary>
 /// Processes one watchlist for an Eastern calendar date: expire the weekend feed
-/// when needed, load the matching email, enrich games, and publish the site data.
+/// when needed, load the matching email, and publish the site data.
 /// Daily editions also produce Instagram cards and X posts; weekend editions are
 /// data-only. Timer selection belongs to AndyTVWatchlistFn, not this service.
 /// </summary>
@@ -17,7 +17,6 @@ public sealed class WatchlistPublishingService(
     BlobStore blobStore,
     InstagramPublishService instagramService,
     AppSettings settings,
-    ApiSportsScoreService scoreService,
     ILogger<WatchlistPublishingService> logger
 )
 {
@@ -32,11 +31,11 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken = default
     )
     {
-        // Expiration does not depend on a new daily email. Do this before Gmail,
-        // score enrichment, or social publishing can return early or fail.
-        if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday)
+        // Expiration does not depend on a new daily email; an absent file is already the desired state.
+        if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
         {
-            await DeleteWeekendFeedAsync(cancellationToken);
+            await blobStore.DeleteWeekendData(cancellationToken);
+            logger.LogInformation("Cleared published weekend feed.");
         }
 
         // A missing or empty email leaves the existing feed alone.
@@ -47,15 +46,15 @@ public sealed class WatchlistPublishingService(
             return;
         }
 
-        await scoreService.EnrichAsync(watchlist.BestWatches, cancellationToken);
+        // Save before social publishing so the feed is live even if a later step fails.
+        if (settings.CanPublishSite)
+        {
+            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonOptions);
+            var url = await blobStore.PublishData(json, kind, cancellationToken);
+            logger.LogInformation("Published {kind} feed to {url}.", kind, url);
+        }
 
-        // Both editions use the same email schema and render-ready site model.
-        // The kind controls the subject and filename, not the shape of the JSON.
-        var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonOptions);
-        await PublishFeedAsync(kind, json, cancellationToken);
-
-        // Only the daily guide has social output. Friday's weekend processing
-        // stops after publishing its own feed, leaving daily posts and cards alone.
+        // Weekend editions are data-only.
         if (kind == WatchlistKind.Weekend)
         {
             return;
@@ -63,30 +62,6 @@ public sealed class WatchlistPublishingService(
 
         await PublishInstagramAsync(watchlist, targetDate, cancellationToken);
         await PublishXThreadAsync(watchlist, targetDate, cancellationToken);
-    }
-
-    private async Task DeleteWeekendFeedAsync(CancellationToken cancellationToken)
-    {
-        // Deletion is idempotent: an absent file is already the desired state.
-        if (settings.CanPublishSite)
-        {
-            await blobStore.DeleteWeekendData(cancellationToken);
-            logger.LogInformation("Cleared published weekend feed.");
-        }
-    }
-
-    private async Task PublishFeedAsync(
-        WatchlistKind kind,
-        string json,
-        CancellationToken cancellationToken
-    )
-    {
-        // Save before social publishing so the feed is live even if a later step fails.
-        if (settings.CanPublishSite)
-        {
-            var url = await blobStore.PublishData(json, kind, cancellationToken);
-            logger.LogInformation("Published {kind} feed to {url}.", kind, url);
-        }
     }
 
     private async Task PublishInstagramAsync(

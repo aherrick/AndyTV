@@ -29,41 +29,22 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
     {
         var easternNow = EasternTimeZone.Now;
 
-        if (RunOnStartup)
-        {
-            var today = DateOnly.FromDateTime(easternNow.DateTime);
-            if (ForceDaily)
-            {
-                await publishingService.PublishAsync(WatchlistKind.Daily, today, cancellationToken);
-            }
-            if (ForceWeekend)
-            {
-                await publishingService.PublishAsync(
-                    WatchlistKind.Weekend,
-                    today,
-                    cancellationToken
-                );
-            }
-            return;
-        }
-
         // 07:30 UTC is 3:30 AM EDT; 08:30 UTC is 3:30 AM EST. Skip the other firing.
-        if (easternNow.Hour != 3)
+        if (!RunOnStartup && easternNow.Hour != 3)
         {
             return;
         }
 
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
-        await publishingService.PublishAsync(WatchlistKind.Daily, targetDate, cancellationToken);
+        if (!RunOnStartup || ForceDaily)
+        {
+            await publishingService.PublishAsync(WatchlistKind.Daily, targetDate, cancellationToken);
+        }
 
         // A missing Daily email simply returns from the service; still check Weekend.
-        if (targetDate.DayOfWeek == DayOfWeek.Friday)
+        if (RunOnStartup ? ForceWeekend : targetDate.DayOfWeek == DayOfWeek.Friday)
         {
-            await publishingService.PublishAsync(
-                WatchlistKind.Weekend,
-                targetDate,
-                cancellationToken
-            );
+            await publishingService.PublishAsync(WatchlistKind.Weekend, targetDate, cancellationToken);
         }
     }
 }
