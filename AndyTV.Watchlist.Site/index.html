@@ -87,7 +87,7 @@
       id="share-btn"
       type="button"
       aria-label="Share"
-      x-show="navigator.share"
+      x-show="'share' in navigator"
       x-cloak
       @click="share()"
     >
