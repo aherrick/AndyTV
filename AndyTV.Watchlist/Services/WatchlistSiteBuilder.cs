@@ -40,7 +40,8 @@ public static class WatchlistSiteBuilder
             game.League,
             game.Reason.Trim(),
             game.Sport,
-            game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList()
+            game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList(),
+            SportsFormat.Odds(game.Betting)
         );
 
     private static PlanTab PlanTab(DailyWatchlist watchlist)

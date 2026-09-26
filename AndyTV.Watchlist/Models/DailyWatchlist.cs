@@ -26,9 +26,19 @@ public sealed record WatchlistGame(
 )
 {
     public List<WatchSource>? Sources { get; init; }
+    public Betting? Betting { get; init; }
 }
 
 public sealed record WatchSource(string Title, string Url);
+
+// Any field may be null; the away/home order matches the "Away @ Home" matchup.
+public sealed record Betting(
+    decimal? AwaySpread,
+    decimal? HomeSpread,
+    decimal? AwayMoneyline,
+    decimal? HomeMoneyline,
+    decimal? Total
+);
 
 public sealed class WatchPlan
 {

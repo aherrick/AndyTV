@@ -210,6 +210,7 @@
                 <template x-if="game.network"><span> · <span class="net" x-text="game.network"></span></span></template>
                 <span x-text="' · ' + game.league"></span>
               </div>
+              <div class="meta" x-show="game.odds" x-text="game.odds"></div>
               <div class="desc" x-text="game.reason"></div>
               <template x-if="game.sources?.length">
                 <div class="sources">

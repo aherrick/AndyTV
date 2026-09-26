@@ -25,6 +25,36 @@ public static class SportsFormat
 
     public static string Time(DateTimeOffset value) => $"{TimeNoZone(value)} ET";
 
+    // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
+    public static string Odds(Betting? betting)
+    {
+        if (betting is null)
+        {
+            return "";
+        }
+
+        List<string> parts = [];
+        // One spread implies the other side.
+        if ((betting.AwaySpread ?? -betting.HomeSpread) is { } awaySpread)
+        {
+            parts.Add($"Spread {Line(awaySpread, "+0.#;-0.#;PK")} / {Line(betting.HomeSpread ?? -awaySpread, "+0.#;-0.#;PK")}");
+        }
+        // A moneyline can't be inferred from the other side, so show it only when both are present.
+        if (betting is { AwayMoneyline: { } awayMoneyline, HomeMoneyline: { } homeMoneyline })
+        {
+            parts.Add($"ML {Line(awayMoneyline, "+0;-0")} / {Line(homeMoneyline, "+0;-0")}");
+        }
+        if (betting.Total is { } total)
+        {
+            parts.Add($"O/U {Line(total, "0.#")}");
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    private static string Line(decimal value, string format) =>
+        value.ToString(format, CultureInfo.InvariantCulture);
+
     // Best-per-category picks, shared by the X post and the site's Top tab. Games arrive in rank order.
     public static List<(string Icon, string Label, WatchlistGame Game)> TopPicks(
         IReadOnlyList<WatchlistGame> games

@@ -60,7 +60,7 @@ public static class InstaCardRenderer
                 <div class="rank-row">
                   <div class="rank">{game.Rank}</div>
                   <div class="sport">{SportsFormat.Icon(game.Sport)}</div>
-                  <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(game.League)}</span></div>
+                  <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(LeagueAndOdds(game))}</span></div>
                   <div class="time">{Time(game.StartTimeIso)}</div>
                 </div>
                 """
@@ -69,6 +69,9 @@ public static class InstaCardRenderer
 
         return $"<div class=\"card ranking\"><div class=\"ranks\">{body}</div></div>";
     }
+
+    private static string LeagueAndOdds(WatchlistGame game) =>
+        SportsFormat.Odds(game.Betting) is { Length: > 0 } odds ? $"{game.League} • {odds}" : game.League;
 
     private static string TimelineBody(IEnumerable<WatchlistGame> games)
     {

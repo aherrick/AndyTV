@@ -18,9 +18,12 @@ public static class SportsGuideFormatter
         {
             best.AppendLine(
                     $"{game.Rank}. {SportsFormat.Icon(game.Sport)} {game.Matchup} - {SportsFormat.Time(game.StartTimeIso)}{Network(game)}"
-                )
-                .AppendLine(game.Reason.Trim())
-                .AppendLine();
+                );
+            if (SportsFormat.Odds(game.Betting) is { Length: > 0 } odds)
+            {
+                best.AppendLine(odds);
+            }
+            best.AppendLine(game.Reason.Trim()).AppendLine();
         }
 
         var timeline = new StringBuilder()

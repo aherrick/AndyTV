@@ -22,7 +22,8 @@ public sealed record Game(
     string League,
     string Reason,
     string Sport,
-    List<SourceLink>? Sources
+    List<SourceLink>? Sources,
+    string Odds
 );
 
 public sealed record SourceLink(string Title, string Url);
