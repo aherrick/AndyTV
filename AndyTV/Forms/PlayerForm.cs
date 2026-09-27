@@ -60,9 +60,8 @@ internal sealed class PlayerForm : Form
     private const int RightHoldSeconds = 5;
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly StreamHealthMonitor _healthMonitor;
+    private readonly StreamHealthMonitor _healthMonitor = new();
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
-    private int _lastDisplayedPictures;
 
     // LibVLC play/stop block for seconds (vout teardown, network probing), which deadlocks the
     // WinForms message loop. All callers are on the UI thread, so chaining keeps them in order.
@@ -95,13 +94,6 @@ internal sealed class PlayerForm : Form
             EnableKeyInput = false,
         };
 
-        _healthMonitor = new StreamHealthMonitor(restart: () =>
-        {
-            if (_current is { } current)
-            {
-                Play(current);
-            }
-        });
         _healthTimer.Tick += OnHealthTick;
 
         _mediaPlayer.Playing += OnPlaying;
@@ -694,19 +686,34 @@ internal sealed class PlayerForm : Form
         }
     }
 
-    // Real motion = new video frames actually displayed. VLC's clock (TimeChanged/PositionChanged)
-    // can keep advancing while the picture is frozen, so the displayed-frame count is the only
-    // reliable freeze signal; if it hasn't moved the monitor will restart after the stall window.
-    private void OnHealthTick(object sender, EventArgs e)
+    private async void OnHealthTick(object sender, EventArgs e)
     {
-        using var media = _mediaPlayer.Media;
-        var displayed = media?.Statistics.DisplayedPictures ?? 0;
-        if (displayed != _lastDisplayedPictures)
+        // Skip while VLC is still busy so checks and restarts never pile up behind a slow call.
+        if (_current is not { } current || !_playback.IsCompleted)
         {
-            _lastDisplayedPictures = displayed;
-            _healthMonitor.MarkActivity();
+            return;
         }
-        _healthMonitor.Tick();
+
+        MediaStats stats = default;
+        RunPlayback(() =>
+        {
+            using var media = _mediaPlayer.Media;
+            if (media is not null)
+            {
+                stats = media.Statistics;
+            }
+        });
+        await _playback;
+
+        if (
+            !IsDisposed
+            && current == _current
+            && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures)
+        )
+        {
+            Logger.Warn($"[HEALTH] No playback progress, restarting {current.DisplayName}");
+            Play(current);
+        }
     }
 
     private void RunPlayback(Action action)
@@ -737,8 +744,7 @@ internal sealed class PlayerForm : Form
     {
         _current = channel;
         _pending = channel;
-        _lastDisplayedPictures = 0;
-        _healthMonitor.MarkActivity();
+        _healthMonitor.Reset();
         UpdateCursor();
         var bufferMilliseconds = _config.NetworkBufferMilliseconds;
         RunPlayback(() =>
@@ -826,7 +832,6 @@ internal sealed class PlayerForm : Form
 
     private void OnPlaying(object sender, EventArgs e)
     {
-        _healthMonitor.MarkActivity();
         if (_pending is not { } played)
         {
             return;
@@ -867,14 +872,11 @@ internal sealed class PlayerForm : Form
         };
     }
 
-    // Native-thread callback: stay cheap, never throw, and only WARN/ERROR to avoid huge logs.
+    // Runs on VLC's decoder threads: errors only, since warnings flood at hundreds per second and
+    // the synchronous file writes slow decoding further.
     private static void OnLibVlcLog(object _, LogEventArgs e)
     {
-        if (e.Level is LogLevel.Warning)
-        {
-            Logger.Warn($"[VLC/{e.Module}] {e.Message}");
-        }
-        else if (e.Level is LogLevel.Error)
+        if (e.Level is LogLevel.Error)
         {
             Logger.Error($"[VLC/{e.Module}] {e.Message}");
         }

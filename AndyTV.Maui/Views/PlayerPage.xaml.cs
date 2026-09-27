@@ -13,7 +13,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
     private readonly LibVLC _libVLC;
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
-    private readonly StreamHealthMonitor _healthMonitor;
+    private readonly StreamHealthMonitor _healthMonitor = new();
     private readonly IRemoteCommandService _remoteCommandService;
     private readonly LocalPlaybackService _localPlaybackService;
     private readonly OrientationLockService _orientationLockService;
@@ -48,22 +48,6 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         _libVLC = new LibVLC();
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
         VideoView.MediaPlayer = _mediaPlayer;
-
-        _healthMonitor = new StreamHealthMonitor(
-            restart: () =>
-            {
-                if (string.IsNullOrEmpty(_viewModel.Url))
-                {
-                    return;
-                }
-
-                Play(_viewModel.Url);
-            }
-        );
-
-        _mediaPlayer.TimeChanged += (_, __) => _healthMonitor.MarkActivity();
-        _mediaPlayer.PositionChanged += (_, __) => _healthMonitor.MarkActivity();
-        _mediaPlayer.Playing += (_, __) => _healthMonitor.MarkActivity();
 
         _healthTimer = Dispatcher.CreateTimer();
         _healthTimer.Interval = TimeSpan.FromMilliseconds(HealthCheckMilliseconds);
@@ -118,7 +102,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
                 return;
             }
 
-            _healthMonitor.MarkActivity();
+            _healthMonitor.Reset();
         });
     }
 
@@ -149,7 +133,7 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
 
     private void Play(string url)
     {
-        _healthMonitor.MarkActivity();
+        _healthMonitor.Reset();
         _mediaPlayer.Stop();
         _mediaPlayer.Play(new Media(_libVLC, url, FromType.FromLocation));
     }
@@ -161,7 +145,12 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
             return;
         }
 
-        _healthMonitor.Tick();
+        using var media = _mediaPlayer.Media;
+        if (media?.Statistics is { } stats
+            && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures))
+        {
+            Play(_viewModel.Url);
+        }
     }
 
     private void OnControlsTimerTick(object sender, EventArgs e)

@@ -1,66 +1,31 @@
 namespace AndyTV.Data.Services;
 
-public sealed class StreamHealthMonitor(
-    Action restart,
-    int stallSeconds = 4,
-    Action<string> logger = null
-)
+// Played audio buffers only advance on real playback; VLC's clock events and video counters keep
+// moving on a frozen picture. Displayed pictures are the fallback for video-only streams.
+public sealed class StreamHealthMonitor(int stallSeconds = 5, int startupSeconds = 15)
 {
-    private readonly long _stallThresholdTicks = TimeSpan.FromSeconds(stallSeconds).Ticks;
-    private readonly Action _restart = restart;
-    private readonly Action<string> _logger = logger;
+    private int _progress;
+    private DateTime _progressAt = DateTime.UtcNow;
 
-    private long _lastActivityUtcTicks = DateTime.UtcNow.Ticks;
-    private int _isRestarting;
-
-    public void MarkActivity()
+    // Call when (re)starting a stream.
+    public void Reset()
     {
-        Interlocked.Exchange(ref _lastActivityUtcTicks, DateTime.UtcNow.Ticks);
+        _progress = 0;
+        _progressAt = DateTime.UtcNow;
     }
 
-    public void Tick()
+    // Call about once a second with VLC's media statistics; true means restart the stream.
+    public bool IsStalled(int playedAudioBuffers, int displayedPictures)
     {
-        // Called periodically by a timer (UI timer in MAUI/WinForms).
-        // Purpose: detect "no playback activity for N seconds" and trigger a restart.
-
-        var nowTicks = DateTime.UtcNow.Ticks;
-
-        var lastTicks = Interlocked.Read(ref _lastActivityUtcTicks);
-        var inactiveTicks = nowTicks - lastTicks;
-        var inactiveSeconds = TimeSpan.FromTicks(inactiveTicks).TotalSeconds;
-
-        // If we've seen any activity recently, don't restart.
-        if (inactiveTicks < _stallThresholdTicks)
+        var progress = playedAudioBuffers > 0 ? playedAudioBuffers : displayedPictures;
+        var now = DateTime.UtcNow;
+        if (progress != _progress)
         {
-            if (inactiveSeconds > 1)
-            {
-                _logger?.Invoke(
-                    $"[Health] Tick: Inactive for {inactiveSeconds:F2}s (Threshold: {stallSeconds}s)"
-                );
-            }
-            return;
+            _progress = progress;
+            _progressAt = now;
+            return false;
         }
-
-        _logger?.Invoke(
-            $"[Health] Stalled! Inactive for {inactiveSeconds:F2}s. Attempting restart..."
-        );
-
-        // Prevent overlapping restart attempts.
-        if (Interlocked.CompareExchange(ref _isRestarting, 1, 0) != 0)
-        {
-            _logger?.Invoke("[Health] Restart already in progress");
-            return;
-        }
-
-        try
-        {
-            // "Claim" this stall window so we don't spam restarts every Tick() until activity resumes.
-            Interlocked.Exchange(ref _lastActivityUtcTicks, nowTicks);
-            _restart();
-        }
-        finally
-        {
-            Interlocked.Exchange(ref _isRestarting, 0);
-        }
+        var limit = progress == 0 ? startupSeconds : stallSeconds;
+        return (now - _progressAt).TotalSeconds >= limit;
     }
 }

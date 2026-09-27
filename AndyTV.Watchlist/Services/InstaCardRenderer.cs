@@ -18,7 +18,7 @@ public static class InstaCardRenderer
 
     // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
     private const string Header =
-        "<img class=\"banner\" src=\"https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header.png\">";
+        "<img class=\"banner\" src=\"https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header3.png\">";
 
     public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, DateOnly targetDate)
     {
@@ -29,17 +29,59 @@ public static class InstaCardRenderer
 
         return
         [
-            Compose("01-top20-1-10.html", date, $"🏆 TOP 20 TODAY {Chip("1–10")}", RankBody(games.Take(10)), "", TopFooter),
-            Compose("02-top20-11-20.html", date, $"🏆 TOP 20 TODAY {Chip("11–20")}", RankBody(games.Skip(10).Take(10)), "", TopFooter),
-            Compose("03-timeline-1-10.html", date, $"🕒 TOP 20 TIMELINE {Chip("1–10")}", TimelineBody(byTime.Take(10)), "", TimelineFooter),
-            Compose("04-timeline-11-20.html", date, $"🕒 TOP 20 TIMELINE {Chip("11–20")}", TimelineBody(byTime.Skip(10).Take(10)), "", TimelineFooter),
-            Compose("05-watchlist.html", date, "🗺️ WATCH PLAN", WatchBody(watchlist), WatchCallout(watchlist), WatchFooter),
+            Compose(
+                "01-top20-1-10.html",
+                date,
+                $"🏆 TOP 20 TODAY {Chip("1–10")}",
+                RankBody(games.Take(10)),
+                "",
+                TopFooter
+            ),
+            Compose(
+                "02-top20-11-20.html",
+                date,
+                $"🏆 TOP 20 TODAY {Chip("11–20")}",
+                RankBody(games.Skip(10).Take(10)),
+                "",
+                TopFooter
+            ),
+            Compose(
+                "03-timeline-1-10.html",
+                date,
+                $"🕒 TOP 20 TIMELINE {Chip("1–10")}",
+                TimelineBody(byTime.Take(10)),
+                "",
+                TimelineFooter
+            ),
+            Compose(
+                "04-timeline-11-20.html",
+                date,
+                $"🕒 TOP 20 TIMELINE {Chip("11–20")}",
+                TimelineBody(byTime.Skip(10).Take(10)),
+                "",
+                TimelineFooter
+            ),
+            Compose(
+                "05-watchlist.html",
+                date,
+                "🗺️ WATCH PLAN",
+                WatchBody(watchlist),
+                WatchCallout(watchlist),
+                WatchFooter
+            ),
         ];
     }
 
     private static string Chip(string range) => $"<span class=\"page-chip\">{range}</span>";
 
-    private static InstaCard Compose(string name, string date, string title, string body, string callout, string footerNote)
+    private static InstaCard Compose(
+        string name,
+        string date,
+        string title,
+        string body,
+        string callout,
+        string footerNote
+    )
     {
         var html = BaseTemplate
             .Replace("{{HEADER}}", Header)
@@ -60,7 +102,9 @@ public static class InstaCardRenderer
                 <div class="rank-row">
                   <div class="rank">{game.Rank}</div>
                   <div class="sport">{SportsFormat.Icon(game.Sport)}</div>
-                  <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(LeagueAndOdds(game))}</span></div>
+                  <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(
+                    LeagueAndOdds(game)
+                )}</span></div>
                   <div class="time">{Time(game.StartTimeIso)}</div>
                 </div>
                 """
@@ -71,7 +115,9 @@ public static class InstaCardRenderer
     }
 
     private static string LeagueAndOdds(WatchlistGame game) =>
-        SportsFormat.Odds(game.Betting) is { Length: > 0 } odds ? $"{game.League} • {odds}" : game.League;
+        SportsFormat.Odds(game.Betting) is { Length: > 0 } odds
+            ? $"{game.League} • {odds}"
+            : game.League;
 
     private static string TimelineBody(IEnumerable<WatchlistGame> games)
     {
@@ -82,8 +128,12 @@ public static class InstaCardRenderer
                   <div class="timeline-time">{Time(game.StartTimeIso)}</div>
                   <div class="dot"></div>
                   <div class="timeline-main">
-                    <div class="timeline-game">{SportsFormat.Icon(game.Sport)} {Enc(game.Matchup)}</div>
-                    <div class="timeline-meta">#{game.Rank} OVERALL • {Enc(game.League)}{Network(game)}</div>
+                    <div class="timeline-game">{SportsFormat.Icon(game.Sport)} {Enc(
+                    game.Matchup
+                )}</div>
+                    <div class="timeline-meta">#{game.Rank} OVERALL • {Enc(game.League)}{Network(
+                    game
+                )}</div>
                   </div>
                 </div>
                 """
@@ -96,13 +146,16 @@ public static class InstaCardRenderer
     private static string WatchBody(DailyWatchlist watchlist)
     {
         var body = string.Concat(
-            SportsFormat.WatchPlanSteps(watchlist)
+            SportsFormat
+                .WatchPlanSteps(watchlist)
                 .Select(step =>
                     $"""
                     <div class="watch-row">
                       <div class="watch-time">{Time(step.Time)}</div>
                       <div class="watch-icon">{step.Icon}</div>
-                      <div class="watch-copy"><strong>{Enc(step.Matchup)}</strong><span>{Enc(step.Instruction)}</span></div>
+                      <div class="watch-copy"><strong>{Enc(step.Matchup)}</strong><span>{Enc(
+                        step.Instruction
+                    )}</span></div>
                     </div>
                     """
                 )
