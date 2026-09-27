@@ -5,18 +5,15 @@ using RestSharp.Authenticators;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed class XPostingService : IDisposable
+public sealed class XPostingService(
+    string consumerKey,
+    string consumerSecret,
+    string accessToken,
+    string accessTokenSecret
+) : IDisposable
 {
-    private readonly RestClient _client;
-
-    public XPostingService(
-        string consumerKey,
-        string consumerSecret,
-        string accessToken,
-        string accessTokenSecret
-    )
-    {
-        var options = new RestClientOptions("https://api.x.com")
+    private readonly RestClient _client = new(
+        new RestClientOptions("https://api.x.com")
         {
             Authenticator = OAuth1Authenticator.ForProtectedResource(
                 consumerKey,
@@ -24,20 +21,18 @@ public sealed class XPostingService : IDisposable
                 accessToken,
                 accessTokenSecret
             ),
-        };
+        }
+    );
 
-        _client = new RestClient(options);
-    }
-
-    public async Task<string> PostThreadAsync(SportsPosts posts, CancellationToken cancellationToken = default)
+    public async Task<string> PostThread(SportsPosts posts, CancellationToken cancellationToken = default)
     {
-        var post1Id = await CreatePostAsync(posts.Post1, null, cancellationToken);
-        var post2Id = await CreatePostAsync(posts.Post2, post1Id, cancellationToken);
-        await CreatePostAsync(posts.Post3, post2Id, cancellationToken);
+        var post1Id = await CreatePost(posts.Post1, null, cancellationToken);
+        var post2Id = await CreatePost(posts.Post2, post1Id, cancellationToken);
+        await CreatePost(posts.Post3, post2Id, cancellationToken);
         return post1Id;
     }
 
-    private async Task<string> CreatePostAsync(
+    private async Task<string> CreatePost(
         string text,
         string? replyToPostId,
         CancellationToken cancellationToken

@@ -72,17 +72,11 @@ public static class SportsFormat
         }
 
         Add("🔥", "Best overall", games);
-        Add("🏈", "Best football", games.Where(game => game.Sport == "Football"));
-        Add("⚾", "Best baseball", games.Where(game => game.Sport == "Baseball"));
-        Add("🏒", "Best hockey", games.Where(game => game.Sport == "Hockey"));
-        Add("🏀", "Best basketball", games.Where(game => game.Sport == "Basketball"));
-        Add("⚽", "Best soccer", games.Where(game => game.Sport == "Soccer"));
-        Add("⛳", "Best golf", games.Where(game => game.Sport == "Golf"));
-        Add(
-            "🌙",
-            "Best late-night",
-            games.Where(game => EasternTimeZone.Convert(game.StartTimeIso).Hour >= 22)
-        );
+        foreach (var sport in (string[])["Football", "Baseball", "Hockey", "Basketball", "Soccer", "Golf"])
+        {
+            Add(Icon(sport), $"Best {sport.ToLowerInvariant()}", games.Where(game => game.Sport == sport));
+        }
+        Add("🌙", "Best late-night", games.Where(game => EasternTimeZone.Convert(game.StartTimeIso).Hour >= 22));
 
         return picks;
     }

@@ -38,13 +38,13 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
         var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
         if (!RunOnStartup || ForceDaily)
         {
-            await publishingService.PublishAsync(WatchlistKind.Daily, targetDate, cancellationToken);
+            await publishingService.Publish(WatchlistKind.Daily, targetDate, cancellationToken);
         }
 
         // A missing Daily email simply returns from the service; still check Weekend.
         if (RunOnStartup ? ForceWeekend : targetDate.DayOfWeek == DayOfWeek.Friday)
         {
-            await publishingService.PublishAsync(WatchlistKind.Weekend, targetDate, cancellationToken);
+            await publishingService.Publish(WatchlistKind.Weekend, targetDate, cancellationToken);
         }
     }
 }

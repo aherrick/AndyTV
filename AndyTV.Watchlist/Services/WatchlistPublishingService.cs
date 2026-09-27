@@ -25,7 +25,7 @@ public sealed class WatchlistPublishingService(
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public async Task PublishAsync(
+    public async Task Publish(
         WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken = default
@@ -60,11 +60,11 @@ public sealed class WatchlistPublishingService(
             return;
         }
 
-        await PublishInstagramAsync(watchlist, targetDate, cancellationToken);
-        await PublishXThreadAsync(watchlist, targetDate, cancellationToken);
+        await PublishInstagram(watchlist, targetDate, cancellationToken);
+        await PublishXThread(watchlist, targetDate, cancellationToken);
     }
 
-    private async Task PublishInstagramAsync(
+    private async Task PublishInstagram(
         DailyWatchlist watchlist,
         DateOnly targetDate,
         CancellationToken cancellationToken
@@ -90,7 +90,7 @@ public sealed class WatchlistPublishingService(
         }
     }
 
-    private async Task PublishXThreadAsync(
+    private async Task PublishXThread(
         DailyWatchlist watchlist,
         DateOnly targetDate,
         CancellationToken cancellationToken
@@ -112,7 +112,7 @@ public sealed class WatchlistPublishingService(
             settings.XAccessToken!,
             settings.XAccessTokenSecret!
         );
-        var postId = await xPostingService.PostThreadAsync(posts, cancellationToken);
+        var postId = await xPostingService.PostThread(posts, cancellationToken);
         logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
     }
 }

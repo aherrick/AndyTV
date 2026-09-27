@@ -1,4 +1,4 @@
-namespace AndyTV.Watchlist.Services;
+namespace AndyTV.Watchlist.Models;
 
 // Render-ready shape serialized to latest.json and consumed by the static site's app.js.
 public sealed record WatchlistSiteModel(
