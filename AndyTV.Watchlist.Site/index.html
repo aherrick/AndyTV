@@ -217,15 +217,13 @@
                             <time :datetime="row.timeIso" x-text="row.time"></time>
                         </div>
                         <div>
-                            <div class="row-game">
-                                <span x-text="row.icon"></span>
-                                <span x-text="row.matchup"></span>
-                            </div>
+                            <div class="row-game" x-text="row.matchup"></div>
                             <div class="row-meta">
-                                <span x-text="'#' + row.rank + ' overall · ' + row.league"></span>
+                                <span x-text="'#' + row.rank + ' overall'"></span>
                                 <template x-if="row.network">
                                     <span> · <span class="net" x-text="row.network"></span></span>
                                 </template>
+                                <span x-text="' · ' + row.icon + ' ' + row.league"></span>
                             </div>
                         </div>
                     </li>
