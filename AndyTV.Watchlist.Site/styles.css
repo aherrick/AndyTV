@@ -249,7 +249,7 @@ body {
   background: var(--accent);
 }
 
-/* Sport filter chips; scroll sideways on narrow screens */
+/* Sport filter chips: one line everywhere; swipe, trackpad, or mouse wheel scrolls sideways */
 .sport-filter {
   display: flex;
   gap: 8px;
@@ -261,13 +261,6 @@ body {
 
 .sport-filter::-webkit-scrollbar {
   display: none;
-}
-
-/* Mouse users can't swipe a hidden-scrollbar row, so wrap instead */
-@media (pointer: fine) {
-  .sport-filter {
-    flex-wrap: wrap;
-  }
 }
 
 .sport-filter button {

@@ -132,6 +132,19 @@ function andyTv() {
       return this.sport ? games.filter((game) => game.sport === this.sport) : games;
     },
 
+    // Mouse wheel scrolls the one-line sport filter sideways; at either end the page scrolls as usual.
+    scrollFilter(e) {
+      const el = e.currentTarget;
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) {
+        return;
+      }
+      const max = el.scrollWidth - el.clientWidth;
+      if ((e.deltaY > 0 && el.scrollLeft < max) || (e.deltaY < 0 && el.scrollLeft > 0)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    },
+
     // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
     get timelineGames() {
       return byTime(this.bySport(this.model.top.games));
