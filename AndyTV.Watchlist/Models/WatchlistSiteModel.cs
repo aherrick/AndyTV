@@ -23,7 +23,7 @@ public sealed record Game(
     string Reason,
     string Sport,
     List<SourceLink>? Sources,
-    string Odds
+    List<string> Odds
 );
 
 public sealed record SourceLink(string Title, string Url);

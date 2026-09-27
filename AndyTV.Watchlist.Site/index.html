@@ -178,25 +178,29 @@
                     <li class="game">
                         <div class="rank" x-text="game.rank"></div>
                         <div class="body">
-                            <div class="title">
-                                <span x-text="game.icon"></span>
-                                <span x-text="game.matchup"></span>
-                            </div>
+                            <div class="title" x-text="game.matchup"></div>
                             <div class="meta">
                                 <time :datetime="game.timeIso" x-text="eventTime(game)"></time>
                                 <template x-if="game.network">
                                     <span> · <span class="net" x-text="game.network"></span></span>
                                 </template>
-                                <span x-text="' · ' + game.league"></span>
+                                <span x-text="' · ' + game.icon + ' ' + game.league"></span>
                             </div>
-                            <div class="meta" x-show="game.odds" x-text="game.odds"></div>
+                            <div class="odds" x-show="game.odds.length">
+                                <template x-for="odd in game.odds">
+                                    <span x-text="odd"></span>
+                                </template>
+                            </div>
                             <div class="desc" x-text="game.reason"></div>
                             <template x-if="game.sources?.length">
-                                <div class="sources">
-                                    <template x-for="source in game.sources" :key="source.url">
-                                        <a :href="source.url" target="_blank" rel="noopener" x-text="source.title"></a>
-                                    </template>
-                                </div>
+                                <details class="sources">
+                                    <summary x-text="'Sources ' + game.sources.length"></summary>
+                                    <div class="source-links">
+                                        <template x-for="source in game.sources" :key="source.url">
+                                            <a :href="source.url" target="_blank" rel="noopener" x-text="source.title"></a>
+                                        </template>
+                                    </div>
+                                </details>
                             </template>
                         </div>
                     </li>

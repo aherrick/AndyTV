@@ -329,12 +329,18 @@ body {
   grid-template-columns: 40px 1fr;
   gap: 12px;
 
-  padding: 14px;
+  padding: 12px 14px;
 
   background: var(--surface);
 
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+@media (hover: hover) {
+  .game:hover {
+    border-color: color-mix(in srgb, var(--accent-2) 40%, var(--border));
+  }
 }
 
 .game .rank {
@@ -348,7 +354,7 @@ body {
 }
 
 .game .title {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 700;
 }
 
@@ -360,9 +366,36 @@ body {
   font-size: 0.85rem;
 }
 
+.game .meta time {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .net {
   color: var(--accent-2);
   font-weight: 600;
+}
+
+.odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  margin: 0 0 8px;
+}
+
+.odds span {
+  padding: 2px 8px;
+
+  color: var(--muted);
+  background: var(--surface-2);
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .game .desc {
@@ -371,11 +404,42 @@ body {
 }
 
 .sources {
+  margin-top: 8px;
+}
+
+.sources summary {
+  width: fit-content;
+
+  cursor: pointer;
+  list-style: none;
+
+  color: var(--muted);
+
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sources summary::-webkit-details-marker {
+  display: none;
+}
+
+.sources summary::after {
+  content: "›";
+  display: inline-block;
+  margin-left: 4px;
+  transition: transform 0.15s;
+}
+
+.sources[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.source-links {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 12px;
 
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .sources a {

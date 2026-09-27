@@ -27,6 +27,10 @@ public sealed record WatchlistGame(
 {
     public List<WatchSource>? Sources { get; init; }
     public Betting? Betting { get; init; }
+
+    // Common league/broadcaster abbreviations (e.g. "BAL"); null when the prompt isn't confident.
+    public string? AwayTeamAbbr { get; init; }
+    public string? HomeTeamAbbr { get; init; }
 }
 
 public sealed record WatchSource(string Title, string Url);

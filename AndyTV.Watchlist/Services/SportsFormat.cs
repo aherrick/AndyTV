@@ -26,18 +26,31 @@ public static class SportsFormat
     public static string Time(DateTimeOffset value) => $"{TimeNoZone(value)} ET";
 
     // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
-    public static string Odds(Betting? betting)
+    public static string Odds(Betting? betting) => string.Join(" · ", OddsParts(betting));
+
+    // With both abbreviations: ["BAL -3.5", "DAL +3.5", "ML -180 / +150", "O/U 52.5"].
+    public static List<string> OddsParts(Betting? betting, string? awayAbbr = null, string? homeAbbr = null)
     {
+        List<string> parts = [];
         if (betting is null)
         {
-            return "";
+            return parts;
         }
 
-        List<string> parts = [];
         // One spread implies the other side.
         if ((betting.AwaySpread ?? -betting.HomeSpread) is { } awaySpread)
         {
-            parts.Add($"Spread {Line(awaySpread, "+0.#;-0.#;PK")} / {Line(betting.HomeSpread ?? -awaySpread, "+0.#;-0.#;PK")}");
+            var awayLine = Line(awaySpread, "+0.#;-0.#;PK");
+            var homeLine = Line(betting.HomeSpread ?? -awaySpread, "+0.#;-0.#;PK");
+            if (awayAbbr is { Length: > 0 } && homeAbbr is { Length: > 0 })
+            {
+                parts.Add($"{awayAbbr} {awayLine}");
+                parts.Add($"{homeAbbr} {homeLine}");
+            }
+            else
+            {
+                parts.Add($"Spread {awayLine} / {homeLine}");
+            }
         }
         // A moneyline can't be inferred from the other side, so show it only when both are present.
         if (betting is { AwayMoneyline: { } awayMoneyline, HomeMoneyline: { } homeMoneyline })
@@ -49,7 +62,7 @@ public static class SportsFormat
             parts.Add($"O/U {Line(total, "0.#")}");
         }
 
-        return string.Join(" · ", parts);
+        return parts;
     }
 
     private static string Line(decimal value, string format) =>
