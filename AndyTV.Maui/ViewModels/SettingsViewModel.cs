@@ -17,6 +17,10 @@ public partial class SettingsViewModel(
     [ObservableProperty]
     public partial string PlaylistUrl { get; set; }
 
+    // Search-only playlists (e.g. huge VOD lists) are left out of the channel list but still searchable.
+    [ObservableProperty]
+    public partial bool SearchOnly { get; set; }
+
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
@@ -109,7 +113,7 @@ public partial class SettingsViewModel(
             {
                 Name = PlaylistName.Trim(),
                 Url = PlaylistUrl.Trim(),
-                ShowInMenu = true,
+                ShowInMenu = !SearchOnly,
             };
 
             var existing = playlistService.LoadPlaylists();
@@ -119,6 +123,7 @@ public partial class SettingsViewModel(
             // Clear form and reload list
             PlaylistName = string.Empty;
             PlaylistUrl = string.Empty;
+            SearchOnly = false;
             LoadPlaylists();
 
             await Shell.Current.DisplayAlertAsync("Success", "Playlist added!", "OK");

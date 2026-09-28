@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Maui.Services;
@@ -31,15 +30,23 @@ public partial class ChannelsViewModel(
         {
             if (SetProperty(ref field, value))
             {
-                FilterChannels();
+                _ = FilterChannels(value);
             }
         }
     }
 
-    private readonly List<Channel> _allChannels = [];
+    private const int SearchDelayMilliseconds = 250;
+    private const int MaxSearchResults = 500;
+
+    // Shown when not searching; search also covers search-only playlists (e.g. huge VOD lists).
+    private List<Channel> _listChannels = [];
+    private List<Channel> _searchChannels = [];
+    private int _searchVersion;
     private bool _hasLoaded;
 
-    public ObservableCollection<Channel> Channels { get; } = [];
+    // Swapped as a whole list so the grouped list view refreshes once instead of per item.
+    [ObservableProperty]
+    public partial List<Channel> Channels { get; set; }
 
     public LockMode CurrentLockMode => orientationLockService.CurrentLockMode;
 
@@ -85,7 +92,7 @@ public partial class ChannelsViewModel(
         OnPropertyChanged(nameof(UseLocalColor));
         OrientationLockService.UseDefaultOrientation();
 
-        if (_hasLoaded && Channels.Count > 0)
+        if (_hasLoaded && _listChannels.Count > 0)
         {
             return;
         }
@@ -101,23 +108,32 @@ public partial class ChannelsViewModel(
         }
     }
 
-    private void FilterChannels()
+    // Debounced and run off the UI thread; a newer keystroke discards older results.
+    private async Task FilterChannels(string text)
     {
-        Channels.Clear();
-
-        var filtered =
-            string.IsNullOrWhiteSpace(SearchText) || SearchText.Length < 2
-                ? _allChannels
-                :
-                [
-                    .. _allChannels.Where(c =>
-                        c.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true
-                    ),
-                ];
-
-        foreach (var ch in filtered)
+        var version = ++_searchVersion;
+        if (string.IsNullOrWhiteSpace(text) || text.Trim().Length < 2)
         {
-            Channels.Add(ch);
+            Channels = _listChannels;
+            return;
+        }
+
+        await Task.Delay(SearchDelayMilliseconds);
+        if (version != _searchVersion)
+        {
+            return;
+        }
+
+        var source = _searchChannels;
+        var results = await Task.Run(() =>
+            source
+                .Where(c => c.Name?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
+                .Take(MaxSearchResults)
+                .ToList()
+        );
+        if (version == _searchVersion)
+        {
+            Channels = results;
         }
     }
 
@@ -143,27 +159,32 @@ public partial class ChannelsViewModel(
 
     private void Populate()
     {
-        _allChannels.Clear();
-        Channels.Clear();
-        SearchText = string.Empty;
-
         var recentChannels = recentChannelService.GetRecentChannels();
         foreach (var ch in recentChannels)
         {
             ch.Category = "Recent";
-            _allChannels.Add(ch);
         }
 
+        List<Channel> list = [.. recentChannels];
+        List<Channel> search = [.. recentChannels];
         foreach (var (playlist, channels) in playlistService.PlaylistChannels)
         {
             foreach (var ch in channels)
             {
                 ch.Category = playlist.Name ?? "Playlist";
-                _allChannels.Add(ch);
             }
+
+            if (playlist.ShowInMenu)
+            {
+                list.AddRange(channels);
+            }
+            search.AddRange(channels);
         }
 
-        FilterChannels();
+        _listChannels = list;
+        _searchChannels = search;
+        SearchText = string.Empty;
+        Channels = _listChannels;
         _hasLoaded = true;
     }
 
@@ -182,7 +203,7 @@ public partial class ChannelsViewModel(
             // Pull-to-refresh always fetches fresh data from network
             await playlistService.RefreshChannelsAsync();
             Populate();
-            await Toast.Make($"Loaded {_allChannels.Count} channels").Show();
+            await Toast.Make($"Loaded {_searchChannels.Count} channels").Show();
         }
         catch (Exception ex)
         {

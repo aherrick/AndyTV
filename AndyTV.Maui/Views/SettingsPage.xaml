@@ -48,6 +48,14 @@
                     FontSize="15" />
             </Border>
 
+            <Grid ColumnDefinitions="*,Auto">
+                <Label
+                    Text="Search only (hide from channel list)"
+                    FontSize="15"
+                    VerticalOptions="Center" />
+                <Switch Grid.Column="1" IsToggled="{Binding SearchOnly}" />
+            </Grid>
+
             <Button
                 Command="{Binding AddCommand}"
                 Text="Add Playlist"
