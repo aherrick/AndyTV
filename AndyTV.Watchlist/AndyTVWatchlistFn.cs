@@ -23,7 +23,7 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
     // The service deletes the weekend feed first on Sundays, even without a daily email.
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
-        [TimerTrigger("0 30 7,8 * * *", RunOnStartup = RunOnStartup)] TimerInfo timer,
+        [TimerTrigger("0 30 7,8 * * *", RunOnStartup = RunOnStartup)] TimerInfo _,
         CancellationToken cancellationToken
     )
     {
