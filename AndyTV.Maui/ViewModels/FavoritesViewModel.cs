@@ -18,20 +18,20 @@ public partial class FavoritesViewModel(
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }
 
-    public ObservableCollection<Channel> Favorites { get; } = [];
+    [ObservableProperty]
+    public partial ObservableCollection<Channel> Favorites { get; set; } = [];
 
     [RelayCommand]
     private void LoadFavorites()
     {
         try
         {
-            Favorites.Clear();
             var favorites = favoriteChannelService.LoadFavoriteChannels();
             foreach (var channel in favorites)
             {
                 channel.Category = "Favorite";
-                Favorites.Add(channel);
             }
+            Favorites = new ObservableCollection<Channel>(favorites);
         }
         finally
         {
