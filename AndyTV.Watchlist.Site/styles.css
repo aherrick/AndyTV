@@ -369,15 +369,27 @@ body {
   font-weight: 600;
 }
 
+.game .body {
+  min-width: 0;
+}
+
+/* Odds chips: one line, swipe sideways (same as sport filter) */
 .odds {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
 
   margin: 0 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.odds::-webkit-scrollbar {
+  display: none;
 }
 
 .odds span {
+  flex: none;
+  white-space: nowrap;
   padding: 2px 8px;
 
   color: var(--muted);
