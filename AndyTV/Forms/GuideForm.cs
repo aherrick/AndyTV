@@ -21,7 +21,7 @@ sealed class GuideForm : Form
         StartPosition = FormStartPosition.CenterScreen;
 
         SyncfusionLicenseProvider.RegisterLicense(
-            "Ngo9BigBOggjHTQxAR8/V1JAaF5cX2pCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkJjXn5YcnxRR2dVUUd9XEY="
+            "Ngo9BigBOggjHTQxAR8/V1JBaF5cXmRCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkxhUH5acHxXR2JaUUF9XEc="
         );
 
         var watchHandler = new GuideWatchHandler();
