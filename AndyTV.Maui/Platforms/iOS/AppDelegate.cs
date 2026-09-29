@@ -1,5 +1,7 @@
+using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
 using AVFoundation;
+using CommunityToolkit.Mvvm.Messaging;
 using Foundation;
 using UIKit;
 
@@ -14,6 +16,18 @@ public class AppDelegate : MauiUIApplicationDelegate
     {
         AVAudioSession.SharedInstance().SetCategory(AVAudioSessionCategory.Playback);
         AVAudioSession.SharedInstance().SetActive(true);
+
+        AVAudioSession.Notifications.ObserveInterruption((_, e) =>
+        {
+            if (e.InterruptionType == AVAudioSessionInterruptionType.Began)
+            {
+                WeakReferenceMessenger.Default.Send(new AudioInterruptedMessage());
+            }
+            else if (e.Option.HasFlag(AVAudioSessionInterruptionOptions.ShouldResume))
+            {
+                WeakReferenceMessenger.Default.Send(new AudioResumableMessage());
+            }
+        });
 
         return base.FinishedLaunching(application, launchOptions);
     }

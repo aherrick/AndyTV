@@ -7,7 +7,12 @@ using LibVLCSharp.Shared;
 
 namespace AndyTV.Maui.Views;
 
-public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IRecipient<AppStoppedMessage>
+public partial class PlayerPage
+    : ContentPage,
+        IRecipient<AppResumedMessage>,
+        IRecipient<AppStoppedMessage>,
+        IRecipient<AudioInterruptedMessage>,
+        IRecipient<AudioResumableMessage>
 {
     private readonly PlayerViewModel _viewModel;
     private readonly LibVLC _libVLC;
@@ -26,6 +31,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
     private const int ControlsHideMilliseconds = 3000;
 
     private int _backgroundVideoTrack = -1;
+    private bool _inBackground;
+    private bool _needsRestart;
 
     public PlayerPage(string url, string channelName)
     {
@@ -74,6 +81,8 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
         ShowControls();
         WeakReferenceMessenger.Default.Register<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Register<AppStoppedMessage>(this);
+        WeakReferenceMessenger.Default.Register<AudioInterruptedMessage>(this);
+        WeakReferenceMessenger.Default.Register<AudioResumableMessage>(this);
 
         if (_remoteCommandService is not null)
         {
@@ -91,29 +100,36 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
 
         Dispatcher.Dispatch(() =>
         {
+            _inBackground = false;
             _healthTimer.Start();
 
-            // Re-enable the video track we disabled when the app was backgrounded
-            if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
-            {
-                _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
-                _backgroundVideoTrack = -1;
-            }
-
-            if (ShouldRestartOnResume())
+            // VLC's audio output stays dead after losing the session, so a fresh start is the reliable recovery
+            if (_needsRestart || ShouldRestartOnResume())
             {
                 Play(_viewModel.Url);
                 return;
             }
 
+            // Re-enable the video track we disabled when the app was backgrounded
+            if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
+            {
+                _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
+            }
+            _backgroundVideoTrack = -1;
+
             _healthMonitor.Reset();
         });
     }
+
+    public void Receive(AudioInterruptedMessage _) => _needsRestart = true;
+
+    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(() => Play(_viewModel.Url));
 
     public void Receive(AppStoppedMessage _)
     {
         Dispatcher.Dispatch(() =>
         {
+            _inBackground = true;
             _healthTimer.Stop();
 
             // Keep audio playing in the background: disable video so VLC doesn't stall rendering off-screen
@@ -137,9 +153,16 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
 
     private void Play(string url)
     {
+        // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
+        _needsRestart = _inBackground;
         _healthMonitor.Reset();
         _mediaPlayer.Stop();
-        _mediaPlayer.Play(new Media(_libVLC, url, FromType.FromLocation));
+        using var media = new Media(_libVLC, url, FromType.FromLocation);
+        if (_inBackground)
+        {
+            media.AddOption(":no-video");
+        }
+        _mediaPlayer.Play(media);
     }
 
     private void OnHealthTimerTick(object sender, EventArgs e)
@@ -191,11 +214,14 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<AudioInterruptedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<AudioResumableMessage>(this);
 
         _healthTimer.Stop();
         _controlsTimer.Stop();
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
+        _mediaPlayer.Dispose();
 
         _ = _localPlaybackService?.StopPlayback();
     }
