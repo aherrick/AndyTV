@@ -10,77 +10,33 @@ jobs:
   build:
     runs-on: [self-hosted, ajmacmini]
 
-    permissions:
-      contents: write
-
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java (JDK 17)
-        id: java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Export JAVA_HOME
-        shell: bash
-        run: |
-          echo "JAVA_HOME=${{ steps.java.outputs.path }}" >> "$GITHUB_ENV"
-          echo "${{ steps.java.outputs.path }}/bin" >> "$GITHUB_PATH"
-
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
       - name: Install MAUI Android workload
-        run: |
-          dotnet workload install maui-android --ignore-failed-sources
+        run: dotnet workload install maui-android --ignore-failed-sources
 
-      - name: Install Android SDK dependencies (API/platforms/build-tools)
-        shell: bash
-        env:
-          JAVA_HOME: ${{ steps.java.outputs.path }}
-        run: |
-          dotnet build AndyTV.Maui/AndyTV.Maui.csproj -t:InstallAndroidDependencies -f net10.0-android -p:AcceptAndroidSDKLicenses=true -p:JavaSdkDirectory=${{ steps.java.outputs.path }}
+      - name: Install Android SDK dependencies
+        run: dotnet build AndyTV.Maui/AndyTV.Maui.csproj -t:InstallAndroidDependencies -f net10.0-android -p:AcceptAndroidSDKLicenses=true
 
       - name: Publish Android APK
-        shell: bash
-        env:
-          JAVA_HOME: ${{ steps.java.outputs.path }}
-        run: |
-          dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android /p:AndroidPackageFormat=apk /p:JavaSdkDirectory=${{ steps.java.outputs.path }}
-
-      - name: Locate APK
-        id: locate_apk
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk_path=$(find AndyTV.Maui/bin -name "*.apk" -print | sort | tail -n 1)
-          if [ -z "$apk_path" ]; then
-            echo "APK not found" >&2
-            exit 1
-          fi
-          echo "Found APK: $apk_path"
-          echo "apk_path=$apk_path" >> "$GITHUB_OUTPUT"
+        run: dotnet publish AndyTV.Maui/AndyTV.Maui.csproj -c Release -f net10.0-android -p:AndroidPackageFormat=apk -o publishapk
 
       - name: Create GitHub release and upload APK
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: android-${{ github.run_number }}
           name: Android build ${{ github.run_number }}
-          files: ${{ steps.locate_apk.outputs.apk_path }}
-
-      # - name: Upload APK artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: AndyTV-android-apk
-      #     path: |
-      #       AndyTV.Maui/bin/**/net10.0-android/**/publish/*.apk
-      #       AndyTV.Maui/bin/**/net10.0-android/**/*.apk
-      #     if-no-files-found: error
+          files: publishapk/*-Signed.apk

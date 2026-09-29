@@ -7,12 +7,10 @@ jobs:
   analyze:
     runs-on: [self-hosted, ajwin]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # Install .NET locally to avoid conflicts with system installations
-      # 9.0.x: Required to run Roslynator CLI tool itself
-      # 10.0.x: Required to build and analyze the project
-      - name: Setup .NET (local install)
+      # Local install so the self-hosted runner's system .NET isn't touched; 9.0 runs the Roslynator CLI
+      - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
@@ -21,18 +19,10 @@ jobs:
             9.0.x
             10.0.x
 
-      - name: Add local dotnet to PATH
-        shell: powershell
-        run: |
-          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
-          echo "DOTNET_ROOT=${{ github.workspace }}\.dotnet" >> $env:GITHUB_ENV
-
-      # Install Roslynator to local tools directory (not global) to avoid conflicts
       - name: Install Roslynator CLI
         run: dotnet tool install roslynator.dotnet.cli --version 0.11.0 --tool-path tools
 
-      # Download Roslynator analyzer rules package (NuGet packages are just zip files)
-      # This is needed because the analyzers aren't referenced in the project files
+      # Analyzers aren't referenced by the projects, so pull the package directly
       - name: Download Roslynator Analyzers
         shell: powershell
         run: |
@@ -41,11 +31,9 @@ jobs:
           Expand-Archive package.zip -DestinationPath analyzers/Roslynator.Analyzers
           Remove-Item package.zip
 
-      # Run code analysis using Roslynator rules
       - name: Analyze
         run: ./tools/roslynator analyze AndyTV.slnx --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
 
-      # Find unused private members (continue even if it finds issues)
       - name: Find unused private code
         continue-on-error: true
         run: >

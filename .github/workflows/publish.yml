@@ -14,11 +14,10 @@ jobs:
       VPK_VERSION: 1.2.161
 
     steps:
-      # Clone the repository (checkout automatically cleans the workspace first)
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # Install .NET SDKs locally in workspace to avoid conflicts with system installations
-      - name: Setup .NET (local install)
+      # Local install so the self-hosted runner's system .NET isn't touched; 9.0 is for vpk
+      - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
@@ -27,21 +26,11 @@ jobs:
             10.0.x
             9.0.x
 
-      # Configure environment to use the locally installed .NET instead of system version
-      - name: Add local dotnet to PATH
-        shell: powershell
-        run: |
-          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
-          echo "DOTNET_ROOT=${{ github.workspace }}\.dotnet" >> $env:GITHUB_ENV
-
-      # Build self-contained executable with all dependencies bundled (no .NET runtime required)
       - name: Publish (self-contained win-x64)
         shell: powershell
-        run: |
-          dotnet publish .\AndyTV\AndyTV.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
+        run: dotnet publish .\AndyTV\AndyTV.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
 
-      # Use Velopack (vpk) via dnx to create installer, download previous release, and publish new version to GitHub
-      - name: Run vpk (via dnx)
+      - name: Package and release with Velopack
         shell: powershell
         run: |
           $vpk = "vpk@$env:VPK_VERSION"

@@ -1,13 +1,13 @@
 name: guide-publish
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
@@ -20,6 +20,5 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.GUIDE_PUBLISH_AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: upload
-          # we prebuilt, so deploy the built assets and skip Oryx build
           skip_app_build: true
           app_location: build/wwwroot
