@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using LibVLCSharp.Shared;
 using Velopack;
 
@@ -9,6 +10,15 @@ static class Program
     private const string RightArg = "--right";
 
     public static bool StartOnRight { get; private set; }
+
+    // Shortcut path is unchanged across updates, so Explorer keeps the cached icon unless told to refresh.
+    private const int SHCNE_ASSOCCHANGED = 0x08000000;
+    private const uint SHCNF_IDLIST = 0x0000;
+
+#pragma warning disable SYSLIB1054 // Use LibraryImport - not worth enabling unsafe blocks for one call
+    [DllImport("shell32.dll")]
+    private static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+#pragma warning restore SYSLIB1054
 
     [STAThread]
     static void Main(string[] args)
@@ -33,7 +43,9 @@ static class Program
             }
 
             // Must run first so Velopack can handle install/update hooks.
-            VelopackApp.Build().Run();
+            VelopackApp.Build()
+                .OnAfterUpdateFastCallback(_ => SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero))
+                .Run();
         }
 
         using (mutex)
