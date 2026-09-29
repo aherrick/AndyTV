@@ -188,8 +188,8 @@ public partial class ChannelsViewModel(
 
         try
         {
-            // Pull-to-refresh always fetches fresh data from network
-            await playlistService.RefreshMenuChannelsFirst();
+            // Off the UI thread: parsing large M3U playlists otherwise freezes the app
+            await Task.Run(() => playlistService.RefreshMenuChannelsFirst());
             Populate();
             await Toast.Make($"Loaded {_listChannels.Count} channels").Show();
         }

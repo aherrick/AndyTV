@@ -9,51 +9,27 @@ public partial class App : Application
 {
     public App()
     {
-        Console.WriteLine("[AndyTV] App ctor start");
         InitializeComponent();
-        Console.WriteLine("[AndyTV] App InitializeComponent done");
     }
 
     protected override Window CreateWindow(IActivationState activationState)
     {
-        Console.WriteLine("[AndyTV] CreateWindow start");
         var window = new Window(new AppShell());
-        Console.WriteLine("[AndyTV] AppShell created");
 
         window.Created += async (_, _) =>
         {
-            try
+            var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
+            var localPlaybackService =
+                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
+            var lastChannel = lastChannelService?.LoadLastChannel();
+            if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
             {
-                Console.WriteLine("[AndyTV] Window created");
-
-                // Pre-warm the channel list in the background so it's ready when the user navigates back
-                var playlistService = IPlatformApplication.Current?.Services.GetService<IPlaylistService>();
-                if (playlistService is not null)
-                {
-                    _ = Task.Run(() => playlistService.RefreshMenuChannelsFirst());
-                }
-
-                var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
-                var localPlaybackService =
-                    IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
-                var lastChannel = lastChannelService?.LoadLastChannel();
-                Console.WriteLine($"[AndyTV] Last channel: {lastChannel?.DisplayName ?? "(none)"}");
-                if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
-                {
-                    var playbackUrl =
-                        localPlaybackService is null
-                            ? lastChannel.Url
-                            : await localPlaybackService.ResolvePlaybackUrl(lastChannel.Url);
-                    Console.WriteLine("[AndyTV] Opening PlayerPage");
-                    var playerPage = new Views.PlayerPage(playbackUrl, lastChannel.DisplayName);
-                    await Shell.Current.Navigation.PushAsync(playerPage, animated: false);
-                    Console.WriteLine("[AndyTV] PlayerPage pushed");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AndyTV] Window.Created FAILED: {ex}");
-                throw;
+                var playbackUrl =
+                    localPlaybackService is null
+                        ? lastChannel.Url
+                        : await localPlaybackService.ResolvePlaybackUrl(lastChannel.Url);
+                var playerPage = new Views.PlayerPage(playbackUrl, lastChannel.DisplayName);
+                await Shell.Current.Navigation.PushAsync(playerPage, animated: false);
             }
         };
 

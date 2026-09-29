@@ -4,7 +4,6 @@ using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
 using CommunityToolkit.Maui;
 using LibVLCSharp.MAUI;
-using Microsoft.Extensions.Logging;
 using Syncfusion.Maui.Core.Hosting;
 
 namespace AndyTV.Maui;
@@ -13,7 +12,6 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        Console.WriteLine("[AndyTV] CreateMauiApp start");
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -52,13 +50,6 @@ public static class MauiProgram
         builder.Services.AddTransient<ChannelsPage>();
         builder.Services.AddTransient<FavoritesPage>();
 
-#if DEBUG
-        builder.Logging.AddDebug();
-#endif
-
-        Console.WriteLine("[AndyTV] Building MauiApp");
-        var app = builder.Build();
-        Console.WriteLine("[AndyTV] MauiApp built");
-        return app;
+        return builder.Build();
     }
 }

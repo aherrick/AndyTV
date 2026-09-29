@@ -43,12 +43,7 @@ jobs:
             --device "${{ secrets.IOS_DEVICE_UDID }}" \
             "${{ env.APP_PATH }}"
 
-          # Stream app stdout for up to 60s so startup logs/crashes show in the job, then detach.
           xcrun devicectl device process launch \
-            --console \
             --terminate-existing \
             --device "${{ secrets.IOS_DEVICE_UDID }}" \
-            "${{ env.BUNDLE_ID }}" &
-          pid=$!
-          ( sleep 60; kill $pid 2>/dev/null ) &
-          wait $pid || true
+            "${{ env.BUNDLE_ID }}"
