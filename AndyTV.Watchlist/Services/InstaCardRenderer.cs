@@ -18,7 +18,7 @@ public static class InstaCardRenderer
 
     // Hosted URL keeps the HTML small so Cloudflare Browser Rendering doesn't 422 on a huge inline image.
     private const string Header =
-        "<img class=\"banner\" src=\"https://raw.githubusercontent.com/aherrick/AndyTV/refs/heads/main/AndyTV.Watchlist/assets/img/andytvwatchlist_header3.png\">";
+        "<img class=\"banner\" src=\"https://andytv.today/img/andytvwatchlist_header3.png\">";
 
     public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, DateOnly targetDate)
     {
