@@ -104,6 +104,11 @@ public partial class ChannelsViewModel(
         }
         else
         {
+            // Let the resumed channel start buffering before playlist downloads compete for bandwidth.
+            if (lastChannelService.LoadLastChannel() is not null)
+            {
+                await Task.WhenAny(Views.PlayerPage.FirstPlaying.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            }
             await LoadChannels();
         }
     }

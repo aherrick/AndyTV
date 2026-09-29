@@ -225,17 +225,13 @@ internal sealed class PlayerForm : Form
 
     private async Task Initialize()
     {
-        // Static parts (header, Manage, recents, favorites) build instantly from local
-        // storage so the menu is usable right away; channels stream in afterwards.
-        BuildStaticMenu();
-
-        // Play the last channel first — it only needs local storage, so playback
-        // starts without waiting on the (networked) playlist refresh below.
+        // Play first — it only needs local storage, so playback never waits on the menu or playlists.
         if (_lastService.LoadLastChannel() is { } last)
         {
             Play(last);
         }
 
+        BuildStaticMenu();
         _playlists = _playlistService.LoadPlaylists();
         await RefreshChannels();
 

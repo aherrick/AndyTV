@@ -4,6 +4,7 @@ using AndyTV.Maui.ViewModels;
 using AndyTV.Maui.Views;
 using CommunityToolkit.Maui;
 using LibVLCSharp.MAUI;
+using LibVLCSharp.Shared;
 using Syncfusion.Maui.Core.Hosting;
 
 namespace AndyTV.Maui;
@@ -34,6 +35,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILocalConfigService, LocalConfigService>();
         builder.Services.AddSingleton<LocalPlaybackService>();
         builder.Services.AddSingleton<OrientationLockService>();
+        // One native VLC instance for the app; creating one per player page costs startup time on every channel.
+        builder.Services.AddSingleton(_ => new LibVLC());
 #if IOS
         builder.Services.AddSingleton<IRemoteCommandService, RemoteCommandService>();
 #else

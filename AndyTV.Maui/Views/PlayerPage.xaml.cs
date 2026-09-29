@@ -19,6 +19,9 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
     private readonly OrientationLockService _orientationLockService;
     private readonly IDispatcherTimer _controlsTimer;
 
+    // Completes when the first stream starts so the startup channel download doesn't compete with it.
+    public static readonly TaskCompletionSource FirstPlaying = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private const int HealthCheckMilliseconds = 1000;
     private const int ControlsHideMilliseconds = 3000;
 
@@ -45,8 +48,9 @@ public partial class PlayerPage : ContentPage, IRecipient<AppResumedMessage>, IR
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
-        _libVLC = new LibVLC();
+        _libVLC = IPlatformApplication.Current.Services.GetRequiredService<LibVLC>();
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
+        _mediaPlayer.Playing += (_, _) => FirstPlaying.TrySetResult();
         VideoView.MediaPlayer = _mediaPlayer;
 
         _healthTimer = Dispatcher.CreateTimer();

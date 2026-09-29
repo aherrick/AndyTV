@@ -28,7 +28,7 @@ jobs:
 
       - name: Publish (self-contained win-x64)
         shell: powershell
-        run: dotnet publish .\AndyTV\AndyTV.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o publish
+        run: dotnet publish .\AndyTV\AndyTV.csproj -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -p:Version=$env:VERSION -o publish
 
       - name: Package and release with Velopack
         shell: powershell
