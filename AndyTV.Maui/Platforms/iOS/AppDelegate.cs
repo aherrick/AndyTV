@@ -12,10 +12,14 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
+        Console.WriteLine("[AndyTV] FinishedLaunching start");
         AVAudioSession.SharedInstance().SetCategory(AVAudioSessionCategory.Playback);
         AVAudioSession.SharedInstance().SetActive(true);
+        Console.WriteLine("[AndyTV] Audio session ready");
 
-        return base.FinishedLaunching(application, launchOptions);
+        var result = base.FinishedLaunching(application, launchOptions);
+        Console.WriteLine($"[AndyTV] FinishedLaunching done: {result}");
+        return result;
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(

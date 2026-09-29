@@ -13,6 +13,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        Console.WriteLine("[AndyTV] CreateMauiApp start");
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -55,6 +56,9 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
 
-        return builder.Build();
+        Console.WriteLine("[AndyTV] Building MauiApp");
+        var app = builder.Build();
+        Console.WriteLine("[AndyTV] MauiApp built");
+        return app;
     }
 }
