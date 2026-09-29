@@ -50,19 +50,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         try
         {
             var playlists = LoadPlaylists();
-            PlaylistChannels = await LoadChannelsAsync(playlists);
-
-            Channels = Dedup(PlaylistChannels);
-            UsUkChannels = Dedup(PlaylistChannels.Where(x => x.Playlist.ShowInUsUk));
-
-            static List<Channel> Dedup(
-                IEnumerable<(Playlist Playlist, List<Channel> Channels)> source) =>
-                [
-                    .. source
-                        .SelectMany(x => x.Channels)
-                        .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                        .Select(g => g.First()),
-                ];
+            SetChannels(await LoadChannelsAsync(playlists));
         }
         catch (Exception ex)
         {
@@ -71,7 +59,23 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         }
     }
 
-    private async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
+    public void SetChannels(List<(Playlist Playlist, List<Channel> Channels)> playlistChannels)
+    {
+        Channels = Dedup(playlistChannels);
+        UsUkChannels = Dedup(playlistChannels.Where(x => x.Playlist.ShowInUsUk));
+        PlaylistChannels = playlistChannels;
+
+        static List<Channel> Dedup(
+            IEnumerable<(Playlist Playlist, List<Channel> Channels)> source) =>
+            [
+                .. source
+                    .SelectMany(x => x.Channels)
+                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First()),
+            ];
+    }
+
+    public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
         List<Playlist> playlists
     )
     {
@@ -123,6 +127,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
                             Url = url,
                             Group = item.GroupTitle,
                             LogoUrl = item.Logo,
+                            Category = p.Name ?? "Playlist",
                         }
                     );
                 }

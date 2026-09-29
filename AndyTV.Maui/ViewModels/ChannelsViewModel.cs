@@ -40,7 +40,7 @@ public partial class ChannelsViewModel(
 
     // Shown when not searching; search also covers search-only playlists (e.g. huge VOD lists).
     private List<Channel> _listChannels = [];
-    private List<Channel> _searchChannels = [];
+    private List<Channel> _recentChannels = [];
     private int _searchVersion;
     private bool _hasLoaded;
 
@@ -124,7 +124,8 @@ public partial class ChannelsViewModel(
             return;
         }
 
-        var source = _searchChannels;
+        // Read live so search-only playlists still loading in the background get picked up.
+        var source = _recentChannels.Concat(playlistService.PlaylistChannels.SelectMany(x => x.Channels));
         var results = await Task.Run(() =>
             source
                 .Where(c => c.Name?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
@@ -159,30 +160,17 @@ public partial class ChannelsViewModel(
 
     private void Populate()
     {
-        var recentChannels = recentChannelService.GetRecentChannels();
-        foreach (var ch in recentChannels)
+        _recentChannels = recentChannelService.GetRecentChannels();
+        foreach (var ch in _recentChannels)
         {
             ch.Category = "Recent";
         }
 
-        List<Channel> list = [.. recentChannels];
-        List<Channel> search = [.. recentChannels];
-        foreach (var (playlist, channels) in playlistService.PlaylistChannels)
-        {
-            foreach (var ch in channels)
-            {
-                ch.Category = playlist.Name ?? "Playlist";
-            }
-
-            if (playlist.ShowInMenu)
-            {
-                list.AddRange(channels);
-            }
-            search.AddRange(channels);
-        }
-
-        _listChannels = list;
-        _searchChannels = search;
+        _listChannels =
+        [
+            .. _recentChannels,
+            .. playlistService.PlaylistChannels.Where(x => x.Playlist.ShowInMenu).SelectMany(x => x.Channels),
+        ];
         SearchText = string.Empty;
         Channels = _listChannels;
         _hasLoaded = true;
@@ -201,9 +189,9 @@ public partial class ChannelsViewModel(
         try
         {
             // Pull-to-refresh always fetches fresh data from network
-            await playlistService.RefreshChannelsAsync();
+            await playlistService.RefreshMenuChannelsFirst();
             Populate();
-            await Toast.Make($"Loaded {_searchChannels.Count} channels").Show();
+            await Toast.Make($"Loaded {_listChannels.Count} channels").Show();
         }
         catch (Exception ex)
         {

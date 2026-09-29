@@ -22,7 +22,7 @@ public partial class App : Application
             var playlistService = IPlatformApplication.Current?.Services.GetService<IPlaylistService>();
             if (playlistService is not null)
             {
-                _ = Task.Run(() => playlistService.RefreshChannelsAsync());
+                _ = Task.Run(() => playlistService.RefreshMenuChannelsFirst());
             }
 
             var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();

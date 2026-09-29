@@ -13,4 +13,8 @@ public interface IPlaylistService
     void SavePlaylists(List<Playlist> playlists);
 
     Task RefreshChannelsAsync();
+
+    Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(List<Playlist> playlists);
+
+    void SetChannels(List<(Playlist Playlist, List<Channel> Channels)> playlistChannels);
 }
