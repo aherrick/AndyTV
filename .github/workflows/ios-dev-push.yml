@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -28,17 +28,12 @@ jobs:
       - name: Install MAUI workload
         run: dotnet workload install maui
 
-      - name: Restore
-        run: dotnet restore ${{ env.CSPROJ_PATH }} -r ios-arm64
-
       - name: Build app for device
         run: |
           dotnet build ${{ env.CSPROJ_PATH }} \
             -f net10.0-ios \
             -c Debug \
             -r ios-arm64 \
-            -p:PlatformTarget=arm64 \
-            --no-restore \
             -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
             -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}"
 

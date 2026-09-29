@@ -7,17 +7,13 @@ on:
   workflow_dispatch:
 
 env:
-  # ===== APP CONFIG =====
   APP_NAME: AndyTV
   CSPROJ_PATH: ./AndyTV.Maui/AndyTV.Maui.csproj
   BUNDLE_ID: com.ajh.AndyTV
-  APPLE_TEAM_ID: 55P33KNTP3
   CODESIGN_KEY: "Apple Distribution: Andrew Herrick (55P33KNTP3)"
   CODESIGN_PROVISION: "AndyTV"
-  IPA_PATH: publishapp/AndyTV.Maui.ipa
   IPA_NAME: AndyTV.Maui.ipa
-
-  # ===== AZURE STORAGE (for OTA hosting) =====
+  VERSION: 1.0.${{ github.run_number }}
   STATIC_URL: "https://andytvstorage.z19.web.core.windows.net"
   AZURE_STORAGE_ACCOUNT: "andytvstorage"
 
@@ -37,26 +33,11 @@ jobs:
       - name: Install MAUI
         run: dotnet workload install maui
 
-      - name: Verify imported identity
-        run: |
-          security find-identity -v -p codesigning      
-          
-      - name: Delete existing build keychain
-        run: security delete-keychain build.keychain || true
-
-      - name: Install Apple Certificates
-        run: |
-          echo "${{ secrets.CERTIFICATES_P12_BASE64 }}" | base64 --decode -o /tmp/cert.p12
-          security create-keychain -p "${{ secrets.CERTIFICATES_P12_PASSWORD }}" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security unlock-keychain -p "${{ secrets.CERTIFICATES_P12_PASSWORD }}" build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "${{ secrets.CERTIFICATES_P12_PASSWORD }}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "${{ secrets.CERTIFICATES_P12_PASSWORD }}" build.keychain
-          security list-keychains -d user -s build.keychain $(security list-keychains -d user | tr -d '"')
-          rm /tmp/cert.p12
-
-      - name: List code signing identities
-        run: security find-identity -v -p codesigning build.keychain
+      - name: Install Apple certificate
+        uses: apple-actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12_BASE64 }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
       - name: Download provisioning profile (Ad Hoc)
         uses: apple-actions/download-provisioning-profiles@v6
@@ -72,14 +53,9 @@ jobs:
           dotnet publish ${{ env.CSPROJ_PATH }} \
             -f net10.0-ios \
             -c Release \
-            -p:RuntimeIdentifier=ios-arm64 \
-            -p:ArchiveOnBuild=true \
-            -p:PackageApp=true \
-            -p:BuildIpa=true \
-            -p:ApplicationVersion=1.0.${{ github.run_number }} \
-            -p:ApplicationDisplayVersion=1.0.${{ github.run_number }} \
-            -p:BundleIdentifier="${{ env.BUNDLE_ID }}" \
-            -p:CodesignTeamId="${{ env.APPLE_TEAM_ID }}" \
+            -r ios-arm64 \
+            -p:ApplicationVersion=${{ env.VERSION }} \
+            -p:ApplicationDisplayVersion=${{ env.VERSION }} \
             -p:CodesignKey="${{ env.CODESIGN_KEY }}" \
             -p:CodesignProvision="${{ env.CODESIGN_PROVISION }}" \
             -o publishapp
@@ -90,9 +66,9 @@ jobs:
         with:
           app_name: ${{ env.APP_NAME }}
           bundle_id: ${{ env.BUNDLE_ID }}
-          version: 1.0.${{ github.run_number }}
+          version: ${{ env.VERSION }}
           ipa_name: ${{ env.IPA_NAME }}
-          ipa_path: ${{ env.IPA_PATH }}
+          ipa_path: publishapp/${{ env.IPA_NAME }}
           static_url: ${{ env.STATIC_URL }}
           azure_storage_account: ${{ env.AZURE_STORAGE_ACCOUNT }}
           azure_storage_key: ${{ secrets.AZURE_STORAGE_KEY }}
