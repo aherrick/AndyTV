@@ -1,4 +1,4 @@
-import os, re, sys, shutil, subprocess, threading, time, zipfile, urllib.request
+import os, re, sys, shutil, subprocess, threading, time
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -23,22 +23,6 @@ proc = None
 session = None
 seen_sessions = set()
 last_request = 0.0
-
-
-def ensure_ffmpeg():
-    """Download ffmpeg if it doesn't exist."""
-    if os.path.exists(FFMPEG):
-        return
-    print("ffmpeg not found — downloading...")
-    zip_path = os.path.join(BASE_DIR, "ffmpeg.zip")
-    urllib.request.urlretrieve("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", zip_path)
-    with zipfile.ZipFile(zip_path) as zf:
-        zf.extractall(BASE_DIR)
-    os.remove(zip_path)
-    for name in os.listdir(BASE_DIR):
-        if name.startswith("ffmpeg-") and name.endswith("-essentials_build"):
-            os.replace(os.path.join(BASE_DIR, name), os.path.join(BASE_DIR, "ffmpeg"))
-            break
 
 
 def kill_stray_ffmpeg():
@@ -81,7 +65,7 @@ def open_stream(url, quality, sid):
             print(f"[{sid[:8]}] starting {quality}p: {url}", flush=True)
             # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
             proc = subprocess.Popen([
-                FFMPEG, "-i", url,
+                FFMPEG, "-hide_banner", "-loglevel", "error", "-stats", "-i", url,
                 "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
                 "-force_key_frames", "expr:gte(t,n_forced*2)",
                 "-b:v", vbr, "-maxrate", maxr, "-bufsize", bufs,
@@ -172,7 +156,8 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ensure_ffmpeg()
+    if not os.path.exists(FFMPEG):
+        sys.exit("ffmpeg not found, run setup.bat first.")
     kill_stray_ffmpeg()
     shutil.rmtree(BUFFER_DIR, ignore_errors=True)
     os.makedirs(BUFFER_DIR, exist_ok=True)
