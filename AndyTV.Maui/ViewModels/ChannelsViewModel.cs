@@ -46,34 +46,22 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial List<Channel> Channels { get; set; }
 
-    private bool _useLocal;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UseLocalColor))]
+    public partial bool UseLocal { get; set; }
 
-    public bool UseLocal
+    partial void OnUseLocalChanged(bool value)
     {
-        get => _useLocal;
-        set
-        {
-            if (!SetProperty(ref _useLocal, value))
-            {
-                return;
-            }
-
-            OnPropertyChanged(nameof(UseLocalColor));
-
-            // Persist the toggle
-            var config = localConfigService.Load();
-            config.Enabled = value;
-            localConfigService.Save(config);
-        }
+        var config = localConfigService.Load();
+        config.Enabled = value;
+        localConfigService.Save(config);
     }
 
     public Color UseLocalColor => UseLocal ? Colors.LimeGreen : Colors.Gray;
 
     public async Task EnsureChannelsLoaded()
     {
-        _useLocal = localConfigService.Load().Enabled;
-        OnPropertyChanged(nameof(UseLocal));
-        OnPropertyChanged(nameof(UseLocalColor));
+        UseLocal = localConfigService.Load().Enabled;
 
         if (_hasLoaded && _listChannels.Count > 0)
         {
@@ -203,12 +191,6 @@ public partial class ChannelsViewModel(
             return;
         }
 
-        // Add to recent channels
-        recentChannelService.AddOrPromote(channel);
-
-        // Save as last channel
-        lastChannelService.SaveLastChannel(channel);
-
-        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel.Url, channel.DisplayName));
+        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel));
     }
 }

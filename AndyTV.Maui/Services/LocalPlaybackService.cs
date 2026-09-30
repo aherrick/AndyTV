@@ -1,3 +1,4 @@
+using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 
 namespace AndyTV.Maui.Services;
@@ -11,12 +12,11 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
     public async Task<string> Start(string sourceUrl)
     {
         var config = localConfigService.Load();
-        if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
+        if (ServerUrl(config) is not { } serverUrl)
         {
             return sourceUrl;
         }
 
-        var serverUrl = config.ServerUrl.TrimEnd('/');
         var quality = string.IsNullOrWhiteSpace(config.Quality) ? "320" : config.Quality;
         var playlistUrl = $"{serverUrl}/live.m3u8";
 
@@ -38,20 +38,22 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
 
     public async Task Stop()
     {
-        var config = localConfigService.Load();
-        if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
+        if (ServerUrl(localConfigService.Load()) is not { } serverUrl)
         {
             return;
         }
 
         try
         {
-            using var response = await HttpClient.PostAsync($"{config.ServerUrl.TrimEnd('/')}/stop", null);
+            using var response = await HttpClient.PostAsync($"{serverUrl}/stop", null);
         }
         catch
         {
         }
     }
+
+    private static string ServerUrl(LocalConfig config) =>
+        config.Enabled && !string.IsNullOrWhiteSpace(config.ServerUrl) ? config.ServerUrl.TrimEnd('/') : null;
 
     // ffmpeg only writes the playlist after its first segment; playing earlier 404s until the stall monitor retries.
     private static async Task<bool> WaitForPlaylist(string playlistUrl)
@@ -64,7 +66,7 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
             {
                 return true;
             }
-            await Task.Delay(500);
+            await Task.Delay(250);
         }
         return false;
     }

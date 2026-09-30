@@ -17,6 +17,7 @@ public static class SportsFormat
             "Combat Sports" => "🥊",
             "Golf" => "⛳",
             "Tennis" => "🎾",
+            "Volleyball" => "🏐",
             _ => "📺",
         };
 
@@ -86,7 +87,8 @@ public static class SportsFormat
         }
 
         Add("🔥", "Best overall", games);
-        foreach (var sport in (string[])["Football", "Baseball", "Hockey", "Basketball", "Soccer", "Golf"])
+        // Every sport in the list, ordered by its best-ranked game.
+        foreach (var sport in games.Select(game => game.Sport).Distinct())
         {
             Add(Icon(sport), $"Best {sport.ToLowerInvariant()}", games.Where(game => game.Sport == sport));
         }

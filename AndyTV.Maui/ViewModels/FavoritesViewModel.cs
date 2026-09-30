@@ -7,11 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-public partial class FavoritesViewModel(
-    IFavoriteChannelService favoriteChannelService,
-    IRecentChannelService recentChannelService,
-    ILastChannelService lastChannelService
-) : ObservableObject
+public partial class FavoritesViewModel(IFavoriteChannelService favoriteChannelService) : ObservableObject
 {
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }
@@ -56,9 +52,6 @@ public partial class FavoritesViewModel(
             return;
         }
 
-        recentChannelService.AddOrPromote(channel);
-        lastChannelService.SaveLastChannel(channel);
-
-        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel.Url, channel.DisplayName));
+        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel));
     }
 }

@@ -1,4 +1,4 @@
-import os, sys, time, subprocess, zipfile, urllib.request
+import os, sys, subprocess, zipfile, urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -46,27 +46,22 @@ def start_stream(url, quality):
     global proc
     h, vbr, maxr, bufs = QUALITY.get(quality, QUALITY["320"])
 
-    if proc and proc.poll() is None:
-        proc.terminate()
-        try:
-            proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            pass
-    kill_stray_ffmpeg()
-    time.sleep(0.5)
+    stop_stream()
 
     os.makedirs(BUFFER_DIR, exist_ok=True)
     for f in os.listdir(BUFFER_DIR):
         try: os.remove(os.path.join(BUFFER_DIR, f))
         except OSError: pass
 
+    # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
     proc = subprocess.Popen([
         FFMPEG, "-i", url,
-        "-c:v", "libx264", "-preset", "veryfast",
+        "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+        "-force_key_frames", "expr:gte(t,n_forced*2)",
         "-b:v", vbr, "-maxrate", maxr, "-bufsize", bufs,
         "-vf", f"scale=-2:{h}",
         "-c:a", "aac", "-b:a", "128k",
-        "-f", "hls", "-hls_time", "6", "-hls_list_size", "60",
+        "-f", "hls", "-hls_time", "2", "-hls_list_size", "180",
         "-hls_flags", "delete_segments+program_date_time+independent_segments",
         os.path.join(BUFFER_DIR, "live.m3u8"),
     ], creationflags=subprocess.CREATE_NEW_CONSOLE)
@@ -75,12 +70,8 @@ def start_stream(url, quality):
 def stop_stream():
     global proc
     if proc and proc.poll() is None:
-        proc.terminate()
-        try:
-            proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            pass
-    kill_stray_ffmpeg()
+        proc.kill()
+        proc.wait()
     proc = None
 
 

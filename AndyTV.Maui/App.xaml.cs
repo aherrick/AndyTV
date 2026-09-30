@@ -22,10 +22,7 @@ public partial class App : Application
             var lastChannel = services.GetRequiredService<ILastChannelService>().LoadLastChannel();
             if (!string.IsNullOrEmpty(lastChannel?.Url))
             {
-                await Shell.Current.Navigation.PushAsync(
-                    new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName),
-                    animated: false
-                );
+                await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(lastChannel), animated: false);
             }
         };
 

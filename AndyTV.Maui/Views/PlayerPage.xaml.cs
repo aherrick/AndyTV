@@ -1,3 +1,4 @@
+using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using AndyTV.Maui.Messages;
 using AndyTV.Maui.Services;
@@ -33,16 +34,18 @@ public partial class PlayerPage
     private bool _needsRestart;
     private bool _closed;
 
-    public PlayerPage(string sourceUrl, string channelName)
+    public PlayerPage(Channel channel)
     {
         InitializeComponent();
 
-        _viewModel = new PlayerViewModel { ChannelName = channelName };
+        _viewModel = new PlayerViewModel { ChannelName = channel.DisplayName };
         BindingContext = _viewModel;
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
         var services = IPlatformApplication.Current.Services;
+        services.GetRequiredService<IRecentChannelService>().AddOrPromote(channel);
+        services.GetRequiredService<ILastChannelService>().SaveLastChannel(channel);
         _localPlaybackService = services.GetRequiredService<LocalPlaybackService>();
         _libVLC = services.GetRequiredService<LibVLC>();
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
@@ -59,7 +62,7 @@ public partial class PlayerPage
 
         PlayerTapGesture.Tapped += (_, _) => ShowControls();
 
-        _ = Start(sourceUrl);
+        _ = Start(channel.Url);
         _healthTimer.Start();
     }
 
