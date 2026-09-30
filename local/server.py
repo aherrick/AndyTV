@@ -164,6 +164,9 @@ if __name__ == "__main__":
     threading.Thread(target=stop_when_idle, daemon=True).start()
     if subprocess.run(["tailscale", "status"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         print("WARNING: Tailscale is disconnected, the phone won't be able to reach this server.", flush=True)
+    else:
+        ip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True).stdout.split()
+        print(f"Server URL for the app: http://{ip[0] if ip else '<tailscale-ip>'}:5050", flush=True)
     server = ThreadingHTTPServer(("0.0.0.0", 5050), Handler)
     print("Listening on port 5050, waiting for the app...", flush=True)
     try:
