@@ -11,8 +11,7 @@ tailscale serve --https=443 off >nul 2>&1
 echo.
 if defined TAILSCALE_IP (
 	echo   POST /start: http://%TAILSCALE_IP%:5050/start?url=...
-	echo   POST /stop:  http://%TAILSCALE_IP%:5050/stop
-	echo   HLS:         http://%TAILSCALE_IP%:5050/live.m3u8
+	echo   HLS:         http://%TAILSCALE_IP%:5050/{id}/live.m3u8
 ) else (
 	echo   Tailscale IP not detected. Run: tailscale ip
 )

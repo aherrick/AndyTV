@@ -29,6 +29,8 @@ public partial class PlayerPage
     private const int HealthCheckMilliseconds = 1000;
     private const int ControlsHideMilliseconds = 3000;
 
+    private readonly string _sourceUrl;
+    private bool _starting;
     private int _backgroundVideoTrack = -1;
     private bool _inBackground;
     private bool _needsRestart;
@@ -40,6 +42,7 @@ public partial class PlayerPage
 
         _viewModel = new PlayerViewModel { ChannelName = channel.DisplayName };
         BindingContext = _viewModel;
+        _sourceUrl = channel.Url;
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
@@ -62,20 +65,8 @@ public partial class PlayerPage
 
         PlayerTapGesture.Tapped += (_, _) => ShowControls();
 
-        _ = Start(channel.Url);
+        Play();
         _healthTimer.Start();
-    }
-
-    private async Task Start(string sourceUrl)
-    {
-        var url = await _localPlaybackService.Start(sourceUrl);
-        if (_closed)
-        {
-            return;
-        }
-
-        _viewModel.Url = url;
-        Play(url);
     }
 
     protected override void OnAppearing()
@@ -90,11 +81,6 @@ public partial class PlayerPage
 
     public void Receive(AppResumedMessage _)
     {
-        if (string.IsNullOrEmpty(_viewModel.Url))
-        {
-            return;
-        }
-
         Dispatcher.Dispatch(() =>
         {
             _inBackground = false;
@@ -103,7 +89,7 @@ public partial class PlayerPage
             // VLC's audio output stays dead after losing the session, so a fresh start is the reliable recovery
             if (_needsRestart || ShouldRestartOnResume())
             {
-                Play(_viewModel.Url);
+                Play();
                 return;
             }
 
@@ -120,13 +106,7 @@ public partial class PlayerPage
 
     public void Receive(AudioInterruptedMessage _) => _needsRestart = true;
 
-    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(() =>
-    {
-        if (!string.IsNullOrEmpty(_viewModel.Url))
-        {
-            Play(_viewModel.Url);
-        }
-    });
+    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(Play);
 
     public void Receive(AppStoppedMessage _)
     {
@@ -154,12 +134,29 @@ public partial class PlayerPage
                 or VLCState.Error;
     }
 
-    private void Play(string url)
+    // Every (re)start pops a fresh server stream; the server kills the previous one first.
+    private async void Play()
     {
+        // One start at a time; it picks up the current background state when it finishes
+        if (_starting)
+        {
+            return;
+        }
+        _starting = true;
+        _mediaPlayer.Stop();
+
+        var url = await _localPlaybackService.Start(_sourceUrl);
+        _starting = false;
+        if (_closed)
+        {
+            return;
+        }
+
+        _viewModel.Url = url;
+
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
         _needsRestart = _inBackground;
         _healthMonitor.Reset();
-        _mediaPlayer.Stop();
         using var media = new Media(_libVLC, url, FromType.FromLocation);
         if (_inBackground)
         {
@@ -170,16 +167,11 @@ public partial class PlayerPage
 
     private void OnHealthTimerTick(object sender, EventArgs e)
     {
-        if (string.IsNullOrEmpty(_viewModel.Url))
-        {
-            return;
-        }
-
         using var media = _mediaPlayer.Media;
         if (media?.Statistics is { } stats
             && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures))
         {
-            Play(_viewModel.Url);
+            Play();
         }
     }
 
@@ -214,7 +206,5 @@ public partial class PlayerPage
         _mediaPlayer.Stop();
         VideoView.MediaPlayer = null;
         _mediaPlayer.Dispose();
-
-        _ = _localPlaybackService.Stop();
     }
 }
