@@ -70,13 +70,15 @@ def open_stream(url, quality, sid):
     playlist = os.path.join(BUFFER_DIR, sid, "live.m3u8")
 
     with lock:
-        if sid != session:
+        started = sid != session
+        if started:
             # A late request from an old session must not restart it over the new one.
             if sid in seen_sessions:
                 return None
             seen_sessions.add(sid)
             _kill()
             os.makedirs(os.path.dirname(playlist))
+            print(f"[{sid[:8]}] starting {quality}p: {url}", flush=True)
             # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
             proc = subprocess.Popen([
                 FFMPEG, "-i", url,
@@ -89,8 +91,7 @@ def open_stream(url, quality, sid):
                 "-hls_flags", "delete_segments+program_date_time+independent_segments",
                 "-hls_base_url", f"/{sid}/",
                 playlist,
-            ], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-               creationflags=subprocess.CREATE_NO_WINDOW)
+            ], creationflags=subprocess.CREATE_NEW_CONSOLE)
             session = sid
         my_proc = proc
 
@@ -98,8 +99,12 @@ def open_stream(url, quality, sid):
     deadline = time.monotonic() + PLAYLIST_TIMEOUT
     while time.monotonic() < deadline and my_proc.poll() is None:
         if os.path.exists(playlist):
+            if started:
+                print(f"[{sid[:8]}] playing", flush=True)
             return playlist
         time.sleep(0.25)
+    if started:
+        print(f"[{sid[:8]}] failed to start (ffmpeg exit code {my_proc.poll()})", flush=True)
     return None
 
 
@@ -107,6 +112,7 @@ def stop_when_idle():
     while True:
         time.sleep(5)
         if proc and time.monotonic() - last_request > IDLE_TIMEOUT:
+            print("idle, stopping ffmpeg", flush=True)
             stop_stream()
 
 
@@ -171,7 +177,10 @@ if __name__ == "__main__":
     shutil.rmtree(BUFFER_DIR, ignore_errors=True)
     os.makedirs(BUFFER_DIR, exist_ok=True)
     threading.Thread(target=stop_when_idle, daemon=True).start()
+    if subprocess.run(["tailscale", "status"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        print("WARNING: Tailscale is disconnected, the phone won't be able to reach this server.", flush=True)
     server = ThreadingHTTPServer(("0.0.0.0", 5050), Handler)
+    print("Listening on port 5050, waiting for the app...", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
