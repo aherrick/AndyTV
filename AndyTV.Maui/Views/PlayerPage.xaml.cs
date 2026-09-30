@@ -30,11 +30,9 @@ public partial class PlayerPage
     private const int ControlsHideMilliseconds = 3000;
 
     private readonly string _sourceUrl;
-    private bool _starting;
     private int _backgroundVideoTrack = -1;
     private bool _inBackground;
     private bool _needsRestart;
-    private bool _closed;
 
     public PlayerPage(Channel channel)
     {
@@ -134,29 +132,16 @@ public partial class PlayerPage
                 or VLCState.Error;
     }
 
-    // Every (re)start pops a fresh server stream; the server kills the previous one first.
-    private async void Play()
+    // Every (re)start gets a new server session, which makes the server pop a fresh stream.
+    private void Play()
     {
-        // One start at a time; it picks up the current background state when it finishes
-        if (_starting)
-        {
-            return;
-        }
-        _starting = true;
-        _mediaPlayer.Stop();
-
-        var url = await _localPlaybackService.Start(_sourceUrl);
-        _starting = false;
-        if (_closed)
-        {
-            return;
-        }
-
+        var url = _localPlaybackService.GetUrl(_sourceUrl);
         _viewModel.Url = url;
 
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
         _needsRestart = _inBackground;
         _healthMonitor.Reset();
+        _mediaPlayer.Stop();
         using var media = new Media(_libVLC, url, FromType.FromLocation);
         if (_inBackground)
         {
@@ -193,7 +178,6 @@ public partial class PlayerPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _closed = true;
         DeviceDisplay.Current.KeepScreenOn = false;
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);

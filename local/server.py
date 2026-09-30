@@ -1,4 +1,4 @@
-import os, sys, shutil, subprocess, threading, time, uuid, zipfile, urllib.request
+import os, re, sys, shutil, subprocess, threading, time, zipfile, urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -20,6 +20,8 @@ QUALITY = {
 
 lock = threading.Lock()
 proc = None
+session = None
+seen_sessions = set()
 last_request = 0.0
 
 
@@ -48,11 +50,11 @@ def kill_stray_ffmpeg():
 
 
 def _kill():
-    global proc
+    global proc, session
     if proc and proc.poll() is None:
         proc.kill()
         proc.wait()
-    proc = None
+    proc = session = None
     shutil.rmtree(BUFFER_DIR, ignore_errors=True)
 
 
@@ -61,36 +63,42 @@ def stop_stream():
         _kill()
 
 
-def start_stream(url, quality):
-    """Kill whatever is running, start a fresh ffmpeg in its own folder, and return its id once playable."""
-    global proc, last_request
+def open_stream(url, quality, sid):
+    """A new session kills whatever is running and starts a fresh ffmpeg; returns the playlist path once playable."""
+    global proc, session
     h, vbr, maxr, bufs = QUALITY[quality]
+    playlist = os.path.join(BUFFER_DIR, sid, "live.m3u8")
 
     with lock:
-        _kill()
-        sid = uuid.uuid4().hex[:12]
-        playlist = os.path.join(BUFFER_DIR, sid, "live.m3u8")
-        os.makedirs(os.path.dirname(playlist))
-        # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
-        proc = my_proc = subprocess.Popen([
-            FFMPEG, "-i", url,
-            "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
-            "-force_key_frames", "expr:gte(t,n_forced*2)",
-            "-b:v", vbr, "-maxrate", maxr, "-bufsize", bufs,
-            "-vf", f"scale=-2:{h}",
-            "-c:a", "aac", "-b:a", "128k",
-            "-f", "hls", "-hls_time", "2", "-hls_list_size", "180",
-            "-hls_flags", "delete_segments+program_date_time+independent_segments",
-            playlist,
-        ], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-           creationflags=subprocess.CREATE_NO_WINDOW)
-        last_request = time.monotonic()
+        if sid != session:
+            # A late request from an old session must not restart it over the new one.
+            if sid in seen_sessions:
+                return None
+            seen_sessions.add(sid)
+            _kill()
+            os.makedirs(os.path.dirname(playlist))
+            # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
+            proc = subprocess.Popen([
+                FFMPEG, "-i", url,
+                "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+                "-force_key_frames", "expr:gte(t,n_forced*2)",
+                "-b:v", vbr, "-maxrate", maxr, "-bufsize", bufs,
+                "-vf", f"scale=-2:{h}",
+                "-c:a", "aac", "-b:a", "128k",
+                "-f", "hls", "-hls_time", "2", "-hls_list_size", "180",
+                "-hls_flags", "delete_segments+program_date_time+independent_segments",
+                "-hls_base_url", f"/{sid}/",
+                playlist,
+            ], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+               creationflags=subprocess.CREATE_NO_WINDOW)
+            session = sid
+        my_proc = proc
 
-    # A newer /start kills this ffmpeg, which ends the wait too.
+    # A newer session kills this ffmpeg, which ends the wait too.
     deadline = time.monotonic() + PLAYLIST_TIMEOUT
     while time.monotonic() < deadline and my_proc.poll() is None:
         if os.path.exists(playlist):
-            return sid
+            return playlist
         time.sleep(0.25)
     return None
 
@@ -122,37 +130,39 @@ class Handler(SimpleHTTPRequestHandler):
         global last_request
         last_request = time.monotonic()
         try:
-            super().do_GET()
+            parsed = urlparse(self.path)
+            if parsed.path == "/live.m3u8":
+                self.serve_live(parse_qs(parsed.query))
+            else:
+                super().do_GET()
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
             pass
 
-    def do_POST(self):
+    # GET /live.m3u8?session=&quality=&url= ; a session id the server hasn't seen starts a fresh stream.
+    def serve_live(self, q):
+        url = q.get("url", [""])[0].strip()
+        sid = q.get("session", [""])[0].strip().lower()
+        quality = q.get("quality", ["320"])[0]
+        if quality not in QUALITY:
+            quality = "320"
+        if not url or not re.fullmatch(r"[0-9a-f]{32}", sid):
+            self.send_error(400, "url and 32-hex session required")
+            return
+
+        playlist = open_stream(url, quality, sid)
         try:
-            path = urlparse(self.path).path
-            if path == "/start":
-                q = parse_qs(urlparse(self.path).query)
-                url = q.get("url", [""])[0].strip()
-                if not url:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b"missing required query parameter: url")
-                    return
-                quality = q.get("quality", ["320"])[0]
-                if quality not in QUALITY:
-                    quality = "320"
-                sid = start_stream(url, quality)
-                if not sid:
-                    self.send_response(502)
-                    self.end_headers()
-                    self.wfile.write(b"stream failed to start")
-                    return
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(sid.encode())
-            else:
-                self.send_error(404)
-        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
-            pass
+            if not playlist:
+                raise OSError
+            with open(playlist, "rb") as f:
+                data = f.read()
+        except OSError:
+            self.send_error(502, "stream unavailable")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/vnd.apple.mpegurl")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
 
 if __name__ == "__main__":
