@@ -23,17 +23,6 @@
                     Color="{Binding UseLocalColor}" />
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
-        <ToolbarItem
-            Command="{Binding ToggleLandscapeLockCommand}"
-            Order="Primary">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource
-                    FontFamily="FontAwesomeSolid"
-                    Glyph="{Binding LockGlyph}"
-                    Size="18"
-                    Color="{Binding LockColor}" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
     </ContentPage.ToolbarItems>
 
     <ContentPage.Resources>

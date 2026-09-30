@@ -1,4 +1,4 @@
-import os, sys, time, subprocess, threading, zipfile, urllib.request
+import os, sys, time, subprocess, zipfile, urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
@@ -120,7 +120,8 @@ class Handler(SimpleHTTPRequestHandler):
                 quality = q.get("quality", ["320"])[0]
                 if quality not in QUALITY:
                     quality = "320"
-                threading.Thread(target=start_stream, args=(url, quality), daemon=True).start()
+                # Synchronous so the previous channel's playlist is gone before the client polls live.m3u8
+                start_stream(url, quality)
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(b"ok")

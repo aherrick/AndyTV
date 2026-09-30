@@ -5,9 +5,10 @@ namespace AndyTV.Maui.Services;
 public class LocalPlaybackService(ILocalConfigService localConfigService)
 {
     private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
-    private string _currentSourceUrl;
+    private static readonly TimeSpan PlaylistTimeout = TimeSpan.FromSeconds(20);
 
-    public async Task<string> ResolvePlaybackUrl(string sourceUrl)
+    // Returns the local server's HLS url, or the source url when local playback is off or the server fails.
+    public async Task<string> Start(string sourceUrl)
     {
         var config = localConfigService.Load();
         if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
@@ -16,20 +17,18 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
         }
 
         var serverUrl = config.ServerUrl.TrimEnd('/');
-
-        // If the same source URL is already streaming, skip restarting
-        if (string.Equals(_currentSourceUrl, sourceUrl, StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{serverUrl}/live.m3u8";
-        }
-
         var quality = string.IsNullOrWhiteSpace(config.Quality) ? "320" : config.Quality;
+        var playlistUrl = $"{serverUrl}/live.m3u8";
 
         try
         {
-            await HttpClient.PostAsync($"{serverUrl}/start?url={Uri.EscapeDataString(sourceUrl)}&quality={quality}", null);
-            _currentSourceUrl = sourceUrl;
-            return $"{serverUrl}/live.m3u8";
+            using var response = await HttpClient.PostAsync(
+                $"{serverUrl}/start?url={Uri.EscapeDataString(sourceUrl)}&quality={quality}",
+                null
+            );
+            response.EnsureSuccessStatusCode();
+
+            return await WaitForPlaylist(playlistUrl) ? playlistUrl : sourceUrl;
         }
         catch
         {
@@ -37,7 +36,7 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
         }
     }
 
-    public async Task StopPlayback()
+    public async Task Stop()
     {
         var config = localConfigService.Load();
         if (!config.Enabled || string.IsNullOrWhiteSpace(config.ServerUrl))
@@ -45,14 +44,28 @@ public class LocalPlaybackService(ILocalConfigService localConfigService)
             return;
         }
 
-        _currentSourceUrl = null;
-
         try
         {
-            await HttpClient.PostAsync($"{config.ServerUrl.TrimEnd('/')}/stop", null);
+            using var response = await HttpClient.PostAsync($"{config.ServerUrl.TrimEnd('/')}/stop", null);
         }
         catch
         {
         }
+    }
+
+    // ffmpeg only writes the playlist after its first segment; playing earlier 404s until the stall monitor retries.
+    private static async Task<bool> WaitForPlaylist(string playlistUrl)
+    {
+        var deadline = DateTime.UtcNow + PlaylistTimeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            using var response = await HttpClient.GetAsync(playlistUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            await Task.Delay(500);
+        }
+        return false;
     }
 }

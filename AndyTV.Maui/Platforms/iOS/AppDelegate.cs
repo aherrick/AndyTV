@@ -1,5 +1,4 @@
 using AndyTV.Maui.Messages;
-using AndyTV.Maui.Services;
 using AVFoundation;
 using CommunityToolkit.Mvvm.Messaging;
 using Foundation;
@@ -30,34 +29,5 @@ public class AppDelegate : MauiUIApplicationDelegate
         });
 
         return base.FinishedLaunching(application, launchOptions);
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Exported iOS delegate callbacks must remain instance methods."
-    )]
-    [Export("application:supportedInterfaceOrientationsForWindow:")]
-    public UIInterfaceOrientationMask GetSupportedInterfaceOrientations(
-        UIApplication application,
-        UIWindow forWindow
-    )
-    {
-        _ = application;
-        _ = forWindow;
-
-        if (OrientationLockService.ActivePlaybackLockMode == LockMode.Landscape)
-        {
-            return UIInterfaceOrientationMask.Landscape;
-        }
-
-        if (OrientationLockService.ActivePlaybackLockMode == LockMode.Portrait)
-        {
-            return UIInterfaceOrientationMask.Portrait;
-        }
-
-        return UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad
-            ? UIInterfaceOrientationMask.All
-            : UIInterfaceOrientationMask.AllButUpsideDown;
     }
 }

@@ -12,9 +12,7 @@ public partial class ChannelsViewModel(
     IRecentChannelService recentChannelService,
     IFavoriteChannelService favoriteChannelService,
     ILastChannelService lastChannelService,
-    OrientationLockService orientationLockService,
-    ILocalConfigService localConfigService,
-    LocalPlaybackService localPlaybackService
+    ILocalConfigService localConfigService
 ) : ObservableObject
 {
     [ObservableProperty]
@@ -48,17 +46,6 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial List<Channel> Channels { get; set; }
 
-    public LockMode CurrentLockMode => orientationLockService.CurrentLockMode;
-
-    public string LockGlyph => CurrentLockMode == LockMode.Unlocked ? "\uf09c" : "\uf023";
-
-    public Color LockColor => CurrentLockMode switch
-    {
-        LockMode.Landscape => Colors.Orange,
-        LockMode.Portrait => Colors.Red,
-        _ => Colors.Gray
-    };
-
     private bool _useLocal;
 
     public bool UseLocal
@@ -84,13 +71,9 @@ public partial class ChannelsViewModel(
 
     public async Task EnsureChannelsLoaded()
     {
-        OnPropertyChanged(nameof(CurrentLockMode));
-        OnPropertyChanged(nameof(LockGlyph));
-        OnPropertyChanged(nameof(LockColor));
         _useLocal = localConfigService.Load().Enabled;
         OnPropertyChanged(nameof(UseLocal));
         OnPropertyChanged(nameof(UseLocalColor));
-        OrientationLockService.UseDefaultOrientation();
 
         if (_hasLoaded && _listChannels.Count > 0)
         {
@@ -144,24 +127,7 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private void ToggleLandscapeLock()
-    {
-        orientationLockService.CycleLockMode();
-        OnPropertyChanged(nameof(CurrentLockMode));
-        OnPropertyChanged(nameof(LockGlyph));
-        OnPropertyChanged(nameof(LockColor));
-    }
-
-    [RelayCommand]
-    private void ToggleUseLocal()
-    {
-        if (UseLocal)
-        {
-            _ = localPlaybackService.StopPlayback();
-        }
-
-        UseLocal = !UseLocal;
-    }
+    private void ToggleUseLocal() => UseLocal = !UseLocal;
 
     private void Populate()
     {
@@ -243,9 +209,6 @@ public partial class ChannelsViewModel(
         // Save as last channel
         lastChannelService.SaveLastChannel(channel);
 
-        var playbackUrl = await localPlaybackService.ResolvePlaybackUrl(channel.Url);
-
-        var playerPage = new Views.PlayerPage(playbackUrl, channel.DisplayName);
-        await Shell.Current.Navigation.PushAsync(playerPage);
+        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel.Url, channel.DisplayName));
     }
 }

@@ -19,9 +19,7 @@ public partial class PlayerPage
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
     private readonly StreamHealthMonitor _healthMonitor = new();
-    private readonly IRemoteCommandService _remoteCommandService;
     private readonly LocalPlaybackService _localPlaybackService;
-    private readonly OrientationLockService _orientationLockService;
     private readonly IDispatcherTimer _controlsTimer;
 
     // Completes when the first stream starts so the startup channel download doesn't compete with it.
@@ -33,29 +31,20 @@ public partial class PlayerPage
     private int _backgroundVideoTrack = -1;
     private bool _inBackground;
     private bool _needsRestart;
+    private bool _closed;
 
-    public PlayerPage(string url, string channelName)
+    public PlayerPage(string sourceUrl, string channelName)
     {
         InitializeComponent();
 
-        _viewModel = new PlayerViewModel { Url = url, ChannelName = channelName };
+        _viewModel = new PlayerViewModel { ChannelName = channelName };
         BindingContext = _viewModel;
-        _orientationLockService =
-            IPlatformApplication.Current?.Services.GetService<OrientationLockService>();
-        _remoteCommandService =
-            IPlatformApplication.Current?.Services.GetService<IRemoteCommandService>();
-        _localPlaybackService =
-            IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
-
-        // Disable double-tap back when in Portrait lock mode
-        if (_orientationLockService?.CurrentLockMode == LockMode.Portrait)
-        {
-            _viewModel.CanGoBack = false;
-        }
 
         DeviceDisplay.Current.KeepScreenOn = true;
 
-        _libVLC = IPlatformApplication.Current.Services.GetRequiredService<LibVLC>();
+        var services = IPlatformApplication.Current.Services;
+        _localPlaybackService = services.GetRequiredService<LocalPlaybackService>();
+        _libVLC = services.GetRequiredService<LibVLC>();
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);
         _mediaPlayer.Playing += (_, _) => FirstPlaying.TrySetResult();
         VideoView.MediaPlayer = _mediaPlayer;
@@ -70,25 +59,30 @@ public partial class PlayerPage
 
         PlayerTapGesture.Tapped += (_, _) => ShowControls();
 
-        Play(url);
+        _ = Start(sourceUrl);
         _healthTimer.Start();
+    }
+
+    private async Task Start(string sourceUrl)
+    {
+        var url = await _localPlaybackService.Start(sourceUrl);
+        if (_closed)
+        {
+            return;
+        }
+
+        _viewModel.Url = url;
+        Play(url);
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        _orientationLockService?.ApplyForPlayback();
         ShowControls();
         WeakReferenceMessenger.Default.Register<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Register<AppStoppedMessage>(this);
         WeakReferenceMessenger.Default.Register<AudioInterruptedMessage>(this);
         WeakReferenceMessenger.Default.Register<AudioResumableMessage>(this);
-
-        if (_remoteCommandService is not null)
-        {
-            _remoteCommandService.CommandReceived += OnRemoteCommandReceived;
-            _remoteCommandService.Start();
-        }
     }
 
     public void Receive(AppResumedMessage _)
@@ -123,7 +117,13 @@ public partial class PlayerPage
 
     public void Receive(AudioInterruptedMessage _) => _needsRestart = true;
 
-    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(() => Play(_viewModel.Url));
+    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(() =>
+    {
+        if (!string.IsNullOrEmpty(_viewModel.Url))
+        {
+            Play(_viewModel.Url);
+        }
+    });
 
     public void Receive(AppStoppedMessage _)
     {
@@ -189,11 +189,6 @@ public partial class PlayerPage
 
     private void ShowControls()
     {
-        if (!_viewModel.CanGoBack)
-        {
-            return;
-        }
-
         BackButton.Opacity = 1;
         BackButton.InputTransparent = false;
         _controlsTimer.Stop();
@@ -203,14 +198,8 @@ public partial class PlayerPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _closed = true;
         DeviceDisplay.Current.KeepScreenOn = false;
-        OrientationLockService.UseDefaultOrientation();
-
-        if (_remoteCommandService is not null)
-        {
-            _remoteCommandService.CommandReceived -= OnRemoteCommandReceived;
-            _remoteCommandService.Stop();
-        }
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);
@@ -223,28 +212,6 @@ public partial class PlayerPage
         VideoView.MediaPlayer = null;
         _mediaPlayer.Dispose();
 
-        _ = _localPlaybackService?.StopPlayback();
-    }
-
-    private void OnRemoteCommandReceived(object sender, RemoteCommandEventArgs e)
-    {
-        Dispatcher.Dispatch(() =>
-        {
-            switch (e.Kind)
-            {
-                case RemoteCommandKind.VolumeUp:
-                    AdjustVolume(10);
-                    break;
-                case RemoteCommandKind.VolumeDown:
-                    AdjustVolume(-10);
-                    break;
-            }
-        });
-    }
-
-    private void AdjustVolume(int delta)
-    {
-        var newVolume = Math.Clamp(_mediaPlayer.Volume + delta, 0, 200);
-        _mediaPlayer.Volume = newVolume;
+        _ = _localPlaybackService.Stop();
     }
 }

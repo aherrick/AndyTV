@@ -15,21 +15,17 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState activationState)
     {
         var window = new Window(new AppShell());
+        var services = IPlatformApplication.Current.Services;
 
         window.Created += async (_, _) =>
         {
-            var lastChannelService = IPlatformApplication.Current?.Services.GetService<ILastChannelService>();
-            var localPlaybackService =
-                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
-            var lastChannel = lastChannelService?.LoadLastChannel();
-            if (lastChannel != null && !string.IsNullOrEmpty(lastChannel.Url))
+            var lastChannel = services.GetRequiredService<ILastChannelService>().LoadLastChannel();
+            if (!string.IsNullOrEmpty(lastChannel?.Url))
             {
-                var playbackUrl =
-                    localPlaybackService is null
-                        ? lastChannel.Url
-                        : await localPlaybackService.ResolvePlaybackUrl(lastChannel.Url);
-                var playerPage = new Views.PlayerPage(playbackUrl, lastChannel.DisplayName);
-                await Shell.Current.Navigation.PushAsync(playerPage, animated: false);
+                await Shell.Current.Navigation.PushAsync(
+                    new Views.PlayerPage(lastChannel.Url, lastChannel.DisplayName),
+                    animated: false
+                );
             }
         };
 
@@ -41,12 +37,7 @@ public partial class App : Application
             WeakReferenceMessenger.Default.Send(new AppStoppedMessage());
 
         // Only kill the server-side stream when the app is actually torn down, not on background
-        window.Destroying += (_, _) =>
-        {
-            var localPlaybackService =
-                IPlatformApplication.Current?.Services.GetService<LocalPlaybackService>();
-            _ = localPlaybackService?.StopPlayback();
-        };
+        window.Destroying += (_, _) => _ = services.GetRequiredService<LocalPlaybackService>().Stop();
 
         return window;
     }

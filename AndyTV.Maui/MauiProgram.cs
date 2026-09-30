@@ -34,14 +34,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IFavoriteChannelService, FavoriteChannelService>();
         builder.Services.AddSingleton<ILocalConfigService, LocalConfigService>();
         builder.Services.AddSingleton<LocalPlaybackService>();
-        builder.Services.AddSingleton<OrientationLockService>();
         // One native VLC instance for the app; creating one per player page costs startup time on every channel.
         builder.Services.AddSingleton(_ => new LibVLC());
-#if IOS
-        builder.Services.AddSingleton<IRemoteCommandService, RemoteCommandService>();
-#else
-        builder.Services.AddSingleton<IRemoteCommandService, NoopRemoteCommandService>();
-#endif
 
         // ViewModels
         builder.Services.AddTransient<SettingsViewModel>();

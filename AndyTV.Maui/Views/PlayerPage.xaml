@@ -33,7 +33,6 @@
             Command="{Binding GoBackCommand}"
             CornerRadius="18"
             HorizontalOptions="Start"
-            IsVisible="{Binding CanGoBack}"
             Text="Back to list"
             TextColor="White"
             VerticalOptions="Start" />
