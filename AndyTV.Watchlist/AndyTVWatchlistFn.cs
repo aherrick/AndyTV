@@ -2,9 +2,6 @@ using AndyTV.Watchlist.Models;
 using AndyTV.Watchlist.Services;
 using Microsoft.Azure.Functions.Worker;
 
-// The force flags are consts, so whichever branch is off is unreachable.
-#pragma warning disable CS0162
-
 namespace AndyTV.Watchlist;
 
 /// <summary>
