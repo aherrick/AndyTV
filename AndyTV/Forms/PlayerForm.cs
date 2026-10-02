@@ -98,11 +98,7 @@ internal sealed class PlayerForm : Form
 
         _mediaPlayer.Playing += OnPlaying;
 
-        _muteItem.Click += (_, _) =>
-        {
-            _mediaPlayer.Mute = !_mediaPlayer.Mute;
-            _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
-        };
+        _muteItem.Click += (_, _) => _mediaPlayer.Mute = !_mediaPlayer.Mute;
         _addFavoriteItem.Click += (_, _) => AddCurrentFavorite();
         _recordItem.Click += (_, _) => ToggleRecording();
 
@@ -317,20 +313,16 @@ internal sealed class PlayerForm : Form
 
     private Channel ResolveByStreamingTvId(string streamingTvId)
     {
-        var channels = _playlistService.UsUkChannels;
-        foreach (var region in (Dictionary<string, List<ChannelTop>>[])[ChannelService.TopUs(), ChannelService.TopUk()])
+        var entries = ChannelService.TopUs().Values
+            .Concat(ChannelService.TopUk().Values)
+            .SelectMany(e => e)
+            .Where(e => string.Equals(e.StreamingTVId, streamingTvId, StringComparison.OrdinalIgnoreCase));
+        foreach (var entry in entries)
         {
-            foreach (var entry in region.Values.SelectMany(e => e))
+            var matches = ChannelMatcher.MatchTop(entry, _playlistService.UsUkChannels);
+            if (matches.Count > 0)
             {
-                if (!string.Equals(entry.StreamingTVId, streamingTvId, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                var matches = ChannelMatcher.MatchTop(entry, channels);
-                if (matches.Count > 0)
-                {
-                    return matches[0];
-                }
+                return matches[0];
             }
         }
         return null;
@@ -502,10 +494,7 @@ internal sealed class PlayerForm : Form
         )
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
-            foreach (var node in ChannelMatcher.BuildPlaylistNodes(playlist, channels))
-            {
-                item.DropDownItems.Add(Render(node));
-            }
+            item.DropDownItems.AddRange([.. ChannelMatcher.BuildPlaylistNodes(playlist, channels).Select(Render)]);
             items.Add(item);
         }
 
@@ -550,7 +539,7 @@ internal sealed class PlayerForm : Form
             var fav in _favoriteService.Favorites.Where(f => string.IsNullOrWhiteSpace(f.Group))
         )
         {
-            _menu.Items.Insert(index++, FavoriteLeaf(fav));
+            _menu.Items.Insert(index++, ChannelItem(fav.DisplayName, fav));
         }
         foreach (
             var group in _favoriteService
@@ -560,10 +549,7 @@ internal sealed class PlayerForm : Form
         )
         {
             var groupItem = new ToolStripMenuItem(group.Key);
-            foreach (var fav in group)
-            {
-                groupItem.DropDownItems.Add(FavoriteLeaf(fav));
-            }
+            groupItem.DropDownItems.AddRange([.. group.Select(fav => ChannelItem(fav.DisplayName, fav))]);
             _menu.Items.Insert(index++, groupItem);
         }
         RefreshRecent();
@@ -573,19 +559,21 @@ internal sealed class PlayerForm : Form
     {
         if (node.Channel is { } channel)
         {
-            var leaf = new ToolStripMenuItem(node.Text);
-            leaf.Click += (_, _) => Play(channel);
-            return leaf;
+            return ChannelItem(node.Text, channel);
         }
 
         var item = new ToolStripMenuItem(node.Text);
-        if (node.Children is not null)
+        if (node.Children is { Count: > 0 } children)
         {
-            foreach (var child in node.Children)
-            {
-                item.DropDownItems.Add(Render(child));
-            }
+            item.DropDownItems.AddRange([.. children.Select(Render)]);
         }
+        return item;
+    }
+
+    private ToolStripMenuItem ChannelItem(string text, Channel channel)
+    {
+        var item = new ToolStripMenuItem(text);
+        item.Click += (_, _) => Play(channel);
         return item;
     }
 
@@ -619,13 +607,6 @@ internal sealed class PlayerForm : Form
         }
         _favoriteService.SaveFavoriteChannels(favorites);
         RebuildFavorites();
-    }
-
-    private ToolStripMenuItem FavoriteLeaf(Channel fav)
-    {
-        var leaf = new ToolStripMenuItem(fav.DisplayName);
-        leaf.Click += (_, _) => Play(fav);
-        return leaf;
     }
 
     private static void OpenUrl(string url) =>
@@ -662,8 +643,7 @@ internal sealed class PlayerForm : Form
         var index = _menu.Items.IndexOf(_favoritesSeparator);
         foreach (var recent in recents)
         {
-            var leaf = new ToolStripMenuItem(recent.DisplayName) { Tag = recent };
-            leaf.Click += OnRecentClick;
+            var leaf = ChannelItem(recent.DisplayName, recent);
             _menu.Items.Insert(index++, leaf);
             _recentItems.Add(leaf);
         }
@@ -672,14 +652,6 @@ internal sealed class PlayerForm : Form
         _favoritesSeparator.Visible = recents.Count > 0 && hasFavorites;
         // Divider hidden only when nothing sits above it (no recents and no favorites).
         _recentSeparator.Visible = recents.Count > 0 || hasFavorites;
-    }
-
-    private void OnRecentClick(object sender, EventArgs e)
-    {
-        if (sender is ToolStripMenuItem { Tag: Channel r })
-        {
-            Play(r);
-        }
     }
 
     private async void OnHealthTick(object sender, EventArgs e)
@@ -783,9 +755,7 @@ internal sealed class PlayerForm : Form
         }
 
         Directory.CreateDirectory(RecordingsFolder);
-        var name = string.Concat(
-            _current.DisplayName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)
-        );
+        var name = string.Join('_', _current.DisplayName.Split(Path.GetInvalidFileNameChars()));
         _recordingPath = Path.Combine(
             RecordingsFolder,
             $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{name}.ts"
@@ -834,14 +804,8 @@ internal sealed class PlayerForm : Form
         }
         _pending = null;
 
-        if (InvokeRequired)
-        {
-            BeginInvoke(() => CommitRecent(played));
-        }
-        else
-        {
-            CommitRecent(played);
-        }
+        // Raised on a VLC thread.
+        BeginInvoke(() => CommitRecent(played));
     }
 
     private void CommitRecent(Channel played)

@@ -12,25 +12,20 @@ public static class StreamingScraper
     {
         // category -> channels
         var top = ChannelService.TopUsGuide();
+        var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
+        var cutoff = DateTime.UtcNow.AddHours(-6);
 
         var shows = new List<Show>();
+        var seen = new HashSet<(string Subject, DateTime StartTime, string ChannelName)>();
         var channelsWithIds = 0;
 
         // Tracking for summary
         var zeroResultChannels = new List<(string Category, string Name, string Url)>();
 
-        foreach (var kvp in top)
+        foreach (var (category, channels) in top)
         {
-            var category = kvp.Key;
-            var channels = kvp.Value;
-
             foreach (var tvChannelFav in channels)
             {
-                if (string.IsNullOrWhiteSpace(tvChannelFav.StreamingTVId))
-                {
-                    continue;
-                }
-
                 channelsWithIds++;
 
                 await Task.Delay(15000); // polite delay
@@ -41,8 +36,7 @@ public static class StreamingScraper
 
                 try
                 {
-                    var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader());
-                    var document = await context.OpenAsync(url);
+                    using var document = await context.OpenAsync(url);
 
                     // The page embeds the full schedule as JSON-LD (CollectionPage -> BroadcastEvent items).
                     var json = document
@@ -61,13 +55,10 @@ public static class StreamingScraper
 
                     foreach (var show in ParseSchedule(json, category, tvChannelFav))
                     {
-                        var exists = shows.Any(p =>
-                            p.Subject == show.Subject
-                            && p.StartTime == show.StartTime
-                            && p.ChannelName == show.ChannelName
-                        );
-
-                        if (!exists && show.StartTime > DateTime.UtcNow.AddHours(-6))
+                        if (
+                            show.StartTime > cutoff
+                            && seen.Add((show.Subject, show.StartTime, show.ChannelName))
+                        )
                         {
                             shows.Add(show);
                         }

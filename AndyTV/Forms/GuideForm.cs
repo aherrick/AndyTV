@@ -3,7 +3,6 @@ using AndyTV.Guide.Shared.Components;
 using Microsoft.AspNetCore.Components.WebView.WindowsForms;
 using Microsoft.Extensions.DependencyInjection;
 using Syncfusion.Blazor;
-using Syncfusion.Licensing;
 
 namespace AndyTV;
 
@@ -20,9 +19,7 @@ sealed class GuideForm : Form
         MinimumSize = new Size(1024, 720);
         StartPosition = FormStartPosition.CenterScreen;
 
-        SyncfusionLicenseProvider.RegisterLicense(
-            "Ngo9BigBOggjHTQxAR8/V1JBaF5cXmRCd1p/TH5YfUNzdUVEY1ZUTXxaS1ZhSXxVdkxhUH5acHxXR2JaUUF9XEc="
-        );
+        GuideLicense.Register();
 
         var watchHandler = new GuideWatchHandler();
         watchHandler.WatchRequested += id =>

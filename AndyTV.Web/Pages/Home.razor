@@ -46,14 +46,14 @@
                 {
                     <h5>Recent (@_recentChannels.Count)</h5>
 
-                    @if (_recentChannels.Any())
+                    @if (_recentChannels.Count > 0)
                     {
                         <div class="list-group" style="max-height: 400px; overflow-y: auto;">
                             @foreach (var recent in _recentChannels)
                             {
                                 <button type="button"
                                         class="list-group-item list-group-item-action @(recent.Url == _currentUrl ? "active" : "")"
-                                        @onclick="() => PlayRecent(recent)">
+                                        @onclick="() => PlayChannel(recent)">
                                     @recent.DisplayName
                                     @if (!string.IsNullOrEmpty(recent.Group))
                                     {
@@ -103,8 +103,8 @@
         ChannelManager.LoadPlaylists();
 
         LoadRecent();
-        
-        if (ChannelManager.Playlists.Any())
+
+        if (ChannelManager.Playlists.Count > 0)
         {
             await ChannelManager.RefreshChannelsAsync();
         }
@@ -113,15 +113,16 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _attemptedAutoResume)
+        {
             return;
+        }
 
         _attemptedAutoResume = true;
 
-        var last = LastChannelService.LoadLastChannel();
-        if (last is null || string.IsNullOrWhiteSpace(last.Url))
-            return;
-
-        await PlayChannel(last);
+        if (LastChannelService.LoadLastChannel() is { } last && !string.IsNullOrWhiteSpace(last.Url))
+        {
+            await PlayChannel(last);
+        }
     }
 
     private async Task PlayChannel(Channel channel)
@@ -145,15 +146,7 @@
         }
     }
 
-    private async Task PlayRecent(Channel recent)
-    {
-        await PlayChannel(recent);
-    }
-
-    private void LoadRecent()
-    {
-        _recentChannels = RecentChannels.GetRecentChannels();
-    }
+    private void LoadRecent() => _recentChannels = RecentChannels.GetRecentChannels();
 
     private void SetTab(Tab tab) => _activeTab = tab;
 
@@ -162,7 +155,7 @@
     public async ValueTask DisposeAsync()
     {
         ChannelManager.OnStateChanged -= StateHasChanged;
-        
+
         if (_playerInitialized)
         {
             await JSRuntime.InvokeVoidAsync("window.videoPlayer.dispose");

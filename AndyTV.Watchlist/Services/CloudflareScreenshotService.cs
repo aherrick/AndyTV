@@ -63,7 +63,7 @@ public sealed class CloudflareScreenshotService(
         using var response = await _pipeline.ExecuteAsync(
             async token =>
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url)
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
                 {
                     Content = JsonContent.Create(payload),
                 };
@@ -92,5 +92,4 @@ public sealed class CloudflareScreenshotService(
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 }
-
 

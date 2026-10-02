@@ -9,7 +9,7 @@ public class ChannelManagerService(IPlaylistService playlistService)
     public List<Channel> Channels => playlistService.Channels;
     public bool IsLoading { get; private set; }
 
-    public event Action OnStateChanged = () => { };
+    public event Action OnStateChanged;
 
     public void LoadPlaylists()
     {
@@ -56,25 +56,20 @@ public class ChannelManagerService(IPlaylistService playlistService)
         }
     }
 
-    public int GetChannelCount(Playlist playlist)
-    {
-        return playlistService
-                .PlaylistChannels.FirstOrDefault(x => x.Playlist.Url == playlist.Url)
-                .Channels?.Count ?? 0;
-    }
+    public int GetChannelCount(Playlist playlist) =>
+        playlistService.PlaylistChannels.Find(x => x.Playlist.Url == playlist.Url).Channels?.Count ?? 0;
 
     public List<Channel> FilterChannels(string filter)
     {
         if (string.IsNullOrWhiteSpace(filter))
+        {
             return Channels;
+        }
 
-        return
-        [
-            .. Channels.Where(c =>
-                c.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                || (c.Group?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
-            ),
-        ];
+        return Channels.FindAll(c =>
+            c.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || c.Group?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true
+        );
     }
 
     private void NotifyStateChanged() => OnStateChanged?.Invoke();

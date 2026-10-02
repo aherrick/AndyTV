@@ -7,6 +7,9 @@ namespace AndyTV.Guide.Scraper;
 
 public static class LocalScraper
 {
+    private static readonly TimeZoneInfo Eastern =
+        TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+
     public static async Task<List<Show>> GetLocalGuide()
     {
         var config = Configuration.Default.WithDefaultLoader();
@@ -46,11 +49,10 @@ public static class LocalScraper
         string channelName
     )
     {
-        var estTz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
         var url = $"https://www.tvinsider.com/network/{slug}/schedule/";
         Console.WriteLine($"Scraping {url}...");
 
-        var document = await context.OpenAsync(url);
+        using var document = await context.OpenAsync(url);
         var shows = new List<Show>();
 
         // Find all date headers (e.g. <h2 id="02-01-2026" class="date">Sunday, February 1</h2>)
@@ -160,7 +162,7 @@ public static class LocalScraper
                             ChannelName = channelName,
                             Category = "LOCAL",
                             Subject = subject,
-                            StartTime = TimeZoneInfo.ConvertTimeToUtc(estStartTime, estTz),
+                            StartTime = TimeZoneInfo.ConvertTimeToUtc(estStartTime, Eastern),
                             Description = finalDesc.Trim(),
                         };
                         shows.Add(show);
@@ -169,15 +171,11 @@ public static class LocalScraper
             }
         }
 
-        // Second pass: Calculate EndTime
+        // EndTime runs to the next show's start (or one hour for the last).
         shows = [.. shows.OrderBy(s => s.StartTime)];
-
-        for (int i = 0; i < shows.Count; i++)
+        for (var i = 0; i < shows.Count; i++)
         {
-            var currentShow = shows[i];
-            var nextShow = i < shows.Count - 1 ? shows[i + 1] : null;
-
-            currentShow.EndTime = nextShow?.StartTime ?? currentShow.StartTime.AddHours(1);
+            shows[i].EndTime = i + 1 < shows.Count ? shows[i + 1].StartTime : shows[i].StartTime.AddHours(1);
         }
 
         return shows;

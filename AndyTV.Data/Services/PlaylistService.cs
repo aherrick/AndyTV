@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using AndyTV.Data.Helpers;
 using AndyTV.Data.Models;
@@ -10,7 +10,6 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
     private const string PlaylistsFileName = "playlists.json";
     private static readonly HttpClient _httpClient = new();
 
-    // Cached channel data
     public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels
     {
         get;
@@ -23,41 +22,14 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
     // playlists don't pollute them.
     public List<Channel> UsUkChannels { get; private set; } = [];
 
-    public List<Playlist> LoadPlaylists()
-    {
-        try
-        {
-            if (!storage.FileExists(PlaylistsFileName))
-                return [];
+    public List<Playlist> LoadPlaylists() =>
+        storage.ReadJson<List<Playlist>>(PlaylistsFileName) ?? [];
 
-            var json = storage.ReadText(PlaylistsFileName);
-            return JsonSerializer.Deserialize<List<Playlist>>(json) ?? [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
+    public void SavePlaylists(List<Playlist> playlists) =>
+        storage.WriteJson(PlaylistsFileName, playlists);
 
-    public void SavePlaylists(List<Playlist> playlists)
-    {
-        var json = JsonSerializer.Serialize(playlists);
-        storage.WriteText(PlaylistsFileName, json);
-    }
-
-    public async Task RefreshChannelsAsync()
-    {
-        try
-        {
-            var playlists = LoadPlaylists();
-            SetChannels(await LoadChannelsAsync(playlists));
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in RefreshChannelsAsync: {ex}");
-            throw;
-        }
-    }
+    public async Task RefreshChannelsAsync() =>
+        SetChannels(await LoadChannelsAsync(LoadPlaylists()));
 
     public void SetChannels(List<(Playlist Playlist, List<Channel> Channels)> playlistChannels)
     {
@@ -77,73 +49,69 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
     public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
         List<Playlist> playlists
-    )
+    ) => [.. await Task.WhenAll(playlists.Select(async p => (p, await LoadChannels(p))))];
+
+    private static async Task<List<Channel>> LoadChannels(Playlist playlist)
     {
-        var tasks = playlists.Select(async p =>
+        try
         {
-            try
+            var m3uText = await LoadPlaylistTextAsync(playlist.Url);
+            if (string.IsNullOrWhiteSpace(m3uText))
             {
-                var m3uText = await LoadPlaylistTextAsync(p.Url);
-                if (string.IsNullOrWhiteSpace(m3uText))
-                {
-                    return (p, new List<Channel>());
-                }
-
-                var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
-                var channels = new List<Channel>(parsed.Channels.Count);
-
-                foreach (var item in parsed.Channels)
-                {
-                    // Drop malformed entries at the source so a null title/URL can never reach the menu.
-                    if (
-                        string.IsNullOrWhiteSpace(item.MediaUrl)
-                        || string.IsNullOrWhiteSpace(item.Title)
-                    )
-                    {
-                        continue;
-                    }
-
-                    var url = item.MediaUrl;
-                    var rawName = item.Title;
-                    var name = rawName;
-
-                    if (!string.IsNullOrWhiteSpace(p.NameFind) && p.NameReplace != null)
-                    {
-                        try
-                        {
-                            name = Regex.Replace(name, p.NameFind, p.NameReplace);
-                        }
-                        catch
-                        {
-                            // Regex failed, use original name
-                        }
-                    }
-
-                    channels.Add(
-                        new Channel
-                        {
-                            RawName = rawName,
-                            Name = name,
-                            Url = url,
-                            Group = item.GroupTitle,
-                            LogoUrl = item.Logo,
-                            Category = p.Name ?? "Playlist",
-                        }
-                    );
-                }
-
-                return (p, channels);
+                return [];
             }
-            catch (Exception ex)
+
+            var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
+            var rename = NameRegex(playlist);
+            var category = playlist.Name ?? "Playlist";
+            var channels = new List<Channel>(parsed.Channels.Count);
+
+            foreach (var item in parsed.Channels)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[PLAYLIST] Failed to load '{p.Name}': {ex.Message}"
+                // Drop malformed entries at the source so a null title/URL can never reach the menu.
+                if (string.IsNullOrWhiteSpace(item.MediaUrl) || string.IsNullOrWhiteSpace(item.Title))
+                {
+                    continue;
+                }
+
+                channels.Add(
+                    new Channel
+                    {
+                        RawName = item.Title,
+                        Name = rename?.Replace(item.Title, playlist.NameReplace) ?? item.Title,
+                        Url = item.MediaUrl,
+                        Group = item.GroupTitle,
+                        LogoUrl = item.Logo,
+                        Category = category,
+                    }
                 );
-                return (p, new List<Channel>());
             }
-        });
 
-        return [.. await Task.WhenAll(tasks)];
+            return channels;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PLAYLIST] Failed to load '{playlist.Name}': {ex.Message}");
+            return [];
+        }
+    }
+
+    // Built once per playlist; an invalid pattern leaves names unchanged.
+    private static Regex NameRegex(Playlist playlist)
+    {
+        if (string.IsNullOrWhiteSpace(playlist.NameFind) || playlist.NameReplace is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new Regex(playlist.NameFind);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 
     private static Task<string> LoadPlaylistTextAsync(string source)

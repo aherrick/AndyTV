@@ -442,31 +442,11 @@ public partial class ChannelService
         };
     }
 
-    public static Dictionary<string, List<ChannelTop>> TopUsGuide()
-    {
-        var source = TopUs();
-        var result = new Dictionary<string, List<ChannelTop>>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var kvp in source)
-        {
-            var filtered = new List<ChannelTop>();
-
-            foreach (var c in kvp.Value)
-            {
-                if (!string.IsNullOrEmpty(c.StreamingTVId))
-                {
-                    filtered.Add(c);
-                }
-            }
-
-            if (filtered.Count > 0)
-            {
-                result[kvp.Key] = filtered;
-            }
-        }
-
-        return result;
-    }
+    public static Dictionary<string, List<ChannelTop>> TopUsGuide() =>
+        TopUs()
+            .Select(kvp => (kvp.Key, Channels: kvp.Value.FindAll(c => !string.IsNullOrEmpty(c.StreamingTVId))))
+            .Where(x => x.Channels.Count > 0)
+            .ToDictionary(x => x.Key, x => x.Channels, StringComparer.OrdinalIgnoreCase);
 
     public static Dictionary<string, List<ChannelTop>> TopUk()
     {
@@ -739,84 +719,50 @@ public partial class ChannelService
     // Pure/static version for tests
     public static List<MenuEntry> Get247Entries(IEnumerable<Channel> channels)
     {
-        // ---- Local helpers ----
+        // Must START with "24/7" and not carry the (AA) marker.
+        static bool Is247(Channel ch) =>
+            !string.IsNullOrWhiteSpace(ch?.DisplayName)
+            && StartsWith247Regex().IsMatch(ch.DisplayName)
+            && !ch.DisplayName.Contains("Not 24/7", StringComparison.OrdinalIgnoreCase)
+            && !MatchTwoParens().IsMatch(ch.DisplayName);
+
         static string CleanBaseName(string name)
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return string.Empty;
-            }
-
-            var text = name;
-            text = TagsRegex().Replace(text, ""); // remove [VIP], [HD], etc.
-            text = TwoFourSevenRegex().Replace(text, ""); // remove 24/7
-            text = SeasonShortRegex().Replace(text, ""); // strip "S01" etc. from base
-            text = SeasonLongRegex().Replace(text, ""); // strip "Season 1" etc. from base
-            text = NormalizeSpaceRegex().Replace(text, " ").Trim();
-            return text;
+            name = TagsRegex().Replace(name, ""); // remove [VIP], [HD], etc.
+            name = TwoFourSevenRegex().Replace(name, "");
+            name = SeasonShortRegex().Replace(name, ""); // strip "S01"
+            name = SeasonLongRegex().Replace(name, ""); // strip "Season 1"
+            return NormalizeSpaceRegex().Replace(name, " ").Trim();
         }
 
-        static (string Base, string Season) ExtractBaseAndSeason(string originalName)
+        // Prefer the short form (S01), then "Season 1".
+        static string Season(string name)
         {
-            var baseName = CleanBaseName(originalName);
-
-            // Prefer short season first (S01); if none, look for "Season 1"
-            var seasonMatch = SeasonShortRegex().Match(originalName);
-            if (!seasonMatch.Success)
+            var match = SeasonShortRegex().Match(name);
+            if (!match.Success)
             {
-                seasonMatch = SeasonLongRegex().Match(originalName);
+                match = SeasonLongRegex().Match(name);
             }
-
-            return (baseName, seasonMatch.Success ? seasonMatch.Value : null);
+            return match.Success ? match.Value : null;
         }
 
-        // ---- Select candidates: must START with "24/7" and not match the (AA) marker ----
-        var candidates = channels
-            .Where(ch =>
-            {
-                if (ch is null || string.IsNullOrWhiteSpace(ch.DisplayName))
-                    return false;
+        var groups = channels
+            .Where(Is247)
+            .Select(ch => (Channel: ch, Base: CleanBaseName(ch.DisplayName), Season: Season(ch.DisplayName)))
+            .GroupBy(x => x.Base, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
-                if (!StartsWith247Regex().IsMatch(ch.DisplayName))
-                    return false;
-
-                if (ch.DisplayName.Contains("Not 24/7", StringComparison.OrdinalIgnoreCase))
-                    return false;
-
-                if (MatchTwoParens().IsMatch(ch.DisplayName))
-                    return false;
-
-                return true;
-            })
-            .Select(ch => new { Channel = ch, Info = ExtractBaseAndSeason(ch.DisplayName) });
-
-        // ---- Group by cleaned base name; sort groups & items deterministically ----
-        var grouped = candidates
-            .GroupBy(x => x.Info.Base, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => new
-            {
-                BaseName = g.Key,
-                Items = g.OrderBy(
-                        x => x.Info.Season ?? string.Empty,
-                        StringComparer.OrdinalIgnoreCase
-                    )
-                    .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase),
-            });
-
-        // ---- Build entries ----
         var entries = new List<MenuEntry>();
-
-        foreach (var group in grouped)
+        foreach (var group in groups)
         {
-            if (string.IsNullOrWhiteSpace(group.BaseName))
+            var baseName = group.Key;
+            if (string.IsNullOrWhiteSpace(baseName))
             {
-                continue; // skip empties
+                continue;
             }
 
-            char first = group.BaseName[0];
+            var first = baseName[0];
             string bucket;
-
             if (char.IsDigit(first))
             {
                 bucket = "1-9";
@@ -827,33 +773,29 @@ public partial class ChannelService
             }
             else
             {
-                continue; // skip non-letter, non-digit groups
+                continue;
             }
 
-            bool hasMultiple = group.Items.Skip(1).Any();
+            var items = group
+                .OrderBy(x => x.Season ?? "", StringComparer.OrdinalIgnoreCase)
+                .ThenBy(x => x.Channel.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var groupBase = items.Count > 1 ? baseName : null; // null for singletons
 
-            foreach (var item in group.Items)
+            foreach (var item in items)
             {
-                // Display text is the cleaned base plus season (if present)
-                string display = group.BaseName;
-                if (!string.IsNullOrEmpty(item.Info.Season))
-                {
-                    display = $"{display} {item.Info.Season}";
-                }
-
                 entries.Add(
                     new MenuEntry
                     {
                         Bucket = bucket,
-                        GroupBase = hasMultiple ? group.BaseName : null, // null for singletons
-                        DisplayText = display,
+                        GroupBase = groupBase,
+                        DisplayText = item.Season is null ? baseName : $"{baseName} {item.Season}",
                         Channel = item.Channel,
                     }
                 );
             }
         }
 
-        // ---- Final ordering: Bucket -> (GroupBase or DisplayText) ----
         return
         [
             .. entries
@@ -863,24 +805,24 @@ public partial class ChannelService
     }
 
     // ----------------- Regex helpers -----------------
-    [GeneratedRegex(@"\([A-Za-z]{2}\)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"\([A-Za-z]{2}\)")]
     private static partial Regex MatchTwoParens();
 
-    [GeneratedRegex(@"24\s*/\s*7", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"24\s*/\s*7", RegexOptions.IgnoreCase)]
     private static partial Regex TwoFourSevenRegex();
 
-    [GeneratedRegex(@"\[[^\]]+\]", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"\[[^\]]+\]")]
     private static partial Regex TagsRegex();
 
-    [GeneratedRegex(@"(?<!\w)S\d{2}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<!\w)S\d{2}(?!\w)", RegexOptions.IgnoreCase)]
     private static partial Regex SeasonShortRegex();
 
-    [GeneratedRegex(@"Season\s*\d+", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"Season\s*\d+", RegexOptions.IgnoreCase)]
     private static partial Regex SeasonLongRegex();
 
-    [GeneratedRegex(@"\s+", RegexOptions.Compiled)]
+    [GeneratedRegex(@"\s+")]
     private static partial Regex NormalizeSpaceRegex();
 
-    [GeneratedRegex(@"^\s*24\s*/\s*7\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"^\s*24\s*/\s*7\b", RegexOptions.IgnoreCase)]
     private static partial Regex StartsWith247Regex();
 }

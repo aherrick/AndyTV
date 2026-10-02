@@ -3,27 +3,12 @@ using Blazored.LocalStorage;
 
 namespace AndyTV.Web.Services;
 
-public class BlazorStorageProvider : IStorageProvider
+public class BlazorStorageProvider(ISyncLocalStorageService localStorage) : IStorageProvider
 {
-    private readonly ISyncLocalStorageService _localStorage;
+    public bool FileExists(string fileName) => localStorage.ContainKey(fileName);
 
-    public BlazorStorageProvider(ISyncLocalStorageService localStorage)
-    {
-        _localStorage = localStorage;
-    }
+    public string ReadText(string fileName) => localStorage.GetItemAsString(fileName) ?? string.Empty;
 
-    public bool FileExists(string fileName)
-    {
-        return _localStorage.ContainKey(fileName);
-    }
-
-    public string ReadText(string fileName)
-    {
-        return _localStorage.GetItemAsString(fileName) ?? string.Empty;
-    }
-
-    public void WriteText(string fileName, string content)
-    {
-        _localStorage.SetItemAsString(fileName, content);
-    }
+    public void WriteText(string fileName, string content) =>
+        localStorage.SetItemAsString(fileName, content);
 }

@@ -68,31 +68,33 @@
     private string StartHour = "00:00";
     private string EndHour = "23:59";
 
-    public string[] GroupData { get; set; } = { "Categories", "Channels" };
+    public string[] GroupData { get; set; } = ["Categories", "Channels"];
 
-    private List<CategoryData> Categories = new();
-    private List<ChannelData> Channels = new();
-    private List<ShowEvent> Events = new();
+    private List<CategoryData> Categories = [];
+    private List<ChannelData> Channels = [];
+    private List<ShowEvent> Events = [];
 
     private GuideWatchHandler WatchHandler;
 
-    protected override void OnInitialized()
-    {
+    // Optional: only hosts with a player register a handler.
+    protected override void OnInitialized() =>
         WatchHandler = Services.GetService(typeof(GuideWatchHandler)) as GuideWatchHandler;
-    }
 
     protected override async Task OnInitializedAsync()
     {
-        var url = "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json";
-        var items = await Http.GetFromJsonAsync<List<Show>>(url);
-        if (items is null || items.Count == 0) return;
+        var items = await Http.GetFromJsonAsync<List<Show>>(
+            "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
+        if (items is null || items.Count == 0)
+        {
+            return;
+        }
 
         var cats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var chns = new Dictionary<(string Cat, string Chan), string>();
 
-        var newCategories = new List<CategoryData>();
-        var newChannels = new List<ChannelData>();
-        var newEvents = new List<ShowEvent>();
+        List<CategoryData> newCategories = [];
+        List<ChannelData> newChannels = [];
+        var newEvents = new List<ShowEvent>(items.Count);
 
         foreach (var s in items)
         {
@@ -111,10 +113,6 @@
                 newChannels.Add(new ChannelData { Id = chanId, Text = s.ChannelName, CategoryId = catId });
             }
 
-
-            var startLocal = s.StartTime.ToLocalTime(); // UTC -> browser local (EST for you)
-            var endLocal = s.EndTime.ToLocalTime();
-
             newEvents.Add(new ShowEvent
             {
                 StreamingTVId = s.StreamingTVId,
@@ -122,10 +120,11 @@
                 Category = s.Category,
                 Subject = s.Subject,
                 Description = s.Description,
-                StartTime = startLocal,
-                EndTime = endLocal,
-                CategoryId = cats[s.Category],
-                ChannelId = chns[key]
+                // UTC -> browser local
+                StartTime = s.StartTime.ToLocalTime(),
+                EndTime = s.EndTime.ToLocalTime(),
+                CategoryId = catId,
+                ChannelId = chanId,
             });
         }
 
@@ -133,7 +132,6 @@
         Channels = newChannels;
         Events = newEvents;
 
-        // Set the current date and start hour to the current hour
         CurrentDate = DateTime.Now;
         StartHour = $"{DateTime.Now.Hour:D2}:00";
     }

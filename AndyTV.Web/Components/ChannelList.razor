@@ -1,14 +1,16 @@
 @using AndyTV.Data.Models
 @using AndyTV.Web.Services
 
-@if (Manager.Channels.Any())
+@if (Manager.Channels.Count > 0)
 {
-    <h5>Channels (@_filteredChannels.Count)</h5>
-    
+    var filtered = Manager.FilterChannels(_searchFilter);
+
+    <h5>Channels (@filtered.Count)</h5>
+
     <input type="text" class="form-control mb-3" @bind="_searchFilter" @bind:event="oninput" placeholder="Search channels..." />
 
     <div class="list-group" style="max-height: 400px; overflow-y: auto;">
-        @foreach (var channel in _filteredChannels.Take(100))
+        @foreach (var channel in filtered.Take(MaxShown))
         {
             <button type="button" 
                     class="list-group-item list-group-item-action @(channel.Url == CurrentUrl ? "active" : "")" 
@@ -20,21 +22,21 @@
                 }
             </button>
         }
-        @if (_filteredChannels.Count > 100)
+        @if (filtered.Count > MaxShown)
         {
             <div class="list-group-item text-center text-muted">
-                Showing 100 of @_filteredChannels.Count channels. Use search to filter.
+                Showing @MaxShown of @filtered.Count channels. Use search to filter.
             </div>
         }
     </div>
 }
 
 @code {
+    private const int MaxShown = 100;
+
     [Parameter] public required ChannelManagerService Manager { get; set; }
     [Parameter] public string CurrentUrl { get; set; } = "";
     [Parameter] public EventCallback<Channel> OnChannelSelected { get; set; }
 
     private string _searchFilter = "";
-
-    private List<Channel> _filteredChannels => Manager.FilterChannels(_searchFilter);
 }

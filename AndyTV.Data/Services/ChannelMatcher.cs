@@ -8,23 +8,21 @@ public static class ChannelMatcher
     // Substring match on DisplayName across all Terms, honoring ExcludeTerms; ordered by name.
     public static List<Channel> MatchTop(ChannelTop entry, IReadOnlyList<Channel> channels)
     {
+        // Materialized once: the Terms iterator would otherwise allocate per channel.
+        List<string> terms = [.. entry.Terms];
+        var excludes = entry.ExcludeTerms ?? [];
         var matches = new List<Channel>();
         foreach (var ch in channels)
         {
             var name = ch.DisplayName;
-            if (string.IsNullOrEmpty(name))
+            if (
+                !string.IsNullOrEmpty(name)
+                && ContainsAnyToken(name, terms)
+                && !ContainsAny(name, excludes)
+            )
             {
-                continue;
+                matches.Add(ch);
             }
-            if (!ContainsAnyToken(name, entry.Terms))
-            {
-                continue;
-            }
-            if (entry.ExcludeTerms is { } excludes && ContainsAny(name, excludes))
-            {
-                continue;
-            }
-            matches.Add(ch);
         }
         matches.Sort(
             (a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
@@ -46,16 +44,15 @@ public static class ChannelMatcher
             foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
                 var matches = MatchTop(entry, channels);
-                if (matches.Count == 0)
+                if (matches.Count > 0)
                 {
-                    continue;
+                    categoryNode.Children.Add(
+                        new MenuNode
+                        {
+                            Text = entry.Name,
+                            Children = matches.ConvertAll(ch => Leaf(ch, ch.DisplayName)),
+                        });
                 }
-                var entryNode = new MenuNode { Text = entry.Name, Children = [] };
-                foreach (var ch in matches)
-                {
-                    entryNode.Children.Add(Leaf(ch, ch.DisplayName));
-                }
-                categoryNode.Children.Add(entryNode);
             }
             if (categoryNode.Children.Count > 0)
             {
@@ -69,12 +66,7 @@ public static class ChannelMatcher
     {
         if (!playlist.GroupByFirstChar)
         {
-            var flat = new List<MenuNode>(channels.Count);
-            foreach (var ch in channels)
-            {
-                flat.Add(Leaf(ch, ch.DisplayName));
-            }
-            return flat;
+            return [.. channels.Select(ch => Leaf(ch, ch.DisplayName))];
         }
 
         // Extra title level only when a name transform strips episode info from RawName.
@@ -96,33 +88,28 @@ public static class ChannelMatcher
                     .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
                 foreach (var titleGroup in titles)
                 {
-                    var items = titleGroup
-                        .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
-                        .ToList();
+                    var items = titleGroup.ToList();
                     if (items.Count == 1)
                     {
                         letterNode.Children.Add(Leaf(items[0], items[0].RawName));
                     }
                     else
                     {
-                        var titleNode = new MenuNode { Text = titleGroup.Key, Children = [] };
-                        foreach (var ch in items)
-                        {
-                            titleNode.Children.Add(Leaf(ch, ch.RawName));
-                        }
-                        letterNode.Children.Add(titleNode);
+                        letterNode.Children.Add(
+                            new MenuNode
+                            {
+                                Text = titleGroup.Key,
+                                Children = items.ConvertAll(ch => Leaf(ch, ch.RawName)),
+                            });
                     }
                 }
             }
             else
             {
-                foreach (
-                    var ch in letterGroup.OrderBy(
-                        c => c.DisplayName,
-                        StringComparer.OrdinalIgnoreCase))
-                {
-                    letterNode.Children.Add(Leaf(ch, ch.DisplayName));
-                }
+                letterNode.Children.AddRange(
+                    letterGroup
+                        .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                        .Select(ch => Leaf(ch, ch.DisplayName)));
             }
             if (letterNode.Children.Count > 0)
             {
@@ -174,7 +161,7 @@ public static class ChannelMatcher
     private static MenuNode Leaf(Channel channel, string text) =>
         new() { Text = text, Channel = channel };
 
-    private static bool ContainsAny(string name, IEnumerable<string> terms)
+    private static bool ContainsAny(string name, List<string> terms)
     {
         foreach (var term in terms)
         {
@@ -188,7 +175,7 @@ public static class ChannelMatcher
 
     // Whole-token match: the term must not be flanked by letters, so "HBO" hits
     // "WBTV HBO" but not "Khushboo" or "Neighborhood".
-    private static bool ContainsAnyToken(string name, IEnumerable<string> terms)
+    private static bool ContainsAnyToken(string name, List<string> terms)
     {
         foreach (var term in terms)
         {
