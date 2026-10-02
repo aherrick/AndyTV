@@ -27,7 +27,6 @@ echo FFmpeg is at: %~dp0ffmpeg\bin\ffmpeg.exe
 echo.
 echo Next steps:
 echo   1. Install Tailscale on this PC and your phone
-echo   2. Edit stream.bat and set your M3U stream URL
-echo   3. Run start-all.bat
+echo   2. Run start-all.bat
 echo.
 pause

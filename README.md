@@ -151,10 +151,10 @@ The `local/` folder contains a lightweight Python streaming server that transcod
 
 **How it works:**
 1. `start-all.bat` launches the server on port **5050**
-2. The mobile app sends `POST /start?url={stream}&quality={level}` to begin transcoding
-3. FFmpeg re-encodes the stream to a lower bitrate HLS playlist (`live.m3u8`)
-4. The mobile app plays `http://{tailscale-ip}:5050/live.m3u8`
-5. `POST /stop` kills the transcode when done
+2. The mobile app plays `http://{tailscale-ip}:5050/live.m3u8?session={id}&quality={level}&url={stream}` directly in VLC, with a new session id on every play
+3. The first fetch for a new session kills any previous transcode and starts a fresh FFmpeg HLS transcode, answering once the playlist is ready
+4. Later fetches for that session return the current playlist; segments are served from `/{id}/`
+5. The server kills the transcode once nothing has fetched the playlist for 30s
 
 **Quality presets:** 240p, 320p (default), 360p, 480p, 576p, 720p
 
