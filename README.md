@@ -81,7 +81,7 @@ AndyTV is built with a modern .NET toolchain and a few carefully chosen librarie
 - 🛠️ **GitHub Actions** — CI/CD for build, test, and publish workflows  
 
 ## 📱 AndyTV.Maui (Mobile Companion)
-`AndyTV.Maui` is a .NET MAUI companion app (in development) for iOS and Android that brings AndyTV-style playlist browsing to mobile.
+`AndyTV.Maui` is a .NET MAUI companion app (in development) for iOS that brings AndyTV-style playlist browsing to mobile.
 
 Planned highlights:
 - Browse and filter your IPTV playlists on phone/tablet.

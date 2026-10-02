@@ -1,16 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net10.0-android</TargetFrameworks>
-		<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
-
-		<!-- Note for MacCatalyst:
-		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
-		When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
-		The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-		either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-		<!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+		<TargetFramework>net10.0-ios</TargetFramework>
+		<SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
 
 		<OutputType>Exe</OutputType>
 		<RootNamespace>AndyTV.Maui</RootNamespace>
@@ -38,15 +30,6 @@
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
-
-		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
-		<WindowsPackageType>None</WindowsPackageType>
-
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
-		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -65,25 +48,9 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.110" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.110" />
-		
-		<!-- https://code.videolan.org/videolan/LibVLCSharp/-/issues/668 -->
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.1" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.37" />
-	</ItemGroup>
-
-
-	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-		<PackageReference Include="VideoLAN.LibVLC.Android" Version="3.7.0-beta" />
-	</ItemGroup>
-	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-	</ItemGroup>
-
-	<PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
-		<MtouchInterpreter>LibVLCSharp.MAUI.dll</MtouchInterpreter>
-	</PropertyGroup>
-	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.37" />
 	</ItemGroup>
 
 	<ItemGroup>

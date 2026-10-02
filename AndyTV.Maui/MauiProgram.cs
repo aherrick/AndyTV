@@ -19,6 +19,7 @@ public static class MauiProgram
             .UseMauiCommunityToolkit()
             .UseLibVLCSharp()
             .ConfigureSyncfusionCore()
+            .ConfigureMauiHandlers(handlers => handlers.AddHandler<AirPlayButton, AirPlayButtonHandler>())
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("fa-light-300.ttf", nameof(FontAwesome.FontAwesomeLight));

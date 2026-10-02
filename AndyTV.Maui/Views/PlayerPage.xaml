@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    xmlns:views="clr-namespace:AndyTV.Maui.Views"
     Title="{Binding ChannelName}"
     Shell.NavBarIsVisible="False"
     Shell.TabBarIsVisible="False"
@@ -36,5 +37,17 @@
             Text="Back to list"
             TextColor="White"
             VerticalOptions="Start" />
+
+        <Border
+            x:Name="AirPlayBorder"
+            Margin="16,24,16,16"
+            Padding="6"
+            BackgroundColor="#80000000"
+            HorizontalOptions="End"
+            StrokeShape="RoundRectangle 18"
+            StrokeThickness="0"
+            VerticalOptions="Start">
+            <views:AirPlayButton HeightRequest="30" WidthRequest="30" />
+        </Border>
     </Grid>
 </ContentPage>

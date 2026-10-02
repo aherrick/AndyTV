@@ -7,4 +7,12 @@ public class LocalConfig
     public bool Enabled { get; set; }
     public bool DisableHardwareAcceleration { get; set; }
     public int? NetworkBufferMilliseconds { get; set; }
+    public SleepAction SleepAction { get; set; }
+}
+
+public enum SleepAction
+{
+    CloseApp,
+    StopPlayback,
+    Mute,
 }
