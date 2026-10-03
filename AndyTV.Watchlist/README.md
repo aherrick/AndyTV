@@ -18,8 +18,8 @@ Settings: `SPORTS_API_KEY` and `WATCHLIST_PROMPT` (required; one-line prompt wit
 Cloudflare, Instagram and X settings.
 
 Daily publishes `latest.json`; weekend publishes `latest_weekend.json` for the
-site's Weekend tab. Weekend processing only publishes the data feed; social posts
-remain daily. Sunday's daily run deletes `latest_weekend.json` first.
+site's Weekend tab. Both kinds post to Instagram and X; Friday posts the daily and
+weekend editions separately. Sunday's daily run deletes `latest_weekend.json` first.
 
 ## Processing flow
 
@@ -32,6 +32,5 @@ The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 2. `WatchlistResearchService` loads the day's (or weekend's) events, runs the prompt
    and validates the result. Stop if the feeds returned no events.
 3. Build the site's JSON model and publish that kind's feed to blob storage.
-   Weekend processing ends here.
-4. For Daily, capture each Instagram card, upload them and publish the carousel when configured.
-5. Log the daily X thread and post it when X credentials are present.
+4. Capture each Instagram card, upload them and publish the carousel when configured.
+5. Log the X thread and post it when X credentials are present.

@@ -24,7 +24,7 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken = default
     )
     {
-        DateOnly[] days = kind == WatchlistKind.Weekend ? [runDate.AddDays(1), runDate.AddDays(2)] : [runDate];
+        var days = kind.Days(runDate);
         var feeds = await Task.WhenAll(
             days.SelectMany(day => new[]
             {

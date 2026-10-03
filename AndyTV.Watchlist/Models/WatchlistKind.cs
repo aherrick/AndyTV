@@ -15,4 +15,8 @@ public static class WatchlistKindExtensions
         WatchlistKind.Weekend => "latest_weekend.json",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
+
+    // Weekend runs on Friday and covers Saturday + Sunday.
+    public static DateOnly[] Days(this WatchlistKind kind, DateOnly runDate) =>
+        kind == WatchlistKind.Weekend ? [runDate.AddDays(1), runDate.AddDays(2)] : [runDate];
 }

@@ -6,7 +6,7 @@ using Azure.Storage.Blobs.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// One public container hosts latest.json, latest_weekend.json, and daily Instagram cards.
+// One public container hosts latest.json, latest_weekend.json, and Instagram cards.
 public sealed class BlobStore(AppSettings settings)
 {
     private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");

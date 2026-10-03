@@ -8,10 +8,6 @@ public sealed record InstaCard(string Name, string Html);
 
 public static class InstaCardRenderer
 {
-    private const string TopFooter = "THE BEST SPORTS • RANKED DAILY";
-    private const string TimelineFooter = "YOUR DAY • IN WATCHING ORDER";
-    private const string WatchFooter = "YOUR SPORTS DAY • PLANNED";
-
     private static readonly string BaseTemplate = File.ReadAllText(
         Path.Combine(AppContext.BaseDirectory, "assets", "templates", "insta", "_base.html")
     );
@@ -20,9 +16,18 @@ public static class InstaCardRenderer
     private const string Header =
         "<img class=\"banner\" src=\"https://andytv.today/img/andytvwatchlist_header3.png\">";
 
-    public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, DateOnly targetDate)
+    public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, WatchlistKind kind, DateOnly targetDate)
     {
-        var date = $"{targetDate:dddd} • {targetDate:MMM d}".ToUpper(CultureInfo.InvariantCulture);
+        var weekend = kind == WatchlistKind.Weekend;
+        var date = string.Join(
+                " – ",
+                kind.Days(targetDate).Select(day => $"{day.ToString(weekend ? "ddd" : "dddd", CultureInfo.InvariantCulture)} • {day:MMM d}")
+            )
+            .ToUpper(CultureInfo.InvariantCulture);
+        var period = SportsFormat.Period(kind).ToUpperInvariant();
+        var span = weekend ? "WEEKEND" : "DAY";
+        var topFooter = $"THE BEST SPORTS • RANKED {(weekend ? "FOR THE WEEKEND" : "DAILY")}";
+        var timelineFooter = $"YOUR {span} • IN WATCHING ORDER";
 
         var games = watchlist.BestWatches;
         var byTime = games.OrderBy(game => game.StartTimeIso).ToList();
@@ -32,42 +37,42 @@ public static class InstaCardRenderer
             Compose(
                 "01-top20-1-10.html",
                 date,
-                $"🏆 TOP 20 TODAY {Chip("1–10")}",
-                RankBody(games.Take(10)),
+                $"🏆 TOP 20 {period} {Chip("1–10")}",
+                RankBody(games.Take(10), kind),
                 "",
-                TopFooter
+                topFooter
             ),
             Compose(
                 "02-top20-11-20.html",
                 date,
-                $"🏆 TOP 20 TODAY {Chip("11–20")}",
-                RankBody(games.Skip(10).Take(10)),
+                $"🏆 TOP 20 {period} {Chip("11–20")}",
+                RankBody(games.Skip(10).Take(10), kind),
                 "",
-                TopFooter
+                topFooter
             ),
             Compose(
                 "03-timeline-1-10.html",
                 date,
                 $"🕒 TOP 20 TIMELINE {Chip("1–10")}",
-                TimelineBody(byTime.Take(10)),
+                TimelineBody(byTime.Take(10), kind),
                 "",
-                TimelineFooter
+                timelineFooter
             ),
             Compose(
                 "04-timeline-11-20.html",
                 date,
                 $"🕒 TOP 20 TIMELINE {Chip("11–20")}",
-                TimelineBody(byTime.Skip(10).Take(10)),
+                TimelineBody(byTime.Skip(10).Take(10), kind),
                 "",
-                TimelineFooter
+                timelineFooter
             ),
             Compose(
                 "05-watchlist.html",
                 date,
                 "🗺️ WATCH PLAN",
-                WatchBody(watchlist),
+                WatchBody(watchlist, kind),
                 WatchCallout(watchlist),
-                WatchFooter
+                $"YOUR SPORTS {span} • PLANNED"
             ),
         ];
     }
@@ -94,7 +99,7 @@ public static class InstaCardRenderer
         return new InstaCard(name, html);
     }
 
-    private static string RankBody(IEnumerable<WatchlistGame> games)
+    private static string RankBody(IEnumerable<WatchlistGame> games, WatchlistKind kind)
     {
         var body = string.Concat(
             games.Select(game =>
@@ -105,7 +110,7 @@ public static class InstaCardRenderer
                   <div class="game"><strong>{Enc(game.Matchup)}</strong><span>{Enc(
                     LeagueAndOdds(game)
                 )}</span></div>
-                  <div class="time">{Time(game.StartTimeIso)}</div>
+                  <div class="time">{Time(game.StartTimeIso, kind)}</div>
                 </div>
                 """
             )
@@ -119,13 +124,13 @@ public static class InstaCardRenderer
             ? $"{game.League} • {odds}"
             : game.League;
 
-    private static string TimelineBody(IEnumerable<WatchlistGame> games)
+    private static string TimelineBody(IEnumerable<WatchlistGame> games, WatchlistKind kind)
     {
         var body = string.Concat(
             games.Select(game =>
                 $"""
                 <div class="timeline-row">
-                  <div class="timeline-time">{Time(game.StartTimeIso)}</div>
+                  <div class="timeline-time">{Time(game.StartTimeIso, kind)}</div>
                   <div class="dot"></div>
                   <div class="timeline-main">
                     <div class="timeline-game">{SportsFormat.Icon(game.Sport)} {Enc(
@@ -143,7 +148,7 @@ public static class InstaCardRenderer
         return $"<div class=\"card timeline-card\">{body}</div>";
     }
 
-    private static string WatchBody(DailyWatchlist watchlist)
+    private static string WatchBody(DailyWatchlist watchlist, WatchlistKind kind)
     {
         var body = string.Concat(
             SportsFormat
@@ -151,7 +156,7 @@ public static class InstaCardRenderer
                 .Select(step =>
                     $"""
                     <div class="watch-row">
-                      <div class="watch-time">{Time(step.Time)}</div>
+                      <div class="watch-time">{Time(step.Time, kind)}</div>
                       <div class="watch-icon">{step.Icon}</div>
                       <div class="watch-copy"><strong>{Enc(step.Matchup)}</strong><span>{Enc(
                         step.Instruction
@@ -172,7 +177,11 @@ public static class InstaCardRenderer
             : $"<div class=\"callout\">🔥 {Enc(summary.Trim())}</div>";
     }
 
-    private static string Time(DateTimeOffset value) => SportsFormat.TimeNoZone(value);
+    // Weekend stacks a small day label above the time so the pill keeps its width.
+    private static string Time(DateTimeOffset value, WatchlistKind kind) =>
+        kind == WatchlistKind.Weekend
+            ? $"<span class=\"day\">{SportsFormat.Day(value).ToUpperInvariant()}</span>{SportsFormat.TimeNoZone(value)}"
+            : SportsFormat.TimeNoZone(value);
 
     private static string Network(WatchlistGame game) =>
         string.IsNullOrWhiteSpace(game.Network)

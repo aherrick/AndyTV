@@ -8,8 +8,8 @@ namespace AndyTV.Watchlist.Services;
 /// <summary>
 /// Processes one watchlist for an Eastern calendar date: expire the weekend feed
 /// when needed, research the watchlist, and publish the site data.
-/// Daily editions also produce Instagram cards and X posts; weekend editions are
-/// data-only. Timer selection belongs to AndyTVWatchlistFn, not this service.
+/// Daily and weekend editions also produce Instagram cards and X posts.
+/// Timer selection belongs to AndyTVWatchlistFn, not this service.
 /// </summary>
 public sealed class WatchlistPublishingService(
     WatchlistResearchService researchService,
@@ -44,23 +44,18 @@ public sealed class WatchlistPublishingService(
         // Save before social publishing so the feed is live even if a later step fails.
         if (settings.CanPublishSite)
         {
-            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonSerializerOptions.Web);
+            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
             var url = await blobStore.PublishData(json, kind, cancellationToken);
             logger.LogInformation("Published {kind} feed to {url}.", kind, url);
         }
 
-        // Weekend editions are data-only.
-        if (kind == WatchlistKind.Weekend)
-        {
-            return;
-        }
-
-        await PublishInstagram(watchlist, targetDate, cancellationToken);
-        await PublishXThread(watchlist, targetDate, cancellationToken);
+        await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
+        await PublishXThread(watchlist, kind, targetDate, cancellationToken);
     }
 
     private async Task PublishInstagram(
         DailyWatchlist watchlist,
+        WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken
     )
@@ -71,29 +66,31 @@ public sealed class WatchlistPublishingService(
         }
 
         var imageUrls = new List<Uri>();
-        foreach (var card in InstaCardRenderer.Render(watchlist, targetDate))
+        foreach (var card in InstaCardRenderer.Render(watchlist, kind, targetDate))
         {
             var png = await screenshotService.Capture(card.Html, cancellationToken);
-            var blobName = $"{targetDate:yyyyMMdd}/{Path.ChangeExtension(card.Name, ".png")}";
+            // Friday's Daily and Weekend cards share a date folder.
+            var blobName = $"{targetDate:yyyyMMdd}/{kind.ToString().ToLowerInvariant()}/{Path.ChangeExtension(card.Name, ".png")}";
             imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
         }
 
         if (settings.CanPublishInstagram)
         {
-            var caption = $"AndyTV Watchlist — Best Sports Today\n{targetDate:dddd, MMMM d}";
+            var caption = $"AndyTV Watchlist — Best Sports {SportsFormat.Period(kind)}\n{SportsFormat.Dates(kind, targetDate)}";
             await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
         }
     }
 
     private async Task PublishXThread(
         DailyWatchlist watchlist,
+        WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken
     )
     {
         // Always log the three formatted posts for inspection. Actual posting is
         // enabled only when all four X credentials are present.
-        var posts = SportsGuideFormatter.CreatePosts(watchlist, targetDate);
+        var posts = SportsGuideFormatter.CreatePosts(watchlist, kind, targetDate);
         logger.LogInformation("{post1}\n\n{post2}\n\n{post3}", posts.Post1, posts.Post2, posts.Post3);
         if (!settings.CanPostToX)
         {
