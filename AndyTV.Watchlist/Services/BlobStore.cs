@@ -9,7 +9,7 @@ namespace AndyTV.Watchlist.Services;
 // One public container hosts latest.json, latest_weekend.json, and daily Instagram cards.
 public sealed class BlobStore(AppSettings settings)
 {
-    private const string ImageContainer = "andytv-watchlist";
+    private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
 
     // Uploads a card PNG to a public container and returns its blob URL.
     public Task<Uri> UploadImage(
@@ -33,12 +33,9 @@ public sealed class BlobStore(AppSettings settings)
 
     // Sunday expires only the weekend feed. No container creation or deletion is
     // needed here, and an already-missing blob is a successful no-op.
-    public async Task DeleteWeekendData(CancellationToken cancellationToken = default)
-    {
-        var container = new BlobContainerClient(settings.BlobConnectionString, ImageContainer);
-        await container.GetBlobClient(WatchlistKind.Weekend.FeedFileName())
+    public Task DeleteWeekendData(CancellationToken cancellationToken = default) =>
+        Container.GetBlobClient(WatchlistKind.Weekend.FeedFileName())
             .DeleteIfExistsAsync(cancellationToken: cancellationToken);
-    }
 
     private async Task<Uri> Upload(
         string blobName,
@@ -48,7 +45,7 @@ public sealed class BlobStore(AppSettings settings)
         CancellationToken cancellationToken
     )
     {
-        var container = new BlobContainerClient(settings.BlobConnectionString, ImageContainer);
+        var container = Container;
         await container.CreateIfNotExistsAsync(
             PublicAccessType.Blob,
             cancellationToken: cancellationToken

@@ -7,7 +7,7 @@ public static class SportsGuideFormatter
 {
     public static SportsPosts CreatePosts(DailyWatchlist watchlist, DateOnly targetDate)
     {
-        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
+        var games = watchlist.BestWatches;
 
         var best = new StringBuilder()
             .AppendLine("📺 AndyTV - BEST SPORTS TODAY")

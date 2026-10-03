@@ -24,7 +24,7 @@ public static class InstaCardRenderer
     {
         var date = $"{targetDate:dddd} • {targetDate:MMM d}".ToUpper(CultureInfo.InvariantCulture);
 
-        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
+        var games = watchlist.BestWatches;
         var byTime = games.OrderBy(game => game.StartTimeIso).ToList();
 
         return

@@ -7,11 +7,6 @@ namespace AndyTV.Watchlist.Services;
 // The WATCHLIST_PROMPT app setting; {dates}, {firstDay} and {count} are filled in and the supplied events appended.
 public static class WatchlistPrompt
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public static string Build(string template, DateOnly[] days, List<SportsEvent> events)
     {
         var eventsJson = JsonSerializer.Serialize(
@@ -23,7 +18,7 @@ public static class WatchlistPrompt
                 StartTimeIso = sportsEvent.StartTimeIso?.ToString("o"),
                 sportsEvent.SourceUrl,
             }),
-            JsonOptions
+            JsonSerializerOptions.Web
         );
 
         var prompt = template

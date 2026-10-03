@@ -39,7 +39,11 @@ public sealed class WatchlistResearchService(
             return null;
         }
 
-        return await Research(kind, WatchlistPrompt.Build(settings.WatchlistPrompt, days, events), cancellationToken);
+        var watchlist = await Research(kind, WatchlistPrompt.Build(settings.WatchlistPrompt, days, events), cancellationToken);
+
+        // Every formatter (and SportsFormat.TopPicks) relies on rank order.
+        watchlist.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+        return watchlist;
     }
 
     private async Task<DailyWatchlist> Research(WatchlistKind kind, string prompt, CancellationToken cancellationToken)

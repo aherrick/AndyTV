@@ -20,11 +20,6 @@ public sealed class WatchlistPublishingService(
     ILogger<WatchlistPublishingService> logger
 )
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public async Task Publish(
         WatchlistKind kind,
         DateOnly targetDate,
@@ -49,7 +44,7 @@ public sealed class WatchlistPublishingService(
         // Save before social publishing so the feed is live even if a later step fails.
         if (settings.CanPublishSite)
         {
-            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonOptions);
+            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonSerializerOptions.Web);
             var url = await blobStore.PublishData(json, kind, cancellationToken);
             logger.LogInformation("Published {kind} feed to {url}.", kind, url);
         }
@@ -106,12 +101,7 @@ public sealed class WatchlistPublishingService(
             return;
         }
 
-        using var xPostingService = new XPostingService(
-            settings.XConsumerKey!,
-            settings.XConsumerSecret!,
-            settings.XAccessToken!,
-            settings.XAccessTokenSecret!
-        );
+        using var xPostingService = new XPostingService(settings);
         var postId = await xPostingService.PostThread(posts, cancellationToken);
         logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
     }

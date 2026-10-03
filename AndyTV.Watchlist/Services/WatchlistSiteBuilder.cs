@@ -9,7 +9,7 @@ public static class WatchlistSiteBuilder
 {
     public static WatchlistSiteModel Build(DailyWatchlist watchlist, DateOnly targetDate)
     {
-        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
+        var games = watchlist.BestWatches;
 
         return new WatchlistSiteModel(
             Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
