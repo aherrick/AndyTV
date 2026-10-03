@@ -7,11 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>630ebcdf-86f3-4a8f-9082-1d406b3a891a</UserSecretsId>
+    <NoWarn>$(NoWarn);GHCP001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.30.0" />
-    <PackageReference Include="MailKit" Version="4.18.1" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.17-preview.3" />
     <PackageReference Include="Polly.Core" Version="8.8.0" />
     <PackageReference Include="RestSharp" Version="114.0.1-alpha.0.10" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />

@@ -13,11 +13,8 @@ public static class SportsFormat
             "Hockey" => "🏒",
             "Basketball" => "🏀",
             "Soccer" => "⚽",
-            "Racing" or "Motorsports" => "🏁",
-            "Combat Sports" => "🥊",
-            "Golf" => "⛳",
-            "Tennis" => "🎾",
-            "Volleyball" => "🏐",
+            "Racing" => "🏁",
+            "MMA" => "🥊",
             _ => "📺",
         };
 
@@ -98,33 +95,27 @@ public static class SportsFormat
     }
 
     // Watch-plan steps in time order with primary + secondary games resolved by rank; shared by X, site, and IG.
+    // Steps or secondaries that reference an unknown rank are skipped.
     public static List<WatchPlanEntry> WatchPlanSteps(DailyWatchlist watchlist)
     {
-        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
-        {
-            return [];
-        }
+        var byRank = watchlist.BestWatches.DistinctBy(game => game.Rank).ToDictionary(game => game.Rank);
 
-        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
-
-        (string Icon, string Matchup) Resolve(int rank) =>
-            byRank.TryGetValue(rank, out var game) ? (Icon(game.Sport), game.Matchup) : ("📺", "");
-
-        return plan
-            .Steps.OrderBy(step => step.StartTimeIso)
+        return watchlist
+            .WatchPlan.Steps.Where(step => byRank.ContainsKey(step.PrimaryRank))
+            .OrderBy(step => step.StartTimeIso)
             .Select(step =>
             {
-                var (icon, matchup) = Resolve(step.PrimaryRank);
-                var secondaries = step
-                    .SecondaryRanks.Select(Resolve)
-                    .Where(game => game.Matchup.Length > 0)
-                    .ToList();
+                var primary = byRank[step.PrimaryRank];
                 return new WatchPlanEntry(
                     step.StartTimeIso,
-                    icon,
-                    matchup,
+                    Icon(primary.Sport),
+                    primary.Matchup,
                     step.Instruction.Trim(),
-                    secondaries
+                    [
+                        .. step
+                            .SecondaryRanks.Where(byRank.ContainsKey)
+                            .Select(rank => (Icon(byRank[rank].Sport), byRank[rank].Matchup)),
+                    ]
                 );
             })
             .ToList();

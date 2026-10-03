@@ -40,7 +40,7 @@ public static class WatchlistSiteBuilder
             game.League,
             game.Reason.Trim(),
             game.Sport,
-            game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList(),
+            game.Sources,
             SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr)
         );
 
@@ -55,7 +55,7 @@ public static class WatchlistSiteBuilder
                 step.Secondaries.ConvertAll(s => new PlanAlt(s.Icon, s.Matchup))
             ));
 
-        return new PlanTab(watchlist.WatchPlan?.Summary?.Trim() ?? "", steps);
+        return new PlanTab(watchlist.WatchPlan.Summary?.Trim() ?? "", steps);
     }
 
     // Machine-readable ISO timestamp for the client's <time datetime="...">.

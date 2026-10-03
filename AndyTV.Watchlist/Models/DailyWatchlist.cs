@@ -1,18 +1,12 @@
 namespace AndyTV.Watchlist.Models;
 
-// Shared JSON shape for the Daily and Weekend Watchlist emails. The date is the
-// publication date (Friday for weekend); game start times can span multiple days.
+// Researched Daily/Weekend watchlist and the exact Copilot response schema.
+// Game start times can span multiple days (weekend).
 public sealed class DailyWatchlist
 {
-    public string? Date { get; init; }
-
-    public DateTimeOffset GeneratedAt { get; init; }
-
-    public string? Timezone { get; init; }
-
     public List<WatchlistGame> BestWatches { get; init; } = [];
 
-    public WatchPlan? WatchPlan { get; init; }
+    public required WatchPlan WatchPlan { get; init; }
 }
 
 public sealed record WatchlistGame(
@@ -25,7 +19,7 @@ public sealed record WatchlistGame(
     string Reason
 )
 {
-    public List<WatchSource>? Sources { get; init; }
+    public List<WatchSource> Sources { get; init; } = [];
     public Betting? Betting { get; init; }
 
     // Common league/broadcaster abbreviations (e.g. "BAL"); null when the prompt isn't confident.

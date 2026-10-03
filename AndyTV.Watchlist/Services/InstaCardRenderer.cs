@@ -166,7 +166,7 @@ public static class InstaCardRenderer
 
     private static string WatchCallout(DailyWatchlist watchlist)
     {
-        var summary = watchlist.WatchPlan?.Summary;
+        var summary = watchlist.WatchPlan.Summary;
         return string.IsNullOrWhiteSpace(summary)
             ? ""
             : $"<div class=\"callout\">🔥 {Enc(summary.Trim())}</div>";

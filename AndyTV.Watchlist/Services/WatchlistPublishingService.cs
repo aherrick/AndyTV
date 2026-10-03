@@ -7,12 +7,12 @@ namespace AndyTV.Watchlist.Services;
 
 /// <summary>
 /// Processes one watchlist for an Eastern calendar date: expire the weekend feed
-/// when needed, load the matching email, and publish the site data.
+/// when needed, research the watchlist, and publish the site data.
 /// Daily editions also produce Instagram cards and X posts; weekend editions are
 /// data-only. Timer selection belongs to AndyTVWatchlistFn, not this service.
 /// </summary>
 public sealed class WatchlistPublishingService(
-    GmailWatchlistService gmailService,
+    WatchlistResearchService researchService,
     CloudflareScreenshotService screenshotService,
     BlobStore blobStore,
     InstagramPublishService instagramService,
@@ -31,18 +31,18 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken = default
     )
     {
-        // Expiration does not depend on a new daily email; an absent file is already the desired state.
+        // Expiration does not depend on a new daily watchlist; an absent file is already the desired state.
         if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
         {
             await blobStore.DeleteWeekendData(cancellationToken);
             logger.LogInformation("Cleared published weekend feed.");
         }
 
-        // A missing or empty email leaves the existing feed alone.
-        var watchlist = await gmailService.GetLatest(kind, cancellationToken);
-        if (watchlist is null || watchlist.BestWatches.Count == 0)
+        // No events leaves the existing feed alone.
+        var watchlist = await researchService.Create(kind, targetDate, cancellationToken);
+        if (watchlist is null)
         {
-            logger.LogInformation("No emailed {kind} watchlist with games found.", kind);
+            logger.LogInformation("No {kind} events to rank.", kind);
             return;
         }
 
