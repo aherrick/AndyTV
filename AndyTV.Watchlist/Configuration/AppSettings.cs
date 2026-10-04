@@ -3,9 +3,9 @@ using Microsoft.Extensions.Configuration;
 namespace AndyTV.Watchlist.Configuration;
 
 public sealed record AppSettings(
-    string GmailAddress,
-    string GmailAppPassword,
-    string GmailSender,
+    string SportsApiKey,
+    string? CopilotGitHubToken,
+    string WatchlistPrompt,
     string? CloudflareAccountId,
     string? CloudflareApiToken,
     string BlobConnectionString,
@@ -41,9 +41,10 @@ public sealed record AppSettings(
             .Build();
 
         return new AppSettings(
-            Required(config, "GMAIL_ADDRESS"),
-            Required(config, "GMAIL_APP_PASSWORD"),
-            config["GMAIL_SENDER"] ?? "andy.ai.automation@gmail.com",
+            Required(config, "SPORTS_API_KEY"),
+            // Fine-grained PAT with "Copilot Requests"; falls back to the logged-in Copilot CLI user locally.
+            config["COPILOT_GITHUB_TOKEN"],
+            Required(config, "WATCHLIST_PROMPT"),
             config["CLOUDFLARE_ACCOUNT_ID"],
             config["CLOUDFLARE_API_TOKEN"],
             config["BLOB_CONNECTION_STRING"] ?? config["AzureWebJobsStorage"] ?? "",

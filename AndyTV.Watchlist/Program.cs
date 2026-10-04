@@ -11,7 +11,7 @@ using OpenTelemetry;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-// Shared HttpClient for the Cloudflare screenshot and Instagram publish calls.
+// Shared HttpClient for the sports feeds, Cloudflare screenshot and Instagram publish calls.
 builder.Services.AddSingleton(_ =>
 {
     var handler = new SocketsHttpHandler { AutomaticDecompression = DecompressionMethods.All };
@@ -19,7 +19,9 @@ builder.Services.AddSingleton(_ =>
 });
 
 builder.Services.AddSingleton(_ => AppSettings.Load());
-builder.Services.AddSingleton<GmailWatchlistService>();
+builder.Services.AddSingleton<ApiSportsService>();
+builder.Services.AddSingleton<EspnRacingService>();
+builder.Services.AddSingleton<WatchlistResearchService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();
 builder.Services.AddSingleton<InstagramPublishService>();

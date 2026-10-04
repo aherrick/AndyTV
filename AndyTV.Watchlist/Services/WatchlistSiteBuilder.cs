@@ -7,12 +7,12 @@ namespace AndyTV.Watchlist.Services;
 // logic (Eastern times, sport icons, top picks, watch plan) stays here so app.js just fills the template.
 public static class WatchlistSiteBuilder
 {
-    public static WatchlistSiteModel Build(DailyWatchlist watchlist, DateOnly targetDate)
+    public static WatchlistSiteModel Build(DailyWatchlist watchlist, WatchlistKind kind, DateOnly targetDate)
     {
-        var games = watchlist.BestWatches.OrderBy(game => game.Rank).ToList();
+        var games = watchlist.BestWatches;
 
         return new WatchlistSiteModel(
-            Date: targetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture),
+            Date: SportsFormat.Dates(kind, targetDate),
             Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
             Top: new TopTab(TopPicks(games), games.ConvertAll(ToGame)),
             Plan: PlanTab(watchlist)
@@ -40,7 +40,7 @@ public static class WatchlistSiteBuilder
             game.League,
             game.Reason.Trim(),
             game.Sport,
-            game.Sources?.Select(s => new SourceLink(s.Title, s.Url)).ToList(),
+            game.Sources,
             SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr)
         );
 
@@ -55,7 +55,7 @@ public static class WatchlistSiteBuilder
                 step.Secondaries.ConvertAll(s => new PlanAlt(s.Icon, s.Matchup))
             ));
 
-        return new PlanTab(watchlist.WatchPlan?.Summary?.Trim() ?? "", steps);
+        return new PlanTab(watchlist.WatchPlan.Summary?.Trim() ?? "", steps);
     }
 
     // Machine-readable ISO timestamp for the client's <time datetime="...">.

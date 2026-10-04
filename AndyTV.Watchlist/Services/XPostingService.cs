@@ -1,25 +1,22 @@
 using System.Text.Json;
+using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using RestSharp;
 using RestSharp.Authenticators;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed class XPostingService(
-    string consumerKey,
-    string consumerSecret,
-    string accessToken,
-    string accessTokenSecret
-) : IDisposable
+// Only constructed when AppSettings.CanPostToX is true.
+public sealed class XPostingService(AppSettings settings) : IDisposable
 {
     private readonly RestClient _client = new(
         new RestClientOptions("https://api.x.com")
         {
             Authenticator = OAuth1Authenticator.ForProtectedResource(
-                consumerKey,
-                consumerSecret,
-                accessToken,
-                accessTokenSecret
+                settings.XConsumerKey!,
+                settings.XConsumerSecret,
+                settings.XAccessToken!,
+                settings.XAccessTokenSecret!
             ),
         }
     );

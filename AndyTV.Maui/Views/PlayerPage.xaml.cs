@@ -33,6 +33,7 @@ public partial class PlayerPage
     private int _backgroundVideoTrack = -1;
     private bool _inBackground;
     private bool _needsRestart;
+    private bool _paused;
 
     public PlayerPage(Channel channel)
     {
@@ -62,9 +63,9 @@ public partial class PlayerPage
         _controlsTimer.Tick += OnControlsTimerTick;
 
         PlayerTapGesture.Tapped += (_, _) => ShowControls();
+        NowPlaying.Register(Play, Pause);
 
         Play();
-        _healthTimer.Start();
     }
 
     protected override void OnAppearing()
@@ -82,6 +83,11 @@ public partial class PlayerPage
         Dispatcher.Dispatch(() =>
         {
             _inBackground = false;
+            if (_paused)
+            {
+                _backgroundVideoTrack = -1;
+                return;
+            }
             _healthTimer.Start();
 
             // VLC's audio output stays dead after losing the session, so a fresh start is the reliable recovery
@@ -104,7 +110,14 @@ public partial class PlayerPage
 
     public void Receive(AudioInterruptedMessage _) => _needsRestart = true;
 
-    public void Receive(AudioResumableMessage _) => Dispatcher.Dispatch(Play);
+    public void Receive(AudioResumableMessage _) =>
+        Dispatcher.Dispatch(() =>
+        {
+            if (!_paused)
+            {
+                Play();
+            }
+        });
 
     public void Receive(AppStoppedMessage _)
     {
@@ -137,6 +150,7 @@ public partial class PlayerPage
     {
         var url = _localPlaybackService.GetUrl(_sourceUrl);
         _viewModel.Url = url;
+        _paused = false;
 
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
         _needsRestart = _inBackground;
@@ -148,6 +162,22 @@ public partial class PlayerPage
             media.AddOption(":no-video");
         }
         _mediaPlayer.Play(media);
+
+        // Off-screen health checks stay off (VLC stalls rendering in the background).
+        if (!_inBackground)
+        {
+            _healthTimer.Start();
+        }
+        NowPlaying.Update(_viewModel.ChannelName, playing: true);
+    }
+
+    // Live streams can't pause, so lock-screen pause stops; play restarts with a fresh session.
+    private void Pause()
+    {
+        _paused = true;
+        _healthTimer.Stop();
+        _mediaPlayer.Stop();
+        NowPlaying.Update(_viewModel.ChannelName, playing: false);
     }
 
     private void OnHealthTimerTick(object sender, EventArgs e)
@@ -163,22 +193,30 @@ public partial class PlayerPage
     private void OnControlsTimerTick(object sender, EventArgs e)
     {
         _controlsTimer.Stop();
-        BackButton.Opacity = 0;
-        BackButton.InputTransparent = true;
+        SetControlsVisible(false);
     }
 
     private void ShowControls()
     {
-        BackButton.Opacity = 1;
-        BackButton.InputTransparent = false;
+        SetControlsVisible(true);
         _controlsTimer.Stop();
         _controlsTimer.Start();
+    }
+
+    private void SetControlsVisible(bool visible)
+    {
+        foreach (var control in (View[])[BackButton, AirPlayBorder])
+        {
+            control.Opacity = visible ? 1 : 0;
+            control.InputTransparent = !visible;
+        }
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         DeviceDisplay.Current.KeepScreenOn = false;
+        NowPlaying.Clear();
 
         WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);

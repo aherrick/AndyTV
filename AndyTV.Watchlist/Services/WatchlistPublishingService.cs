@@ -6,13 +6,11 @@ using Microsoft.Extensions.Logging;
 namespace AndyTV.Watchlist.Services;
 
 /// <summary>
-/// Processes one watchlist for an Eastern calendar date: expire the weekend feed
-/// when needed, load the matching email, and publish the site data.
-/// Daily editions also produce Instagram cards and X posts; weekend editions are
-/// data-only. Timer selection belongs to AndyTVWatchlistFn, not this service.
+/// Runs one Daily or Weekend edition top to bottom and saves a WatchlistRun summary,
+/// even on failure. Timer selection belongs to AndyTVWatchlistFn.
 /// </summary>
 public sealed class WatchlistPublishingService(
-    GmailWatchlistService gmailService,
+    WatchlistResearchService researchService,
     CloudflareScreenshotService screenshotService,
     BlobStore blobStore,
     InstagramPublishService instagramService,
@@ -20,99 +18,107 @@ public sealed class WatchlistPublishingService(
     ILogger<WatchlistPublishingService> logger
 )
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
     public async Task Publish(
         WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken = default
     )
     {
-        // Expiration does not depend on a new daily email; an absent file is already the desired state.
-        if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
+        var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
+        try
         {
-            await blobStore.DeleteWeekendData(cancellationToken);
-            logger.LogInformation("Cleared published weekend feed.");
-        }
+            // 1. Sunday's daily run expires the weekend feed.
+            if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
+            {
+                await blobStore.DeleteWeekendData(cancellationToken);
+            }
 
-        // A missing or empty email leaves the existing feed alone.
-        var watchlist = await gmailService.GetLatest(kind, cancellationToken);
-        if (watchlist is null || watchlist.BestWatches.Count == 0)
+            // 2. Load schedule events; none leaves the existing feed alone.
+            var days = kind.Days(targetDate);
+            var events = await researchService.LoadEvents(days, cancellationToken);
+            run.Events = events.Count;
+            if (events.Count == 0)
+            {
+                return;
+            }
+
+            // 3. Copilot ranks and enriches the events.
+            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
+
+            // 4. Publish the site feed before social so it's live even if a later step fails.
+            if (settings.CanPublishSite)
+            {
+                var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
+                await blobStore.PublishData(json, kind, cancellationToken);
+                run.Feed = true;
+            }
+
+            // 5. Social posts.
+            run.InstagramUrl = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
+            run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
+        }
+        catch (Exception ex)
         {
-            logger.LogInformation("No emailed {kind} watchlist with games found.", kind);
-            return;
+            run.Error = ex.Message;
+            throw;
         }
-
-        // Save before social publishing so the feed is live even if a later step fails.
-        if (settings.CanPublishSite)
+        finally
         {
-            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, targetDate), JsonOptions);
-            var url = await blobStore.PublishData(json, kind, cancellationToken);
-            logger.LogInformation("Published {kind} feed to {url}.", kind, url);
+            run.Duration = (DateTimeOffset.UtcNow - run.Started).ToString(@"mm\:ss");
+            if (settings.CanPublishSite)
+            {
+                await blobStore.SaveRun(run);
+            }
         }
-
-        // Weekend editions are data-only.
-        if (kind == WatchlistKind.Weekend)
-        {
-            return;
-        }
-
-        await PublishInstagram(watchlist, targetDate, cancellationToken);
-        await PublishXThread(watchlist, targetDate, cancellationToken);
     }
 
-    private async Task PublishInstagram(
+    private async Task<string?> PublishInstagram(
         DailyWatchlist watchlist,
+        WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken
     )
     {
         if (!settings.CanScreenshot)
         {
-            return;
+            return null;
         }
 
         var imageUrls = new List<Uri>();
-        foreach (var card in InstaCardRenderer.Render(watchlist, targetDate))
+        foreach (var card in InstaCardRenderer.Render(watchlist, kind, targetDate))
         {
             var png = await screenshotService.Capture(card.Html, cancellationToken);
-            var blobName = $"{targetDate:yyyyMMdd}/{Path.ChangeExtension(card.Name, ".png")}";
+            // Friday's Daily and Weekend cards share a date folder.
+            var blobName = $"{targetDate:yyyyMMdd}/{kind.ToString().ToLowerInvariant()}/{Path.ChangeExtension(card.Name, ".png")}";
             imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
         }
 
-        if (settings.CanPublishInstagram)
+        if (!settings.CanPublishInstagram)
         {
-            var caption = $"AndyTV Watchlist — Best Sports Today\n{targetDate:dddd, MMMM d}";
-            await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
+            return null;
         }
+
+        return await instagramService.PublishCarousel(imageUrls, cancellationToken);
     }
 
-    private async Task PublishXThread(
+    private async Task<string?> PublishXThread(
         DailyWatchlist watchlist,
+        WatchlistKind kind,
         DateOnly targetDate,
         CancellationToken cancellationToken
     )
     {
         // Always log the three formatted posts for inspection. Actual posting is
         // enabled only when all four X credentials are present.
-        var posts = SportsGuideFormatter.CreatePosts(watchlist, targetDate);
+        var posts = SportsGuideFormatter.CreatePosts(watchlist, kind, targetDate);
         logger.LogInformation("{post1}\n\n{post2}\n\n{post3}", posts.Post1, posts.Post2, posts.Post3);
         if (!settings.CanPostToX)
         {
             logger.LogInformation("X preview only. Add the four X_ secrets to publish the thread.");
-            return;
+            return null;
         }
 
-        using var xPostingService = new XPostingService(
-            settings.XConsumerKey!,
-            settings.XConsumerSecret!,
-            settings.XAccessToken!,
-            settings.XAccessTokenSecret!
-        );
-        var postId = await xPostingService.PostThread(posts, cancellationToken);
-        logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
+        using var xPostingService = new XPostingService(settings);
+        return await xPostingService.PostThread(posts, cancellationToken);
     }
 }

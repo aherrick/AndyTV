@@ -13,11 +13,8 @@ public static class SportsFormat
             "Hockey" => "🏒",
             "Basketball" => "🏀",
             "Soccer" => "⚽",
-            "Racing" or "Motorsports" => "🏁",
-            "Combat Sports" => "🥊",
-            "Golf" => "⛳",
-            "Tennis" => "🎾",
-            "Volleyball" => "🏐",
+            "Racing" => "🏁",
+            "MMA" => "🥊",
             _ => "📺",
         };
 
@@ -26,6 +23,19 @@ public static class SportsFormat
         EasternTimeZone.Convert(value).ToString("h:mm tt", CultureInfo.InvariantCulture);
 
     public static string Time(DateTimeOffset value) => $"{TimeNoZone(value)} ET";
+
+    // Weekend times need the day, e.g. "Sat 1:00 PM ET".
+    public static string Time(DateTimeOffset value, WatchlistKind kind) =>
+        kind == WatchlistKind.Weekend ? $"{Day(value)} {Time(value)}" : Time(value);
+
+    public static string Day(DateTimeOffset value) =>
+        EasternTimeZone.Convert(value).ToString("ddd", CultureInfo.InvariantCulture);
+
+    public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
+
+    // "Friday, October 3" or "Saturday, October 4 – Sunday, October 5".
+    public static string Dates(WatchlistKind kind, DateOnly runDate) =>
+        string.Join(" – ", kind.Days(runDate).Select(day => day.ToString("dddd, MMMM d", CultureInfo.InvariantCulture)));
 
     // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
     public static string Odds(Betting? betting) => string.Join(" · ", OddsParts(betting));
@@ -98,33 +108,27 @@ public static class SportsFormat
     }
 
     // Watch-plan steps in time order with primary + secondary games resolved by rank; shared by X, site, and IG.
+    // Steps or secondaries that reference an unknown rank are skipped.
     public static List<WatchPlanEntry> WatchPlanSteps(DailyWatchlist watchlist)
     {
-        if (watchlist.WatchPlan is not { Steps.Count: > 0 } plan)
-        {
-            return [];
-        }
+        var byRank = watchlist.BestWatches.DistinctBy(game => game.Rank).ToDictionary(game => game.Rank);
 
-        var byRank = watchlist.BestWatches.ToDictionary(game => game.Rank);
-
-        (string Icon, string Matchup) Resolve(int rank) =>
-            byRank.TryGetValue(rank, out var game) ? (Icon(game.Sport), game.Matchup) : ("📺", "");
-
-        return plan
-            .Steps.OrderBy(step => step.StartTimeIso)
+        return watchlist
+            .WatchPlan.Steps.Where(step => byRank.ContainsKey(step.PrimaryRank))
+            .OrderBy(step => step.StartTimeIso)
             .Select(step =>
             {
-                var (icon, matchup) = Resolve(step.PrimaryRank);
-                var secondaries = step
-                    .SecondaryRanks.Select(Resolve)
-                    .Where(game => game.Matchup.Length > 0)
-                    .ToList();
+                var primary = byRank[step.PrimaryRank];
                 return new WatchPlanEntry(
                     step.StartTimeIso,
-                    icon,
-                    matchup,
+                    Icon(primary.Sport),
+                    primary.Matchup,
                     step.Instruction.Trim(),
-                    secondaries
+                    [
+                        .. step
+                            .SecondaryRanks.Where(byRank.ContainsKey)
+                            .Select(rank => (Icon(byRank[rank].Sport), byRank[rank].Matchup)),
+                    ]
                 );
             })
             .ToList();

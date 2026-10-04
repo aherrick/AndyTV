@@ -1,40 +1,43 @@
-# Watchlist email schedule
+# Watchlist schedule
 
-One function runs at 3:30 AM Eastern every day. It processes Daily first, then
-also processes Weekend on Fridays. A missing Daily email does not skip the Weekend check.
-The timer uses 07:30 and 08:30 UTC with an Eastern-hour guard for daylight saving time.
+One function runs at 2:30 AM Eastern every day. It researches and publishes Daily,
+and on Fridays researches Weekend (Saturday + Sunday) at the same time.
+The timer uses 06:30 and 07:30 UTC with an Eastern-hour guard for daylight saving time.
 The app runs on Linux Flex Consumption, where Azure does not support
 [`WEBSITE_TIME_ZONE`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer#ncrontab-time-zones).
 
-Emails are selected by sender and subject containing `Daily Watchlist` or
-`Weekend Watchlist`, respectively (the legacy `GMAIL_SUBJECT` setting is no longer used).
-Both use the same JSON structure, with `date` matching the run date (Friday for the
-weekend email). The newest valid matching email is used; stale dates are skipped.
+The watchlist is produced end to end in the function: API-Sports (MLB, NFL/NCAA,
+NHL, NBA/WNBA/NCAA, curated soccer, UFC) and ESPN racing (F1, NASCAR Cup, IndyCar)
+supply the candidate events, then GitHub Copilot (`gpt-6.1-sol`, web search/fetch only)
+ranks and enriches them with one shared prompt (`WatchlistPrompt`). Feed schedules are
+authoritative and validated; only UFC main-card times are researched.
+
+Settings: `SPORTS_API_KEY` and `WATCHLIST_PROMPT` (required; one-line prompt with
+`{dates}`, `{firstDay}`, `{count}` placeholders), `COPILOT_GITHUB_TOKEN` (fine-grained PAT with
+"Copilot Requests"; optional locally when signed in to Copilot), plus the existing blob,
+Cloudflare, Instagram and X settings.
 
 Daily publishes `latest.json`; weekend publishes `latest_weekend.json` for the
-site's Weekend tab. Local previews use the same filenames under `publish/`.
-Weekend processing only publishes the data feed; social posts remain daily.
-Sunday's 3:30 AM Eastern daily run deletes `latest_weekend.json` before checking
-email, including when no daily email is available. Missing files are harmless;
-local preview mode deletes only `publish/latest_weekend.json`.
+site's Weekend tab. Both kinds post to Instagram and X; Friday posts the daily and
+weekend editions separately. Sunday's daily run deletes `latest_weekend.json` first.
+
+`INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
+the current token in the private `andytv-watchlist-private` container. After setting a new
+seed token, delete `instagram-token.txt` from that container.
+
+Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, error) to
+`andytv-watchlist-private/runs/`. `GET /api/runs?code=<function key>` shows the latest 60 as a table.
 
 ## Processing flow
 
 `AndyTVWatchlistFn` has one timer, an Eastern-hour check, and a Friday condition.
-The hour check skips the UTC firing that does not fall at 3 AM Eastern.
-Debug and Release use the same schedule; neither requests an extra startup run.
+The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 
-`WatchlistPublishingService` carries out each accepted run in this order:
+`WatchlistPublishingService` carries out each run in this order:
 
-1. On Sunday, delete the weekend feed before contacting Gmail.
-2. Read the newest email for the requested kind and date. Stop if it has no games.
-3. Build the site's JSON model.
-4. Save that kind's feed under `publish/` in local mode, or publish it to blob
-   storage when configured. Weekend processing ends here.
-5. For Daily, capture each Instagram card once. Local mode saves the PNGs under
-   `publish/insta/`; otherwise upload them and publish the carousel when configured.
-6. Log the daily X thread and post it when X credentials are present.
-
-`WatchlistKind` keeps the email subject and feed filename mappings in one place.
-Local mode skips blob uploads and Instagram publishing. As before, X posting is
-controlled separately by the four X credentials, including in local mode.
+1. On Sunday, delete the weekend feed.
+2. `WatchlistResearchService` loads the day's (or weekend's) events, runs the prompt
+   and validates the result. Stop if the feeds returned no events.
+3. Build the site's JSON model and publish that kind's feed to blob storage.
+4. Capture each Instagram card, upload them and publish the carousel when configured.
+5. Log the X thread and post it when X credentials are present.

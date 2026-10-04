@@ -7,24 +7,25 @@ const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist
 const WEEKEND_DATA_URL = DATA_URL.replace("latest.json", "latest_weekend.json");
 const TIME_ZONE = "America/New_York";
 
+function easternParts(now, options) {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hourCycle: "h23", ...options })
+      .formatToParts(now)
+      .map(({ type, value }) => [type, type === "weekday" ? value : Number(value)])
+  );
+}
+
 // Friday at 4 AM through Sunday before 4 AM, in Eastern time.
 function isWeekendWindow(now = new Date()) {
-  const { weekday, hour } = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: TIME_ZONE, weekday: "short", hour: "numeric", hourCycle: "h23",
-    }).formatToParts(now).map(({ type, value }) => [type, value])
-  );
+  const { weekday, hour } = easternParts(now, { weekday: "short", hour: "numeric" });
   return (weekday === "Fri" && hour >= 4) || weekday === "Sat" || (weekday === "Sun" && hour < 4);
 }
 
 // The daily watchlist rolls over at 3:30 AM ET, including on daylight-saving days.
 function watchlistDay(now = new Date()) {
-  const { year, month, day, hour, minute } = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-    }).formatToParts(now).map(({ type, value }) => [type, Number(value)])
-  );
+  const { year, month, day, hour, minute } = easternParts(now, {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
   return new Date(Date.UTC(year, month - 1, day, hour, minute - (3 * 60 + 30))).toISOString().slice(0, 10);
 }
 

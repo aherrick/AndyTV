@@ -62,6 +62,8 @@ internal sealed class PlayerForm : Form
     private readonly CancellationTokenSource _cts = new();
     private readonly StreamHealthMonitor _healthMonitor = new();
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
+    private readonly System.Windows.Forms.Timer _sleepTimer = new();
+    private ToolStripMenuItem _sleepOffItem;
 
     // LibVLC play/stop block for seconds (vout teardown, network probing), which deadlocks the
     // WinForms message loop. All callers are on the UI thread, so chaining keeps them in order.
@@ -95,6 +97,7 @@ internal sealed class PlayerForm : Form
         };
 
         _healthTimer.Tick += OnHealthTick;
+        _sleepTimer.Tick += OnSleepTimer;
 
         _mediaPlayer.Playing += OnPlaying;
 
@@ -367,6 +370,8 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add(BuildAdvancedMenu());
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(new ToolStripSeparator());
+        manage.DropDownItems.AddRange(BuildSleepMenus());
+        manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add(_recordItem);
         manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
         manage.DropDownItems.Add(new ToolStripSeparator());
@@ -435,10 +440,7 @@ internal sealed class PlayerForm : Form
             {
                 _config.NetworkBufferMilliseconds = milliseconds;
                 _configService.Save(_config);
-                foreach (var option in buffer.DropDownItems.OfType<ToolStripMenuItem>())
-                {
-                    option.Checked = option == item;
-                }
+                CheckOnly(item);
             };
             buffer.DropDownItems.Add(item);
         }
@@ -446,6 +448,89 @@ internal sealed class PlayerForm : Form
         buffer.DropDownItems.Add(new ToolStripMenuItem("Applies on next channel change") { Enabled = false });
         advanced.DropDownItems.Add(buffer);
         return advanced;
+    }
+
+    // Sleep length is per session (starts Off); what happens when it fires is saved.
+    private ToolStripItem[] BuildSleepMenus()
+    {
+        var timer = new ToolStripMenuItem("Sleep Timer");
+        int[] presets = [0, 15, 30, 60, 90, 120];
+        foreach (var minutes in presets)
+        {
+            var item = new ToolStripMenuItem(minutes == 0 ? "Off" : $"{minutes} min")
+            {
+                Checked = minutes == 0,
+            };
+            item.Click += (_, _) =>
+            {
+                _sleepTimer.Stop();
+                if (minutes > 0)
+                {
+                    _sleepTimer.Interval = minutes * 60_000;
+                    _sleepTimer.Start();
+                }
+                CheckOnly(item);
+            };
+            timer.DropDownItems.Add(item);
+        }
+        _sleepOffItem = (ToolStripMenuItem)timer.DropDownItems[0];
+
+        var action = new ToolStripMenuItem("When Timer Ends");
+        (string Label, SleepAction Value)[] actions =
+        [
+            ("Close App", SleepAction.CloseApp),
+            ("Stop Playback", SleepAction.StopPlayback),
+            ("Mute", SleepAction.Mute),
+        ];
+        foreach (var (label, value) in actions)
+        {
+            var item = new ToolStripMenuItem(label) { Checked = _config.SleepAction == value };
+            item.Click += (_, _) =>
+            {
+                _config.SleepAction = value;
+                _configService.Save(_config);
+                CheckOnly(item);
+            };
+            action.DropDownItems.Add(item);
+        }
+
+        return [timer, action];
+    }
+
+    private void OnSleepTimer(object sender, EventArgs e)
+    {
+        _sleepTimer.Stop();
+        CheckOnly(_sleepOffItem);
+        if (_config.SleepAction == SleepAction.Mute)
+        {
+            _mediaPlayer.Mute = true;
+        }
+        else if (_config.SleepAction == SleepAction.StopPlayback)
+        {
+            // Clearing _current also keeps the health check from restarting the stream.
+            StopRecording();
+            _current = null;
+            _pending = null;
+            UpdateCursor();
+            RunPlayback(() => _mediaPlayer.Stop());
+        }
+        else
+        {
+            Close();
+        }
+    }
+
+    // Radio-style check within a submenu.
+    private static void CheckOnly(ToolStripMenuItem item)
+    {
+        if (item.OwnerItem is not ToolStripMenuItem parent)
+        {
+            return;
+        }
+        foreach (var option in parent.DropDownItems.OfType<ToolStripMenuItem>())
+        {
+            option.Checked = option == item;
+        }
     }
 
     // Downloads/parses channels and builds the channel tree off the UI thread (only the
@@ -850,6 +935,7 @@ internal sealed class PlayerForm : Form
             _cts.Dispose();
             _healthTimer.Tick -= OnHealthTick;
             _healthTimer.Dispose();
+            _sleepTimer.Dispose();
             StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
             _libVLC.Log -= OnLibVlcLog;

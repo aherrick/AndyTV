@@ -22,11 +22,9 @@ public sealed record Game(
     string League,
     string Reason,
     string Sport,
-    List<SourceLink>? Sources,
+    List<WatchSource> Sources,
     List<string> Odds
 );
-
-public sealed record SourceLink(string Title, string Url);
 
 public sealed record PlanTab(string Summary, List<PlanStep> Steps);
 

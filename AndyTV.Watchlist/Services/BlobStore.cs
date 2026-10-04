@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Azure.Storage.Blobs;
@@ -6,10 +7,54 @@ using Azure.Storage.Blobs.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// One public container hosts latest.json, latest_weekend.json, and daily Instagram cards.
+// One public container hosts latest.json, latest_weekend.json, and Instagram cards.
 public sealed class BlobStore(AppSettings settings)
 {
-    private const string ImageContainer = "andytv-watchlist";
+    private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
+
+    // Never public: holds state such as the refreshed Instagram token.
+    private BlobContainerClient PrivateContainer => new(settings.BlobConnectionString, "andytv-watchlist-private");
+
+    public async Task<string?> ReadPrivate(string blobName, CancellationToken cancellationToken = default)
+    {
+        var blob = PrivateContainer.GetBlobClient(blobName);
+        return await blob.ExistsAsync(cancellationToken)
+            ? (await blob.DownloadContentAsync(cancellationToken)).Value.Content.ToString()
+            : null;
+    }
+
+    public async Task WritePrivate(string blobName, string value, CancellationToken cancellationToken = default)
+    {
+        var container = PrivateContainer;
+        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+        await container.GetBlobClient(blobName).UploadAsync(BinaryData.FromString(value), overwrite: true, cancellationToken);
+    }
+
+    // Names sort by UTC start time, so newest-first is a reverse name sort.
+    public Task SaveRun(WatchlistRun run) =>
+        WritePrivate($"runs/{run.Started:yyyyMMdd-HHmmss}-{run.Kind}.json", JsonSerializer.Serialize(run, JsonSerializerOptions.Web));
+
+    public async Task<List<WatchlistRun>> ReadRuns(int count)
+    {
+        var container = PrivateContainer;
+        if (!await container.ExistsAsync())
+        {
+            return [];
+        }
+
+        List<string> names = [];
+        await foreach (var blob in container.GetBlobsAsync(BlobTraits.None, BlobStates.None, "runs/", default))
+        {
+            names.Add(blob.Name);
+        }
+
+        var runs = await Task.WhenAll(
+            names.OrderDescending().Take(count).Select(async name =>
+                (await container.GetBlobClient(name).DownloadContentAsync()).Value.Content.ToObjectFromJson<WatchlistRun>(JsonSerializerOptions.Web)!
+            )
+        );
+        return [.. runs];
+    }
 
     // Uploads a card PNG to a public container and returns its blob URL.
     public Task<Uri> UploadImage(
@@ -33,12 +78,9 @@ public sealed class BlobStore(AppSettings settings)
 
     // Sunday expires only the weekend feed. No container creation or deletion is
     // needed here, and an already-missing blob is a successful no-op.
-    public async Task DeleteWeekendData(CancellationToken cancellationToken = default)
-    {
-        var container = new BlobContainerClient(settings.BlobConnectionString, ImageContainer);
-        await container.GetBlobClient(WatchlistKind.Weekend.FeedFileName())
+    public Task DeleteWeekendData(CancellationToken cancellationToken = default) =>
+        Container.GetBlobClient(WatchlistKind.Weekend.FeedFileName())
             .DeleteIfExistsAsync(cancellationToken: cancellationToken);
-    }
 
     private async Task<Uri> Upload(
         string blobName,
@@ -48,7 +90,7 @@ public sealed class BlobStore(AppSettings settings)
         CancellationToken cancellationToken
     )
     {
-        var container = new BlobContainerClient(settings.BlobConnectionString, ImageContainer);
+        var container = Container;
         await container.CreateIfNotExistsAsync(
             PublicAccessType.Blob,
             cancellationToken: cancellationToken
