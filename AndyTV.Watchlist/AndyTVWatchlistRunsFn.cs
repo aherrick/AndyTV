@@ -24,7 +24,7 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
                   <td>${run.Cost:0.00}</td>
                   <td>{(run.Feed ? "✓" : "")}</td>
                   <td>{(run.XPostId is null ? "" : $"<a href=\"https://x.com/i/web/status/{Enc(run.XPostId)}\">post</a>")}</td>
-                  <td>{(run.InstagramId is null ? "" : "✓")}</td>
+                  <td>{(run.InstagramUrl is null ? "" : $"<a href=\"{Enc(run.InstagramUrl)}\">post</a>")}</td>
                   <td>{Enc(run.Error)}</td>
                 </tr>
                 """

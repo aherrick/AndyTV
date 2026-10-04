@@ -10,6 +10,6 @@ public sealed class WatchlistRun
     public double Cost { get; set; }
     public bool Feed { get; set; }
     public string? XPostId { get; set; }
-    public string? InstagramId { get; set; }
+    public string? InstagramUrl { get; set; }
     public string? Error { get; set; }
 }

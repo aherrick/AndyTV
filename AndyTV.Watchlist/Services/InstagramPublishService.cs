@@ -15,7 +15,7 @@ public sealed class InstagramPublishService(
     // Instagram Login tokens (IGAA...) only work on graph.instagram.com, not graph.facebook.com.
     private const string GraphBase = "https://graph.instagram.com/v21.0";
 
-    // Publishes the given image URLs as a single Instagram carousel and returns the published media id.
+    // Publishes the given image URLs as a single Instagram carousel and returns the post's permalink.
     public async Task<string> PublishCarousel(
         IEnumerable<Uri> imageUrls,
         string caption,
@@ -51,12 +51,18 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
 
-        return await Post(
+        var mediaId = await Post(
             $"{settings.InstagramUserId}/media_publish",
             new() { ["creation_id"] = carouselId },
             token,
             cancellationToken
         );
+
+        var media = await httpClient.GetFromJsonAsync<JsonElement>(
+            $"{GraphBase}/{mediaId}?fields=permalink&access_token={token}",
+            cancellationToken
+        );
+        return media.GetProperty("permalink").GetString()!;
     }
 
     // Tokens expire after 60 days, so refresh on each post and keep the newest privately.

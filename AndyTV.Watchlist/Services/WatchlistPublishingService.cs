@@ -54,7 +54,7 @@ public sealed class WatchlistPublishingService(
             }
 
             // 5. Social posts.
-            run.InstagramId = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
+            run.InstagramUrl = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
             run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
         }
         catch (Exception ex)
