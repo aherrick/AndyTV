@@ -6,10 +6,8 @@ using Microsoft.Extensions.Logging;
 namespace AndyTV.Watchlist.Services;
 
 /// <summary>
-/// Processes one watchlist for an Eastern calendar date: expire the weekend feed
-/// when needed, research the watchlist, and publish the site data.
-/// Daily and weekend editions also produce Instagram cards and X posts.
-/// Timer selection belongs to AndyTVWatchlistFn, not this service.
+/// Runs one Daily or Weekend edition top to bottom and saves a WatchlistRun summary,
+/// even on failure. Timer selection belongs to AndyTVWatchlistFn.
 /// </summary>
 public sealed class WatchlistPublishingService(
     WatchlistResearchService researchService,
@@ -29,12 +27,39 @@ public sealed class WatchlistPublishingService(
         var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
         try
         {
-            await Run(kind, targetDate, run, cancellationToken);
+            // 1. Sunday's daily run expires the weekend feed.
+            if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
+            {
+                await blobStore.DeleteWeekendData(cancellationToken);
+            }
+
+            // 2. Load schedule events; none leaves the existing feed alone.
+            var days = kind.Days(targetDate);
+            var events = await researchService.LoadEvents(days, cancellationToken);
+            run.Events = events.Count;
+            if (events.Count == 0)
+            {
+                return;
+            }
+
+            // 3. Copilot ranks and enriches the events.
+            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
+
+            // 4. Publish the site feed before social so it's live even if a later step fails.
+            if (settings.CanPublishSite)
+            {
+                var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
+                await blobStore.PublishData(json, kind, cancellationToken);
+                run.Feed = true;
+            }
+
+            // 5. Social posts.
+            run.InstagramId = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
+            run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
         }
         catch (Exception ex)
         {
             run.Error = ex.Message;
-            logger.LogError(ex, "{kind} run failed.", kind);
             throw;
         }
         finally
@@ -45,36 +70,6 @@ public sealed class WatchlistPublishingService(
                 await blobStore.SaveRun(run);
             }
         }
-    }
-
-    private async Task Run(WatchlistKind kind, DateOnly targetDate, WatchlistRun run, CancellationToken cancellationToken)
-    {
-        // Expiration does not depend on a new daily watchlist; an absent file is already the desired state.
-        if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
-        {
-            await blobStore.DeleteWeekendData(cancellationToken);
-            logger.LogInformation("Cleared published weekend feed.");
-        }
-
-        // No events leaves the existing feed alone.
-        var watchlist = await researchService.Create(kind, targetDate, run, cancellationToken);
-        if (watchlist is null)
-        {
-            logger.LogInformation("No {kind} events to rank.", kind);
-            return;
-        }
-
-        // Save before social publishing so the feed is live even if a later step fails.
-        if (settings.CanPublishSite)
-        {
-            var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
-            var url = await blobStore.PublishData(json, kind, cancellationToken);
-            logger.LogInformation("Published {kind} feed to {url}.", kind, url);
-            run.Feed = true;
-        }
-
-        run.InstagramId = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
-        run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
     }
 
     private async Task<string?> PublishInstagram(

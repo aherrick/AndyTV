@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Builds a watchlist end to end: feed events -> Copilot research -> validated DailyWatchlist.
+// Loads feed events and has Copilot rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
     ApiSportsService apiSports,
     EspnRacingService racing,
@@ -17,15 +17,8 @@ public sealed class WatchlistResearchService(
 {
     private const string ModelId = "gpt-6.1-sol";
 
-    // Returns null when the feeds have nothing to rank.
-    public async Task<DailyWatchlist?> Create(
-        WatchlistKind kind,
-        DateOnly runDate,
-        WatchlistRun run,
-        CancellationToken cancellationToken = default
-    )
+    public async Task<List<SportsEvent>> LoadEvents(DateOnly[] days, CancellationToken cancellationToken)
     {
-        var days = kind.Days(runDate);
         var feeds = await Task.WhenAll(
             days.SelectMany(day => new[]
             {
@@ -33,23 +26,18 @@ public sealed class WatchlistResearchService(
                 racing.GetEventsForDate(day, cancellationToken),
             })
         );
-        var events = feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso).ToList();
-        logger.LogInformation("Loaded {count} {kind} events.", events.Count, kind);
-        run.Events = events.Count;
-        if (events.Count == 0)
-        {
-            return null;
-        }
-
-        var watchlist = await Research(kind, WatchlistPrompt.Build(settings.WatchlistPrompt, days, events), run, cancellationToken);
-
-        // Every formatter (and SportsFormat.TopPicks) relies on rank order.
-        watchlist.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
-        return watchlist;
+        return [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
     }
 
-    private async Task<DailyWatchlist> Research(WatchlistKind kind, string prompt, WatchlistRun run, CancellationToken cancellationToken)
+    // Returns the ranked watchlist and the research cost in dollars.
+    public async Task<(DailyWatchlist Watchlist, double Cost)> Research(
+        WatchlistKind kind,
+        DateOnly[] days,
+        List<SportsEvent> events,
+        CancellationToken cancellationToken
+    )
     {
+        var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events);
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
@@ -117,7 +105,9 @@ public sealed class WatchlistResearchService(
             credits,
             credits * 0.01
         );
-        run.Cost = credits * 0.01;
-        return result;
+
+        // Every formatter (and SportsFormat.TopPicks) relies on rank order.
+        result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+        return (result, credits * 0.01);
     }
 }
