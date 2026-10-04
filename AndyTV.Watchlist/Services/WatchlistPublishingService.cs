@@ -98,8 +98,7 @@ public sealed class WatchlistPublishingService(
             return null;
         }
 
-        var caption = $"AndyTV Watchlist — Best Sports {SportsFormat.Period(kind)}\n{SportsFormat.Dates(kind, targetDate)}";
-        return await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
+        return await instagramService.PublishCarousel(imageUrls, cancellationToken);
     }
 
     private async Task<string?> PublishXThread(

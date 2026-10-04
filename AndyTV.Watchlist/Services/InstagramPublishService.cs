@@ -19,7 +19,6 @@ public sealed class InstagramPublishService(
     // Publishes the given image URLs as a single Instagram carousel and returns the post's permalink.
     public async Task<string> PublishCarousel(
         IEnumerable<Uri> imageUrls,
-        string caption,
         CancellationToken cancellationToken = default
     )
     {
@@ -35,7 +34,7 @@ public sealed class InstagramPublishService(
 
         var carouselId = await Post(
             "media",
-            new() { ["media_type"] = "CAROUSEL", ["children"] = string.Join(',', childIds), ["caption"] = caption },
+            new() { ["media_type"] = "CAROUSEL", ["children"] = string.Join(',', childIds) },
             token,
             cancellationToken
         );

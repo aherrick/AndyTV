@@ -36,7 +36,7 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
         await response.WriteStringAsync(
             $"""
             <!doctype html>
-            <html>
+            <html data-bs-theme="dark">
             <head>
               <meta charset="utf-8">
               <title>AndyTV Watchlist Runs</title>
