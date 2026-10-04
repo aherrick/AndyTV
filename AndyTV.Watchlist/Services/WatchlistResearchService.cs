@@ -71,18 +71,18 @@ public sealed class WatchlistResearchService(
                 );
                 if (tool.Data.ToolName == "web_search")
                 {
-                    Interlocked.Increment(ref searches);
+                    searches++;
                 }
                 else if (tool.Data.ToolName == "web_fetch")
                 {
-                    Interlocked.Increment(ref fetches);
+                    fetches++;
                 }
             }
             else if (evt is AssistantUsageEvent usage)
             {
-                Interlocked.Add(ref inputTokens, (long)(usage.Data.InputTokens ?? 0));
-                Interlocked.Add(ref outputTokens, (long)(usage.Data.OutputTokens ?? 0));
-                Interlocked.Add(ref nanoAiu, (long)(usage.Data.CopilotUsage?.TotalNanoAiu ?? 0));
+                inputTokens += (long)(usage.Data.InputTokens ?? 0);
+                outputTokens += (long)(usage.Data.OutputTokens ?? 0);
+                nanoAiu += (long)(usage.Data.CopilotUsage?.TotalNanoAiu ?? 0);
             }
         });
 
