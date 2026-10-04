@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using AndyTV.Watchlist.Models;
 
@@ -19,11 +18,7 @@ public static class InstaCardRenderer
     public static IReadOnlyList<InstaCard> Render(DailyWatchlist watchlist, WatchlistKind kind, DateOnly targetDate)
     {
         var weekend = kind == WatchlistKind.Weekend;
-        var date = string.Join(
-                " – ",
-                kind.Days(targetDate).Select(day => $"{day.ToString(weekend ? "ddd" : "dddd", CultureInfo.InvariantCulture)} • {day:MMM d}")
-            )
-            .ToUpper(CultureInfo.InvariantCulture);
+        var date = SportsFormat.Dates(kind, targetDate, weekend ? "ddd • MMM d" : "dddd • MMM d").ToUpperInvariant();
         var period = SportsFormat.Period(kind).ToUpperInvariant();
         var span = weekend ? "WEEKEND" : "DAY";
         var topFooter = $"THE BEST SPORTS • RANKED {(weekend ? "FOR THE WEEKEND" : "DAILY")}";
@@ -32,72 +27,29 @@ public static class InstaCardRenderer
         var games = watchlist.BestWatches;
         var byTime = games.OrderBy(game => game.StartTimeIso).ToList();
 
+        InstaCard Card(string name, string title, string body, string footerNote, string callout = "") =>
+            new(
+                name,
+                BaseTemplate
+                    .Replace("{{HEADER}}", Header)
+                    .Replace("{{TITLE}}", title)
+                    .Replace("{{DATE}}", date)
+                    .Replace("{{BODY}}", body)
+                    .Replace("{{CALLOUT}}", callout)
+                    .Replace("{{FOOTERNOTE}}", footerNote)
+            );
+
         return
         [
-            Compose(
-                "01-top20-1-10.html",
-                date,
-                $"🏆 TOP 20 {period} {Chip("1–10")}",
-                RankBody(games.Take(10), kind),
-                "",
-                topFooter
-            ),
-            Compose(
-                "02-top20-11-20.html",
-                date,
-                $"🏆 TOP 20 {period} {Chip("11–20")}",
-                RankBody(games.Skip(10).Take(10), kind),
-                "",
-                topFooter
-            ),
-            Compose(
-                "03-timeline-1-10.html",
-                date,
-                $"🕒 TOP 20 TIMELINE {Chip("1–10")}",
-                TimelineBody(byTime.Take(10), kind),
-                "",
-                timelineFooter
-            ),
-            Compose(
-                "04-timeline-11-20.html",
-                date,
-                $"🕒 TOP 20 TIMELINE {Chip("11–20")}",
-                TimelineBody(byTime.Skip(10).Take(10), kind),
-                "",
-                timelineFooter
-            ),
-            Compose(
-                "05-watchlist.html",
-                date,
-                "🗺️ WATCH PLAN",
-                WatchBody(watchlist, kind),
-                WatchCallout(watchlist),
-                $"YOUR SPORTS {span} • PLANNED"
-            ),
+            Card("01-top20-1-10.html", $"🏆 TOP 20 {period} {Chip("1–10")}", RankBody(games.Take(10), kind), topFooter),
+            Card("02-top20-11-20.html", $"🏆 TOP 20 {period} {Chip("11–20")}", RankBody(games.Skip(10).Take(10), kind), topFooter),
+            Card("03-timeline-1-10.html", $"🕒 TOP 20 TIMELINE {Chip("1–10")}", TimelineBody(byTime.Take(10), kind), timelineFooter),
+            Card("04-timeline-11-20.html", $"🕒 TOP 20 TIMELINE {Chip("11–20")}", TimelineBody(byTime.Skip(10).Take(10), kind), timelineFooter),
+            Card("05-watchlist.html", "🗺️ WATCH PLAN", WatchBody(watchlist, kind), $"YOUR SPORTS {span} • PLANNED", WatchCallout(watchlist)),
         ];
     }
 
     private static string Chip(string range) => $"<span class=\"page-chip\">{range}</span>";
-
-    private static InstaCard Compose(
-        string name,
-        string date,
-        string title,
-        string body,
-        string callout,
-        string footerNote
-    )
-    {
-        var html = BaseTemplate
-            .Replace("{{HEADER}}", Header)
-            .Replace("{{TITLE}}", title)
-            .Replace("{{DATE}}", date)
-            .Replace("{{BODY}}", body)
-            .Replace("{{CALLOUT}}", callout)
-            .Replace("{{FOOTERNOTE}}", footerNote);
-
-        return new InstaCard(name, html);
-    }
 
     private static string RankBody(IEnumerable<WatchlistGame> games, WatchlistKind kind)
     {

@@ -99,6 +99,7 @@ public sealed class WatchlistResearchService(
         );
 
         var credits = nanoAiu / 1e9;
+        var cost = credits * 0.01;
         logger.LogInformation(
             "{kind} research done in {elapsed}: {searches} searches, {fetches} fetches, {input:N0} in / {output:N0} out tokens, {credits:N2} AI credits (~${dollars:N2}).",
             kind,
@@ -108,12 +109,12 @@ public sealed class WatchlistResearchService(
             inputTokens,
             outputTokens,
             credits,
-            credits * 0.01
+            cost
         );
 
         // Every formatter (and SportsFormat.TopPicks) relies on rank order.
         result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
 
-        return (result, credits * 0.01);
+        return (result, cost);
     }
 }

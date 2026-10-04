@@ -34,8 +34,8 @@ public static class SportsFormat
     public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
 
     // "Friday, October 3" or "Saturday, October 4 – Sunday, October 5".
-    public static string Dates(WatchlistKind kind, DateOnly runDate) =>
-        string.Join(" – ", kind.Days(runDate).Select(day => day.ToString("dddd, MMMM d", CultureInfo.InvariantCulture)));
+    public static string Dates(WatchlistKind kind, DateOnly runDate, string format = "dddd, MMMM d") =>
+        string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
     // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
     public static string Odds(Betting? betting) => string.Join(" · ", OddsParts(betting));
@@ -52,8 +52,9 @@ public static class SportsFormat
         // One spread implies the other side.
         if ((betting.AwaySpread ?? -betting.HomeSpread) is { } awaySpread)
         {
-            var awayLine = Line(awaySpread, "+0.#;-0.#;PK");
-            var homeLine = Line(betting.HomeSpread ?? -awaySpread, "+0.#;-0.#;PK");
+            const string spreadFormat = "+0.#;-0.#;PK";
+            var awayLine = Line(awaySpread, spreadFormat);
+            var homeLine = Line(betting.HomeSpread ?? -awaySpread, spreadFormat);
             if (awayAbbr is { Length: > 0 } && homeAbbr is { Length: > 0 })
             {
                 parts.Add($"{awayAbbr} {awayLine}");
@@ -85,7 +86,7 @@ public static class SportsFormat
         IReadOnlyList<WatchlistGame> games
     )
     {
-        var picks = new List<(string Icon, string Label, WatchlistGame Game)>();
+        List<(string Icon, string Label, WatchlistGame Game)> picks = [];
 
         void Add(string icon, string label, IEnumerable<WatchlistGame> source)
         {

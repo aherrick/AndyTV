@@ -84,7 +84,7 @@ public sealed class WatchlistPublishingService(
             return null;
         }
 
-        var imageUrls = new List<Uri>();
+        List<Uri> imageUrls = [];
         foreach (var card in InstaCardRenderer.Render(watchlist, kind, targetDate))
         {
             var png = await screenshotService.Capture(card.Html, cancellationToken);
@@ -93,12 +93,9 @@ public sealed class WatchlistPublishingService(
             imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
         }
 
-        if (!settings.CanPublishInstagram)
-        {
-            return null;
-        }
-
-        return await instagramService.PublishCarousel(imageUrls, cancellationToken);
+        return settings.CanPublishInstagram
+            ? await instagramService.PublishCarousel(imageUrls, cancellationToken)
+            : null;
     }
 
     private async Task<string?> PublishXThread(
