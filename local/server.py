@@ -66,10 +66,10 @@ def open_stream(url, quality, sid):
             # 2s keyframe-aligned segments so the first playlist is ready quickly; 180 x 2s keeps the 6-minute buffer.
             proc = subprocess.Popen([
                 FFMPEG, "-hide_banner", "-loglevel", "error", "-stats", "-i", url,
-                "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+                "-c:v", "libx264", "-preset", "veryfast",
                 "-force_key_frames", "expr:gte(t,n_forced*2)",
                 "-b:v", vbr, "-maxrate", maxr, "-bufsize", bufs,
-                "-vf", f"scale=-2:{h}",
+                "-vf", f"fps=30,scale=-2:{h}",
                 "-c:a", "aac", "-b:a", "128k",
                 "-f", "hls", "-hls_time", "2", "-hls_list_size", "180",
                 "-hls_flags", "delete_segments+program_date_time+independent_segments",
