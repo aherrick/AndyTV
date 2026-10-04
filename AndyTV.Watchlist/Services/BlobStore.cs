@@ -11,6 +11,24 @@ public sealed class BlobStore(AppSettings settings)
 {
     private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
 
+    // Never public: holds state such as the refreshed Instagram token.
+    private BlobContainerClient PrivateContainer => new(settings.BlobConnectionString, "andytv-watchlist-private");
+
+    public async Task<string?> ReadPrivate(string blobName, CancellationToken cancellationToken = default)
+    {
+        var blob = PrivateContainer.GetBlobClient(blobName);
+        return await blob.ExistsAsync(cancellationToken)
+            ? (await blob.DownloadContentAsync(cancellationToken)).Value.Content.ToString()
+            : null;
+    }
+
+    public async Task WritePrivate(string blobName, string value, CancellationToken cancellationToken = default)
+    {
+        var container = PrivateContainer;
+        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+        await container.GetBlobClient(blobName).UploadAsync(BinaryData.FromString(value), overwrite: true, cancellationToken);
+    }
+
     // Uploads a card PNG to a public container and returns its blob URL.
     public Task<Uri> UploadImage(
         string blobName,

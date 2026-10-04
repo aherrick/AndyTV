@@ -21,6 +21,10 @@ Daily publishes `latest.json`; weekend publishes `latest_weekend.json` for the
 site's Weekend tab. Both kinds post to Instagram and X; Friday posts the daily and
 weekend editions separately. Sunday's daily run deletes `latest_weekend.json` first.
 
+`INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
+the current token in the private `andytv-watchlist-private` container. After setting a new
+seed token, delete `instagram-token.txt` from that container.
+
 ## Processing flow
 
 `AndyTVWatchlistFn` has one timer, an Eastern-hour check, and a Friday condition.
