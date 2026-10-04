@@ -17,14 +17,19 @@ public sealed class WatchlistResearchService(
 {
     private const string ModelId = "gpt-6.1-sol";
 
-    public async Task<List<SportsEvent>> LoadEvents(DateOnly[] days, CancellationToken cancellationToken)
+    public async Task<List<SportsEvent>> LoadEvents(
+        DateOnly[] days,
+        CancellationToken cancellationToken
+    )
     {
         var feeds = await Task.WhenAll(
-            days.SelectMany(day => new[]
-            {
-                apiSports.GetEventsForDate(day, cancellationToken),
-                racing.GetEventsForDate(day, cancellationToken),
-            })
+            days.SelectMany(day =>
+                new[]
+                {
+                    apiSports.GetEventsForDate(day, cancellationToken),
+                    racing.GetEventsForDate(day, cancellationToken),
+                }
+            )
         );
         return [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
     }
@@ -108,6 +113,7 @@ public sealed class WatchlistResearchService(
 
         // Every formatter (and SportsFormat.TopPicks) relies on rank order.
         result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+
         return (result, credits * 0.01);
     }
 }
