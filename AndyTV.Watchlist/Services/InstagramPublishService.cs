@@ -51,15 +51,12 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
 
-        var mediaId = await Post(
+        return await Post(
             $"{settings.InstagramUserId}/media_publish",
             new() { ["creation_id"] = carouselId },
             token,
             cancellationToken
         );
-
-        logger.LogInformation("Published Instagram carousel {mediaId}.", mediaId);
-        return mediaId;
     }
 
     // Tokens expire after 60 days, so refresh on each post and keep the newest privately.

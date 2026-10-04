@@ -26,6 +26,29 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken = default
     )
     {
+        var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
+        try
+        {
+            await Run(kind, targetDate, run, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            run.Error = ex.Message;
+            logger.LogError(ex, "{kind} run failed.", kind);
+            throw;
+        }
+        finally
+        {
+            run.Duration = (DateTimeOffset.UtcNow - run.Started).ToString(@"mm\:ss");
+            if (settings.CanPublishSite)
+            {
+                await blobStore.SaveRun(run);
+            }
+        }
+    }
+
+    private async Task Run(WatchlistKind kind, DateOnly targetDate, WatchlistRun run, CancellationToken cancellationToken)
+    {
         // Expiration does not depend on a new daily watchlist; an absent file is already the desired state.
         if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
         {
@@ -34,7 +57,7 @@ public sealed class WatchlistPublishingService(
         }
 
         // No events leaves the existing feed alone.
-        var watchlist = await researchService.Create(kind, targetDate, cancellationToken);
+        var watchlist = await researchService.Create(kind, targetDate, run, cancellationToken);
         if (watchlist is null)
         {
             logger.LogInformation("No {kind} events to rank.", kind);
@@ -47,13 +70,14 @@ public sealed class WatchlistPublishingService(
             var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
             var url = await blobStore.PublishData(json, kind, cancellationToken);
             logger.LogInformation("Published {kind} feed to {url}.", kind, url);
+            run.Feed = true;
         }
 
-        await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
-        await PublishXThread(watchlist, kind, targetDate, cancellationToken);
+        run.InstagramId = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
+        run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
     }
 
-    private async Task PublishInstagram(
+    private async Task<string?> PublishInstagram(
         DailyWatchlist watchlist,
         WatchlistKind kind,
         DateOnly targetDate,
@@ -62,7 +86,7 @@ public sealed class WatchlistPublishingService(
     {
         if (!settings.CanScreenshot)
         {
-            return;
+            return null;
         }
 
         var imageUrls = new List<Uri>();
@@ -74,14 +98,16 @@ public sealed class WatchlistPublishingService(
             imageUrls.Add(await blobStore.UploadImage(blobName, png, cancellationToken));
         }
 
-        if (settings.CanPublishInstagram)
+        if (!settings.CanPublishInstagram)
         {
-            var caption = $"AndyTV Watchlist — Best Sports {SportsFormat.Period(kind)}\n{SportsFormat.Dates(kind, targetDate)}";
-            await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
+            return null;
         }
+
+        var caption = $"AndyTV Watchlist — Best Sports {SportsFormat.Period(kind)}\n{SportsFormat.Dates(kind, targetDate)}";
+        return await instagramService.PublishCarousel(imageUrls, caption, cancellationToken);
     }
 
-    private async Task PublishXThread(
+    private async Task<string?> PublishXThread(
         DailyWatchlist watchlist,
         WatchlistKind kind,
         DateOnly targetDate,
@@ -95,11 +121,10 @@ public sealed class WatchlistPublishingService(
         if (!settings.CanPostToX)
         {
             logger.LogInformation("X preview only. Add the four X_ secrets to publish the thread.");
-            return;
+            return null;
         }
 
         using var xPostingService = new XPostingService(settings);
-        var postId = await xPostingService.PostThread(posts, cancellationToken);
-        logger.LogInformation("Thread posted: https://x.com/i/web/status/{postId}", postId);
+        return await xPostingService.PostThread(posts, cancellationToken);
     }
 }

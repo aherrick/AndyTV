@@ -21,6 +21,7 @@ public sealed class WatchlistResearchService(
     public async Task<DailyWatchlist?> Create(
         WatchlistKind kind,
         DateOnly runDate,
+        WatchlistRun run,
         CancellationToken cancellationToken = default
     )
     {
@@ -34,19 +35,20 @@ public sealed class WatchlistResearchService(
         );
         var events = feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso).ToList();
         logger.LogInformation("Loaded {count} {kind} events.", events.Count, kind);
+        run.Events = events.Count;
         if (events.Count == 0)
         {
             return null;
         }
 
-        var watchlist = await Research(kind, WatchlistPrompt.Build(settings.WatchlistPrompt, days, events), cancellationToken);
+        var watchlist = await Research(kind, WatchlistPrompt.Build(settings.WatchlistPrompt, days, events), run, cancellationToken);
 
         // Every formatter (and SportsFormat.TopPicks) relies on rank order.
         watchlist.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
         return watchlist;
     }
 
-    private async Task<DailyWatchlist> Research(WatchlistKind kind, string prompt, CancellationToken cancellationToken)
+    private async Task<DailyWatchlist> Research(WatchlistKind kind, string prompt, WatchlistRun run, CancellationToken cancellationToken)
     {
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
@@ -115,6 +117,7 @@ public sealed class WatchlistResearchService(
             credits,
             credits * 0.01
         );
+        run.Cost = credits * 0.01;
         return result;
     }
 }

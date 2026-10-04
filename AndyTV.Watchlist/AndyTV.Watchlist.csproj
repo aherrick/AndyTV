@@ -13,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.30.0" />
     <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.17-preview.3" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Polly.Core" Version="8.8.0" />
     <PackageReference Include="RestSharp" Version="114.0.1-alpha.0.10" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />

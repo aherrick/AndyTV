@@ -25,6 +25,9 @@ weekend editions separately. Sunday's daily run deletes `latest_weekend.json` fi
 the current token in the private `andytv-watchlist-private` container. After setting a new
 seed token, delete `instagram-token.txt` from that container.
 
+Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, error) to
+`andytv-watchlist-private/runs/`. `GET /api/runs?code=<function key>` shows the latest 60 as a table.
+
 ## Processing flow
 
 `AndyTVWatchlistFn` has one timer, an Eastern-hour check, and a Friday condition.

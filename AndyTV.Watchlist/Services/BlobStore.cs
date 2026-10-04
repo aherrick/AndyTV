@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Azure.Storage.Blobs;
@@ -27,6 +28,32 @@ public sealed class BlobStore(AppSettings settings)
         var container = PrivateContainer;
         await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
         await container.GetBlobClient(blobName).UploadAsync(BinaryData.FromString(value), overwrite: true, cancellationToken);
+    }
+
+    // Names sort by UTC start time, so newest-first is a reverse name sort.
+    public Task SaveRun(WatchlistRun run) =>
+        WritePrivate($"runs/{run.Started:yyyyMMdd-HHmmss}-{run.Kind}.json", JsonSerializer.Serialize(run, JsonSerializerOptions.Web));
+
+    public async Task<List<WatchlistRun>> ReadRuns(int count)
+    {
+        var container = PrivateContainer;
+        if (!await container.ExistsAsync())
+        {
+            return [];
+        }
+
+        List<string> names = [];
+        await foreach (var blob in container.GetBlobsAsync(BlobTraits.None, BlobStates.None, "runs/", default))
+        {
+            names.Add(blob.Name);
+        }
+
+        var runs = await Task.WhenAll(
+            names.OrderDescending().Take(count).Select(async name =>
+                (await container.GetBlobClient(name).DownloadContentAsync()).Value.Content.ToObjectFromJson<WatchlistRun>(JsonSerializerOptions.Web)!
+            )
+        );
+        return [.. runs];
     }
 
     // Uploads a card PNG to a public container and returns its blob URL.
