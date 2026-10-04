@@ -13,7 +13,8 @@ public sealed class InstagramPublishService(
 )
 {
     // Instagram Login tokens (IGAA...) only work on graph.instagram.com, not graph.facebook.com.
-    private const string GraphBase = "https://graph.instagram.com/v21.0";
+    private const string GraphBase = "https://graph.instagram.com/v26.0";
+    private const string TokenBlob = "instagram-token.txt";
 
     // Publishes the given image URLs as a single Instagram carousel and returns the post's permalink.
     public async Task<string> PublishCarousel(
@@ -24,39 +25,21 @@ public sealed class InstagramPublishService(
     {
         var token = await AccessToken(cancellationToken);
 
-        var childIds = new List<string>();
+        List<string> childIds = [];
         foreach (var imageUrl in imageUrls)
         {
             childIds.Add(
-                await CreateContainer(
-                    new()
-                    {
-                        ["image_url"] = imageUrl.ToString(),
-                        ["is_carousel_item"] = "true",
-                    },
-                    token,
-                    cancellationToken
-                )
+                await Post("media", new() { ["image_url"] = imageUrl.ToString(), ["is_carousel_item"] = "true" }, token, cancellationToken)
             );
         }
 
-        var carouselId = await CreateContainer(
-            new()
-            {
-                ["media_type"] = "CAROUSEL",
-                ["children"] = string.Join(',', childIds),
-                ["caption"] = caption,
-            },
+        var carouselId = await Post(
+            "media",
+            new() { ["media_type"] = "CAROUSEL", ["children"] = string.Join(',', childIds), ["caption"] = caption },
             token,
             cancellationToken
         );
-
-        var mediaId = await Post(
-            $"{settings.InstagramUserId}/media_publish",
-            new() { ["creation_id"] = carouselId },
-            token,
-            cancellationToken
-        );
+        var mediaId = await Post("media_publish", new() { ["creation_id"] = carouselId }, token, cancellationToken);
 
         var media = await httpClient.GetFromJsonAsync<JsonElement>(
             $"{GraphBase}/{mediaId}?fields=permalink&access_token={token}",
@@ -69,7 +52,7 @@ public sealed class InstagramPublishService(
     // Delete the blob after setting a new INSTAGRAM_ACCESS_TOKEN.
     private async Task<string> AccessToken(CancellationToken cancellationToken)
     {
-        var token = await blobStore.ReadPrivate("instagram-token.txt", cancellationToken) ?? settings.InstagramAccessToken!;
+        var token = await blobStore.ReadPrivate(TokenBlob, cancellationToken) ?? settings.InstagramAccessToken!;
         using var response = await httpClient.GetAsync(
             $"https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token={token}",
             cancellationToken
@@ -83,18 +66,13 @@ public sealed class InstagramPublishService(
 
         var refreshed = (await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
             .GetProperty("access_token").GetString()!;
-        await blobStore.WritePrivate("instagram-token.txt", refreshed, cancellationToken);
+        await blobStore.WritePrivate(TokenBlob, refreshed, cancellationToken);
         return refreshed;
     }
 
-    private Task<string> CreateContainer(
-        Dictionary<string, string> fields,
-        string token,
-        CancellationToken cancellationToken
-    ) => Post($"{settings.InstagramUserId}/media", fields, token, cancellationToken);
-
+    // POSTs to /{ig-user-id}/{edge} and returns the created id.
     private async Task<string> Post(
-        string endpoint,
+        string edge,
         Dictionary<string, string> fields,
         string token,
         CancellationToken cancellationToken
@@ -104,7 +82,7 @@ public sealed class InstagramPublishService(
 
         using var content = new FormUrlEncodedContent(fields);
         using var response = await httpClient.PostAsync(
-            $"{GraphBase}/{endpoint}",
+            $"{GraphBase}/{settings.InstagramUserId}/{edge}",
             content,
             cancellationToken
         );
@@ -117,8 +95,6 @@ public sealed class InstagramPublishService(
             );
         }
 
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.GetProperty("id").GetString()
-            ?? throw new InvalidOperationException("Instagram API returned no id.");
+        return JsonSerializer.Deserialize<JsonElement>(json).GetProperty("id").GetString()!;
     }
 }
