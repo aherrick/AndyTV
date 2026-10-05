@@ -70,48 +70,46 @@ public sealed class EspnRacingService(HttpClient httpClient, ILogger<EspnRacingS
             return [];
         }
 
-        using (document)
+        using var _ = document;
+        List<SportsEvent> events = [];
+        foreach (var race in document.RootElement.GetProperty("events").EnumerateArray())
         {
-            List<SportsEvent> events = [];
-            foreach (var race in document.RootElement.GetProperty("events").EnumerateArray())
+            var name = race.GetProperty("name").GetString();
+            if (string.IsNullOrWhiteSpace(name))
             {
-                var name = race.GetProperty("name").GetString();
-                if (string.IsNullOrWhiteSpace(name))
+                continue;
+            }
+
+            // F1's event date is Friday practice, so judge each session by its own start time.
+            var competitions = race.GetProperty("competitions");
+            foreach (var competition in competitions.EnumerateArray())
+            {
+                // NASCAR and IndyCar may expose a sole untyped race competition.
+                var session =
+                    competition.TryGetProperty("type", out var type)
+                    && type.TryGetProperty("abbreviation", out var abbreviation)
+                        ? abbreviation.GetString()
+                        : competitions.GetArrayLength() == 1 ? "Race" : null;
+                if (session is null || !sessions.Contains(session, StringComparer.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                // F1's event date is Friday practice, so judge each session by its own start time.
-                var competitions = race.GetProperty("competitions");
-                foreach (var competition in competitions.EnumerateArray())
+                var start = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                if (DateOnly.FromDateTime(start.DateTime) != date)
                 {
-                    // NASCAR and IndyCar may expose a sole untyped race competition.
-                    var session =
-                        competition.TryGetProperty("type", out var type)
-                        && type.TryGetProperty("abbreviation", out var abbreviation)
-                            ? abbreviation.GetString()
-                            : competitions.GetArrayLength() == 1 ? "Race" : null;
-                    if (session is null || !sessions.Contains(session, StringComparer.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    var start = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
-                    if (DateOnly.FromDateTime(start.DateTime) != date)
-                    {
-                        continue;
-                    }
-
-                    var suffix = session.ToLowerInvariant() switch
-                    {
-                        "qual" => " - Qualifying",
-                        "sprint" => " - Sprint",
-                        _ => "",
-                    };
-                    events.Add(new("Racing", league, null, null, start, url) { EventName = name + suffix });
+                    continue;
                 }
+
+                var suffix = session.ToLowerInvariant() switch
+                {
+                    "qual" => " - Qualifying",
+                    "sprint" => " - Sprint",
+                    _ => "",
+                };
+                events.Add(new("Racing", league, null, null, start, url) { EventName = name + suffix });
             }
-            return events;
         }
+        return events;
     }
 }

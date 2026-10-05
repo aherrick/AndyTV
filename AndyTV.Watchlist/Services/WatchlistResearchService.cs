@@ -46,7 +46,7 @@ public sealed class WatchlistResearchService(
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
-        await client.StartAsync();
+        await client.StartAsync(cancellationToken);
         await using var session = await client.CreateSessionAsync(
             new SessionConfig
             {
@@ -54,7 +54,8 @@ public sealed class WatchlistResearchService(
                 ReasoningEffort = "high",
                 AvailableTools = ["web_search", "web_fetch"],
                 OnPermissionRequest = PermissionHandler.ApproveAll,
-            }
+            },
+            cancellationToken
         );
 
         var stopwatch = Stopwatch.StartNew();
