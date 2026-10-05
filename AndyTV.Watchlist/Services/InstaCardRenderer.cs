@@ -126,7 +126,7 @@ public static class InstaCardRenderer
         var summary = watchlist.WatchPlan.Summary;
         return string.IsNullOrWhiteSpace(summary)
             ? ""
-            : $"<div class=\"callout\">🔥 {Enc(summary.Trim())}</div>";
+            : $"<div class=\"callout\"><span>🔥 {Enc(summary.Trim())}</span></div>";
     }
 
     // Weekend stacks a small day label above the time so the pill keeps its width.
