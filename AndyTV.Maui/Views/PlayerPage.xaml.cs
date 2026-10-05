@@ -193,19 +193,19 @@ public partial class PlayerPage
     private void OnControlsTimerTick(object sender, EventArgs e)
     {
         _controlsTimer.Stop();
-        SetControlsVisible(false);
+        SetControlsVisible(false, BackButton, AirPlayBorder);
     }
 
     private void ShowControls()
     {
-        SetControlsVisible(true);
+        SetControlsVisible(true, BackButton, AirPlayBorder);
         _controlsTimer.Stop();
         _controlsTimer.Start();
     }
 
-    private void SetControlsVisible(bool visible)
+    private static void SetControlsVisible(bool visible, params View[] controls)
     {
-        foreach (var control in (View[])[BackButton, AirPlayBorder])
+        foreach (var control in controls)
         {
             control.Opacity = visible ? 1 : 0;
             control.InputTransparent = !visible;
