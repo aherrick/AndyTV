@@ -55,7 +55,7 @@ public sealed class WatchlistPublishingService(
 
             // 5. Social posts run independently so one failing doesn't block the other.
             List<string> errors = [];
-            async Task<string?> Social(string name, Task<string?> post)
+            async Task<string> Social(string name, Task<string> post)
             {
                 try
                 {
@@ -93,7 +93,7 @@ public sealed class WatchlistPublishingService(
         }
     }
 
-    private async Task<string?> PublishInstagram(
+    private async Task<string> PublishInstagram(
         DailyWatchlist watchlist,
         WatchlistKind kind,
         DateOnly targetDate,
@@ -119,7 +119,7 @@ public sealed class WatchlistPublishingService(
             : null;
     }
 
-    private async Task<string?> PublishXThread(
+    private async Task<string> PublishXThread(
         DailyWatchlist watchlist,
         WatchlistKind kind,
         DateOnly targetDate,

@@ -38,10 +38,10 @@ public static class SportsFormat
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
     // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
-    public static string Odds(Betting? betting) => string.Join(" · ", OddsParts(betting));
+    public static string Odds(Betting betting) => string.Join(" · ", OddsParts(betting));
 
     // With both abbreviations: ["BAL -3.5", "DAL +3.5", "ML -180 / +150", "O/U 52.5"].
-    public static List<string> OddsParts(Betting? betting, string? awayAbbr = null, string? homeAbbr = null)
+    public static List<string> OddsParts(Betting betting, string awayAbbr = null, string homeAbbr = null)
     {
         List<string> parts = [];
         if (betting is null)

@@ -19,11 +19,11 @@ public sealed class InstagramPublishService(
     private const string TokenBlob = "instagram-token.txt";
 
     // Containers process asynchronously; publishing before FINISHED fails with "Media ID is not available".
-    private static readonly ResiliencePipeline<string?> WhileInProgress = new ResiliencePipelineBuilder<string?>()
+    private static readonly ResiliencePipeline<string> WhileInProgress = new ResiliencePipelineBuilder<string>()
         .AddRetry(
-            new RetryStrategyOptions<string?>
+            new RetryStrategyOptions<string>
             {
-                ShouldHandle = new PredicateBuilder<string?>().HandleResult("IN_PROGRESS"),
+                ShouldHandle = new PredicateBuilder<string>().HandleResult("IN_PROGRESS"),
                 MaxRetryAttempts = 30,
                 Delay = TimeSpan.FromSeconds(5),
                 BackoffType = DelayBackoffType.Constant,
@@ -60,7 +60,7 @@ public sealed class InstagramPublishService(
             $"{GraphBase}/{mediaId}?fields=permalink&access_token={token}",
             cancellationToken
         );
-        return media.GetProperty("permalink").GetString()!;
+        return media.GetProperty("permalink").GetString();
     }
 
     private async Task WaitUntilFinished(string containerId, string token, CancellationToken cancellationToken)
@@ -85,7 +85,7 @@ public sealed class InstagramPublishService(
     // Delete the blob after setting a new INSTAGRAM_ACCESS_TOKEN.
     private async Task<string> AccessToken(CancellationToken cancellationToken)
     {
-        var token = await blobStore.ReadPrivate(TokenBlob, cancellationToken) ?? settings.InstagramAccessToken!;
+        var token = await blobStore.ReadPrivate(TokenBlob, cancellationToken) ?? settings.InstagramAccessToken;
         using var response = await httpClient.GetAsync(
             $"https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token={token}",
             cancellationToken
@@ -98,7 +98,7 @@ public sealed class InstagramPublishService(
         }
 
         var refreshed = (await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
-            .GetProperty("access_token").GetString()!;
+            .GetProperty("access_token").GetString();
         await blobStore.WritePrivate(TokenBlob, refreshed, cancellationToken);
         return refreshed;
     }
@@ -128,6 +128,6 @@ public sealed class InstagramPublishService(
             );
         }
 
-        return JsonSerializer.Deserialize<JsonElement>(json).GetProperty("id").GetString()!;
+        return JsonSerializer.Deserialize<JsonElement>(json).GetProperty("id").GetString();
     }
 }

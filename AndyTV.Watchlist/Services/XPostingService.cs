@@ -13,10 +13,10 @@ public sealed class XPostingService(AppSettings settings) : IDisposable
         new RestClientOptions("https://api.x.com")
         {
             Authenticator = OAuth1Authenticator.ForProtectedResource(
-                settings.XConsumerKey!,
+                settings.XConsumerKey,
                 settings.XConsumerSecret,
-                settings.XAccessToken!,
-                settings.XAccessTokenSecret!
+                settings.XAccessToken,
+                settings.XAccessTokenSecret
             ),
         }
     );
@@ -31,7 +31,7 @@ public sealed class XPostingService(AppSettings settings) : IDisposable
 
     private async Task<string> CreatePost(
         string text,
-        string? replyToPostId,
+        string replyToPostId,
         CancellationToken cancellationToken
     )
     {
@@ -49,7 +49,7 @@ public sealed class XPostingService(AppSettings settings) : IDisposable
             );
         }
 
-        using var document = JsonDocument.Parse(response.Content!);
+        using var document = JsonDocument.Parse(response.Content);
         return document.RootElement.GetProperty("data").GetProperty("id").GetString()
             ?? throw new InvalidOperationException("X did not return a post ID.");
     }

@@ -1,3 +1,6 @@
+// Opt in so `?` emits "null" in the Copilot JSON schema; oblivious types are schema'd as non-null.
+#nullable enable
+
 namespace AndyTV.Watchlist.Models;
 
 // Researched Daily/Weekend watchlist and the exact Copilot response schema.

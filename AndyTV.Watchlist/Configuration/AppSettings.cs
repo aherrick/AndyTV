@@ -4,17 +4,17 @@ namespace AndyTV.Watchlist.Configuration;
 
 public sealed record AppSettings(
     string SportsApiKey,
-    string? CopilotGitHubToken,
+    string CopilotGitHubToken,
     string WatchlistPrompt,
-    string? CloudflareAccountId,
-    string? CloudflareApiToken,
+    string CloudflareAccountId,
+    string CloudflareApiToken,
     string BlobConnectionString,
-    string? InstagramUserId,
-    string? InstagramAccessToken,
-    string? XConsumerKey,
-    string? XConsumerSecret,
-    string? XAccessToken,
-    string? XAccessTokenSecret
+    string InstagramUserId,
+    string InstagramAccessToken,
+    string XConsumerKey,
+    string XConsumerSecret,
+    string XAccessToken,
+    string XAccessTokenSecret
 )
 {
     public bool CanPostToX =>
@@ -61,5 +61,5 @@ public sealed record AppSettings(
         string.IsNullOrWhiteSpace(config[name])
             ? throw new InvalidOperationException(
                 $"Missing user secret '{name}'. Set it with: dotnet user-secrets set \"{name}\" \"<value>\"")
-            : config[name]!;
+            : config[name];
 }

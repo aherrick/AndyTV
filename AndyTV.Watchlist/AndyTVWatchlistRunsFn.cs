@@ -54,5 +54,5 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
         return response;
     }
 
-    private static string Enc(string? value) => WebUtility.HtmlEncode(value ?? "");
+    private static string Enc(string value) => WebUtility.HtmlEncode(value ?? "");
 }

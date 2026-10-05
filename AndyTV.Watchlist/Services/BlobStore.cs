@@ -14,7 +14,7 @@ public sealed class BlobStore(AppSettings settings)
     // Never public: holds state such as the refreshed Instagram token.
     private BlobContainerClient PrivateContainer => new(settings.BlobConnectionString, "andytv-watchlist-private");
 
-    public async Task<string?> ReadPrivate(string blobName, CancellationToken cancellationToken = default)
+    public async Task<string> ReadPrivate(string blobName, CancellationToken cancellationToken = default)
     {
         var blob = PrivateContainer.GetBlobClient(blobName);
         return await blob.ExistsAsync(cancellationToken)
@@ -49,7 +49,7 @@ public sealed class BlobStore(AppSettings settings)
 
         var runs = await Task.WhenAll(
             names.OrderDescending().Take(count).Select(async name =>
-                (await container.GetBlobClient(name).DownloadContentAsync()).Value.Content.ToObjectFromJson<WatchlistRun>(JsonSerializerOptions.Web)!
+                (await container.GetBlobClient(name).DownloadContentAsync()).Value.Content.ToObjectFromJson<WatchlistRun>(JsonSerializerOptions.Web)
             )
         );
         return [.. runs];
@@ -73,7 +73,7 @@ public sealed class BlobStore(AppSettings settings)
         string blobName,
         BinaryData content,
         string contentType,
-        string? cacheControl,
+        string cacheControl,
         CancellationToken cancellationToken
     )
     {

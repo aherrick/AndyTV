@@ -5,13 +5,13 @@ namespace AndyTV.Watchlist.Models;
 public sealed record SportsEvent(
     string Sport,
     string League,
-    string? HomeTeam,
-    string? AwayTeam,
+    string HomeTeam,
+    string AwayTeam,
     DateTimeOffset? StartTimeIso,
     string SourceUrl
 )
 {
-    public string? EventName { get; init; }
+    public string EventName { get; init; }
 
     public string Matchup => EventName ?? $"{AwayTeam} @ {HomeTeam}";
 }
