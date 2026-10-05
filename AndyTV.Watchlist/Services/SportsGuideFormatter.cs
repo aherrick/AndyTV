@@ -21,7 +21,7 @@ public static class SportsGuideFormatter
             best.AppendLine(
                     $"{game.Rank}. {SportsFormat.Icon(game.Sport)} {game.Matchup} - {SportsFormat.Time(game.StartTimeIso, kind)}{Network(game)}"
                 );
-            if (SportsFormat.Odds(game.Betting) is { Length: > 0 } odds)
+            if (SportsFormat.Odds(game) is { Length: > 0 } odds)
             {
                 best.AppendLine(odds);
             }

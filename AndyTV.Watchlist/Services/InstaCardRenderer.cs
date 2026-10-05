@@ -72,7 +72,7 @@ public static class InstaCardRenderer
     }
 
     private static string LeagueAndOdds(WatchlistGame game) =>
-        SportsFormat.Odds(game.Betting) is { Length: > 0 } odds
+        SportsFormat.Odds(game) is { Length: > 0 } odds
             ? $"{game.League} • {odds}"
             : game.League;
 

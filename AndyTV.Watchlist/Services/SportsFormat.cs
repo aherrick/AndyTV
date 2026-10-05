@@ -37,10 +37,11 @@ public static class SportsFormat
     public static string Dates(WatchlistKind kind, DateOnly runDate, string format = "dddd, MMMM d") =>
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
-    // e.g. "Spread +3.5 / -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
-    public static string Odds(Betting betting) => string.Join(" · ", OddsParts(betting));
+    // e.g. "DAL -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
+    public static string Odds(WatchlistGame game) =>
+        string.Join(" · ", OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
 
-    // With both abbreviations: ["BAL -3.5", "DAL +3.5", "ML -180 / +150", "O/U 52.5"].
+    // With both abbreviations: ["BAL -3.5", "ML -180 / +150", "O/U 52.5"].
     public static List<string> OddsParts(Betting betting, string awayAbbr = null, string homeAbbr = null)
     {
         List<string> parts = [];
@@ -49,20 +50,18 @@ public static class SportsFormat
             return parts;
         }
 
-        // One spread implies the other side.
-        if ((betting.AwaySpread ?? -betting.HomeSpread) is { } awaySpread)
+        // One spread implies the other side, so only the favorite's line is shown.
+        if ((betting.HomeSpread ?? -betting.AwaySpread) is { } homeSpread)
         {
             const string spreadFormat = "+0.#;-0.#;PK";
-            var awayLine = Line(awaySpread, spreadFormat);
-            var homeLine = Line(betting.HomeSpread ?? -awaySpread, spreadFormat);
             if (awayAbbr is { Length: > 0 } && homeAbbr is { Length: > 0 })
             {
-                parts.Add($"{awayAbbr} {awayLine}");
-                parts.Add($"{homeAbbr} {homeLine}");
+                var (favorite, line) = homeSpread <= 0 ? (homeAbbr, homeSpread) : (awayAbbr, -homeSpread);
+                parts.Add(line == 0 ? "PK" : $"{favorite} {Line(line, spreadFormat)}");
             }
             else
             {
-                parts.Add($"Spread {awayLine} / {homeLine}");
+                parts.Add($"Spread {Line(-homeSpread, spreadFormat)} / {Line(homeSpread, spreadFormat)}");
             }
         }
         // A moneyline can't be inferred from the other side, so show it only when both are present.
