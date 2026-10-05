@@ -53,9 +53,30 @@ public sealed class WatchlistPublishingService(
                 run.Feed = true;
             }
 
-            // 5. Social posts.
-            run.InstagramUrl = await PublishInstagram(watchlist, kind, targetDate, cancellationToken);
-            run.XPostId = await PublishXThread(watchlist, kind, targetDate, cancellationToken);
+            // 5. Social posts run independently so one failing doesn't block the other.
+            List<string> errors = [];
+            async Task<string?> Social(string name, Task<string?> post)
+            {
+                try
+                {
+                    return await post;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "{name} post failed.", name);
+                    errors.Add($"{name}: {ex.Message}");
+                    return null;
+                }
+            }
+
+            var instagram = Social("Instagram", PublishInstagram(watchlist, kind, targetDate, cancellationToken));
+            var x = Social("X", PublishXThread(watchlist, kind, targetDate, cancellationToken));
+            run.InstagramUrl = await instagram;
+            run.XPostId = await x;
+            if (errors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(" | ", errors));
+            }
         }
         catch (Exception ex)
         {

@@ -2,6 +2,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 
 namespace AndyTV.Watchlist.Services;
 
@@ -15,6 +17,19 @@ public sealed class InstagramPublishService(
     // Instagram Login tokens (IGAA...) only work on graph.instagram.com, not graph.facebook.com.
     private const string GraphBase = "https://graph.instagram.com/v26.0";
     private const string TokenBlob = "instagram-token.txt";
+
+    // Containers process asynchronously; publishing before FINISHED fails with "Media ID is not available".
+    private static readonly ResiliencePipeline<string?> WhileInProgress = new ResiliencePipelineBuilder<string?>()
+        .AddRetry(
+            new RetryStrategyOptions<string?>
+            {
+                ShouldHandle = new PredicateBuilder<string?>().HandleResult("IN_PROGRESS"),
+                MaxRetryAttempts = 30,
+                Delay = TimeSpan.FromSeconds(5),
+                BackoffType = DelayBackoffType.Constant,
+            }
+        )
+        .Build();
 
     // Publishes the given image URLs as a single Instagram carousel and returns the post's permalink.
     public async Task<string> PublishCarousel(
@@ -38,6 +53,7 @@ public sealed class InstagramPublishService(
             token,
             cancellationToken
         );
+        await WaitUntilFinished(carouselId, token, cancellationToken);
         var mediaId = await Post("media_publish", new() { ["creation_id"] = carouselId }, token, cancellationToken);
 
         var media = await httpClient.GetFromJsonAsync<JsonElement>(
@@ -45,6 +61,24 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
         return media.GetProperty("permalink").GetString()!;
+    }
+
+    private async Task WaitUntilFinished(string containerId, string token, CancellationToken cancellationToken)
+    {
+        var status = await WhileInProgress.ExecuteAsync(
+            async ct =>
+                (
+                    await httpClient.GetFromJsonAsync<JsonElement>(
+                        $"{GraphBase}/{containerId}?fields=status_code&access_token={token}",
+                        ct
+                    )
+                ).GetProperty("status_code").GetString(),
+            cancellationToken
+        );
+        if (status != "FINISHED")
+        {
+            throw new InvalidOperationException($"Instagram container {containerId} is {status}.");
+        }
     }
 
     // Tokens expire after 60 days, so refresh on each post and keep the newest privately.
