@@ -95,7 +95,7 @@ public sealed class WatchlistResearchService(
         // SendAndWaitAsync<T> infers a strict JSON schema from DailyWatchlist.
         var result = await session.SendAndWaitAsync<DailyWatchlist>(
             prompt,
-            timeout: TimeSpan.FromMinutes(15),
+            timeout: TimeSpan.FromMinutes(45),
             cancellationToken: cancellationToken
         );
 
