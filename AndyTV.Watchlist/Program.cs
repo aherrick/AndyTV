@@ -24,6 +24,7 @@ builder.Logging.AddProvider(new RunLog());
 builder.Services.AddSingleton(_ => AppSettings.Load());
 builder.Services.AddSingleton<ApiSportsService>();
 builder.Services.AddSingleton<EspnRacingService>();
+builder.Services.AddSingleton<ActionNetworkOddsService>();
 builder.Services.AddSingleton<WatchlistResearchService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();

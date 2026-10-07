@@ -1,13 +1,19 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// The WATCHLIST_PROMPT app setting; {dates}, {firstDay} and {count} are filled in and the supplied events appended.
+// The WATCHLIST_PROMPT app setting; {dates}, {firstDay} and {count} are filled in and the supplied events and odds appended.
 public static class WatchlistPrompt
 {
-    public static string Build(string template, DateOnly[] days, List<SportsEvent> events)
+    private static readonly JsonSerializerOptions OddsJson = new(JsonSerializerOptions.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    public static string Build(string template, DateOnly[] days, List<SportsEvent> events, List<GameOdds> odds)
     {
         var eventsJson = JsonSerializer.Serialize(
             events.Select(sportsEvent => new
@@ -26,7 +32,7 @@ public static class WatchlistPrompt
             .Replace("{firstDay}", Day(days[0]))
             .Replace("{count}", Math.Min(20, events.Count).ToString(CultureInfo.InvariantCulture));
 
-        return $"{prompt}\n\nSUPPLIED EVENTS:\n{eventsJson}";
+        return $"{prompt}\n\nSUPPLIED EVENTS:\n{eventsJson}\n\nSUPPLIED FANDUEL ODDS:\n{JsonSerializer.Serialize(odds, OddsJson)}";
     }
 
     private static string Day(DateOnly day) => day.ToString("dddd yyyy-MM-dd", CultureInfo.InvariantCulture);
