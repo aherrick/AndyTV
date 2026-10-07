@@ -3,6 +3,7 @@ using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 
 namespace AndyTV.Watchlist.Services;
 
@@ -31,7 +32,25 @@ public sealed class BlobStore(AppSettings settings)
 
     // Names sort by UTC start time, so newest-first is a reverse name sort.
     public Task SaveRun(WatchlistRun run) =>
-        WritePrivate($"runs/{run.Started:yyyyMMdd-HHmmss}-{run.Kind}.json", JsonSerializer.Serialize(run, JsonSerializerOptions.Web));
+        WritePrivate($"runs/{RunName(run)}.json", JsonSerializer.Serialize(run, JsonSerializerOptions.Web));
+
+    // Kept outside runs/ because ReadRuns parses every blob there as JSON.
+    public async Task SaveRunLog(WatchlistRun run, string text)
+    {
+        var container = PrivateContainer;
+        await container.CreateIfNotExistsAsync(PublicAccessType.None);
+        await container.GetBlobClient($"logs/{RunName(run)}.txt").UploadAsync(
+            BinaryData.FromString(text),
+            new BlobUploadOptions { HttpHeaders = new() { ContentType = "text/plain; charset=utf-8" } }
+        );
+    }
+
+    // Short-lived read link so the log stays private.
+    public Uri RunLogUri(WatchlistRun run) =>
+        PrivateContainer.GetBlobClient($"logs/{RunName(run)}.txt")
+            .GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
+
+    private static string RunName(WatchlistRun run) => $"{run.Started:yyyyMMdd-HHmmss}-{run.Kind}";
 
     public async Task<List<WatchlistRun>> ReadRuns(int count)
     {

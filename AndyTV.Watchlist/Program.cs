@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -17,6 +18,8 @@ builder.Services.AddSingleton(_ =>
     var handler = new SocketsHttpHandler { AutomaticDecompression = DecompressionMethods.All };
     return new HttpClient(handler);
 });
+
+builder.Logging.AddProvider(new RunLog());
 
 builder.Services.AddSingleton(_ => AppSettings.Load());
 builder.Services.AddSingleton<ApiSportsService>();

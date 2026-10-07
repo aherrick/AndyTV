@@ -24,6 +24,7 @@ public sealed class WatchlistPublishingService(
         CancellationToken cancellationToken = default
     )
     {
+        var log = RunLog.Start();
         var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
         try
         {
@@ -80,6 +81,8 @@ public sealed class WatchlistPublishingService(
         }
         catch (Exception ex)
         {
+            // Written to the blob log only; the Functions host already logs the rethrown exception.
+            log.AppendLine(ex.ToString());
             run.Error = ex.Message;
             throw;
         }
@@ -88,6 +91,7 @@ public sealed class WatchlistPublishingService(
             run.Duration = (DateTimeOffset.UtcNow - run.Started).ToString(@"mm\:ss");
             if (settings.CanPublishSite)
             {
+                await blobStore.SaveRunLog(run, log.ToString());
                 await blobStore.SaveRun(run);
             }
         }

@@ -25,6 +25,7 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
                   <td>{(run.Feed ? "✓" : "")}</td>
                   <td>{(run.XPostId is null ? "" : $"<a href=\"https://x.com/i/web/status/{Enc(run.XPostId)}\">post</a>")}</td>
                   <td>{(run.InstagramUrl is null ? "" : $"<a href=\"{Enc(run.InstagramUrl)}\">post</a>")}</td>
+                  <td><a href="{Enc(blobStore.RunLogUri(run).ToString())}">log</a></td>
                   <td>{Enc(run.Error)}</td>
                 </tr>
                 """
@@ -44,7 +45,7 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
             </head>
             <body class="p-3">
               <table class="table table-sm table-striped">
-                <thead><tr><th>Started (ET)</th><th>Kind</th><th>Events</th><th>Duration</th><th>Cost</th><th>Feed</th><th>X</th><th>Instagram</th><th>Error</th></tr></thead>
+                <thead><tr><th>Started (ET)</th><th>Kind</th><th>Events</th><th>Duration</th><th>Cost</th><th>Feed</th><th>X</th><th>Instagram</th><th>Log</th><th>Error</th></tr></thead>
                 <tbody>{rows}</tbody>
               </table>
             </body>
