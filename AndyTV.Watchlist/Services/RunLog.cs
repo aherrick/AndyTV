@@ -11,17 +11,17 @@ public sealed class RunLog : ILoggerProvider
     // Call at the top of an async method so the buffer stays scoped to that run.
     public static StringBuilder Start() => Current.Value = new StringBuilder();
 
-    public ILogger CreateLogger(string categoryName) => new Logger(categoryName);
+    ILogger ILoggerProvider.CreateLogger(string categoryName) => new Logger(categoryName);
 
-    public void Dispose() { }
+    void IDisposable.Dispose() { }
 
     private sealed class Logger(string category) : ILogger
     {
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+        IDisposable ILogger.BeginScope<TState>(TState state) => null;
 
-        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && Current.Value is not null;
+        bool ILogger.IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && Current.Value is not null;
 
-        public void Log<TState>(
+        void ILogger.Log<TState>(
             LogLevel logLevel,
             EventId eventId,
             TState state,
