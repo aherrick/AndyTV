@@ -4,6 +4,7 @@ namespace AndyTV.Watchlist.Configuration;
 
 public sealed record AppSettings(
     string SportsApiKey,
+    string BallDontLieApiKey,
     string CopilotGitHubToken,
     string WatchlistPrompt,
     string CloudflareAccountId,
@@ -42,6 +43,7 @@ public sealed record AppSettings(
 
         return new AppSettings(
             config["SPORTS_API_KEY"],
+            config["BALLDONTLIE_API_KEY"],
             // Fine-grained PAT with "Copilot Requests"; falls back to the logged-in Copilot CLI user locally.
             config["COPILOT_GITHUB_TOKEN"],
             config["WATCHLIST_PROMPT"],

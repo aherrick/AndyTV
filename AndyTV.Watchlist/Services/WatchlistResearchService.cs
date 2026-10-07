@@ -11,6 +11,7 @@ namespace AndyTV.Watchlist.Services;
 public sealed class WatchlistResearchService(
     ApiSportsService apiSports,
     EspnRacingService racing,
+    PgaTourService golf,
     ActionNetworkOddsService oddsService,
     AppSettings settings,
     ILogger<WatchlistResearchService> logger
@@ -29,6 +30,7 @@ public sealed class WatchlistResearchService(
                 {
                     apiSports.GetEventsForDate(day, cancellationToken),
                     racing.GetEventsForDate(day, cancellationToken),
+                    golf.GetEventsForDate(day, cancellationToken),
                 }
             )
         );
@@ -44,7 +46,7 @@ public sealed class WatchlistResearchService(
     )
     {
         var odds = await oddsService.GetOdds(days, cancellationToken);
-        logger.LogInformation("{kind} supplied {count} FanDuel odds rows.", kind, odds.Count);
+        logger.LogInformation("{kind} supplied {events} events and {count} FanDuel odds rows.", kind, events.Count, odds.Count);
         var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events, odds);
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
