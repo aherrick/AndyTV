@@ -59,14 +59,8 @@ public sealed class PgaTourService(
                     CultureInfo.InvariantCulture,
                     out var end
                 )
-                // Dates are local to the course, so an overseas first round tees off the evening before in ET.
-                && date
-                    >= (
-                        tournament.GetProperty("country").GetString()?.StartsWith("United States")
-                        == true
-                            ? start
-                            : start.AddDays(-1)
-                    )
+                // Dates are course-local with no tee times; widen a day so overseas play the prior ET evening isn't missed.
+                && date >= start.AddDays(-1)
                 && date <= end
                 && tournament.GetProperty("status_state").GetString()
                     is not ("canceled" or "postponed" or "abandoned")

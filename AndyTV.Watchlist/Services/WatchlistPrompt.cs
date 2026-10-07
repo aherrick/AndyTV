@@ -30,7 +30,7 @@ public static class WatchlistPrompt
         var prompt = template
             .Replace("{dates}", string.Join(" and ", days.Select(Day)))
             .Replace("{firstDay}", Day(days[0]))
-            .Replace("{count}", Math.Min(20, events.Count).ToString(CultureInfo.InvariantCulture));
+            .Replace("{count}", "20");
 
         return $"{prompt}\n\nSUPPLIED EVENTS:\n{eventsJson}\n\nSUPPLIED FANDUEL ODDS:\n{JsonSerializer.Serialize(odds, OddsJson)}";
     }
