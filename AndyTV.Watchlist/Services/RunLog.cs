@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
+#pragma warning disable CA1822 // Interface implementations; CI scan still flags explicit members.
+
 // Captures every log written in the current async flow so each run gets its own text log.
 public sealed class RunLog : ILoggerProvider
 {
@@ -17,13 +19,13 @@ public sealed class RunLog : ILoggerProvider
 
     private sealed class Logger(string category) : ILogger
     {
-        IDisposable ILogger.BeginScope<TState>(TState state) => null;
+        IDisposable ILogger.BeginScope<TState>(TState _) => null;
 
         bool ILogger.IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && Current.Value is not null;
 
         void ILogger.Log<TState>(
             LogLevel logLevel,
-            EventId eventId,
+            EventId _,
             TState state,
             Exception exception,
             Func<TState, Exception, string> formatter

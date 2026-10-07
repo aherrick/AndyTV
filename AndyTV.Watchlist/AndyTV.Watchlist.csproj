@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.30.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.30.1" />
     <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.17-preview.4" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Polly.Core" Version="8.8.0" />
