@@ -13,5 +13,7 @@ public sealed record SportsEvent(
 {
     public string EventName { get; init; }
 
+    public string Network { get; init; }
+
     public string Matchup => EventName ?? $"{AwayTeam} @ {HomeTeam}";
 }

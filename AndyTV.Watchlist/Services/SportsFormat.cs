@@ -15,6 +15,7 @@ public static class SportsFormat
             "Soccer" => "⚽",
             "Racing" => "🏁",
             "Golf" => "⛳",
+            "Tennis" => "🎾",
             "MMA" => "🥊",
             _ => "📺",
         };
