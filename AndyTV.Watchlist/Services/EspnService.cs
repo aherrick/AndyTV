@@ -200,6 +200,16 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
             foreach (var competitor in competition.GetProperty("competitors").EnumerateArray())
             {
                 var team = competitor.GetProperty("team").GetProperty(board.School ? "location" : "displayName").GetString();
+                // ESPN's curated rank is the AP Top 25 (99 = unranked).
+                if (
+                    board.School
+                    && competitor.TryGetProperty("curatedRank", out var rank)
+                    && rank.TryGetProperty("current", out var current)
+                    && current.GetInt32() is >= 1 and <= 25
+                )
+                {
+                    team = $"#{current.GetInt32()} {team}";
+                }
                 if (competitor.GetProperty("homeAway").GetString() == "home")
                 {
                     home = team;
