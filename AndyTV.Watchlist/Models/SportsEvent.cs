@@ -1,7 +1,7 @@
 namespace AndyTV.Watchlist.Models;
 
-// One schedule candidate from the sports feeds. Team fields are null for racing/MMA,
-// and StartTimeIso is null for UFC cards (the model researches the main-card time).
+// One schedule candidate from the ESPN feeds. Single-name events (racing, golf, tennis, UFC) use EventName
+// with null team fields; a null StartTimeIso means the model researches the time.
 public sealed record SportsEvent(
     string Sport,
     string League,

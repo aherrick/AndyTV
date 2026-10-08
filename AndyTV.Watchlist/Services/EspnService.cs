@@ -1,14 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
 // Every sport in the watchlist, from ESPN's public scoreboards (no key).
-public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
+public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
 {
     private const int MaxAttempts = 3;
 
@@ -75,7 +74,7 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
     ];
 
     // ESPN's Akamai front end rejects requests that don't look like a browser.
-    internal static readonly (string Name, string Value)[] BrowserHeaders =
+    private static readonly (string Name, string Value)[] BrowserHeaders =
     [
         ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"),
         ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
@@ -143,6 +142,21 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
         }
     }
 
+    // Every event across the given boards, copied out so the documents can be released; failed boards add nothing.
+    private async Task<List<JsonElement>> FetchEvents(string[] urls, string league, CancellationToken cancellationToken)
+    {
+        var documents = await Task.WhenAll(urls.Select(url => Fetch(url, league, cancellationToken)));
+        List<JsonElement> events = [];
+        foreach (var document in documents.Where(d => d is not null))
+        {
+            using (document)
+            {
+                events.AddRange(document.RootElement.GetProperty("events").EnumerateArray().Select(e => e.Clone()));
+            }
+        }
+        return events;
+    }
+
     private static bool IsCanceled(JsonElement game) =>
         game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
             is "STATUS_CANCELED" or "STATUS_POSTPONED";
@@ -154,18 +168,17 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
         CancellationToken cancellationToken
     )
     {
-        // ESPN files late West Coast starts under the prior day, so read both and filter by ET date.
-        // Date ranges return 400, so each day is its own request.
+        // ESPN files late West Coast starts under the prior day, and date ranges return 400, so read each day.
         var url = $"{BaseUrl}{board.Path}/scoreboard";
         DateOnly[] days = board.PriorDay ? [date.AddDays(-1), date] : [date];
-        var documents = await Task.WhenAll(
-            days.Select(day =>
-                Fetch($"{url}?dates={day:yyyyMMdd}&{board.Query}", $"{board.Sport} {board.League}", cancellationToken)
-            )
+        var games = await FetchEvents(
+            [.. days.Select(day => $"{url}?dates={day:yyyyMMdd}&{board.Query}")],
+            $"{board.Sport} {board.League}",
+            cancellationToken
         );
 
         List<SportsEvent> events = [];
-        foreach (var game in documents.Where(d => d is not null).SelectMany(d => d.RootElement.GetProperty("events").EnumerateArray()))
+        foreach (var game in games)
         {
             if (IsCanceled(game))
             {
@@ -194,11 +207,7 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
                 }
             }
 
-            if (
-                string.IsNullOrWhiteSpace(home)
-                || string.IsNullOrWhiteSpace(away)
-                || (board.Sport == "Soccer" && (YouthTeam().IsMatch(home) || YouthTeam().IsMatch(away)))
-            )
+            if (string.IsNullOrWhiteSpace(home) || string.IsNullOrWhiteSpace(away))
             {
                 continue;
             }
@@ -215,11 +224,6 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
                 }
             );
         }
-
-        foreach (var document in documents)
-        {
-            document?.Dispose();
-        }
         return events;
     }
 
@@ -227,58 +231,32 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
     private async Task<List<SportsEvent>> LoadUfc(DateOnly date, CancellationToken cancellationToken)
     {
         var url = $"{BaseUrl}mma/ufc/scoreboard";
-        var documents = await Task.WhenAll(
-            new[] { date.AddDays(-1), date }.Select(day => Fetch($"{url}?dates={day:yyyyMMdd}", "UFC", cancellationToken))
+        var cards = await FetchEvents(
+            [$"{url}?dates={date.AddDays(-1):yyyyMMdd}", $"{url}?dates={date:yyyyMMdd}"],
+            "UFC",
+            cancellationToken
         );
 
-        List<SportsEvent> events = [];
-        foreach (var card in documents.Where(d => d is not null).SelectMany(d => d.RootElement.GetProperty("events").EnumerateArray()))
-        {
-            var name = card.GetProperty("name").GetString();
-            if (
-                !string.IsNullOrWhiteSpace(name)
-                && !IsCanceled(card)
-                && EasternTimeZone.Date(card.GetProperty("date").GetDateTimeOffset()) == date
-            )
-            {
-                events.Add(new("MMA", "UFC", null, null, null, url) { EventName = name });
-            }
-        }
-
-        foreach (var document in documents)
-        {
-            document?.Dispose();
-        }
-        return events;
+        return
+        [
+            .. cards
+                .Where(card => !IsCanceled(card) && EasternTimeZone.Date(card.GetProperty("date").GetDateTimeOffset()) == date)
+                .Select(card => card.GetProperty("name").GetString())
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => new SportsEvent("MMA", "UFC", null, null, null, url) { EventName = name }),
+        ];
     }
-
-    [GeneratedRegex(@"\bU\d{2}$")]
-    private static partial Regex YouthTeam();
 
     private async Task<List<SportsEvent>> LoadGolf(DateOnly date, CancellationToken cancellationToken)
     {
-        using var document = await Fetch(GolfUrl, "PGA Tour", cancellationToken);
-        if (document is null)
-        {
-            return [];
-        }
-
         List<SportsEvent> events = [];
-        foreach (var tournament in document.RootElement.GetProperty("events").EnumerateArray())
+        foreach (var tournament in await FetchEvents([GolfUrl], "PGA Tour", cancellationToken))
         {
             var name = tournament.GetProperty("name").GetString();
             var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
             var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
             // Overseas play can begin the prior ET evening, so widen a day.
-            if (string.IsNullOrWhiteSpace(name) || date < start.AddDays(-1) || date > end)
-            {
-                continue;
-            }
-
-            if (
-                tournament.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
-                is "STATUS_CANCELED" or "STATUS_POSTPONED"
-            )
+            if (string.IsNullOrWhiteSpace(name) || date < start.AddDays(-1) || date > end || IsCanceled(tournament))
             {
                 continue;
             }
@@ -307,22 +285,16 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
             TennisTours.Select(async tour =>
             {
                 var url = $"{BaseUrl}tennis/{tour}/scoreboard";
-                return (Url: url, Document: await Fetch(url, $"Tennis {tour}", cancellationToken));
+                return (Url: url, Tournaments: await FetchEvents([url], $"Tennis {tour}", cancellationToken));
             })
         );
 
         // Slams are combined events, so ATP and WTA can both list the same tournament and matches.
         Dictionary<string, (string Url, DateTimeOffset? Start)> days = [];
         List<SportsEvent> matches = [];
-        foreach (var (url, document) in feeds)
+        foreach (var (url, tournaments) in feeds)
         {
-            if (document is null)
-            {
-                continue;
-            }
-
-            using var _ = document;
-            foreach (var tournament in document.RootElement.GetProperty("events").EnumerateArray())
+            foreach (var tournament in tournaments)
             {
                 var name = tournament.GetProperty("name").GetString();
                 if (
@@ -411,14 +383,8 @@ public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnServi
     )
     {
         var url = $"{BaseUrl}racing/{slug}/scoreboard";
-        using var document = await Fetch(url, league, cancellationToken);
-        if (document is null)
-        {
-            return [];
-        }
-
         List<SportsEvent> events = [];
-        foreach (var race in document.RootElement.GetProperty("events").EnumerateArray())
+        foreach (var race in await FetchEvents([url], league, cancellationToken))
         {
             var name = race.GetProperty("name").GetString();
             if (string.IsNullOrWhiteSpace(name))

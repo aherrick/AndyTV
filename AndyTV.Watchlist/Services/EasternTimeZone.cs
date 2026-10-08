@@ -3,7 +3,7 @@ namespace AndyTV.Watchlist.Services;
 public static class EasternTimeZone
 {
     // .NET resolves IANA ids on both Windows and Linux.
-    public static TimeZoneInfo Zone { get; } = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+    private static readonly TimeZoneInfo Zone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
 
     public static DateTimeOffset Now => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Zone);
 
