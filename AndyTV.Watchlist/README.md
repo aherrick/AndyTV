@@ -10,8 +10,9 @@ The watchlist is produced end to end in the function: ESPN's public scoreboards
 (MLB, NFL, NHL, NBA/WNBA, college football and basketball, curated soccer, UFC, F1,
 NASCAR Cup, IndyCar, PGA Tour, Grand Slam tennis) supply the candidate events, then GitHub Copilot
 (`gpt-6.1-sol`, web search/fetch only)
-ranks and enriches them with one shared prompt (`WatchlistPrompt`). Feed schedules are
-authoritative and validated; only UFC main-card times and golf times ESPN hasn't confirmed are researched.
+ranks and enriches them with one shared prompt (`WatchlistPrompt`). Feed schedules and ESPN's TV
+networks are authoritative; only UFC main-card times, golf/tennis times ESPN hasn't confirmed and
+missing networks are researched.
 
 Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 `{dates}`, `{firstDay}`, `{count}` placeholders), `COPILOT_GITHUB_TOKEN` (fine-grained PAT with

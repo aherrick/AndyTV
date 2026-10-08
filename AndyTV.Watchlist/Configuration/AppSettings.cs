@@ -13,7 +13,8 @@ public sealed record AppSettings(
     string XConsumerKey,
     string XConsumerSecret,
     string XAccessToken,
-    string XAccessTokenSecret
+    string XAccessTokenSecret,
+    string FeedsPin
 )
 {
     public bool CanPostToX =>
@@ -51,7 +52,8 @@ public sealed record AppSettings(
             config["X_CONSUMER_KEY"],
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
-            config["X_ACCESS_TOKEN_SECRET"]
+            config["X_ACCESS_TOKEN_SECRET"],
+            config["FEEDS_PIN"]
         );
     }
 }

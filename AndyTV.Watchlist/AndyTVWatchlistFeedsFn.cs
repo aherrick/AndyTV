@@ -1,21 +1,27 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds[?date=yyyyMMdd] lists that day's ESPN events (default today ET) as the watchlist sees them;
-// failed feeds are logged as warnings.
-public sealed class AndyTVWatchlistFeedsFn(EspnService espn)
+// GET /api/feeds?pin=<FEEDS_PIN>[&date=yyyyMMdd] lists that day's ESPN events (default today ET) as the watchlist
+// sees them; failed feeds are logged as warnings. The pin keeps strangers from burning ESPN requests from our IP.
+public sealed class AndyTVWatchlistFeedsFn(EspnService espn, AppSettings settings)
 {
     [Function("feeds")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData request
     )
     {
+        if (string.IsNullOrEmpty(settings.FeedsPin) || request.Query["pin"] != settings.FeedsPin)
+        {
+            return request.CreateResponse(HttpStatusCode.Unauthorized);
+        }
+
         var date = EasternTimeZone.Today;
         var query = request.Query["date"];
         if (
