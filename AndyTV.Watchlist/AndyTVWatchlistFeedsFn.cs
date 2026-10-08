@@ -7,8 +7,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds checks the ESPN racing/golf and PGA feeds respond from Azure.
-public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, PgaTourService golf)
+// GET /api/feeds checks the ESPN racing/golf feeds respond from Azure and shows what they parse to.
+public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService espn)
 {
     private static readonly string[] EspnUrls =
     [
@@ -30,8 +30,15 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, PgaTourService
         }
 
         var today = DateOnly.FromDateTime(EasternTimeZone.Convert(DateTimeOffset.UtcNow).DateTime);
-        var pga = await golf.GetEventsForDate(today, request.FunctionContext.CancellationToken);
-        output.AppendLine($"BallDontLie PGA {today}: {pga.Count} events {string.Join(", ", pga.Select(e => e.Matchup))}");
+        foreach (var day in new[] { today, today.AddDays(1), today.AddDays(2) })
+        {
+            var events = await espn.GetEventsForDate(day, request.FunctionContext.CancellationToken);
+            output.AppendLine($"ESPN parsed {day:yyyy-MM-dd}: {events.Count} events");
+            foreach (var e in events)
+            {
+                output.AppendLine($"  {e.Sport} | {e.League} | {e.Matchup} | {e.StartTimeIso?.ToString("yyyy-MM-dd h:mm tt zzz") ?? "null (model researches)"}");
+            }
+        }
 
         var response = request.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
@@ -42,7 +49,7 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, PgaTourService
     private async Task<string> CheckEspn(string url, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        foreach (var (name, value) in EspnRacingService.BrowserHeaders)
+        foreach (var (name, value) in EspnService.BrowserHeaders)
         {
             request.Headers.TryAddWithoutValidation(name, value);
         }

@@ -5,8 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed class EspnRacingService(HttpClient httpClient, ILogger<EspnRacingService> logger)
+// Racing and PGA Tour golf from ESPN's public scoreboards (no key).
+public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
 {
+    private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
+    private const string GolfUrl = BaseUrl + "golf/pga/scoreboard";
+
     // ESPN scoreboard slugs and the session types worth watching for each series.
     private static readonly (string Slug, string League, string[] Sessions)[] Series =
     [
@@ -34,12 +38,87 @@ public sealed class EspnRacingService(HttpClient httpClient, ILogger<EspnRacingS
     )
     {
         var feeds = await Task.WhenAll(
-            Series.Select(series => Load(series.Slug, series.League, series.Sessions, date, cancellationToken))
+            [
+                .. Series.Select(series =>
+                    LoadRacing(series.Slug, series.League, series.Sessions, date, cancellationToken)
+                ),
+                LoadGolf(date, cancellationToken),
+            ]
         );
         return [.. feeds.SelectMany(events => events)];
     }
 
-    private async Task<List<SportsEvent>> Load(
+    // Null on failure; these feeds are optional, so the rest of the slate continues.
+    private async Task<JsonDocument> Fetch(string url, string league, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        foreach (var (name, value) in BrowserHeaders)
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
+        }
+
+        try
+        {
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            logger.LogWarning(ex, "{league} feed request failed.", league);
+            return null;
+        }
+    }
+
+    private async Task<List<SportsEvent>> LoadGolf(DateOnly date, CancellationToken cancellationToken)
+    {
+        using var document = await Fetch(GolfUrl, "PGA Tour", cancellationToken);
+        if (document is null)
+        {
+            return [];
+        }
+
+        List<SportsEvent> events = [];
+        foreach (var tournament in document.RootElement.GetProperty("events").EnumerateArray())
+        {
+            var name = tournament.GetProperty("name").GetString();
+            var start = EasternDate(tournament.GetProperty("date"));
+            var end = EasternDate(tournament.GetProperty("endDate"));
+            // Overseas play can begin the prior ET evening, so widen a day.
+            if (string.IsNullOrWhiteSpace(name) || date < start.AddDays(-1) || date > end)
+            {
+                continue;
+            }
+
+            if (
+                tournament.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
+                is "STATUS_CANCELED" or "STATUS_POSTPONED"
+            )
+            {
+                continue;
+            }
+
+            // ESPN's date is a midnight placeholder unless timeValid is true; null lets the model research it.
+            var competition = tournament.GetProperty("competitions")[0];
+            DateTimeOffset? startTime = null;
+            if (competition.TryGetProperty("timeValid", out var timeValid) && timeValid.GetBoolean())
+            {
+                var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                if (DateOnly.FromDateTime(time.DateTime) == date)
+                {
+                    startTime = time;
+                }
+            }
+
+            events.Add(new("Golf", "PGA Tour", null, null, startTime, GolfUrl) { EventName = name });
+        }
+        return events;
+    }
+
+    private static DateOnly EasternDate(JsonElement value) =>
+        DateOnly.FromDateTime(EasternTimeZone.Convert(value.GetDateTimeOffset()).DateTime);
+
+    private async Task<List<SportsEvent>> LoadRacing(
         string slug,
         string league,
         string[] sessions,
@@ -47,30 +126,13 @@ public sealed class EspnRacingService(HttpClient httpClient, ILogger<EspnRacingS
         CancellationToken cancellationToken
     )
     {
-        var url = $"https://site.api.espn.com/apis/site/v2/sports/racing/{slug}/scoreboard";
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        foreach (var (name, value) in BrowserHeaders)
+        var url = $"{BaseUrl}racing/{slug}/scoreboard";
+        using var document = await Fetch(url, league, cancellationToken);
+        if (document is null)
         {
-            request.Headers.TryAddWithoutValidation(name, value);
-        }
-
-        JsonDocument document;
-        try
-        {
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            document =
-                await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken)
-                ?? throw new InvalidOperationException($"Empty ESPN response for {league}.");
-        }
-        catch (HttpRequestException ex)
-        {
-            // ESPN can 403 datacenter IPs; racing is optional, so keep the rest of the slate.
-            logger.LogWarning(ex, "{league} feed request failed.", league);
             return [];
         }
 
-        using var _ = document;
         List<SportsEvent> events = [];
         foreach (var race in document.RootElement.GetProperty("events").EnumerateArray())
         {

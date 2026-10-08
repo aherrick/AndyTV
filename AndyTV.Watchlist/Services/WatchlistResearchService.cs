@@ -10,8 +10,7 @@ namespace AndyTV.Watchlist.Services;
 // Loads feed events and has Copilot rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
     ApiSportsService apiSports,
-    EspnRacingService racing,
-    PgaTourService golf,
+    EspnService espn,
     ActionNetworkOddsService oddsService,
     AppSettings settings,
     ILogger<WatchlistResearchService> logger
@@ -29,8 +28,7 @@ public sealed class WatchlistResearchService(
                 new[]
                 {
                     apiSports.GetEventsForDate(day, cancellationToken),
-                    racing.GetEventsForDate(day, cancellationToken),
-                    golf.GetEventsForDate(day, cancellationToken),
+                    espn.GetEventsForDate(day, cancellationToken),
                 }
             )
         );
