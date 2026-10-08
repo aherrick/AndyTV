@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds?code=<function key> checks the ESPN racing/golf and PGA feeds respond from Azure.
+// GET /api/feeds checks the ESPN racing/golf and PGA feeds respond from Azure.
 public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, PgaTourService golf)
 {
     private static readonly string[] EspnUrls =
@@ -20,7 +20,7 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, PgaTourService
 
     [Function("feeds")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData request
     )
     {
         var output = new StringBuilder();
