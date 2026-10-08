@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -168,7 +169,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
             is "STATUS_CANCELED" or "STATUS_POSTPONED";
 
-    // Team-sport games with the TV network ESPN lists.
+    // Team-sport games with the TV network and odds ESPN lists.
     private async Task<List<SportsEvent>> LoadScoreboard(
         Scoreboard board,
         DateOnly date,
@@ -223,10 +224,54 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 new(board.Sport, board.League, home, away, timeValid ? start : null, url)
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
+                    Betting = Odds(competition),
                 }
             );
         }
         return events;
+    }
+
+    // ESPN's sportsbook lines for the game; null when none are posted.
+    private static Betting Odds(JsonElement competition)
+    {
+        if (!competition.TryGetProperty("odds", out var all) || all.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        var odds = all[0];
+        var betting = new Betting(
+            Line(odds, "pointSpread", "away", "line"),
+            Line(odds, "pointSpread", "home", "line"),
+            Line(odds, "moneyline", "away", "odds"),
+            Line(odds, "moneyline", "home", "odds"),
+            odds.TryGetProperty("overUnder", out var total) && total.ValueKind == JsonValueKind.Number ? total.GetDecimal() : null
+        );
+        return betting is { AwaySpread: null, HomeSpread: null, AwayMoneyline: null, HomeMoneyline: null, Total: null }
+            ? null
+            : betting;
+    }
+
+    // Lines arrive as strings like "+7.5" or "-305"; "EVEN" is +100 and anything else ("OFF") is missing.
+    private static decimal? Line(JsonElement odds, string market, string side, string field)
+    {
+        if (
+            !odds.TryGetProperty(market, out var outcomes)
+            || !outcomes.TryGetProperty(side, out var outcome)
+            || !outcome.TryGetProperty("close", out var close)
+            || !close.TryGetProperty(field, out var value)
+            || value.ValueKind != JsonValueKind.String
+        )
+        {
+            return null;
+        }
+
+        var text = value.GetString();
+        if (text == "EVEN")
+        {
+            return 100;
+        }
+        return decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null;
     }
 
     // One event per UFC card; ESPN's card date is the first bout, so the main-card time is left for the model to research.

@@ -10,7 +10,6 @@ namespace AndyTV.Watchlist.Services;
 // Loads feed events and has Copilot rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
     EspnService espn,
-    ActionNetworkOddsService oddsService,
     AppSettings settings,
     ILogger<WatchlistResearchService> logger
 )
@@ -46,9 +45,8 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken
     )
     {
-        var odds = await oddsService.GetOdds(days, cancellationToken);
-        logger.LogInformation("{kind} supplied {events} events and {count} FanDuel odds rows.", kind, events.Count, odds.Count);
-        var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events, odds);
+        logger.LogInformation("{kind} supplied {events} events, {odds} with odds.", kind, events.Count, events.Count(e => e.Betting is not null));
+        var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events);
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
