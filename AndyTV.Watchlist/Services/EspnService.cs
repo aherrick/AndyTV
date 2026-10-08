@@ -72,12 +72,12 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         new("soccer/concacaf.leagues.cup", "Soccer", "Leagues Cup"),
     ];
 
-    // ESPN scoreboard slugs and the session types worth watching for each series.
+    // ESPN scoreboard slugs and the session types worth watching for each series (F1: SS = sprint qualifying, SR = sprint).
     private static readonly (string Slug, string League, string[] Sessions)[] Series =
     [
         ("nascar-premier", "NASCAR Cup Series", ["Race"]),
         ("irl", "IndyCar Series", ["Race"]),
-        ("f1", "Formula 1", ["Race", "Qual", "Sprint"]),
+        ("f1", "Formula 1", ["Race", "Qual", "SR", "SS"]),
     ];
 
     // ESPN's Akamai front end rejects requests that don't look like a browser.
@@ -414,7 +414,8 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 var suffix = session.ToLowerInvariant() switch
                 {
                     "qual" => " - Qualifying",
-                    "sprint" => " - Sprint",
+                    "sr" => " - Sprint",
+                    "ss" => " - Sprint Qualifying",
                     _ => "",
                 };
                 events.Add(new("Racing", league, null, null, start, url) { EventName = name + suffix });
