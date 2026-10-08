@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using AndyTV.Watchlist.Services;
@@ -6,7 +7,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds lists today's ESPN events as the watchlist sees them; failed feeds are logged as warnings.
+// GET /api/feeds[?date=yyyyMMdd] lists that day's ESPN events (default today ET) as the watchlist sees them;
+// failed feeds are logged as warnings.
 public sealed class AndyTVWatchlistFeedsFn(EspnService espn)
 {
     [Function("feeds")]
@@ -14,10 +16,21 @@ public sealed class AndyTVWatchlistFeedsFn(EspnService espn)
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData request
     )
     {
-        var today = EasternTimeZone.Today;
-        var events = await espn.GetEventsForDate(today, request.FunctionContext.CancellationToken);
+        var date = EasternTimeZone.Today;
+        var query = request.Query["date"];
+        if (
+            !string.IsNullOrEmpty(query)
+            && !DateOnly.TryParseExact(query, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+        )
+        {
+            var badRequest = request.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteStringAsync("date must be yyyyMMdd, e.g. 20261010");
+            return badRequest;
+        }
 
-        var output = new StringBuilder($"{today:yyyy-MM-dd}: {events.Count} events\n");
+        var events = await espn.GetEventsForDate(date, request.FunctionContext.CancellationToken);
+
+        var output = new StringBuilder($"{date:yyyy-MM-dd}: {events.Count} events\n");
         foreach (var e in events.OrderBy(e => e.StartTimeIso))
         {
             var time = e.StartTimeIso?.ToString("h:mm tt") ?? "TBD";
