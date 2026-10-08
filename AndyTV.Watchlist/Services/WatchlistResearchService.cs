@@ -32,7 +32,19 @@ public sealed class WatchlistResearchService(
                 }
             )
         );
-        return [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
+        List<SportsEvent> events = [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
+        logger.LogInformation("Loaded {count} events for {days}.", events.Count, string.Join(", ", days));
+        foreach (var e in events)
+        {
+            logger.LogInformation(
+                "Event: {sport} | {league} | {matchup} | {start}",
+                e.Sport,
+                e.League,
+                e.Matchup,
+                e.StartTimeIso is { } start ? EasternTimeZone.Convert(start).ToString("ddd yyyy-MM-dd h:mm tt") + " ET" : "null"
+            );
+        }
+        return events;
     }
 
     // Returns the ranked watchlist and the research cost in dollars.

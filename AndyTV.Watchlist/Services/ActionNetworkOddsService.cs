@@ -66,7 +66,7 @@ public sealed class ActionNetworkOddsService(HttpClient httpClient, ILogger<Acti
 
             // NFL/NCAAF return the whole week for any date in it.
             var start = EasternTimeZone.Convert(game.GetProperty("start_time").GetDateTimeOffset());
-            if (DateOnly.FromDateTime(start.DateTime) != day)
+            if (EasternTimeZone.Date(start) != day)
             {
                 continue;
             }

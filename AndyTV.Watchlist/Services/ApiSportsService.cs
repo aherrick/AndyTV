@@ -97,7 +97,7 @@ public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings 
             }
 
             var start = EasternTimeZone.Convert(DateTimeOffset.FromUnixTimeSeconds(timestamp));
-            if (DateOnly.FromDateTime(start.DateTime) != date)
+            if (EasternTimeZone.Date(start) != date)
             {
                 continue;
             }

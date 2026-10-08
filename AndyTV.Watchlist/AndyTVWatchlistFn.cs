@@ -32,7 +32,7 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
             return;
         }
 
-        var targetDate = DateOnly.FromDateTime(easternNow.DateTime);
+        var targetDate = EasternTimeZone.Date(easternNow);
         List<Task> runs = [];
         if (!RunOnStartup || ForceDaily)
         {

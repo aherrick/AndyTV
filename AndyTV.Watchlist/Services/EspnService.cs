@@ -82,8 +82,8 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         foreach (var tournament in document.RootElement.GetProperty("events").EnumerateArray())
         {
             var name = tournament.GetProperty("name").GetString();
-            var start = EasternDate(tournament.GetProperty("date"));
-            var end = EasternDate(tournament.GetProperty("endDate"));
+            var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
+            var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
             // Overseas play can begin the prior ET evening, so widen a day.
             if (string.IsNullOrWhiteSpace(name) || date < start.AddDays(-1) || date > end)
             {
@@ -104,7 +104,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
             if (competition.TryGetProperty("timeValid", out var timeValid) && timeValid.GetBoolean())
             {
                 var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
-                if (DateOnly.FromDateTime(time.DateTime) == date)
+                if (EasternTimeZone.Date(time) == date)
                 {
                     startTime = time;
                 }
@@ -114,9 +114,6 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         }
         return events;
     }
-
-    private static DateOnly EasternDate(JsonElement value) =>
-        DateOnly.FromDateTime(EasternTimeZone.Convert(value.GetDateTimeOffset()).DateTime);
 
     private async Task<List<SportsEvent>> LoadRacing(
         string slug,
@@ -158,7 +155,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 }
 
                 var start = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
-                if (DateOnly.FromDateTime(start.DateTime) != date)
+                if (EasternTimeZone.Date(start) != date)
                 {
                     continue;
                 }

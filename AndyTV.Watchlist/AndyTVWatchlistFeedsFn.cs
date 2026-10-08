@@ -29,7 +29,7 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService es
             output.AppendLine(await CheckEspn(url, request.FunctionContext.CancellationToken));
         }
 
-        var today = DateOnly.FromDateTime(EasternTimeZone.Convert(DateTimeOffset.UtcNow).DateTime);
+        var today = EasternTimeZone.Today;
         foreach (var day in new[] { today, today.AddDays(1), today.AddDays(2) })
         {
             var events = await espn.GetEventsForDate(day, request.FunctionContext.CancellationToken);

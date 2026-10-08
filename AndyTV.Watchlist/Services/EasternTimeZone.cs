@@ -7,6 +7,10 @@ public static class EasternTimeZone
 
     public static DateTimeOffset Now => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Zone);
 
+    public static DateOnly Today => Date(DateTimeOffset.UtcNow);
+
     public static DateTimeOffset Convert(DateTimeOffset value) =>
         TimeZoneInfo.ConvertTime(value, Zone);
+
+    public static DateOnly Date(DateTimeOffset value) => DateOnly.FromDateTime(Convert(value).DateTime);
 }
