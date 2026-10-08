@@ -11,7 +11,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
 {
     private const int MaxAttempts = 3;
 
-    // Soccer alone is ~20 leagues per day, so keep the burst against ESPN small.
+    // Soccer alone is ~30 boards per day, so keep the burst against ESPN small.
     private static readonly SemaphoreSlim Throttle = new(8);
 
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
@@ -22,14 +22,12 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
 
     // Team sports: School uses the school name ("Liberty"), otherwise the full team name ("Boston Celtics").
     // groups=50 is every Division I game; without it ESPN returns only a featured handful.
-    // PriorDay also reads the previous day's board for starts after midnight ET; soccer has none.
     private sealed record Scoreboard(
         string Path,
         string Sport,
         string League,
         bool School = false,
-        string Query = "limit=300",
-        bool PriorDay = true
+        string Query = "limit=300"
     );
 
     private static readonly Scoreboard[] Scoreboards =
@@ -42,27 +40,36 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         new("basketball/wnba", "Basketball", "WNBA"),
         new("basketball/mens-college-basketball", "Basketball", "NCAA", School: true, Query: "groups=50&limit=400"),
         new("basketball/womens-college-basketball", "Basketball", "NCAA Women", School: true, Query: "groups=50&limit=400"),
-        new("soccer/fifa.world", "Soccer", "FIFA World Cup", PriorDay: false),
-        new("soccer/uefa.euro", "Soccer", "UEFA European Championship", PriorDay: false),
-        new("soccer/conmebol.america", "Soccer", "Copa America", PriorDay: false),
-        new("soccer/uefa.nations", "Soccer", "UEFA Nations League", PriorDay: false),
-        new("soccer/fifa.friendly", "Soccer", "International Friendlies", PriorDay: false),
-        new("soccer/uefa.champions", "Soccer", "UEFA Champions League", PriorDay: false),
-        new("soccer/uefa.europa", "Soccer", "UEFA Europa League", PriorDay: false),
-        new("soccer/uefa.europa.conf", "Soccer", "UEFA Conference League", PriorDay: false),
-        new("soccer/eng.1", "Soccer", "Premier League", PriorDay: false),
-        new("soccer/eng.2", "Soccer", "EFL Championship", PriorDay: false),
-        new("soccer/eng.fa", "Soccer", "FA Cup", PriorDay: false),
-        new("soccer/eng.league_cup", "Soccer", "EFL Cup", PriorDay: false),
-        new("soccer/esp.1", "Soccer", "La Liga", PriorDay: false),
-        new("soccer/ita.1", "Soccer", "Serie A", PriorDay: false),
-        new("soccer/ger.1", "Soccer", "Bundesliga", PriorDay: false),
-        new("soccer/fra.1", "Soccer", "Ligue 1", PriorDay: false),
-        new("soccer/ned.1", "Soccer", "Eredivisie", PriorDay: false),
-        new("soccer/por.1", "Soccer", "Primeira Liga", PriorDay: false),
-        new("soccer/usa.1", "Soccer", "MLS", PriorDay: false),
-        new("soccer/mex.1", "Soccer", "Liga MX", PriorDay: false),
-        new("soccer/concacaf.leagues.cup", "Soccer", "Leagues Cup", PriorDay: false),
+        new("soccer/fifa.world", "Soccer", "FIFA World Cup"),
+        new("soccer/fifa.wwc", "Soccer", "FIFA Women's World Cup"),
+        new("soccer/fifa.cwc", "Soccer", "FIFA Club World Cup"),
+        new("soccer/fifa.worldq.uefa", "Soccer", "World Cup Qualifying - UEFA"),
+        new("soccer/fifa.worldq.conmebol", "Soccer", "World Cup Qualifying - CONMEBOL"),
+        new("soccer/fifa.worldq.concacaf", "Soccer", "World Cup Qualifying - Concacaf"),
+        new("soccer/uefa.euro", "Soccer", "UEFA European Championship"),
+        new("soccer/conmebol.america", "Soccer", "Copa America"),
+        new("soccer/concacaf.gold", "Soccer", "Concacaf Gold Cup"),
+        new("soccer/uefa.nations", "Soccer", "UEFA Nations League"),
+        new("soccer/fifa.friendly", "Soccer", "International Friendlies"),
+        new("soccer/uefa.champions", "Soccer", "UEFA Champions League"),
+        new("soccer/uefa.europa", "Soccer", "UEFA Europa League"),
+        new("soccer/uefa.europa.conf", "Soccer", "UEFA Conference League"),
+        new("soccer/conmebol.libertadores", "Soccer", "Copa Libertadores"),
+        new("soccer/concacaf.champions", "Soccer", "Concacaf Champions Cup"),
+        new("soccer/eng.1", "Soccer", "Premier League"),
+        new("soccer/eng.2", "Soccer", "EFL Championship"),
+        new("soccer/eng.fa", "Soccer", "FA Cup"),
+        new("soccer/eng.league_cup", "Soccer", "EFL Cup"),
+        new("soccer/esp.1", "Soccer", "La Liga"),
+        new("soccer/ita.1", "Soccer", "Serie A"),
+        new("soccer/ger.1", "Soccer", "Bundesliga"),
+        new("soccer/fra.1", "Soccer", "Ligue 1"),
+        new("soccer/ned.1", "Soccer", "Eredivisie"),
+        new("soccer/por.1", "Soccer", "Primeira Liga"),
+        new("soccer/usa.1", "Soccer", "MLS"),
+        new("soccer/usa.nwsl", "Soccer", "NWSL"),
+        new("soccer/mex.1", "Soccer", "Liga MX"),
+        new("soccer/concacaf.leagues.cup", "Soccer", "Leagues Cup"),
     ];
 
     // ESPN scoreboard slugs and the session types worth watching for each series.
@@ -168,14 +175,9 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         CancellationToken cancellationToken
     )
     {
-        // ESPN files late West Coast starts under the prior day, and date ranges return 400, so read each day.
+        // ESPN files each game under its ET day, so one board covers the date.
         var url = $"{BaseUrl}{board.Path}/scoreboard";
-        DateOnly[] days = board.PriorDay ? [date.AddDays(-1), date] : [date];
-        var games = await FetchEvents(
-            [.. days.Select(day => $"{url}?dates={day:yyyyMMdd}&{board.Query}")],
-            $"{board.Sport} {board.League}",
-            cancellationToken
-        );
+        var games = await FetchEvents([$"{url}?dates={date:yyyyMMdd}&{board.Query}"], $"{board.Sport} {board.League}", cancellationToken);
 
         List<SportsEvent> events = [];
         foreach (var game in games)
@@ -231,11 +233,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
     private async Task<List<SportsEvent>> LoadUfc(DateOnly date, CancellationToken cancellationToken)
     {
         var url = $"{BaseUrl}mma/ufc/scoreboard";
-        var cards = await FetchEvents(
-            [$"{url}?dates={date.AddDays(-1):yyyyMMdd}", $"{url}?dates={date:yyyyMMdd}"],
-            "UFC",
-            cancellationToken
-        );
+        var cards = await FetchEvents([$"{url}?dates={date:yyyyMMdd}"], "UFC", cancellationToken);
 
         return
         [
