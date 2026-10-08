@@ -5,15 +5,25 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Racing, PGA Tour golf, Grand Slam tennis and FBS college football from ESPN's public scoreboards (no key).
+// Racing, golf, tennis, college football and basketball from ESPN's public scoreboards (no key).
 public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
 {
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
     private const string GolfUrl = BaseUrl + "golf/pga/scoreboard";
-    private const string CollegeFootballUrl = BaseUrl + "football/college-football/scoreboard";
 
     private static readonly string[] TennisTours = ["atp", "wta"];
     private static readonly string[] TennisLateRounds = ["Quarterfinal", "Semifinal", "Final"];
+
+    // Team sports: college uses the school name ("Liberty"), pro uses the full team name ("Boston Celtics").
+    // groups=50 is every Division I game; without it ESPN returns only a featured handful.
+    private static readonly (string Path, string Sport, string League, bool School, string Query)[] Scoreboards =
+    [
+        ("football/college-football", "Football", "NCAA", true, "limit=300"),
+        ("basketball/nba", "Basketball", "NBA", false, "limit=300"),
+        ("basketball/wnba", "Basketball", "WNBA", false, "limit=300"),
+        ("basketball/mens-college-basketball", "Basketball", "NCAA", true, "groups=50&limit=400"),
+        ("basketball/womens-college-basketball", "Basketball", "NCAA Women", true, "groups=50&limit=400"),
+    ];
 
     // ESPN scoreboard slugs and the session types worth watching for each series.
     private static readonly (string Slug, string League, string[] Sessions)[] Series =
@@ -48,7 +58,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 ),
                 LoadGolf(date, cancellationToken),
                 LoadTennis(date, cancellationToken),
-                LoadCollegeFootball(date, cancellationToken),
+                .. Scoreboards.Select(board => LoadScoreboard(board, date, cancellationToken)),
             ]
         );
         return [.. feeds.SelectMany(events => events)];
@@ -76,14 +86,19 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         }
     }
 
-    // FBS games, with the TV network ESPN lists.
-    private async Task<List<SportsEvent>> LoadCollegeFootball(DateOnly date, CancellationToken cancellationToken)
+    // Team-sport games with the TV network ESPN lists.
+    private async Task<List<SportsEvent>> LoadScoreboard(
+        (string Path, string Sport, string League, bool School, string Query) board,
+        DateOnly date,
+        CancellationToken cancellationToken
+    )
     {
-        // ESPN files late West Coast kickoffs under the prior day, so read both and filter by ET date.
-        // Date ranges return 400 for college football, so each day is its own request.
+        // ESPN files late West Coast starts under the prior day, so read both and filter by ET date.
+        // Date ranges return 400, so each day is its own request.
+        var url = $"{BaseUrl}{board.Path}/scoreboard";
         var documents = await Task.WhenAll(
             new[] { date.AddDays(-1), date }.Select(day =>
-                Fetch($"{CollegeFootballUrl}?dates={day:yyyyMMdd}&limit=300", "College Football", cancellationToken)
+                Fetch($"{url}?dates={day:yyyyMMdd}&{board.Query}", $"{board.Sport} {board.League}", cancellationToken)
             )
         );
 
@@ -109,7 +124,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
             string away = null;
             foreach (var competitor in competition.GetProperty("competitors").EnumerateArray())
             {
-                var team = competitor.GetProperty("team").GetProperty("location").GetString();
+                var team = competitor.GetProperty("team").GetProperty(board.School ? "location" : "displayName").GetString();
                 if (competitor.GetProperty("homeAway").GetString() == "home")
                 {
                     home = team;
@@ -125,13 +140,13 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 continue;
             }
 
-            // TBA kickoffs carry a placeholder time with timeValid=false.
+            // TBA start times carry a placeholder with timeValid=false.
             var timeValid = competition.TryGetProperty("timeValid", out var valid) && valid.GetBoolean();
             string[] networks = competition.TryGetProperty("broadcasts", out var broadcasts)
                 ? [.. broadcasts.EnumerateArray().SelectMany(b => b.GetProperty("names").EnumerateArray()).Select(n => n.GetString())]
                 : [];
             events.Add(
-                new("Football", "NCAA", home, away, timeValid ? start : null, CollegeFootballUrl)
+                new(board.Sport, board.League, home, away, timeValid ? start : null, url)
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                 }

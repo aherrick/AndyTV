@@ -46,14 +46,6 @@ public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings 
         772, // Leagues Cup
     ];
 
-    private static readonly HashSet<int> BasketballLeagues =
-    [
-        12, // NBA
-        13, // WNBA (listed as "NBA W")
-        116, // NCAA
-        284, // FIBA World Cup (Women)
-    ];
-
     public async Task<List<SportsEvent>> GetEventsForDate(
         DateOnly date,
         CancellationToken cancellationToken = default
@@ -65,7 +57,6 @@ public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings 
             Load("Baseball", $"https://v1.baseball.api-sports.io/games?{query}", [1], date, cancellationToken), // MLB
             Load("Football", $"https://v1.american-football.api-sports.io/games?{query}", [1], date, cancellationToken), // NFL (college football comes from ESPN)
             Load("Hockey", $"https://v1.hockey.api-sports.io/games?{query}", [57], date, cancellationToken), // NHL
-            Load("Basketball", $"https://v1.basketball.api-sports.io/games?{query}", BasketballLeagues, date, cancellationToken),
             Load("Soccer", $"https://v3.football.api-sports.io/fixtures?{query}", SoccerLeagues, date, cancellationToken),
             LoadUfc($"https://v1.mma.api-sports.io/fights?{query}", cancellationToken)
         );

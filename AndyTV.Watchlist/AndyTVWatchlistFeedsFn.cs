@@ -19,6 +19,10 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService es
         "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
         "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard",
         "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard",
+        "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+        "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard",
+        "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard",
+        "https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard",
     ];
 
     [Function("feeds")]

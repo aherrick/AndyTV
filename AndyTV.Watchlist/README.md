@@ -7,8 +7,8 @@ The app runs on Linux Flex Consumption, where Azure does not support
 [`WEBSITE_TIME_ZONE`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer#ncrontab-time-zones).
 
 The watchlist is produced end to end in the function: API-Sports (MLB, NFL,
-NHL, NBA/WNBA/NCAA, curated soccer, UFC) and ESPN (F1, NASCAR Cup, IndyCar, PGA Tour,
-Grand Slam tennis, FBS college football)
+NHL, curated soccer, UFC) and ESPN (F1, NASCAR Cup, IndyCar, PGA Tour,
+Grand Slam tennis, college football, NBA/WNBA/college basketball)
 supply the candidate events, then GitHub Copilot (`gpt-6.1-sol`, web search/fetch only)
 ranks and enriches them with one shared prompt (`WatchlistPrompt`). Feed schedules are
 authoritative and validated; only UFC main-card times and golf times ESPN hasn't confirmed are researched.
