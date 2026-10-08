@@ -22,7 +22,6 @@ builder.Services.AddSingleton(_ =>
 builder.Logging.AddProvider(new RunLog());
 
 builder.Services.AddSingleton(_ => AppSettings.Load());
-builder.Services.AddSingleton<ApiSportsService>();
 builder.Services.AddSingleton<EspnService>();
 builder.Services.AddSingleton<ActionNetworkOddsService>();
 builder.Services.AddSingleton<WatchlistResearchService>();

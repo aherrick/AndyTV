@@ -6,14 +6,14 @@ The timer uses 06:30 and 07:30 UTC with an Eastern-hour guard for daylight savin
 The app runs on Linux Flex Consumption, where Azure does not support
 [`WEBSITE_TIME_ZONE`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer#ncrontab-time-zones).
 
-The watchlist is produced end to end in the function: API-Sports (MLB, NFL,
-NHL, curated soccer, UFC) and ESPN (F1, NASCAR Cup, IndyCar, PGA Tour,
-Grand Slam tennis, college football, NBA/WNBA/college basketball)
-supply the candidate events, then GitHub Copilot (`gpt-6.1-sol`, web search/fetch only)
+The watchlist is produced end to end in the function: ESPN's public scoreboards
+(MLB, NFL, NHL, NBA/WNBA, college football and basketball, curated soccer, UFC, F1,
+NASCAR Cup, IndyCar, PGA Tour, Grand Slam tennis) supply the candidate events, then GitHub Copilot
+(`gpt-6.1-sol`, web search/fetch only)
 ranks and enriches them with one shared prompt (`WatchlistPrompt`). Feed schedules are
 authoritative and validated; only UFC main-card times and golf times ESPN hasn't confirmed are researched.
 
-Settings: `SPORTS_API_KEY` and `WATCHLIST_PROMPT` (required; one-line prompt with
+Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 `{dates}`, `{firstDay}`, `{count}` placeholders), `COPILOT_GITHUB_TOKEN` (fine-grained PAT with
 "Copilot Requests"; optional locally when signed in to Copilot), plus the existing blob,
 Cloudflare, Instagram and X settings.

@@ -1,28 +1,69 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Racing, golf, tennis, college football and basketball from ESPN's public scoreboards (no key).
-public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
+// Every sport in the watchlist, from ESPN's public scoreboards (no key).
+public sealed partial class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
 {
+    private const int MaxAttempts = 3;
+
+    // Soccer alone is ~20 leagues per day, so keep the burst against ESPN small.
+    private static readonly SemaphoreSlim Throttle = new(8);
+
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
     private const string GolfUrl = BaseUrl + "golf/pga/scoreboard";
 
     private static readonly string[] TennisTours = ["atp", "wta"];
     private static readonly string[] TennisLateRounds = ["Quarterfinal", "Semifinal", "Final"];
 
-    // Team sports: college uses the school name ("Liberty"), pro uses the full team name ("Boston Celtics").
+    // Team sports: School uses the school name ("Liberty"), otherwise the full team name ("Boston Celtics").
     // groups=50 is every Division I game; without it ESPN returns only a featured handful.
-    private static readonly (string Path, string Sport, string League, bool School, string Query)[] Scoreboards =
+    // PriorDay also reads the previous day's board for starts after midnight ET; soccer has none.
+    private sealed record Scoreboard(
+        string Path,
+        string Sport,
+        string League,
+        bool School = false,
+        string Query = "limit=300",
+        bool PriorDay = true
+    );
+
+    private static readonly Scoreboard[] Scoreboards =
     [
-        ("football/college-football", "Football", "NCAA", true, "limit=300"),
-        ("basketball/nba", "Basketball", "NBA", false, "limit=300"),
-        ("basketball/wnba", "Basketball", "WNBA", false, "limit=300"),
-        ("basketball/mens-college-basketball", "Basketball", "NCAA", true, "groups=50&limit=400"),
-        ("basketball/womens-college-basketball", "Basketball", "NCAA Women", true, "groups=50&limit=400"),
+        new("baseball/mlb", "Baseball", "MLB"),
+        new("football/nfl", "Football", "NFL"),
+        new("hockey/nhl", "Hockey", "NHL"),
+        new("football/college-football", "Football", "NCAA", School: true),
+        new("basketball/nba", "Basketball", "NBA"),
+        new("basketball/wnba", "Basketball", "WNBA"),
+        new("basketball/mens-college-basketball", "Basketball", "NCAA", School: true, Query: "groups=50&limit=400"),
+        new("basketball/womens-college-basketball", "Basketball", "NCAA Women", School: true, Query: "groups=50&limit=400"),
+        new("soccer/fifa.world", "Soccer", "FIFA World Cup", PriorDay: false),
+        new("soccer/uefa.euro", "Soccer", "UEFA European Championship", PriorDay: false),
+        new("soccer/conmebol.america", "Soccer", "Copa America", PriorDay: false),
+        new("soccer/uefa.nations", "Soccer", "UEFA Nations League", PriorDay: false),
+        new("soccer/fifa.friendly", "Soccer", "International Friendlies", PriorDay: false),
+        new("soccer/uefa.champions", "Soccer", "UEFA Champions League", PriorDay: false),
+        new("soccer/uefa.europa", "Soccer", "UEFA Europa League", PriorDay: false),
+        new("soccer/uefa.europa.conf", "Soccer", "UEFA Conference League", PriorDay: false),
+        new("soccer/eng.1", "Soccer", "Premier League", PriorDay: false),
+        new("soccer/eng.2", "Soccer", "EFL Championship", PriorDay: false),
+        new("soccer/eng.fa", "Soccer", "FA Cup", PriorDay: false),
+        new("soccer/eng.league_cup", "Soccer", "EFL Cup", PriorDay: false),
+        new("soccer/esp.1", "Soccer", "La Liga", PriorDay: false),
+        new("soccer/ita.1", "Soccer", "Serie A", PriorDay: false),
+        new("soccer/ger.1", "Soccer", "Bundesliga", PriorDay: false),
+        new("soccer/fra.1", "Soccer", "Ligue 1", PriorDay: false),
+        new("soccer/ned.1", "Soccer", "Eredivisie", PriorDay: false),
+        new("soccer/por.1", "Soccer", "Primeira Liga", PriorDay: false),
+        new("soccer/usa.1", "Soccer", "MLS", PriorDay: false),
+        new("soccer/mex.1", "Soccer", "Liga MX", PriorDay: false),
+        new("soccer/concacaf.leagues.cup", "Soccer", "Leagues Cup", PriorDay: false),
     ];
 
     // ESPN scoreboard slugs and the session types worth watching for each series.
@@ -58,37 +99,57 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 ),
                 LoadGolf(date, cancellationToken),
                 LoadTennis(date, cancellationToken),
+                LoadUfc(date, cancellationToken),
                 .. Scoreboards.Select(board => LoadScoreboard(board, date, cancellationToken)),
             ]
         );
         return [.. feeds.SelectMany(events => events)];
     }
 
-    // Null on failure; these feeds are optional, so the rest of the slate continues.
+    // Null after retries; these feeds are optional, so the rest of the slate continues.
     private async Task<JsonDocument> Fetch(string url, string league, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        foreach (var (name, value) in BrowserHeaders)
+        for (var attempt = 1; ; attempt++)
         {
-            request.Headers.TryAddWithoutValidation(name, value);
-        }
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            foreach (var (name, value) in BrowserHeaders)
+            {
+                request.Headers.TryAddWithoutValidation(name, value);
+            }
 
-        try
-        {
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException)
-        {
-            logger.LogWarning(ex, "{league} feed request failed.", league);
-            return null;
+            await Throttle.WaitAsync(cancellationToken);
+            try
+            {
+                using var response = await httpClient.SendAsync(request, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException)
+            {
+                // A 4xx other than 429 won't improve on retry.
+                var retryable = ex is not HttpRequestException { StatusCode: >= HttpStatusCode.BadRequest and < HttpStatusCode.InternalServerError and not HttpStatusCode.TooManyRequests };
+                if (!retryable || attempt == MaxAttempts)
+                {
+                    logger.LogWarning(ex, "{league} feed request failed.", league);
+                    return null;
+                }
+            }
+            finally
+            {
+                Throttle.Release();
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(attempt * 2), cancellationToken);
         }
     }
 
+    private static bool IsCanceled(JsonElement game) =>
+        game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
+            is "STATUS_CANCELED" or "STATUS_POSTPONED";
+
     // Team-sport games with the TV network ESPN lists.
     private async Task<List<SportsEvent>> LoadScoreboard(
-        (string Path, string Sport, string League, bool School, string Query) board,
+        Scoreboard board,
         DateOnly date,
         CancellationToken cancellationToken
     )
@@ -96,8 +157,9 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         // ESPN files late West Coast starts under the prior day, so read both and filter by ET date.
         // Date ranges return 400, so each day is its own request.
         var url = $"{BaseUrl}{board.Path}/scoreboard";
+        DateOnly[] days = board.PriorDay ? [date.AddDays(-1), date] : [date];
         var documents = await Task.WhenAll(
-            new[] { date.AddDays(-1), date }.Select(day =>
+            days.Select(day =>
                 Fetch($"{url}?dates={day:yyyyMMdd}&{board.Query}", $"{board.Sport} {board.League}", cancellationToken)
             )
         );
@@ -105,10 +167,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         List<SportsEvent> events = [];
         foreach (var game in documents.Where(d => d is not null).SelectMany(d => d.RootElement.GetProperty("events").EnumerateArray()))
         {
-            if (
-                game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
-                is "STATUS_CANCELED" or "STATUS_POSTPONED"
-            )
+            if (IsCanceled(game))
             {
                 continue;
             }
@@ -135,7 +194,11 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(home) || string.IsNullOrWhiteSpace(away))
+            if (
+                string.IsNullOrWhiteSpace(home)
+                || string.IsNullOrWhiteSpace(away)
+                || (board.Sport == "Soccer" && (YouthTeam().IsMatch(home) || YouthTeam().IsMatch(away)))
+            )
             {
                 continue;
             }
@@ -159,6 +222,38 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         }
         return events;
     }
+
+    // One event per UFC card; ESPN's card date is the first bout, so the main-card time is left for the model to research.
+    private async Task<List<SportsEvent>> LoadUfc(DateOnly date, CancellationToken cancellationToken)
+    {
+        var url = $"{BaseUrl}mma/ufc/scoreboard";
+        var documents = await Task.WhenAll(
+            new[] { date.AddDays(-1), date }.Select(day => Fetch($"{url}?dates={day:yyyyMMdd}", "UFC", cancellationToken))
+        );
+
+        List<SportsEvent> events = [];
+        foreach (var card in documents.Where(d => d is not null).SelectMany(d => d.RootElement.GetProperty("events").EnumerateArray()))
+        {
+            var name = card.GetProperty("name").GetString();
+            if (
+                !string.IsNullOrWhiteSpace(name)
+                && !IsCanceled(card)
+                && EasternTimeZone.Date(card.GetProperty("date").GetDateTimeOffset()) == date
+            )
+            {
+                events.Add(new("MMA", "UFC", null, null, null, url) { EventName = name });
+            }
+        }
+
+        foreach (var document in documents)
+        {
+            document?.Dispose();
+        }
+        return events;
+    }
+
+    [GeneratedRegex(@"\bU\d{2}$")]
+    private static partial Regex YouthTeam();
 
     private async Task<List<SportsEvent>> LoadGolf(DateOnly date, CancellationToken cancellationToken)
     {
