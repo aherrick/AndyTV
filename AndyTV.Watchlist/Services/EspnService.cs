@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Racing, PGA Tour golf and Grand Slam tennis from ESPN's public scoreboards (no key).
+// Racing, PGA Tour golf, Grand Slam tennis and FBS college football from ESPN's public scoreboards (no key).
 public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
 {
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
@@ -48,6 +48,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 ),
                 LoadGolf(date, cancellationToken),
                 LoadTennis(date, cancellationToken),
+                LoadCollegeFootball(date, cancellationToken),
             ]
         );
         return [.. feeds.SelectMany(events => events)];
@@ -75,8 +76,8 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         }
     }
 
-    // FBS games; only /api/feeds uses this until it proves out against API-Sports.
-    public async Task<List<SportsEvent>> GetCollegeFootball(DateOnly date, CancellationToken cancellationToken = default)
+    // FBS games, with the TV network ESPN lists.
+    private async Task<List<SportsEvent>> LoadCollegeFootball(DateOnly date, CancellationToken cancellationToken)
     {
         // ESPN files late West Coast kickoffs under the prior day, so read both and filter by ET date.
         // Date ranges return 400 for college football, so each day is its own request.

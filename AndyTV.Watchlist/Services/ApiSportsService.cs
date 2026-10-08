@@ -1,14 +1,20 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings settings)
+public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings settings, ILogger<ApiSportsService> logger)
 {
+    // Free plan: 10 requests per minute per sport API.
+    private static readonly TimeSpan RateLimitWait = TimeSpan.FromSeconds(61);
+    private const int MaxAttempts = 3;
+
     private static readonly HashSet<int> SoccerLeagues =
     [
         // Major international tournaments
@@ -57,7 +63,7 @@ public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings 
             $"date={date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}&timezone=America/New_York";
         var feeds = await Task.WhenAll(
             Load("Baseball", $"https://v1.baseball.api-sports.io/games?{query}", [1], date, cancellationToken), // MLB
-            Load("Football", $"https://v1.american-football.api-sports.io/games?{query}", [1, 2], date, cancellationToken), // NFL and NCAA
+            Load("Football", $"https://v1.american-football.api-sports.io/games?{query}", [1], date, cancellationToken), // NFL (college football comes from ESPN)
             Load("Hockey", $"https://v1.hockey.api-sports.io/games?{query}", [57], date, cancellationToken), // NHL
             Load("Basketball", $"https://v1.basketball.api-sports.io/games?{query}", BasketballLeagues, date, cancellationToken),
             Load("Soccer", $"https://v3.football.api-sports.io/fixtures?{query}", SoccerLeagues, date, cancellationToken),
@@ -139,24 +145,46 @@ public sealed partial class ApiSportsService(HttpClient httpClient, AppSettings 
 
     private async Task<JsonDocument> Get(string sport, string url, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("x-apisports-key", settings.SportsApiKey);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var document =
-            await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken)
-            ?? throw new InvalidOperationException("Sports API returned an empty response.");
-        var errors = document.RootElement.GetProperty("errors");
-        if (
-            (errors.ValueKind == JsonValueKind.Object && errors.EnumerateObject().Any())
-            || (errors.ValueKind == JsonValueKind.Array && errors.GetArrayLength() > 0)
-        )
+        for (var attempt = 1; ; attempt++)
         {
-            var message = $"{sport} API error: {errors}";
-            document.Dispose();
-            throw new InvalidOperationException(message);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("x-apisports-key", settings.SportsApiKey);
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt < MaxAttempts)
+            {
+                await WaitForRateLimit(sport, attempt, cancellationToken);
+                continue;
+            }
+
+            response.EnsureSuccessStatusCode();
+            var document =
+                await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken)
+                ?? throw new InvalidOperationException("Sports API returned an empty response.");
+            var errors = document.RootElement.GetProperty("errors");
+            if (
+                (errors.ValueKind == JsonValueKind.Object && errors.EnumerateObject().Any())
+                || (errors.ValueKind == JsonValueKind.Array && errors.GetArrayLength() > 0)
+            )
+            {
+                // The per-minute limit comes back as a 200 with errors.rateLimit.
+                var rateLimited = errors.ValueKind == JsonValueKind.Object && errors.TryGetProperty("rateLimit", out _);
+                var message = $"{sport} API error: {errors}";
+                document.Dispose();
+                if (rateLimited && attempt < MaxAttempts)
+                {
+                    await WaitForRateLimit(sport, attempt, cancellationToken);
+                    continue;
+                }
+                throw new InvalidOperationException(message);
+            }
+            return document;
         }
-        return document;
+    }
+
+    private async Task WaitForRateLimit(string sport, int attempt, CancellationToken cancellationToken)
+    {
+        logger.LogWarning("{sport} API rate limited (attempt {attempt}); waiting {seconds}s.", sport, attempt, RateLimitWait.TotalSeconds);
+        await Task.Delay(RateLimitWait, cancellationToken);
     }
 
     [GeneratedRegex(@"\bU\d{2}$")]

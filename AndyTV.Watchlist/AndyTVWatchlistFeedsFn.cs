@@ -7,8 +7,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds checks the ESPN feeds respond from Azure, shows what they parse to and compares college football with API-Sports.
-public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService espn, ApiSportsService apiSports)
+// GET /api/feeds checks the ESPN feeds respond from Azure and shows what they parse to.
+public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService espn)
 {
     private static readonly string[] EspnUrls =
     [
@@ -18,6 +18,7 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService es
         "https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard",
         "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
         "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard",
+        "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard",
     ];
 
     [Function("feeds")]
@@ -38,37 +39,7 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService es
             output.AppendLine($"ESPN parsed {day:yyyy-MM-dd}: {events.Count} events");
             foreach (var e in events)
             {
-                output.AppendLine($"  {e.Sport} | {e.League} | {e.Matchup} | {e.StartTimeIso?.ToString("yyyy-MM-dd h:mm tt zzz") ?? "null (model researches)"}");
-            }
-        }
-
-        // College football side by side: ESPN (candidate replacement) vs API-Sports (current source).
-        foreach (var day in new[] { today, today.AddDays(1), today.AddDays(2) })
-        {
-            var espnGames = await espn.GetCollegeFootball(day, request.FunctionContext.CancellationToken);
-            output.AppendLine();
-            output.AppendLine($"ESPN college football {day:yyyy-MM-dd}: {espnGames.Count} games");
-            foreach (var e in espnGames.OrderBy(e => e.StartTimeIso))
-            {
-                output.AppendLine($"  {e.Matchup} | {e.StartTimeIso?.ToString("h:mm tt") ?? "TBA"} | {e.Network ?? "no TV"}");
-            }
-
-            // API-Sports' free plan only allows yesterday through tomorrow, so report errors instead of failing.
-            try
-            {
-                var apiGames = (await apiSports.GetEventsForDate(day, request.FunctionContext.CancellationToken))
-                    .Where(e => e.Sport == "Football" && e.League != "NFL")
-                    .OrderBy(e => e.StartTimeIso)
-                    .ToList();
-                output.AppendLine($"API-Sports college football {day:yyyy-MM-dd}: {apiGames.Count} games");
-                foreach (var e in apiGames)
-                {
-                    output.AppendLine($"  {e.Matchup} | {e.StartTimeIso?.ToString("h:mm tt") ?? "TBA"}");
-                }
-            }
-            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
-            {
-                output.AppendLine($"API-Sports college football {day:yyyy-MM-dd}: ERROR {ex.Message}");
+                output.AppendLine($"  {e.Sport} | {e.League} | {e.Matchup} | {e.StartTimeIso?.ToString("yyyy-MM-dd h:mm tt zzz") ?? "null (model researches)"}{(e.Network is null ? "" : $" | {e.Network}")}");
             }
         }
 
