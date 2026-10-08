@@ -40,14 +40,17 @@ public sealed class AndyTVWatchlistRunsFn(BlobStore blobStore)
             <html data-bs-theme="dark">
             <head>
               <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
               <title>AndyTV Watchlist Runs</title>
               <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
             </head>
-            <body class="p-3">
-              <table class="table table-sm table-striped">
+            <body class="p-2">
+              <div class="table-responsive">
+              <table class="table table-sm table-striped text-nowrap">
                 <thead><tr><th>Started (ET)</th><th>Kind</th><th>Events</th><th>Duration</th><th>Cost</th><th>Feed</th><th>X</th><th>Instagram</th><th>Log</th><th>Error</th></tr></thead>
                 <tbody>{rows}</tbody>
               </table>
+              </div>
             </body>
             </html>
             """
