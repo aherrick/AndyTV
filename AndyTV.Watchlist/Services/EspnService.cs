@@ -221,7 +221,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 ? [.. broadcasts.EnumerateArray().SelectMany(b => b.GetProperty("names").EnumerateArray()).Select(n => n.GetString())]
                 : [];
             events.Add(
-                new(board.Sport, board.League, home, away, timeValid ? start : null, url)
+                new(board.Sport, board.League, home, away, timeValid ? start : null)
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                     Betting = Odds(competition),
@@ -286,7 +286,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 .Where(card => !IsCanceled(card) && EasternTimeZone.Date(card.GetProperty("date").GetDateTimeOffset()) == date)
                 .Select(card => card.GetProperty("name").GetString())
                 .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Select(name => new SportsEvent("MMA", "UFC", null, null, null, url) { EventName = name }),
+                .Select(name => new SportsEvent("MMA", "UFC", null, null, null) { EventName = name }),
         ];
     }
 
@@ -316,7 +316,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 }
             }
 
-            events.Add(new("Golf", "PGA Tour", null, null, startTime, GolfUrl) { EventName = name });
+            events.Add(new("Golf", "PGA Tour", null, null, startTime) { EventName = name });
         }
         return events;
     }
@@ -325,86 +325,79 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
     private async Task<List<SportsEvent>> LoadTennis(DateOnly date, CancellationToken cancellationToken)
     {
         var feeds = await Task.WhenAll(
-            TennisTours.Select(async tour =>
-            {
-                var url = $"{BaseUrl}tennis/{tour}/scoreboard";
-                return (Url: url, Tournaments: await FetchEvents([url], $"Tennis {tour}", cancellationToken));
-            })
+            TennisTours.Select(tour => FetchEvents([$"{BaseUrl}tennis/{tour}/scoreboard"], $"Tennis {tour}", cancellationToken))
         );
 
         // Slams are combined events, so ATP and WTA can both list the same tournament and matches.
-        Dictionary<string, (string Url, DateTimeOffset? Start)> days = [];
+        Dictionary<string, DateTimeOffset?> days = [];
         List<SportsEvent> matches = [];
-        foreach (var (url, tournaments) in feeds)
+        foreach (var tournament in feeds.SelectMany(tournaments => tournaments))
         {
-            foreach (var tournament in tournaments)
+            var name = tournament.GetProperty("name").GetString();
+            if (
+                string.IsNullOrWhiteSpace(name)
+                || !tournament.TryGetProperty("major", out var major)
+                || !major.GetBoolean()
+            )
             {
-                var name = tournament.GetProperty("name").GetString();
+                continue;
+            }
+
+            var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
+            var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
+            // Overseas sessions can begin the prior ET evening, so widen a day.
+            if (date < start.AddDays(-1) || date > end)
+            {
+                continue;
+            }
+
+            days.TryAdd(name, null);
+            if (!tournament.TryGetProperty("groupings", out var groupings))
+            {
+                continue;
+            }
+
+            foreach (var competition in groupings.EnumerateArray().SelectMany(g => g.GetProperty("competitions").EnumerateArray()))
+            {
+                var type = competition.GetProperty("type");
                 if (
-                    string.IsNullOrWhiteSpace(name)
-                    || !tournament.TryGetProperty("major", out var major)
-                    || !major.GetBoolean()
+                    type.GetProperty("slug").GetString()?.EndsWith("singles", StringComparison.Ordinal) != true
+                    || !competition.TryGetProperty("timeValid", out var timeValid)
+                    || !timeValid.GetBoolean()
                 )
                 {
                     continue;
                 }
 
-                var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
-                var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
-                // Overseas sessions can begin the prior ET evening, so widen a day.
-                if (date < start.AddDays(-1) || date > end)
+                var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                if (EasternTimeZone.Date(time) != date)
                 {
                     continue;
                 }
 
-                days.TryAdd(name, (url, null));
-                if (!tournament.TryGetProperty("groupings", out var groupings))
+                if (days[name] is not { } earliest || time < earliest)
                 {
-                    continue;
+                    days[name] = time;
                 }
 
-                foreach (var competition in groupings.EnumerateArray().SelectMany(g => g.GetProperty("competitions").EnumerateArray()))
+                var round = competition.GetProperty("round").GetProperty("displayName").GetString();
+                string[] players =
+                [
+                    .. competition.GetProperty("competitors").EnumerateArray()
+                        .Select(c => c.GetProperty("athlete").GetProperty("displayName").GetString()),
+                ];
+                if (
+                    TennisLateRounds.Contains(round)
+                    && players.Length == 2
+                    && players.All(p => !string.IsNullOrWhiteSpace(p) && p != "TBD")
+                )
                 {
-                    var type = competition.GetProperty("type");
-                    if (
-                        type.GetProperty("slug").GetString()?.EndsWith("singles", StringComparison.Ordinal) != true
-                        || !competition.TryGetProperty("timeValid", out var timeValid)
-                        || !timeValid.GetBoolean()
-                    )
-                    {
-                        continue;
-                    }
-
-                    var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
-                    if (EasternTimeZone.Date(time) != date)
-                    {
-                        continue;
-                    }
-
-                    if (days[name].Start is not { } earliest || time < earliest)
-                    {
-                        days[name] = (days[name].Url, time);
-                    }
-
-                    var round = competition.GetProperty("round").GetProperty("displayName").GetString();
-                    string[] players =
-                    [
-                        .. competition.GetProperty("competitors").EnumerateArray()
-                            .Select(c => c.GetProperty("athlete").GetProperty("displayName").GetString()),
-                    ];
-                    if (
-                        TennisLateRounds.Contains(round)
-                        && players.Length == 2
-                        && players.All(p => !string.IsNullOrWhiteSpace(p) && p != "TBD")
-                    )
-                    {
-                        matches.Add(
-                            new("Tennis", name, null, null, time, url)
-                            {
-                                EventName = $"{players[0]} vs {players[1]} - {name} {type.GetProperty("text").GetString()} {round}",
-                            }
-                        );
-                    }
+                    matches.Add(
+                        new("Tennis", name, null, null, time)
+                        {
+                            EventName = $"{players[0]} vs {players[1]} - {name} {type.GetProperty("text").GetString()} {round}",
+                        }
+                    );
                 }
             }
         }
@@ -413,7 +406,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
         [
             .. matches.DistinctBy(m => m.EventName),
             .. days.Where(day => !matches.Any(m => m.League == day.Key))
-                .Select(day => new SportsEvent("Tennis", day.Key, null, null, day.Value.Start, day.Value.Url) { EventName = day.Key }),
+                .Select(day => new SportsEvent("Tennis", day.Key, null, null, day.Value) { EventName = day.Key }),
         ];
     }
 
@@ -463,7 +456,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                     "ss" => " - Sprint Qualifying",
                     _ => "",
                 };
-                events.Add(new("Racing", league, null, null, start, url) { EventName = name + suffix });
+                events.Add(new("Racing", league, null, null, start) { EventName = name + suffix });
             }
         }
         return events;

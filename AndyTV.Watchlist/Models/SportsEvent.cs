@@ -7,8 +7,7 @@ public sealed record SportsEvent(
     string League,
     string HomeTeam,
     string AwayTeam,
-    DateTimeOffset? StartTimeIso,
-    string SourceUrl
+    DateTimeOffset? StartTimeIso
 )
 {
     public string EventName { get; init; }

@@ -18,7 +18,6 @@ public static class WatchlistPrompt
                 StartTimeIso = sportsEvent.StartTimeIso?.ToString("o"),
                 sportsEvent.Network,
                 sportsEvent.Betting,
-                sportsEvent.SourceUrl,
             }),
             JsonSerializerOptions.Web
         );
