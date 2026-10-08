@@ -78,16 +78,16 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
     // FBS games; only /api/feeds uses this until it proves out against API-Sports.
     public async Task<List<SportsEvent>> GetCollegeFootball(DateOnly date, CancellationToken cancellationToken = default)
     {
-        // ESPN files late West Coast kickoffs under the prior day, so ask for both and filter by ET date.
-        var url = $"{CollegeFootballUrl}?dates={date.AddDays(-1):yyyyMMdd}-{date:yyyyMMdd}&limit=300";
-        using var document = await Fetch(url, "College Football", cancellationToken);
-        if (document is null)
-        {
-            return [];
-        }
+        // ESPN files late West Coast kickoffs under the prior day, so read both and filter by ET date.
+        // Date ranges return 400 for college football, so each day is its own request.
+        var documents = await Task.WhenAll(
+            new[] { date.AddDays(-1), date }.Select(day =>
+                Fetch($"{CollegeFootballUrl}?dates={day:yyyyMMdd}&limit=300", "College Football", cancellationToken)
+            )
+        );
 
         List<SportsEvent> events = [];
-        foreach (var game in document.RootElement.GetProperty("events").EnumerateArray())
+        foreach (var game in documents.Where(d => d is not null).SelectMany(d => d.RootElement.GetProperty("events").EnumerateArray()))
         {
             if (
                 game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
@@ -135,6 +135,11 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                 }
             );
+        }
+
+        foreach (var document in documents)
+        {
+            document?.Dispose();
         }
         return events;
     }

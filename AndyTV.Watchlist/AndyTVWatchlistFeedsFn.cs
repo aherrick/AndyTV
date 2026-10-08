@@ -53,14 +53,22 @@ public sealed class AndyTVWatchlistFeedsFn(HttpClient httpClient, EspnService es
                 output.AppendLine($"  {e.Matchup} | {e.StartTimeIso?.ToString("h:mm tt") ?? "TBA"} | {e.Network ?? "no TV"}");
             }
 
-            var apiGames = (await apiSports.GetEventsForDate(day, request.FunctionContext.CancellationToken))
-                .Where(e => e.Sport == "Football" && e.League != "NFL")
-                .OrderBy(e => e.StartTimeIso)
-                .ToList();
-            output.AppendLine($"API-Sports college football {day:yyyy-MM-dd}: {apiGames.Count} games");
-            foreach (var e in apiGames)
+            // API-Sports' free plan only allows yesterday through tomorrow, so report errors instead of failing.
+            try
             {
-                output.AppendLine($"  {e.Matchup} | {e.StartTimeIso?.ToString("h:mm tt") ?? "TBA"}");
+                var apiGames = (await apiSports.GetEventsForDate(day, request.FunctionContext.CancellationToken))
+                    .Where(e => e.Sport == "Football" && e.League != "NFL")
+                    .OrderBy(e => e.StartTimeIso)
+                    .ToList();
+                output.AppendLine($"API-Sports college football {day:yyyy-MM-dd}: {apiGames.Count} games");
+                foreach (var e in apiGames)
+                {
+                    output.AppendLine($"  {e.Matchup} | {e.StartTimeIso?.ToString("h:mm tt") ?? "TBA"}");
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+            {
+                output.AppendLine($"API-Sports college football {day:yyyy-MM-dd}: ERROR {ex.Message}");
             }
         }
 
