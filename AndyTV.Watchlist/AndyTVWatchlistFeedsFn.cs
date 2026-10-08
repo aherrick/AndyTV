@@ -39,10 +39,7 @@ public sealed class AndyTVWatchlistFeedsFn(EspnService espn, AppSettings setting
         var output = new StringBuilder($"{date:yyyy-MM-dd}: {events.Count} events\n");
         foreach (var e in events.OrderBy(e => e.StartTimeIso))
         {
-            var time = e.StartTimeIso?.ToString("h:mm tt") ?? "TBD";
-            var network = e.Network is null ? "" : $" | {e.Network}";
-            var odds = string.Join(" · ", SportsFormat.OddsParts(e.Betting));
-            output.AppendLine($"{time} | {e.Sport} | {e.League} | {e.Matchup}{network}{(odds.Length > 0 ? $" | {odds}" : "")}");
+            output.AppendLine(SportsFormat.EventLine(e));
         }
 
         var response = request.CreateResponse(HttpStatusCode.OK);

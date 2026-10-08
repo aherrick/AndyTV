@@ -35,6 +35,31 @@ public static class SportsFormat
 
     public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
 
+    // Feed event as one diagnostic line, e.g. "Thu 2026-10-08 7:30 PM ET | Football | NCAA | South Florida @ UTSA | ESPN | ML +210 / -260".
+    public static string EventLine(SportsEvent e)
+    {
+        List<string> parts =
+        [
+            e.StartTimeIso is { } start
+                ? $"{EasternTimeZone.Convert(start).ToString("ddd yyyy-MM-dd", CultureInfo.InvariantCulture)} {Time(start)}"
+                : "TBD",
+            e.Sport,
+            e.League,
+            e.Matchup,
+        ];
+        if (e.Network is not null)
+        {
+            parts.Add(e.Network);
+        }
+
+        var odds = OddsParts(e.Betting);
+        if (odds.Count > 0)
+        {
+            parts.Add(string.Join(" · ", odds));
+        }
+        return string.Join(" | ", parts);
+    }
+
     // "Friday, October 3" or "Saturday, October 4 – Sunday, October 5".
     public static string Dates(WatchlistKind kind, DateOnly runDate, string format = "dddd, MMMM d") =>
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
