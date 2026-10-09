@@ -17,6 +17,7 @@ public static class WatchlistPrompt
                 sportsEvent.Matchup,
                 StartTimeIso = sportsEvent.StartTimeIso?.ToString("o"),
                 sportsEvent.Network,
+                sportsEvent.Note,
                 sportsEvent.Betting,
             }),
             JsonSerializerOptions.Web

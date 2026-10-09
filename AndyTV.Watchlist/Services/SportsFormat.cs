@@ -47,6 +47,10 @@ public static class SportsFormat
             e.League,
             e.Matchup,
         ];
+        if (e.Note is not null)
+        {
+            parts.Add(e.Note);
+        }
         if (e.Network is not null)
         {
             parts.Add(e.Network);

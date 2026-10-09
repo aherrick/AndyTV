@@ -235,10 +235,29 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                     Betting = Odds(competition),
+                    Note = Note(competition),
                 }
             );
         }
         return events;
+    }
+
+    // ESPN's round headline plus series summary, e.g. "ALDS - Game 5 · Series tied 2-2"; null when neither exists.
+    private static string Note(JsonElement competition)
+    {
+        List<string> parts = [];
+        if (competition.TryGetProperty("notes", out var notes) && notes.ValueKind == JsonValueKind.Array)
+        {
+            parts.AddRange(
+                notes.EnumerateArray().Select(n => n.TryGetProperty("headline", out var headline) ? headline.GetString() : null)
+            );
+        }
+        if (competition.TryGetProperty("series", out var series) && series.TryGetProperty("summary", out var summary))
+        {
+            parts.Add(summary.GetString());
+        }
+        parts.RemoveAll(string.IsNullOrWhiteSpace);
+        return parts.Count > 0 ? string.Join(" · ", parts) : null;
     }
 
     // ESPN's sportsbook lines for the game; null when none are posted.

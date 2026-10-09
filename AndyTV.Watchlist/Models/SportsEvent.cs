@@ -16,5 +16,8 @@ public sealed record SportsEvent(
 
     public Betting Betting { get; init; }
 
+    // Round and series state, e.g. "ALDS - Game 5 · Series tied 2-2".
+    public string Note { get; init; }
+
     public string Matchup => EventName ?? $"{AwayTeam} @ {HomeTeam}";
 }
