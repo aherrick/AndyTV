@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Every sport in the watchlist, from ESPN's public scoreboards (no key).
-public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logger)
+// Every sport in the watchlist, from ESPN's public scoreboards (no key), plus CFL from TheSportsDB.
+public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEventService> logger)
 {
     private const int MaxAttempts = 3;
 
@@ -17,6 +17,9 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
 
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
     private const string GolfUrl = BaseUrl + "golf/pga/scoreboard";
+
+    // ESPN's CFL data stops at 2023, so CFL comes from TheSportsDB's free tier (league 4405).
+    private const string CflUrl = "https://www.thesportsdb.com/api/v1/json/123/eventsday.php?l=4405&d=";
 
     private static readonly string[] TennisTours = ["atp", "wta"];
     private static readonly string[] TennisLateRounds = ["Quarterfinal", "Semifinal", "Final"];
@@ -107,6 +110,7 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
                 LoadGolf(date, cancellationToken),
                 LoadTennis(date, cancellationToken),
                 LoadUfc(date, cancellationToken),
+                LoadCfl(date, cancellationToken),
                 .. Scoreboards.Select(board => LoadScoreboard(board, date, cancellationToken)),
             ]
         );
@@ -301,6 +305,54 @@ public sealed class EspnService(HttpClient httpClient, ILogger<EspnService> logg
             return 100;
         }
         return decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null;
+    }
+
+    // TheSportsDB buckets games by UTC day, so late western kickoffs land on the next day's list.
+    private async Task<List<SportsEvent>> LoadCfl(DateOnly date, CancellationToken cancellationToken)
+    {
+        DateOnly[] days = [date, date.AddDays(1)];
+        var documents = await Task.WhenAll(
+            days.Select(day => Fetch($"{CflUrl}{day:yyyy-MM-dd}", "CFL", cancellationToken))
+        );
+
+        List<SportsEvent> events = [];
+        foreach (var document in documents.Where(d => d is not null))
+        {
+            using (document)
+            {
+                if (document.RootElement.GetProperty("events") is not { ValueKind: JsonValueKind.Array } games)
+                {
+                    continue;
+                }
+
+                foreach (var game in games.EnumerateArray())
+                {
+                    var home = game.GetProperty("strHomeTeam").GetString();
+                    var away = game.GetProperty("strAwayTeam").GetString();
+                    if (
+                        string.IsNullOrWhiteSpace(home)
+                        || string.IsNullOrWhiteSpace(away)
+                        || game.GetProperty("strPostponed").GetString() == "yes"
+                        || !DateTime.TryParse(
+                            game.GetProperty("strTimestamp").GetString(),
+                            CultureInfo.InvariantCulture,
+                            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                            out var utc
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    var start = EasternTimeZone.Convert(new DateTimeOffset(utc, TimeSpan.Zero));
+                    if (EasternTimeZone.Date(start) == date)
+                    {
+                        events.Add(new("Football", "CFL", home, away, start));
+                    }
+                }
+            }
+        }
+        return events;
     }
 
     // One event per UFC card; ESPN's card date is the first bout, so the main-card time is left for the model to research.

@@ -8,9 +8,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AndyTV.Watchlist;
 
-// GET /api/feeds?pin=<FEEDS_PIN>[&date=yyyyMMdd] lists that day's ESPN events (default today ET) as the watchlist
+// GET /api/feeds?pin=<FEEDS_PIN>[&date=yyyyMMdd] lists that day's feed events (default today ET) as the watchlist
 // sees them; failed feeds are logged as warnings. The pin keeps strangers from burning ESPN requests from our IP.
-public sealed class AndyTVWatchlistFeedsFn(EspnService espn, AppSettings settings)
+public sealed class AndyTVWatchlistFeedsFn(SportsEventService sportsEvents, AppSettings settings)
 {
     [Function("feeds")]
     public async Task<HttpResponseData> Run(
@@ -34,7 +34,7 @@ public sealed class AndyTVWatchlistFeedsFn(EspnService espn, AppSettings setting
             return badRequest;
         }
 
-        var events = await espn.GetEventsForDate(date, request.FunctionContext.CancellationToken);
+        var events = await sportsEvents.GetEventsForDate(date, request.FunctionContext.CancellationToken);
 
         var output = new StringBuilder($"{date:yyyy-MM-dd}: {events.Count} events\n");
         foreach (var e in events.OrderBy(e => e.StartTimeIso))

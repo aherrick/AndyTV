@@ -1,6 +1,6 @@
 namespace AndyTV.Watchlist.Models;
 
-// One schedule candidate from the ESPN feeds. Single-name events (racing, golf, tennis, UFC) use EventName
+// One schedule candidate from the sports feeds. Single-name events (racing, golf, tennis, UFC) use EventName
 // with null team fields; a null StartTimeIso means the model researches the time.
 public sealed record SportsEvent(
     string Sport,

@@ -22,7 +22,7 @@ builder.Services.AddSingleton(_ =>
 builder.Logging.AddProvider(new RunLog());
 
 builder.Services.AddSingleton(_ => AppSettings.Load());
-builder.Services.AddSingleton<EspnService>();
+builder.Services.AddSingleton<SportsEventService>();
 builder.Services.AddSingleton<WatchlistResearchService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();

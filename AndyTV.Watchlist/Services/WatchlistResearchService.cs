@@ -9,7 +9,7 @@ namespace AndyTV.Watchlist.Services;
 
 // Loads feed events and has Copilot rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
-    EspnService espn,
+    SportsEventService sportsEvents,
     AppSettings settings,
     ILogger<WatchlistResearchService> logger
 )
@@ -21,7 +21,7 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken
     )
     {
-        var feeds = await Task.WhenAll(days.Select(day => espn.GetEventsForDate(day, cancellationToken)));
+        var feeds = await Task.WhenAll(days.Select(day => sportsEvents.GetEventsForDate(day, cancellationToken)));
         List<SportsEvent> events = [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
         logger.LogInformation("Loaded {count} events for {days}.", events.Count, string.Join(", ", days));
         foreach (var e in events)
