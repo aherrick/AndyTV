@@ -26,16 +26,6 @@ internal sealed class PlayerForm : Form
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
-    private readonly ToolStripMenuItem _recordItem = new("Start Recording");
-    private string _recordingPath;
-
-    private static string RecordingsFolder =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-            "AndyTV",
-            "Recordings"
-        );
-
     private readonly ToolStripMenuItem _addFavoriteItem = new("Add Current to Favorites");
     private List<Playlist> _playlists = [];
 
@@ -103,7 +93,6 @@ internal sealed class PlayerForm : Form
 
         _muteItem.Click += (_, _) => _mediaPlayer.Mute = !_mediaPlayer.Mute;
         _addFavoriteItem.Click += (_, _) => AddCurrentFavorite();
-        _recordItem.Click += (_, _) => ToggleRecording();
 
         _videoView = new VideoView
         {
@@ -124,7 +113,6 @@ internal sealed class PlayerForm : Form
         {
             _menuOpen = true;
             _muteItem.Text = _mediaPlayer.Mute ? "Unmute" : "Mute";
-            UpdateRecordingMenu();
             UpdateCursor();
         };
         _menu.Closing += (_, _) =>
@@ -372,9 +360,6 @@ internal sealed class PlayerForm : Form
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.AddRange(BuildSleepMenus());
         manage.DropDownItems.Add(new ToolStripSeparator());
-        manage.DropDownItems.Add(_recordItem);
-        manage.DropDownItems.Add("Open Recordings Folder", null, (_, _) => OpenRecordingsFolder());
-        manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("New Window", null, (_, _) => NewWindow());
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Exit", null, (_, _) => Close());
@@ -508,7 +493,6 @@ internal sealed class PlayerForm : Form
         else if (_config.SleepAction == SleepAction.StopPlayback)
         {
             // Clearing _current also keeps the health check from restarting the stream.
-            StopRecording();
             _current = null;
             _pending = null;
             UpdateCursor();
@@ -789,12 +773,6 @@ internal sealed class PlayerForm : Form
 
     private void Play(Channel channel)
     {
-        StopRecording();
-        StartPlayback(channel);
-    }
-
-    private void StartPlayback(Channel channel, string recordingPath = null)
-    {
         _current = channel;
         _pending = channel;
         _healthMonitor.Reset();
@@ -802,83 +780,14 @@ internal sealed class PlayerForm : Form
         var bufferMilliseconds = _config.NetworkBufferMilliseconds;
         RunPlayback(() =>
         {
-            _mediaPlayer.Stop(); // Also flushes and closes any recording file.
+            _mediaPlayer.Stop();
             using var media = new Media(_libVLC, new Uri(channel.Url));
             if (bufferMilliseconds is >= 0 and <= 60000)
             {
                 media.AddOption($":network-caching={bufferMilliseconds.Value}");
             }
-            if (recordingPath is not null)
-            {
-                // Forward slashes avoid VLC treating Windows path separators as escapes.
-                var destination = recordingPath.Replace('\\', '/').Replace("'", "\\'");
-                media.AddOption(
-                    $":sout=#duplicate{{dst=display,dst=std{{access=file,mux=ts,dst='{destination}'}}}}"
-                );
-                media.AddOption(":no-sout-keep");
-            }
             _mediaPlayer.Play(media);
         });
-    }
-
-    private void UpdateRecordingMenu()
-    {
-        _recordItem.Text = _recordingPath is null ? "Start Recording" : "Stop Recording";
-        _recordItem.Checked = _recordingPath is not null;
-    }
-
-    private void ToggleRecording()
-    {
-        if (_recordingPath is not null)
-        {
-            Play(_current);
-            return;
-        }
-        if (_current is null || _pending is not null || !_mediaPlayer.IsPlaying)
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(RecordingsFolder);
-        var name = string.Join('_', _current.DisplayName.Split(Path.GetInvalidFileNameChars()));
-        _recordingPath = Path.Combine(
-            RecordingsFolder,
-            $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{name}.ts"
-        );
-        StartPlayback(_current, _recordingPath);
-        UpdateRecordingMenu();
-    }
-
-    // State only; the file is flushed by the Stop() in the queued playback call.
-    private void StopRecording()
-    {
-        if (_recordingPath is not { } path)
-        {
-            return;
-        }
-        _recordingPath = null;
-        UpdateRecordingMenu();
-        Logger.Info($"[RECORDING] Closed {path}");
-    }
-
-    private void OpenRecordingsFolder()
-    {
-        try
-        {
-            Directory.CreateDirectory(RecordingsFolder);
-            OpenUrl(RecordingsFolder);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Could not open recordings folder");
-            MessageBox.Show(
-                this,
-                ex.Message,
-                "Recordings",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error
-            );
-        }
     }
 
     private void OnPlaying(object sender, EventArgs e)
@@ -936,7 +845,6 @@ internal sealed class PlayerForm : Form
             _healthTimer.Tick -= OnHealthTick;
             _healthTimer.Dispose();
             _sleepTimer.Dispose();
-            StopRecording();
             _mediaPlayer.Playing -= OnPlaying;
             _libVLC.Log -= OnLibVlcLog;
 
