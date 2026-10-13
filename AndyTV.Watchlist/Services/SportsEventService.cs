@@ -55,6 +55,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         new("soccer/concacaf.gold", "Soccer", "Concacaf Gold Cup"),
         new("soccer/uefa.nations", "Soccer", "UEFA Nations League"),
         new("soccer/fifa.friendly", "Soccer", "International Friendlies"),
+        new("soccer/fifa.friendly.w", "Soccer", "Women's International Friendlies"),
         new("soccer/uefa.champions", "Soccer", "UEFA Champions League"),
         new("soccer/uefa.europa", "Soccer", "UEFA Europa League"),
         new("soccer/uefa.europa.conf", "Soccer", "UEFA Conference League"),

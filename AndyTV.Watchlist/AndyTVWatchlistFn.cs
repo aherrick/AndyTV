@@ -16,6 +16,9 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
     private const bool ForceWeekend = false;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
 
+    // Timer invocations never overlap, so a plain static is enough.
+    private static bool _forcedRunDone;
+
     // One daily run: publish Daily, and on Fridays research Weekend at the same time.
     // The service deletes the weekend feed first on Sundays.
     [Function(nameof(AndyTVWatchlistFn))]
@@ -26,11 +29,13 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
     {
         var easternNow = EasternTimeZone.Now;
 
-        // 06:30 UTC is 2:30 AM EDT; 07:30 UTC is 2:30 AM EST. Skip the other firing.
-        if (!RunOnStartup && easternNow.Hour != 2)
+        // Forced runs happen once at startup; ignore later scheduled or catch-up firings.
+        // Otherwise 06:30 UTC is 2:30 AM EDT and 07:30 UTC is 2:30 AM EST; skip the other.
+        if (RunOnStartup ? _forcedRunDone : easternNow.Hour != 2)
         {
             return;
         }
+        _forcedRunDone = true;
 
         var targetDate = EasternTimeZone.Date(easternNow);
         List<Task> runs = [];
