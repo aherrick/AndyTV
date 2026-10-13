@@ -268,7 +268,13 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     // ESPN's sportsbook lines for the game; null when none are posted.
     private static Betting Odds(JsonElement competition)
     {
-        if (!competition.TryGetProperty("odds", out var all) || all.GetArrayLength() == 0)
+        // Smaller boards (e.g. women's friendlies) send "odds": [null] when no lines are posted.
+        if (
+            !competition.TryGetProperty("odds", out var all)
+            || all.ValueKind != JsonValueKind.Array
+            || all.GetArrayLength() == 0
+            || all[0].ValueKind != JsonValueKind.Object
+        )
         {
             return null;
         }
@@ -291,8 +297,11 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     {
         if (
             !odds.TryGetProperty(market, out var outcomes)
+            || outcomes.ValueKind != JsonValueKind.Object
             || !outcomes.TryGetProperty(side, out var outcome)
+            || outcome.ValueKind != JsonValueKind.Object
             || !outcome.TryGetProperty("close", out var close)
+            || close.ValueKind != JsonValueKind.Object
             || !close.TryGetProperty(field, out var value)
             || value.ValueKind != JsonValueKind.String
         )
