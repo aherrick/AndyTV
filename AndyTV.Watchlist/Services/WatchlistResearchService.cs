@@ -41,6 +41,24 @@ public sealed class WatchlistResearchService(
     {
         logger.LogInformation("{kind} supplied {events} events, {odds} with odds.", kind, events.Count, events.Count(e => e.Betting is not null));
         var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events);
+        try
+        {
+            return await ResearchOnce(kind, prompt, cancellationToken);
+        }
+        // Copilot occasionally fails a session server-side; a fresh session usually succeeds.
+        catch (InvalidOperationException ex)
+        {
+            logger.LogWarning("{kind} research failed, retrying once: {error}", kind, ex.Message);
+            return await ResearchOnce(kind, prompt, cancellationToken);
+        }
+    }
+
+    private async Task<(DailyWatchlist Watchlist, double Cost)> ResearchOnce(
+        WatchlistKind kind,
+        string prompt,
+        CancellationToken cancellationToken
+    )
+    {
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
