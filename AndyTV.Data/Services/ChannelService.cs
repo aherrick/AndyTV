@@ -389,6 +389,7 @@ public partial class ChannelService
                         "ESPN2",
                         "ESPNews",
                         "ESPNU",
+                        "ESPN U",
                         "ESPN 2",
                         "ESPN News",
                     ],
@@ -406,7 +407,7 @@ public partial class ChannelService
                     AltNames = ["ESPNews"],
                     StreamingTVId = "ESPNEWS",
                 },
-                new ChannelTop { Name = "ESPNU", StreamingTVId = "ESPNU" },
+                new ChannelTop { Name = "ESPNU", AltNames = ["ESPN U"], StreamingTVId = "ESPNU" },
                 new ChannelTop
                 {
                     Name = "Fox Sports 1",
@@ -438,9 +439,11 @@ public partial class ChannelService
                 },
                 new ChannelTop { Name = "Bally Sports" },
                 new ChannelTop { Name = "beIN Sports", AltNames = ["beIN Sports USA"] },
+                new ChannelTop { Name = "Chicago Sports Network", AltNames = ["CHSN"] },
                 new ChannelTop { Name = "Marquee Sports Network", AltNames = ["Marquee"] },
                 new ChannelTop { Name = "MSG", AltNames = ["Madison Square Garden"] },
                 new ChannelTop { Name = "NESN", AltNames = ["New England Sports Network"] },
+                new ChannelTop { Name = "SportsNet Pittsburgh", AltNames = ["AT&T SportsNet Pittsburgh"] },
                 new ChannelTop { Name = "Tennis Channel" },
                 new ChannelTop { Name = "YES Network" },
             ],
@@ -735,6 +738,7 @@ public partial class ChannelService
         static string CleanBaseName(string name)
         {
             name = TagsRegex().Replace(name, ""); // remove [VIP], [HD], etc.
+            name = StartsWith247Regex().Replace(name, ""); // also drops a leading channel number
             name = TwoFourSevenRegex().Replace(name, "");
             name = SeasonShortRegex().Replace(name, ""); // strip "S01"
             name = SeasonLongRegex().Replace(name, ""); // strip "Season 1"
@@ -815,7 +819,7 @@ public partial class ChannelService
     private static partial Regex MatchTwoParens();
 
     [GeneratedRegex(@"24\s*/\s*7", RegexOptions.IgnoreCase)]
-    private static partial Regex TwoFourSevenRegex();
+    internal static partial Regex TwoFourSevenRegex();
 
     [GeneratedRegex(@"\[[^\]]+\]")]
     private static partial Regex TagsRegex();
@@ -829,6 +833,6 @@ public partial class ChannelService
     [GeneratedRegex(@"\s+")]
     private static partial Regex NormalizeSpaceRegex();
 
-    [GeneratedRegex(@"^\s*24\s*/\s*7\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\s*(?:\d+\s+)?24\s*/\s*7\b", RegexOptions.IgnoreCase)]
     private static partial Regex StartsWith247Regex();
 }

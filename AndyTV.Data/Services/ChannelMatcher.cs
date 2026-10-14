@@ -90,9 +90,14 @@ public static partial class ChannelMatcher
         ];
     }
 
-    // Event prefix ("NHL 01:") first, then the longest curated channel match, then the first word.
+    // "24/7" anywhere, then event prefix ("NHL 01:"), then the longest curated channel match, then the first word.
     private static string SmartKey(string name, List<ChannelTop> curated)
     {
+        if (ChannelService.TwoFourSevenRegex().IsMatch(name))
+        {
+            return "24/7";
+        }
+
         var rest = CountryPrefixRegex().Replace(name, string.Empty);
 
         var ev = EventRegex().Match(rest);
@@ -115,7 +120,8 @@ public static partial class ChannelMatcher
         return word.Success ? word.Value : "Other";
     }
 
-    [GeneratedRegex(@"^\s*(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
+    // Optional leading channel number ("04 NHL 05:"), then country tags.
+    [GeneratedRegex(@"^\s*(?:\d+\s+)?(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
     private static partial Regex CountryPrefixRegex();
 
     // "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -": up to two words, a number, then a separator.
