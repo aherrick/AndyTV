@@ -72,9 +72,11 @@ internal sealed class PlayerForm : Form
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         BackColor = Color.Black;
 
-        // Decode mode is fixed at LibVLC creation, so a toggle requires an app restart.
+        // Decode mode and video output are fixed at LibVLC creation, so changing either requires an app restart.
         _libVLC = new LibVLC(
-            _config.DisableHardwareAcceleration ? "--avcodec-hw=none" : "--avcodec-hw=any"
+            _config.DisableHardwareAcceleration ? "--avcodec-hw=none" : "--avcodec-hw=any",
+            // ",any" falls back to automatic when the chosen output isn't available.
+            _config.VideoOutput is { } vout ? $"--vout={vout},any" : "--vout=any"
         );
 
         // Native VLC breadcrumbs (decoder/network errors) that often precede a hard crash.
@@ -375,36 +377,16 @@ internal sealed class PlayerForm : Form
     private ToolStripMenuItem BuildAdvancedMenu()
     {
         var advanced = new ToolStripMenuItem("Advanced");
-        var acceleration = new ToolStripMenuItem("Hardware Acceleration");
-        foreach (var (label, disabled) in new[] { ("Auto", false), ("Disabled", true) })
-        {
-            var item = new ToolStripMenuItem(label)
-            {
-                Checked = _config.DisableHardwareAcceleration == disabled,
-            };
-            item.Click += (_, _) =>
-            {
-                if (_config.DisableHardwareAcceleration == disabled)
-                {
-                    return;
-                }
-                if (MessageBox.Show(
-                    this,
-                    "AndyTV will restart to apply hardware acceleration. Continue?",
-                    "Hardware Acceleration",
-                    MessageBoxButtons.OKCancel,
-                    MessageBoxIcon.Question
-                ) != DialogResult.OK)
-                {
-                    return;
-                }
-                _config.DisableHardwareAcceleration = disabled;
-                _configService.Save(_config);
-                Application.Restart();
-            };
-            acceleration.DropDownItems.Add(item);
-        }
-        advanced.DropDownItems.Add(acceleration);
+        advanced.DropDownItems.Add(RestartOptionMenu(
+            "Hardware Acceleration",
+            [("Auto", false), ("Disabled", true)],
+            _config.DisableHardwareAcceleration,
+            v => _config.DisableHardwareAcceleration = v));
+        advanced.DropDownItems.Add(RestartOptionMenu(
+            "Video Output",
+            [("Auto", null), ("Direct3D11", "direct3d11"), ("OpenGL", "glwin32")],
+            _config.VideoOutput,
+            v => _config.VideoOutput = v));
 
         var buffer = new ToolStripMenuItem("Network Buffer");
         (string Label, int? Milliseconds)[] presets =
@@ -433,6 +415,41 @@ internal sealed class PlayerForm : Form
         buffer.DropDownItems.Add(new ToolStripMenuItem("Applies on next channel change") { Enabled = false });
         advanced.DropDownItems.Add(buffer);
         return advanced;
+    }
+
+    // Radio options baked into LibVLC at startup, so picking a new one saves and restarts.
+    private ToolStripMenuItem RestartOptionMenu<TValue>(
+        string title,
+        (string Label, TValue Value)[] options,
+        TValue current,
+        Action<TValue> apply)
+    {
+        var menu = new ToolStripMenuItem(title);
+        foreach (var (label, value) in options)
+        {
+            var item = new ToolStripMenuItem(label)
+            {
+                Checked = EqualityComparer<TValue>.Default.Equals(current, value),
+            };
+            item.Click += (_, _) =>
+            {
+                if (item.Checked || MessageBox.Show(
+                    this,
+                    $"AndyTV will restart to apply {title}. Continue?",
+                    title,
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Question
+                ) != DialogResult.OK)
+                {
+                    return;
+                }
+                apply(value);
+                _configService.Save(_config);
+                Application.Restart();
+            };
+            menu.DropDownItems.Add(item);
+        }
+        return menu;
     }
 
     // Sleep length is per session (starts Off); what happens when it fires is saved.
@@ -563,7 +580,7 @@ internal sealed class PlayerForm : Form
         )
         {
             var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
-            item.DropDownItems.AddRange([.. ChannelMatcher.BuildPlaylistNodes(playlist, channels).Select(Render)]);
+            item.DropDownItems.AddRange([.. ChannelMatcher.BuildPlaylistNodes(playlist, channels).Select(RenderItem)]);
             items.Add(item);
         }
 
@@ -634,10 +651,13 @@ internal sealed class PlayerForm : Form
         var item = new ToolStripMenuItem(node.Text);
         if (node.Children is { Count: > 0 } children)
         {
-            item.DropDownItems.AddRange([.. children.Select(Render)]);
+            item.DropDownItems.AddRange([.. children.Select(RenderItem)]);
         }
         return item;
     }
+
+    private ToolStripItem RenderItem(MenuNode node) =>
+        node.IsSeparator ? new ToolStripSeparator() : Render(node);
 
     private ToolStripMenuItem ChannelItem(string text, Channel channel)
     {

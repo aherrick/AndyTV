@@ -43,7 +43,7 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
         {
             HeaderText = "Smart Group",
             DataPropertyName = nameof(Playlist.SmartGroup),
-            ToolTipText = "Group feeds of the same channel together using the curated US/UK/Global lists (e.g. all Fox News feeds). Events like \"NHL 01:\" group by league; anything else by its first word.",
+            ToolTipText = "Group feeds of the same channel together using the curated US/UK/Global lists (e.g. all Fox News feeds). Events like \"NHL 01:\" group by league; anything else by its first word. Single-channel groups go under Other.",
         });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {

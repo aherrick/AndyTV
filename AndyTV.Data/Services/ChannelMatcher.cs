@@ -75,19 +75,41 @@ public static partial class ChannelMatcher
                 .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value)),
         ];
 
-        return
+        var groups = channels
+            .GroupBy(ch => SmartKey(ch.DisplayName ?? string.Empty, curated), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        List<MenuNode> nodes =
         [
-            .. channels
-                .Select(ch => (Channel: ch, Key: SmartKey(ch.DisplayName ?? string.Empty, curated)))
-                .GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+            .. groups
+                .Where(g => g.Key is not null && g.Count() > 1)
                 .OrderByDescending(g => g.Count())
                 .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(g => new MenuNode
                 {
                     Text = $"{g.Key} ({g.Count()})",
-                    Children = [.. g.Select(x => Leaf(x.Channel, x.Channel.DisplayName))],
+                    Children = [.. g.Select(ch => Leaf(ch, ch.DisplayName))],
                 }),
         ];
+
+        // Singles and unmatched channels, shown by raw name.
+        List<MenuNode> other =
+        [
+            .. groups
+                .Where(g => g.Key is null || g.Count() == 1)
+                .SelectMany(g => g)
+                .Select(ch => Leaf(ch, ch.RawName ?? ch.DisplayName))
+                .OrderBy(n => n.Text, StringComparer.OrdinalIgnoreCase),
+        ];
+        if (other.Count > 0)
+        {
+            if (nodes.Count > 0)
+            {
+                nodes.Add(new MenuNode { IsSeparator = true });
+            }
+            nodes.Add(new MenuNode { Text = $"Other ({other.Count})", Children = other });
+        }
+        return nodes;
     }
 
     // "24/7" anywhere, then event prefix ("NHL 01:"), then the longest curated channel match, then the first word.
@@ -117,7 +139,7 @@ public static partial class ChannelMatcher
         }
 
         var word = FirstWordRegex().Match(rest);
-        return word.Success ? word.Value : "Other";
+        return word.Success ? word.Value : null;
     }
 
     // Optional leading channel number ("04 NHL 05:"), then country tags.

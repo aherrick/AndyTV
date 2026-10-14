@@ -35,14 +35,18 @@ internal abstract class GridManagerForm<T> : Form
         };
     }
 
-    // Subclass adds its columns, then calls this with its own action buttons (after Move Up/Down).
+    // Subclass adds its columns, then calls this with its own action buttons (before Import/Export and Move Up/Down).
     protected void Compose(params Control[] actions)
     {
         Control[] all =
         [
+            .. actions,
+            Separator(),
+            ActionButton("Import", (_, _) => Import()),
+            ActionButton("Export", (_, _) => Export()),
+            Separator(),
             ActionButton("Move Up", (_, _) => MoveSelected(-1)),
             ActionButton("Move Down", (_, _) => MoveSelected(1)),
-            .. actions,
         ];
 
         var close = new Button
@@ -70,6 +74,71 @@ internal abstract class GridManagerForm<T> : Form
         };
         button.Click += onClick;
         return button;
+    }
+
+    // Vertical rule; Top|Bottom anchoring stretches it to the button row height.
+    private static Label Separator() =>
+        new()
+        {
+            AutoSize = false,
+            Width = 2,
+            BorderStyle = BorderStyle.Fixed3D,
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom,
+            Margin = new Padding(8, 2, 8, 2),
+        };
+
+    private string FileName => $"{Text.Replace("Manage ", "AndyTV ")}.json";
+
+    private void Export()
+    {
+        Grid.EndEdit();
+        using var dialog = new SaveFileDialog { Filter = "JSON|*.json", FileName = FileName };
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            File.WriteAllText(
+                dialog.FileName,
+                JsonSerializer.Serialize(Source, new JsonSerializerOptions { WriteIndented = true })
+            );
+        }
+    }
+
+    // Replaces the list; saved on close like any other edit.
+    private void Import()
+    {
+        using var dialog = new OpenFileDialog { Filter = "JSON|*.json", FileName = FileName };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        List<T> items;
+        try
+        {
+            items = JsonSerializer.Deserialize<List<T>>(File.ReadAllText(dialog.FileName)) ?? [];
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            MessageBox.Show(this, $"Couldn't import: {ex.Message}", "Import", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        if (MessageBox.Show(
+                this,
+                $"Replace {Source.Count} item(s) with {items.Count} from the file?",
+                "Import",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Question
+            ) != DialogResult.OK)
+        {
+            return;
+        }
+
+        Grid.EndEdit();
+        Source.Clear();
+        foreach (var item in items)
+        {
+            Source.Add(item);
+        }
     }
 
     // Action buttons on the left, Close on the right; auto-height so nothing clips.

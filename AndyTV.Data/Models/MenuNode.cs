@@ -8,4 +8,6 @@ public sealed class MenuNode
     public Channel Channel { get; set; }
 
     public List<MenuNode> Children { get; set; }
+
+    public bool IsSeparator { get; set; }
 }
