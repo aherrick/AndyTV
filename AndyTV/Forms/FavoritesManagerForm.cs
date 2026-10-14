@@ -27,8 +27,6 @@ sealed class FavoritesManagerForm : GridManagerForm<Channel>
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
 
-        var up = ActionButton("Move Up", (_, _) => MoveSelected(-1));
-        var down = ActionButton("Move Down", (_, _) => MoveSelected(1));
         var delete = ActionButton(
             "Remove",
             (_, _) =>
@@ -41,6 +39,6 @@ sealed class FavoritesManagerForm : GridManagerForm<Channel>
             }
         );
 
-        Compose(up, down, delete);
+        Compose(delete);
     }
 }

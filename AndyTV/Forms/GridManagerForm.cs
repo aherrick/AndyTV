@@ -35,9 +35,16 @@ internal abstract class GridManagerForm<T> : Form
         };
     }
 
-    // Subclass adds its columns, then calls this with its left-side action buttons.
+    // Subclass adds its columns, then calls this with its own action buttons (after Move Up/Down).
     protected void Compose(params Control[] actions)
     {
+        Control[] all =
+        [
+            ActionButton("Move Up", (_, _) => MoveSelected(-1)),
+            ActionButton("Move Down", (_, _) => MoveSelected(1)),
+            .. actions,
+        ];
+
         var close = new Button
         {
             Text = "Close",
@@ -48,7 +55,7 @@ internal abstract class GridManagerForm<T> : Form
         CancelButton = close;
 
         Controls.Add(Grid);
-        Controls.Add(BottomBar(close, actions));
+        Controls.Add(BottomBar(close, all));
     }
 
     // Text action button used by the manager dialogs.
@@ -106,7 +113,7 @@ internal abstract class GridManagerForm<T> : Form
         base.OnFormClosing(e);
     }
 
-    protected void MoveSelected(int delta)
+    private void MoveSelected(int delta)
     {
         Grid.EndEdit();
         var i = Grid.CurrentRow?.Index ?? -1;
