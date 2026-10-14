@@ -7,6 +7,8 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
     public PlaylistManagerForm(List<Playlist> playlists)
         : base("Manage Playlists", playlists)
     {
+        Size = new Size(1200, 640);
+
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name",

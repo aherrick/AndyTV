@@ -89,16 +89,15 @@ internal abstract class GridManagerForm<T> : Form
 
     private string FileName => $"{Text.Replace("Manage ", "AndyTV ")}.json";
 
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
     private void Export()
     {
         Grid.EndEdit();
         using var dialog = new SaveFileDialog { Filter = "JSON|*.json", FileName = FileName };
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
-            File.WriteAllText(
-                dialog.FileName,
-                JsonSerializer.Serialize(Source, new JsonSerializerOptions { WriteIndented = true })
-            );
+            File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(Source, Indented));
         }
     }
 
