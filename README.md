@@ -54,7 +54,7 @@ C:\Users\Andy\Playlists\tv.m3u
 
 - **ShowInMenu** – whether this playlist's full channel list appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
-- **GroupRegex** – optional regex run on each raw channel title; the playlist's menu then lists matches grouped by the `(?<key>...)` capture (or group 1, or the whole match), largest groups first.
+- **SmartGroup** – group the playlist's channels so every feed of the same channel sits together: event titles (`NHL 01:`, `LIVE EVENT 02 -`) by their prefix, otherwise the longest match in the curated US/UK/Global lists, otherwise the first word. Largest groups first; overrides GroupByFirstChar.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 
 ## 🤝 Contributing

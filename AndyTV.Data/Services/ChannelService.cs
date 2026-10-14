@@ -325,7 +325,12 @@ public partial class ChannelService
                     StreamingTVId = "FNCHD",
                 },
                 new ChannelTop { Name = "HLN", AltNames = ["Headline News"] },
-                new ChannelTop { Name = "MSNBC", StreamingTVId = "MSNBC" },
+                new ChannelTop
+                {
+                    Name = "MSNBC",
+                    AltNames = ["MS NOW", "MSNOW"],
+                    StreamingTVId = "MSNBC",
+                },
                 new ChannelTop { Name = "NBC News" },
                 new ChannelTop { Name = "NewsNation" },
                 new ChannelTop { Name = "Newsmax", StreamingTVId = "NEWSMXH" },

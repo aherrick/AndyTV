@@ -4,7 +4,7 @@ using AndyTV.Data.Models;
 namespace AndyTV.Data.Services;
 
 // Pure matching/grouping so every app builds identical channel menus from a plain node tree.
-public static class ChannelMatcher
+public static partial class ChannelMatcher
 {
     // Substring match on DisplayName across all Terms, honoring ExcludeTerms; ordered by name.
     public static List<Channel> MatchTop(ChannelTop entry, IReadOnlyList<Channel> channels)
@@ -64,55 +64,66 @@ public static class ChannelMatcher
     }
 
     public static List<MenuNode> BuildPlaylistNodes(Playlist playlist, IReadOnlyList<Channel> channels) =>
-        BuildRegexGroups(playlist.GroupRegex, channels) ?? BuildChannelNodes(playlist, channels);
+        playlist.SmartGroup ? BuildSmartGroups(channels) : BuildChannelNodes(playlist, channels);
 
-    // Key comes from a (?<key>...) group, else group 1, else the whole match; largest groups first.
-    private static List<MenuNode> BuildRegexGroups(string pattern, IReadOnlyList<Channel> channels)
+    private static List<MenuNode> BuildSmartGroups(IReadOnlyList<Channel> channels)
     {
-        if (string.IsNullOrWhiteSpace(pattern))
-        {
-            return null;
-        }
+        // 24/7 entries are show titles, not channels.
+        List<ChannelTop> curated =
+        [
+            .. new[] { ChannelService.TopUs(), ChannelService.TopUk(), ChannelService.TopGlobal() }
+                .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value)),
+        ];
 
-        Regex regex;
-        try
-        {
-            regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-
-        List<MenuNode> groups =
+        return
         [
             .. channels
-                .Select(ch => (Channel: ch, Key: GroupKey(regex.Match(ch.RawName ?? string.Empty))))
-                .Where(x => x.Key.Length > 0)
-                .GroupBy(x => x.Key)
+                .Select(ch => (Channel: ch, Key: SmartKey(ch.DisplayName ?? string.Empty, curated)))
+                .GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Count())
-                .ThenBy(g => g.Key, StringComparer.Ordinal)
+                .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(g => new MenuNode
                 {
                     Text = $"{g.Key} ({g.Count()})",
                     Children = [.. g.Select(x => Leaf(x.Channel, x.Channel.DisplayName))],
                 }),
         ];
-        return groups.Count > 0 ? groups : null;
     }
 
-    private static string GroupKey(Match match)
+    // Event prefix ("NHL 01:") first, then the longest curated channel match, then the first word.
+    private static string SmartKey(string name, List<ChannelTop> curated)
     {
-        if (!match.Success)
+        var rest = CountryPrefixRegex().Replace(name, string.Empty);
+
+        var ev = EventRegex().Match(rest);
+        if (ev.Success)
         {
-            return string.Empty;
+            return ev.Groups["key"].Value;
         }
-        var key = match.Groups["key"];
-        Group group = key.Success ? key
-            : match.Groups.Count > 1 && match.Groups[1].Success ? match.Groups[1]
-            : match;
-        return group.Value.Trim().ToUpperInvariant();
+
+        var best = curated
+            .SelectMany(e => e.Terms, (Entry, Term) => (Entry, Term))
+            .Where(x => ContainsToken(name, x.Term) && !ContainsAny(name, x.Entry.ExcludeTerms ?? []))
+            .OrderByDescending(x => x.Term.Length)
+            .FirstOrDefault();
+        if (best.Entry is not null)
+        {
+            return best.Entry.Name;
+        }
+
+        var word = FirstWordRegex().Match(rest);
+        return word.Success ? word.Value : "Other";
     }
+
+    [GeneratedRegex(@"^\s*(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
+    private static partial Regex CountryPrefixRegex();
+
+    // "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -": up to two words, a number, then a separator.
+    [GeneratedRegex(@"^(?<key>[A-Za-z]+(?: [A-Za-z]+)?)\s*(?:\|\s*)?\d+\s*[:|\-]")]
+    private static partial Regex EventRegex();
+
+    [GeneratedRegex(@"^[A-Za-z]+(?:&[A-Za-z]+)?")]
+    private static partial Regex FirstWordRegex();
 
     private static List<MenuNode> BuildChannelNodes(Playlist playlist, IReadOnlyList<Channel> channels)
     {
@@ -231,24 +242,29 @@ public static class ChannelMatcher
     {
         foreach (var term in terms)
         {
-            if (string.IsNullOrEmpty(term))
+            if (!string.IsNullOrEmpty(term) && ContainsToken(name, term))
             {
-                continue;
+                return true;
             }
-            var index = 0;
-            while ((index = name.IndexOf(term, index, StringComparison.OrdinalIgnoreCase)) >= 0)
+        }
+        return false;
+    }
+
+    private static bool ContainsToken(string name, string term)
+    {
+        var index = 0;
+        while ((index = name.IndexOf(term, index, StringComparison.OrdinalIgnoreCase)) >= 0)
+        {
+            var before = index - 1;
+            var after = index + term.Length;
+            if (
+                (before < 0 || !char.IsLetter(name[before]))
+                && (after >= name.Length || !char.IsLetter(name[after]))
+            )
             {
-                var before = index - 1;
-                var after = index + term.Length;
-                if (
-                    (before < 0 || !char.IsLetter(name[before]))
-                    && (after >= name.Length || !char.IsLetter(name[after]))
-                )
-                {
-                    return true;
-                }
-                index = after;
+                return true;
             }
+            index = after;
         }
         return false;
     }

@@ -37,14 +37,13 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
         {
             HeaderText = "Group A\u2013Z",
             DataPropertyName = nameof(Playlist.GroupByFirstChar),
-            ToolTipText = "Group channels under A, B, C… by first letter. Ignored when Group Regex is set.",
+            ToolTipText = "Group channels under A, B, C… by first letter. Ignored when Smart Group is ticked.",
         });
-        Grid.Columns.Add(new DataGridViewTextBoxColumn
+        Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
-            HeaderText = "Group Regex",
-            DataPropertyName = nameof(Playlist.GroupRegex),
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
-            ToolTipText = "Regex run on each channel title. Groups by the (?<key>…) capture, else group 1, else the whole match. Unmatched channels are hidden.",
+            HeaderText = "Smart Group",
+            DataPropertyName = nameof(Playlist.SmartGroup),
+            ToolTipText = "Group feeds of the same channel together using the curated US/UK/Global lists (e.g. all Fox News feeds). Events like \"NHL 01:\" group by league; anything else by its first word.",
         });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
