@@ -2,10 +2,10 @@ using AndyTV.Data.Models;
 
 namespace AndyTV;
 
-sealed class FavoritesManagerForm : GridManagerForm<Channel>
+internal sealed class FavoritesManagerForm : GridManagerForm<Channel>
 {
     public FavoritesManagerForm(List<Channel> favorites)
-        : base("Manage Favorites", favorites)
+        : base("Favorites", favorites, c => c.DisplayName)
     {
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -27,18 +27,6 @@ sealed class FavoritesManagerForm : GridManagerForm<Channel>
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
         });
 
-        var delete = ActionButton(
-            "Remove",
-            (_, _) =>
-            {
-                var i = SelectedIndex();
-                if (i >= 0)
-                {
-                    Source.RemoveAt(i);
-                }
-            }
-        );
-
-        Compose(delete);
+        Compose();
     }
 }

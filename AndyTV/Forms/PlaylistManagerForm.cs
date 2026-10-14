@@ -2,10 +2,10 @@ using AndyTV.Data.Models;
 
 namespace AndyTV;
 
-sealed class PlaylistManagerForm : GridManagerForm<Playlist>
+internal sealed class PlaylistManagerForm : GridManagerForm<Playlist>
 {
     public PlaylistManagerForm(List<Playlist> playlists)
-        : base("Manage Playlists", playlists)
+        : base("Playlists", playlists, p => p.Name)
     {
         Size = new Size(1200, 640);
 
@@ -74,30 +74,8 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
                 }
             }
         );
-        var delete = ActionButton(
-            "Delete",
-            (_, _) =>
-            {
-                var i = SelectedIndex();
-                if (i < 0)
-                {
-                    return;
-                }
-                var confirm = MessageBox.Show(
-                    this,
-                    $"Delete \"{Source[i].Name}\"?",
-                    "Confirm Delete",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning
-                );
-                if (confirm == DialogResult.Yes)
-                {
-                    Source.RemoveAt(i);
-                }
-            }
-        );
 
-        Compose(add, delete);
+        Compose(add);
     }
 
     // Never keep a playlist without a URL / path.

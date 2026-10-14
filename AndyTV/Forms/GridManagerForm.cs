@@ -13,10 +13,15 @@ internal abstract class GridManagerForm<T> : Form
     public bool Changed { get; private set; }
 
     private readonly string _baseline;
+    private readonly string _fileName;
+    private readonly Func<T, string> _describe;
 
-    protected GridManagerForm(string title, List<T> items)
+    // noun names the list ("Favorites"); describe labels an item in the delete prompt.
+    protected GridManagerForm(string noun, List<T> items, Func<T, string> describe)
     {
-        Text = title;
+        Text = $"Manage {noun}";
+        _fileName = $"AndyTV {noun}.json";
+        _describe = describe;
         Size = new Size(820, 560);
         StartPosition = FormStartPosition.CenterParent;
 
@@ -35,12 +40,13 @@ internal abstract class GridManagerForm<T> : Form
         };
     }
 
-    // Subclass adds its columns, then calls this with its own action buttons (before Import/Export and Move Up/Down).
+    // Subclass adds its columns, then calls this with its own action buttons (before Delete, Import/Export and Move Up/Down).
     protected void Compose(params Control[] actions)
     {
         Control[] all =
         [
             .. actions,
+            ActionButton("Delete", (_, _) => DeleteSelected()),
             Separator(),
             ActionButton("Import", (_, _) => Import()),
             ActionButton("Export", (_, _) => Export()),
@@ -87,14 +93,12 @@ internal abstract class GridManagerForm<T> : Form
             Margin = new Padding(8, 2, 8, 2),
         };
 
-    private string FileName => $"{Text.Replace("Manage ", "AndyTV ")}.json";
-
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     private void Export()
     {
         Grid.EndEdit();
-        using var dialog = new SaveFileDialog { Filter = "JSON|*.json", FileName = FileName };
+        using var dialog = new SaveFileDialog { Filter = "JSON|*.json", FileName = _fileName };
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
             File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(Source, Indented));
@@ -104,7 +108,7 @@ internal abstract class GridManagerForm<T> : Form
     // Replaces the list; saved on close like any other edit.
     private void Import()
     {
-        using var dialog = new OpenFileDialog { Filter = "JSON|*.json", FileName = FileName };
+        using var dialog = new OpenFileDialog { Filter = "JSON|*.json", FileName = _fileName };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -181,10 +185,29 @@ internal abstract class GridManagerForm<T> : Form
         base.OnFormClosing(e);
     }
 
+    private void DeleteSelected()
+    {
+        var i = SelectedIndex();
+        if (i < 0)
+        {
+            return;
+        }
+        var confirm = MessageBox.Show(
+            this,
+            $"Delete \"{_describe(Source[i])}\"?",
+            "Confirm Delete",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning
+        );
+        if (confirm == DialogResult.Yes)
+        {
+            Source.RemoveAt(i);
+        }
+    }
+
     private void MoveSelected(int delta)
     {
-        Grid.EndEdit();
-        var i = Grid.CurrentRow?.Index ?? -1;
+        var i = SelectedIndex();
         var j = i + delta;
         if (i < 0 || j < 0 || j >= Source.Count)
         {
@@ -194,7 +217,7 @@ internal abstract class GridManagerForm<T> : Form
         Grid.CurrentCell = Grid.Rows[j].Cells[0];
     }
 
-    protected int SelectedIndex()
+    private int SelectedIndex()
     {
         Grid.EndEdit();
         return Grid.CurrentRow?.Index ?? -1;
