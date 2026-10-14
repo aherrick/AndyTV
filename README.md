@@ -54,6 +54,7 @@ C:\Users\Andy\Playlists\tv.m3u
 
 - **ShowInMenu** – whether this playlist's full channel list appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
+- **GroupRegex** – optional regex run on each raw channel title; the playlist's menu then lists matches grouped by the `(?<key>...)` capture (or group 1, or the whole match), largest groups first.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 
 ## 🤝 Contributing

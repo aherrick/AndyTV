@@ -9,6 +9,7 @@ public class Playlist
     // existing playlists are unaffected; untick for TV-show/movie playlists).
     public bool ShowInUsUk { get; set; } = true;
     public bool GroupByFirstChar { get; set; }
+    public string GroupRegex { get; set; }
     public string NameFind { get; set; }
     public string NameReplace { get; set; }
 }

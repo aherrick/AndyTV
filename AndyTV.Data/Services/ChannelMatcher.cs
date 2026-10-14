@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
@@ -62,7 +63,58 @@ public static class ChannelMatcher
         return regionNode;
     }
 
-    public static List<MenuNode> BuildPlaylistNodes(Playlist playlist, IReadOnlyList<Channel> channels)
+    public static List<MenuNode> BuildPlaylistNodes(Playlist playlist, IReadOnlyList<Channel> channels) =>
+        BuildRegexGroups(playlist.GroupRegex, channels) ?? BuildChannelNodes(playlist, channels);
+
+    // Key comes from a (?<key>...) group, else group 1, else the whole match; largest groups first.
+    private static List<MenuNode> BuildRegexGroups(string pattern, IReadOnlyList<Channel> channels)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+        {
+            return null;
+        }
+
+        Regex regex;
+        try
+        {
+            regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        List<MenuNode> groups =
+        [
+            .. channels
+                .Select(ch => (Channel: ch, Key: GroupKey(regex.Match(ch.RawName ?? string.Empty))))
+                .Where(x => x.Key.Length > 0)
+                .GroupBy(x => x.Key)
+                .OrderByDescending(g => g.Count())
+                .ThenBy(g => g.Key, StringComparer.Ordinal)
+                .Select(g => new MenuNode
+                {
+                    Text = $"{g.Key} ({g.Count()})",
+                    Children = [.. g.Select(x => Leaf(x.Channel, x.Channel.DisplayName))],
+                }),
+        ];
+        return groups.Count > 0 ? groups : null;
+    }
+
+    private static string GroupKey(Match match)
+    {
+        if (!match.Success)
+        {
+            return string.Empty;
+        }
+        var key = match.Groups["key"];
+        Group group = key.Success ? key
+            : match.Groups.Count > 1 && match.Groups[1].Success ? match.Groups[1]
+            : match;
+        return group.Value.Trim().ToUpperInvariant();
+    }
+
+    private static List<MenuNode> BuildChannelNodes(Playlist playlist, IReadOnlyList<Channel> channels)
     {
         if (!playlist.GroupByFirstChar)
         {

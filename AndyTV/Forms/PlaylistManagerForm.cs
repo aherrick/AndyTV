@@ -12,39 +12,53 @@ sealed class PlaylistManagerForm : GridManagerForm<Playlist>
             HeaderText = "Name",
             DataPropertyName = nameof(Playlist.Name),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            ToolTipText = "Label shown for this playlist in the channel menu.",
         });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "URL / Path",
             DataPropertyName = nameof(Playlist.Url),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            ToolTipText = "M3U playlist URL or local file path.",
         });
         Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             HeaderText = "Show in Menu",
             DataPropertyName = nameof(Playlist.ShowInMenu),
+            ToolTipText = "List this playlist as its own entry in the channel menu.",
         });
         Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             HeaderText = "Show in US/UK",
             DataPropertyName = nameof(Playlist.ShowInUsUk),
+            ToolTipText = "Include this playlist's channels in the curated US/UK menus.",
         });
         Grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             HeaderText = "Group A\u2013Z",
             DataPropertyName = nameof(Playlist.GroupByFirstChar),
+            ToolTipText = "Group channels under A, B, C… by first letter. Ignored when Group Regex is set.",
+        });
+        Grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Group Regex",
+            DataPropertyName = nameof(Playlist.GroupRegex),
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            ToolTipText = "Regex run on each channel title. Groups by the (?<key>…) capture, else group 1, else the whole match. Unmatched channels are hidden.",
         });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name Find",
             DataPropertyName = nameof(Playlist.NameFind),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            ToolTipText = "Regex to find in each channel title (used with Name Replace).",
         });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name Replace",
             DataPropertyName = nameof(Playlist.NameReplace),
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            ToolTipText = "Replacement for Name Find matches; supports $1, ${name}.",
         });
 
         var add = ActionButton(
