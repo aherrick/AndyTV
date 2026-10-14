@@ -49,13 +49,27 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
     public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
         List<Playlist> playlists
-    ) => [.. await Task.WhenAll(playlists.Select(async p => (p, await LoadChannels(p))))];
+    )
+    {
+        // Playlists sharing a URL (different configs) download it once.
+        var downloads = playlists
+            .Select(p => p.Url)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(url => url, LoadPlaylistTextAsync, StringComparer.OrdinalIgnoreCase);
 
-    private static async Task<List<Channel>> LoadChannels(Playlist playlist)
+        return
+        [
+            .. await Task.WhenAll(
+                playlists.Select(async p => (p, await LoadChannels(p, downloads[p.Url])))
+            ),
+        ];
+    }
+
+    private static async Task<List<Channel>> LoadChannels(Playlist playlist, Task<string> download)
     {
         try
         {
-            var m3uText = await LoadPlaylistTextAsync(playlist.Url);
+            var m3uText = await download;
             if (string.IsNullOrWhiteSpace(m3uText))
             {
                 return [];
@@ -114,14 +128,15 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         }
     }
 
-    private static Task<string> LoadPlaylistTextAsync(string source)
+    // Async so failures surface when awaited inside LoadChannels' try/catch.
+    private static async Task<string> LoadPlaylistTextAsync(string source)
     {
         if (UrlHelper.IsValidUrl(source))
-            return _httpClient.GetStringAsync(source);
+            return await _httpClient.GetStringAsync(source);
 
         if (File.Exists(source))
-            return File.ReadAllTextAsync(source);
+            return await File.ReadAllTextAsync(source);
 
-        return Task.FromResult(string.Empty);
+        return string.Empty;
     }
 }
