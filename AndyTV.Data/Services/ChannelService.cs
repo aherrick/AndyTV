@@ -213,7 +213,7 @@ public partial class ChannelService
                     Name = "Ion Mystery",
                     AltNames = ["ION Mystery", "Ion Plus Mystery"],
                 },
-                new ChannelTop { Name = "MeTV" },
+                new ChannelTop { Name = "MeTV", AltNames = ["Me TV"] },
                 new ChannelTop { Name = "MyNetworkTV", AltNames = ["MyNetwork TV", "MyTV"] },
                 new ChannelTop { Name = "NBC" },
                 new ChannelTop { Name = "PBS" },
@@ -661,6 +661,7 @@ public partial class ChannelService
                 new ChannelTop { Name = "Sportsnet Pacific" },
                 new ChannelTop { Name = "Sportsnet ONE", AltNames = ["Sportsnet One", "SN ONE"] },
                 new ChannelTop { Name = "Sportsnet 360", AltNames = ["SN 360"] },
+                new ChannelTop { Name = "Sportsnet 4K", AltNames = ["SN 4K"] },
             ],
 
             ["New Zealand"] =
