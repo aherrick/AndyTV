@@ -5,6 +5,7 @@
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 const WEEKEND_DATA_URL = DATA_URL.replace("latest.json", "latest_weekend.json");
+const ALL_DATA_URL = DATA_URL.replace("latest.json", "latest_all.json");
 const TIME_ZONE = "America/New_York";
 
 function easternParts(now, options) {
@@ -48,6 +49,7 @@ function andyTv() {
       plan: { summary: "", steps: [] },
     },
     weekendModel: null,
+    allEvents: [],
     get tabs() {
       return ["top", "timeline", "plan", ...(this.weekendModel ? ["weekend"] : [])];
     },
@@ -103,6 +105,11 @@ function andyTv() {
       } catch {
         // The weekend file is optional; leave its tab hidden if unavailable.
       }
+    },
+
+    async openAll() {
+      this.allEvents = await fetchJson(ALL_DATA_URL);
+      this.$refs.all.showModal();
     },
 
     // Resume refresh is only for the existing daily watchlist.

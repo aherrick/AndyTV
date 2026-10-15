@@ -19,6 +19,23 @@ public static class WatchlistSiteBuilder
         );
     }
 
+    // By start time, then sport; events without a time go last as TBD.
+    public static List<ScheduleEvent> Schedule(List<SportsEvent> events) =>
+        [
+            .. events
+                .OrderBy(e => e.StartTimeIso ?? DateTimeOffset.MaxValue)
+                .ThenBy(e => e.Sport)
+                .ThenBy(e => e.League)
+                .Select(e => new ScheduleEvent(
+                    e.StartTimeIso is { } start ? SportsFormat.TimeNoZone(start) : "TBD",
+                    e.StartTimeIso is { } iso ? Iso(iso) : "",
+                    SportsFormat.Icon(e.Sport),
+                    e.League,
+                    e.Matchup,
+                    e.Network?.Trim() ?? ""
+                )),
+        ];
+
     private static List<TopPick> TopPicks(List<WatchlistGame> games) =>
         SportsFormat.TopPicks(games).ConvertAll(pick => new TopPick(
                 pick.Icon,

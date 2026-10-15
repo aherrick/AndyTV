@@ -606,6 +606,55 @@ body {
   font-size: 0.78rem;
 }
 
+.all-link {
+  margin-bottom: 12px;
+}
+
+/* ========================================================
+   ALL GAMES OVERLAY
+   ======================================================== */
+
+.all-events {
+  width: min(var(--wrap), calc(100% - 24px));
+  max-height: 85vh;
+  margin: auto;
+  padding: 0;
+
+  color: var(--text);
+  background: var(--bg);
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.all-events::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.all-events-body {
+  padding: 16px;
+}
+
+.all-events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.all-events-head .summary-title {
+  margin: 0;
+}
+
+.all-events-head button {
+  color: var(--muted);
+  background: none;
+  border: 0;
+
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
 /* ========================================================
    RESPONSIVE
    ======================================================== */
