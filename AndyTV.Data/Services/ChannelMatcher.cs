@@ -69,10 +69,11 @@ public static partial class ChannelMatcher
     private static List<MenuNode> BuildSmartGroups(IReadOnlyList<Channel> channels)
     {
         // 24/7 entries are show titles, not channels.
-        List<ChannelTop> curated =
+        List<(ChannelTop Entry, string Term)> curated =
         [
             .. new[] { ChannelService.TopUs(), ChannelService.TopUk(), ChannelService.TopGlobal() }
-                .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value)),
+                .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value))
+                .SelectMany(e => e.Terms, (e, term) => (e, term)),
         ];
 
         var groups = channels
@@ -112,8 +113,8 @@ public static partial class ChannelMatcher
         return nodes;
     }
 
-    // "24/7" anywhere, then event prefix ("NHL 01:"), then the longest curated channel match, then the first word.
-    private static string SmartKey(string name, List<ChannelTop> curated)
+    // "24/7" anywhere, then an event tag, then the longest curated match (by family), then the first word.
+    private static string SmartKey(string name, List<(ChannelTop Entry, string Term)> curated)
     {
         if (ChannelService.TwoFourSevenRegex().IsMatch(name))
         {
@@ -123,66 +124,31 @@ public static partial class ChannelMatcher
         var rest = CountryPrefixRegex().Replace(name, string.Empty);
 
         var ev = EventRegex().Match(rest);
-        if (!ev.Success)
-        {
-            ev = EventSuffixRegex().Match(rest);
-        }
         if (ev.Success)
         {
             return ev.Groups["key"].Value;
         }
 
         var best = curated
-            .SelectMany(e => e.Terms, (Entry, Term) => (Entry, Term))
             .Where(x => ContainsToken(name, x.Term) && !ContainsAny(name, x.Entry.ExcludeTerms ?? []))
             .OrderByDescending(x => x.Term.Length)
             .FirstOrDefault();
         if (best.Entry is not null)
         {
-            return FamilyOf(best.Entry.Name);
+            return best.Entry.Family ?? best.Entry.Name;
         }
 
         var word = FirstWordRegex().Match(rest);
         return word.Success ? word.Value : null;
     }
 
-    // Curated entries starting with one of these share a single SmartGroup ("TSN1", "TSN 4" -> "TSN").
-    private static readonly string[] Families =
-    [
-        "Epix",
-        "Eurosport",
-        "HBO",
-        "Showtime",
-        "Sky Cinema",
-        "Sky Sport",
-        "Sky Sports",
-        "Sportsnet",
-        "Starz",
-        "SuperSport",
-        "The Movie Channel",
-        "TNT Sports",
-        "TSN",
-    ];
-
-    // Ordinal so US "SportsNet Pittsburgh" stays out of Canada's "Sportsnet".
-    private static string FamilyOf(string name) =>
-        Array.Find(
-            Families,
-            f => name.StartsWith(f, StringComparison.Ordinal)
-                && (name.Length == f.Length || !char.IsLetter(name[f.Length])))
-        ?? name;
-
     // Optional leading channel number ("04 NHL 05:"), then country tags.
     [GeneratedRegex(@"^\s*(?:\d+\s+)?(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
     private static partial Regex CountryPrefixRegex();
 
-    // "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -": up to two words, a number, then a separator.
-    [GeneratedRegex(@"^(?<key>[A-Za-z]+(?: [A-Za-z]+)?)\s*(?:\|\s*)?\d+\s*[:|\-]")]
+    // Leading "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -", or trailing "... 8:00 PM :NBA 06".
+    [GeneratedRegex(@"^(?<key>[A-Za-z]+(?: [A-Za-z]+)?)\s*(?:\|\s*)?\d+\s*[:|\-]|\s:\s*(?<key>[A-Z]{2,})\s*\d+\s*$")]
     private static partial Regex EventRegex();
-
-    // "... @ Oct 14 8:00 PM :NBA 06": uppercase league after a spaced colon, then a number at the end.
-    [GeneratedRegex(@"\s:\s*(?<key>[A-Z]{2,})\s*\d+\s*$")]
-    private static partial Regex EventSuffixRegex();
 
     [GeneratedRegex(@"^[A-Za-z]+(?:&[A-Za-z]+)?")]
     private static partial Regex FirstWordRegex();

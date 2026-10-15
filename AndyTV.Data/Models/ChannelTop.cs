@@ -7,6 +7,9 @@ public class ChannelTop
     public List<string> ExcludeTerms { get; set; }
     public string StreamingTVId { get; set; }
 
+    // A ChannelFamily constant; null groups by Name.
+    public string Family { get; set; }
+
     public IEnumerable<string> Terms
     {
         get
