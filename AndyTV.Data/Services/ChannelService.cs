@@ -448,6 +448,8 @@ public partial class ChannelService
                 new ChannelTop { Name = "Chicago Sports Network", AltNames = ["CHSN"] },
                 new ChannelTop { Name = "Marquee Sports Network", AltNames = ["Marquee"] },
                 new ChannelTop { Name = "MSG", AltNames = ["Madison Square Garden"] },
+                new ChannelTop { Name = "Monumental Sports Network" },
+                new ChannelTop { Name = "NBC Sports" },
                 new ChannelTop { Name = "NESN", AltNames = ["New England Sports Network"] },
                 new ChannelTop { Name = "SportsNet Pittsburgh", AltNames = ["AT&T SportsNet Pittsburgh"] },
                 new ChannelTop { Name = "Tennis Channel" },

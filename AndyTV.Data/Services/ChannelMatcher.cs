@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using AndyTV.Data.Models;
 
@@ -6,6 +7,11 @@ namespace AndyTV.Data.Services;
 // Pure matching/grouping so every app builds identical channel menus from a plain node tree.
 public static partial class ChannelMatcher
 {
+    // "13 ..." before "100 ...".
+    private static readonly StringComparer NumericOrder = StringComparer.Create(
+        CultureInfo.InvariantCulture,
+        CompareOptions.NumericOrdering | CompareOptions.IgnoreCase);
+
     // Substring match on DisplayName across all Terms, honoring ExcludeTerms; ordered by name.
     public static List<Channel> MatchTop(ChannelTop entry, IReadOnlyList<Channel> channels)
     {
@@ -100,7 +106,7 @@ public static partial class ChannelMatcher
                 .Where(g => g.Key is null || g.Count() == 1)
                 .SelectMany(g => g)
                 .Select(ch => Leaf(ch, ch.RawName ?? ch.DisplayName))
-                .OrderBy(n => n.Text, StringComparer.OrdinalIgnoreCase),
+                .OrderBy(n => n.Text, NumericOrder),
         ];
         if (other.Count > 0)
         {
