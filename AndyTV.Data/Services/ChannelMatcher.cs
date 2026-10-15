@@ -123,6 +123,10 @@ public static partial class ChannelMatcher
         var rest = CountryPrefixRegex().Replace(name, string.Empty);
 
         var ev = EventRegex().Match(rest);
+        if (!ev.Success)
+        {
+            ev = EventSuffixRegex().Match(rest);
+        }
         if (ev.Success)
         {
             return ev.Groups["key"].Value;
@@ -149,6 +153,10 @@ public static partial class ChannelMatcher
     // "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -": up to two words, a number, then a separator.
     [GeneratedRegex(@"^(?<key>[A-Za-z]+(?: [A-Za-z]+)?)\s*(?:\|\s*)?\d+\s*[:|\-]")]
     private static partial Regex EventRegex();
+
+    // "... @ Oct 14 8:00 PM :NBA 06": uppercase league after a spaced colon, then a number at the end.
+    [GeneratedRegex(@"\s:\s*(?<key>[A-Z]{2,})\s*\d+\s*$")]
+    private static partial Regex EventSuffixRegex();
 
     [GeneratedRegex(@"^[A-Za-z]+(?:&[A-Za-z]+)?")]
     private static partial Regex FirstWordRegex();
