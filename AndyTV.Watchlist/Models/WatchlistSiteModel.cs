@@ -40,4 +40,4 @@ public sealed record PlanStep(
 public sealed record PlanAlt(string Icon, string Matchup);
 
 // Every feed event for the day, serialized to latest_all.json for the Timeline tab's All view.
-public sealed record ScheduleEvent(string Time, string TimeIso, string Icon, string Sport, string League, string Matchup, string Network);
+public sealed record ScheduleEvent(string Time, string TimeIso, string Icon, string Sport, string League, string Matchup, string Network, int? Rank);

@@ -19,8 +19,12 @@ public static class WatchlistSiteBuilder
         );
     }
 
-    // By start time, then sport; events without a time go last as TBD.
-    public static List<ScheduleEvent> Schedule(List<SportsEvent> events) =>
+    // By start time, then sport; events without a time go last as TBD. Ranked games keep their feed
+    // matchup, so an exact match tags them; a renamed one just shows no rank.
+    public static List<ScheduleEvent> Schedule(List<SportsEvent> events, DailyWatchlist watchlist)
+    {
+        var ranks = watchlist.BestWatches.DistinctBy(g => g.Matchup).ToDictionary(g => g.Matchup, g => g.Rank);
+        return
         [
             .. events
                 .OrderBy(e => e.StartTimeIso ?? DateTimeOffset.MaxValue)
@@ -33,9 +37,11 @@ public static class WatchlistSiteBuilder
                     e.Sport,
                     e.League,
                     e.Matchup,
-                    e.Network?.Trim() ?? ""
+                    e.Network?.Trim() ?? "",
+                    ranks.TryGetValue(e.Matchup, out var rank) ? rank : null
                 )),
         ];
+    }
 
     private static List<TopPick> TopPicks(List<WatchlistGame> games) =>
         SportsFormat.TopPicks(games).ConvertAll(pick => new TopPick(
