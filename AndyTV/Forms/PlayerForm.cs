@@ -556,15 +556,18 @@ internal sealed class PlayerForm : Form
 
     private void SwapChannelItems(List<ToolStripItem> items)
     {
-        foreach (var item in _channelItems)
+        using (_menu.SuspendPainting())
         {
-            _menu.Items.Remove(item);
-        }
-        _channelItems.Clear();
-        foreach (var item in items)
-        {
-            _menu.Items.Add(item);
-            _channelItems.Add(item);
+            foreach (var item in _channelItems)
+            {
+                _menu.Items.Remove(item);
+            }
+            _channelItems.Clear();
+            foreach (var item in items)
+            {
+                _menu.Items.Add(item);
+                _channelItems.Add(item);
+            }
         }
     }
 
