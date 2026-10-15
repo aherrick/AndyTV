@@ -23,8 +23,9 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
         with:
           dotnet-version: |
-            10.0.x
+            11.0.x
             9.0.x
+          dotnet-quality: preview
 
       - name: Publish (self-contained win-x64)
         shell: powershell

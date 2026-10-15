@@ -28,7 +28,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
+          dotnet-quality: preview
 
       - name: Install MAUI
         run: dotnet workload install maui
@@ -51,7 +52,7 @@ jobs:
       - name: Build iOS IPA (Ad Hoc)
         run: |
           dotnet publish ${{ env.CSPROJ_PATH }} \
-            -f net10.0-ios \
+            -f net11.0-ios \
             -c Release \
             -r ios-arm64 \
             -p:ApplicationVersion=${{ env.VERSION }} \

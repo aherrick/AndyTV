@@ -17,7 +17,8 @@ jobs:
         with:
           dotnet-version: |
             9.0.x
-            10.0.x
+            11.0.x
+          dotnet-quality: preview
 
       - name: Install Roslynator CLI
         run: dotnet tool install roslynator.dotnet.cli --version 0.11.0 --tool-path tools
