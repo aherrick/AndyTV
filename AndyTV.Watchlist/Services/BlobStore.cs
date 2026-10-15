@@ -82,7 +82,7 @@ public sealed class BlobStore(AppSettings settings)
     public Task<Uri> PublishData(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
         Upload(kind.FeedFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
 
-    // The full daily schedule, fetched by the site only when the "All games" overlay opens.
+    // The full daily schedule, fetched by the site only when Timeline switches to All.
     public Task<Uri> PublishSchedule(string json, CancellationToken cancellationToken = default) =>
         Upload("latest_all.json", BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
 

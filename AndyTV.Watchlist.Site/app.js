@@ -64,16 +64,20 @@ function andyTv() {
     // Sports in the current list, most games first, for the filter chips.
     get sports() {
       const counts = new Map();
-      for (const game of this.displayedModel.top.games) {
+      for (const game of this.filterGames) {
         const entry = counts.get(game.sport) ?? { name: game.sport, icon: game.icon, count: 0 };
         entry.count++;
         counts.set(game.sport, entry);
       }
       return [...counts.values()].sort((a, b) => b.count - a.count);
     },
+    get filterGames() {
+      return this.activeTab === "timeline" && this.timelineView === "all" ? this.allEvents : this.displayedModel.top.games;
+    },
     sport: "",
     activeTab: "top",
     weekendView: "top",
+    timelineView: "top",
     a2hs: null,
     loadedDay: "",
 
@@ -91,6 +95,7 @@ function andyTv() {
       try {
         this.model = await fetchJson(DATA_URL);
         this.loadedDay = day;
+        if (this.timelineView === "all") this.showAll();
       } catch {
         this.model.date = "Could not load the watchlist.";
       }
@@ -107,9 +112,11 @@ function andyTv() {
       }
     },
 
-    async openAll() {
+    // The full schedule is only fetched when Timeline switches to All.
+    async showAll() {
+      this.timelineView = "all";
+      this.sport = "";
       this.allEvents = await fetchJson(ALL_DATA_URL);
-      this.$refs.all.showModal();
     },
 
     // Resume refresh is only for the existing daily watchlist.
@@ -153,8 +160,9 @@ function andyTv() {
       }
     },
 
-    // Timeline is the Top games re-sorted by start time (kept out of the JSON to avoid duplication).
+    // Top is the ranked games re-sorted by start time; All is the full schedule, already in time order.
     get timelineGames() {
+      if (this.timelineView === "all") return this.bySport(this.allEvents);
       return byTime(this.bySport(this.model.top.games));
     },
 

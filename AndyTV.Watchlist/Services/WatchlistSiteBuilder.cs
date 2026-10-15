@@ -30,6 +30,7 @@ public static class WatchlistSiteBuilder
                     e.StartTimeIso is { } start ? SportsFormat.TimeNoZone(start) : "TBD",
                     e.StartTimeIso is { } iso ? Iso(iso) : "",
                     SportsFormat.Icon(e.Sport),
+                    e.Sport,
                     e.League,
                     e.Matchup,
                     e.Network?.Trim() ?? ""

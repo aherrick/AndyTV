@@ -139,7 +139,7 @@
 
         <div class="sport-filter" x-show="activeTab !== 'plan' && sports.length > 1" x-cloak @wheel="scrollFilter($event)">
             <button type="button" :class="{ active: !sport }" @click="sport = ''">
-                All <span class="count" x-text="displayedModel.top.games.length"></span>
+                All <span class="count" x-text="filterGames.length"></span>
             </button>
             <template x-for="s in sports" :key="s.name">
                 <button type="button" :class="{ active: sport === s.name }" @click="sport = s.name">
@@ -209,8 +209,13 @@
 
         <!-- TIMELINE -->
         <section class="panel" :class="{ active: activeTab === 'timeline' }">
+            <div class="subtabs">
+                <button type="button" :class="{ active: timelineView === 'top' }" @click="timelineView = 'top'; sport = ''">Top</button>
+                <button type="button" :class="{ active: timelineView === 'all' }" @click="showAll()">All</button>
+            </div>
+
             <ul class="rows">
-                <template x-for="row in timelineGames" :key="row.rank">
+                <template x-for="(row, i) in timelineGames" :key="i">
                     <li>
                         <div class="row-time">
                             <time :datetime="row.timeIso" x-text="row.time"></time>
@@ -218,11 +223,11 @@
                         <div>
                             <div class="row-game" x-text="row.matchup"></div>
                             <div class="row-meta">
-                                <span x-text="'#' + row.rank + ' overall'"></span>
+                                <span x-text="row.rank ? '#' + row.rank + ' overall · ' : ''"></span>
                                 <template x-if="row.network">
-                                    <span> · <span class="net" x-text="row.network"></span></span>
+                                    <span><span class="net" x-text="row.network"></span> · </span>
                                 </template>
-                                <span x-text="' · ' + row.icon + ' ' + row.league"></span>
+                                <span x-text="row.icon + ' ' + row.league"></span>
                             </div>
                         </div>
                     </li>
@@ -269,10 +274,6 @@
 
     <footer class="site-footer">
 
-        <p class="all-link">
-            <a href="#" @click.prevent="openAll()">All Sports Today</a>
-        </p>
-
         <p>
             Made with ❤️ by
 
@@ -285,34 +286,6 @@
 
         <p class="updated" x-text="displayedModel.updated"></p>
     </footer>
-
-    <!-- Clicking the backdrop lands on the dialog itself, so .self closes it. -->
-    <dialog class="all-events" x-ref="all" @click.self="$el.close()">
-        <div class="all-events-body">
-            <div class="all-events-head">
-                <h3 class="summary-title">All Sports Today</h3>
-                <button type="button" aria-label="Close" @click="$refs.all.close()">✕</button>
-            </div>
-            <ul class="rows">
-                <template x-for="(e, i) in allEvents" :key="i">
-                    <li>
-                        <div class="row-time">
-                            <time :datetime="e.timeIso" x-text="e.time"></time>
-                        </div>
-                        <div>
-                            <div class="row-game" x-text="e.matchup"></div>
-                            <div class="row-meta">
-                                <span x-text="e.icon + ' ' + e.league"></span>
-                                <template x-if="e.network">
-                                    <span> · <span class="net" x-text="e.network"></span></span>
-                                </template>
-                            </div>
-                        </div>
-                    </li>
-                </template>
-            </ul>
-        </div>
-    </dialog>
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.js"></script>
