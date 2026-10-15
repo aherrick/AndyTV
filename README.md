@@ -54,7 +54,7 @@ C:\Users\Andy\Playlists\tv.m3u
 
 - **ShowInMenu** – whether this playlist's full channel list appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
-- **SmartGroup** – group the playlist's channels so every feed of the same channel sits together: event titles (`NHL 01:`, `LIVE EVENT 02 -`, or a trailing `:NBA 06`) by their league tag, otherwise the longest match in the curated US/UK/Global lists, otherwise the first word. Largest groups first; overrides GroupByFirstChar.
+- **SmartGroup** – group the playlist's channels so every feed of the same channel sits together: event titles (`NHL 01:`, `LIVE EVENT 02 -`, or a trailing `:NBA 06`) by their league tag, otherwise the longest match in the curated US/UK/Global lists (network families like TSN, Sportsnet, Sky Sports, HBO, Starz share one group), otherwise the first word. Largest groups first; overrides GroupByFirstChar.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 
 ## 🤝 Contributing

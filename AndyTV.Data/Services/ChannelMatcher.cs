@@ -87,7 +87,7 @@ public static partial class ChannelMatcher
                 .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(g => new MenuNode
                 {
-                    Text = $"{g.Key} ({g.Count()})",
+                    Text = g.Key,
                     Children = [.. g.Select(ch => Leaf(ch, ch.DisplayName))],
                 }),
         ];
@@ -107,7 +107,7 @@ public static partial class ChannelMatcher
             {
                 nodes.Add(new MenuNode { IsSeparator = true });
             }
-            nodes.Add(new MenuNode { Text = $"Other ({other.Count})", Children = other });
+            nodes.Add(new MenuNode { Text = "Other", Children = other });
         }
         return nodes;
     }
@@ -139,12 +139,38 @@ public static partial class ChannelMatcher
             .FirstOrDefault();
         if (best.Entry is not null)
         {
-            return best.Entry.Name;
+            return FamilyOf(best.Entry.Name);
         }
 
         var word = FirstWordRegex().Match(rest);
         return word.Success ? word.Value : null;
     }
+
+    // Curated entries starting with one of these share a single SmartGroup ("TSN1", "TSN 4" -> "TSN").
+    private static readonly string[] Families =
+    [
+        "Epix",
+        "Eurosport",
+        "HBO",
+        "Showtime",
+        "Sky Cinema",
+        "Sky Sport",
+        "Sky Sports",
+        "Sportsnet",
+        "Starz",
+        "SuperSport",
+        "The Movie Channel",
+        "TNT Sports",
+        "TSN",
+    ];
+
+    // Ordinal so US "SportsNet Pittsburgh" stays out of Canada's "Sportsnet".
+    private static string FamilyOf(string name) =>
+        Array.Find(
+            Families,
+            f => name.StartsWith(f, StringComparison.Ordinal)
+                && (name.Length == f.Length || !char.IsLetter(name[f.Length])))
+        ?? name;
 
     // Optional leading channel number ("04 NHL 05:"), then country tags.
     [GeneratedRegex(@"^\s*(?:\d+\s+)?(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
