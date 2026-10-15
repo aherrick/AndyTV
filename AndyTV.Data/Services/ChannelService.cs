@@ -693,6 +693,7 @@ public partial class ChannelService
                 new ChannelTop { Name = "Three", AltNames = ["Three NZ"] },
                 new ChannelTop { Name = "Sky Open" },
                 new ChannelTop { Name = "Sky Sport Select", Family = ChannelFamily.SkySportNz },
+                new ChannelTop { Name = "Sky Sports NZ", Family = ChannelFamily.SkySportNz },
                 new ChannelTop { Name = "Sky Sport 1", Family = ChannelFamily.SkySportNz },
                 new ChannelTop { Name = "Sky Sport 2", Family = ChannelFamily.SkySportNz },
                 new ChannelTop { Name = "Sky Sport 3", Family = ChannelFamily.SkySportNz },

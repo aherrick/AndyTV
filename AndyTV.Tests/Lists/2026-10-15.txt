@@ -1,0 +1,111 @@
+﻿24/7 = 8
+Sky Sport NZ = 4   # includes "FHD SKY SPORTS NZ 1"
+PT = 0             # country code is not a group
+FOX = 5            # local affiliates
+ABC = 4
+ESPN = 4
+ESPN 2 = 2
+Cinemax = 2        # Cinemax + Cinemax Action
+Sportsnet = 3
+Oxygen = 2         # Oxygen True Crime + Oxygen
+---
+01 (NZ) SKY Sport 1 (D)
+02 US: FOX News
+03 US: ESPN
+04 (NZ) SKY Sport 1 (UHD/4K) (D)
+05 US MSNBC (A)
+06 US FOX News Channel (H)
+07 US: CNN
+08 FHD SKY SPORTS NZ 1
+09 US NBC 10 (WIS) Columbia (H)
+10 US: MS Now
+11 US abc 7 (WABC) New York (A)
+12 US: Fox Sports 1
+13 CA: Sportsnet Ontario
+14 CA: CP24 HD
+15 US Fox News Channel (A)
+16 USA- FOX NEWS
+17 US ESPN (S)
+18 US: NFL Network
+19 US: CNBC
+20 CA:CP24
+21 US: Hallmark Channel (D)
+22 US: Comedy Central
+23 US: Food Network
+24 US CNN (H)
+25 US MSNBC (H)
+26 US: Discovery
+27 24/7 TWO AND A HALF MEN
+28 NZ SKY Sport 1
+29 US FOX 59 (WXIN) Indianapolis (H)
+30 24/7 EVERYBODY LOVES RAYMOND
+31 US CNN (A)
+32 US: Cinemax (East)
+33 US FOX 13 (WTVT) Tampa (H)
+34 USA- MS NOW
+35 24/7 FRIENDS
+36 USA- FOX SPORTS 1
+37 UFC PPV Main Card
+38 US Fox News (S)
+39 US: MLB Network
+40 USA- CNN
+41 US: History Channel (D)
+42 US Comedy Central (East) (A)
+43 US: Showtime
+44 US: A&E
+45 US: Oxygen True Crime
+46 US: Nicktoons
+47 PT: SPORT TV 1 [ B ]
+48 24/7 THE BIG BANG THEORY
+49 HEVC FHD Sky Sports Golf
+50 US NBC 4 (KNBC) Los Angeles (A)
+51 US: ABC 6 Philadelphia (WPVI)
+52 US: TNT
+53 AU Seven Sydney (D)
+54 USA- ESPN
+55 US: ESPN HD
+56 US ESPN 2 (A)
+57 US MSNBC (S)
+58 US Fox Sports 1 (A)
+59 CA TSN1 (FHD) (D)
+60 24/7 KING OF THE HILL
+61 US: ESPN2
+62 US: Starz
+63 US: Cinemax Action
+64 US: National Geographic
+65 US: MTV
+66 24/7 PARKS AND RECREATION
+67 CA: CNN
+68 US NFL Network (FHD) (S)
+69 US: WE TV
+70 24/7 ANCIENT ALIENS
+71 (TC+ 11) | ATP Shanghai: Zverev_ Alexander _ De Minaur_ Alex (2026-10-15 06:00:00)
+72 US: Cooking Channel
+73 US abc 7 (WLS) Chicago (A)
+74 US Columbia, SC WLTX CBS 19 (A)
+75 UK TNT Sports 3 HD (D)
+76 US CNBC (H)
+77 US: Disney Junior
+78 US: Adult Swim
+79 US: FOX 5 San Diego (KSWB)
+80 USA- ABC NY FHD
+81 US: NEWSNATION
+82 (CA) (PRIME) RDS (FHD)
+83 US: CBS SPORTS NETWORK
+84 PT (VF) Dazn 1
+85 US: Al Jazeera
+86 24/7 SCOOBY-DOO CLASSIC
+87 US Cartoon Network & Adult Swim (East) (S)
+88 USA- BOOMERANGS
+89 US FOX 13 (WTVT) Tampa (S)
+90 CA Sportsnet Pacific (HD) (D)
+91 USA- OXYGEN
+92 ES: LA SEXTA HD
+93 US FOX 4 (WDAF) Kansas City (A)
+94 US Sundance TV (A)
+95 US TBS (East) (H)
+96 US BTN4 (F)
+97 US: Golf Channel
+98 LAT: UNIMAS MIAMI HD
+99 CA Sportsnet One SD (E)
+100 US: Bravo

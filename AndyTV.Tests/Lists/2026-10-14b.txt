@@ -1,0 +1,109 @@
+﻿NHL = 7            # includes "NHL | 02 -" and "NHL 00ⓧ:"
+NBA = 7
+MLB = 4            # includes NLCS game ending ":Sportsnet+ 10"
+MLS = 3
+Fox Sports 1 = 8
+Sportsnet = 8
+Monumental Sports Network = 2
+NBC = 0
+---
+01 US: Fox Sports 1
+02 MLB 01 : Brewers x Dodgers start:2026-10-15 01:00:00 stop:2026-10-15 08:13:20
+03 NHL 01: Montréal Canadiens @ Washington Capitals [Capitals Feed] (10.14 7:30PM ET)
+04 US Fox Sports 1 (A)
+05 CA: Sportsnet Ontario
+06 US: CNN
+07 USA- FOX SPORTS 1
+08 MLB 02: Milwaukee Brewers @ Los Angeles Dodgers | Away Stream | 8:00 PM ET
+09 NHL 03: Dallas Stars @ Colorado Avalanche [Sportsnet+ Feed] (10.14 8:30PM ET)
+10 US: ESPN
+11 NHL 02: Montréal Canadiens @ Washington Capitals [National Feed] (10.14 7:30PM ET)
+12 US: FOX News
+13 US: TNT
+14 US: TBS (D)
+15 US: FOX SPORTS 1 FHD
+16 US Fox Sports 1 (H)
+17 MLB 01: Milwaukee Brewers @ Los Angeles Dodgers | Home Stream | 8:00 PM ET
+18 US: CBS (Buffalo)
+19 NBA 01: Brooklyn Nets @ Miami Heat [Heat Feed] (10.14 7:30PM ET)
+20 NHL | 01 - 7:30pm Canadiens at Capitals
+21 US FOX News Channel (H)
+22 US FOX Sports 1 (S)
+23 US CNN (A)
+24 US: MS Now
+25 US: Fox Sports 1 4K
+26 USA- FOX NEWS
+27 US: HGTV
+28 NBA 09: Detroit Pistons @ Minnesota Timberwolves [Pistons Feed] (10.14 8:00PM ET)
+29 US: AMC
+30 US: Food Network
+31 USA- MS NOW
+32 US: A&E
+33 US: Freeform
+34 USA- CNN
+35 US MSNBC (A)
+36 CA: Sportsnet 4K
+37 CA Sportsnet Ontario (FHD) (D)
+38 NBA 03: Charlotte Hornets @ Boston Celtics [Celtics Feed] (10.14 7:30PM ET)
+39 US: BET
+40 US Fox News (S)
+41 CA: Sportsnet East
+42 US: NFL Network
+43 US: Bravo
+44 US Comedy Central (East) (A)
+45 CA: Sportsnet West
+46 US: CBS Sports Network
+47 MLS 03: Inter Miami CF vs New York City Football Club (10.14 7:30PM ET)
+48 US: FOX NEWS HD
+49 US CNN (H)
+50 USA -TBS
+51 NBA 05: Phoenix Suns @ San Antonio Spurs [Suns Feed] (10.14 8:00PM ET)
+52 US ESPN 1 (A)
+53 US Monumental Sports Network (A)
+54 MLS 10: St. Louis CITY SC vs Vancouver Whitecaps FC (10.14 8:30PM ET)
+55 US: FX
+56 CA Sportsnet East (FHD) (D)
+57 US: WE TV
+58 US TBS (East) (H)
+59 US: CBS 2 New York (WCBS)
+60 US: TLC
+61 US MSNBC (H)
+62 US: NBA TV
+63 US: Oxygen True Crime
+64 CA: GLOBAL TORONTO HD
+65 US: Showtime Extreme
+66 US: NBC Sports Boston
+67 NBA 08: Detroit Pistons @ Minnesota Timberwolves [Timberwolves Feed] (10.14 8:00PM ET)
+68 CA: CNN
+69 US Fox News Channel (A)
+70 US: Paramount Network (D)
+71 US: Discovery
+72 US CBS 2 (WCBS) New York (H)
+73 CA: Sportsnet Pacific
+74 US: ESPN2
+75 Inter Miami CF vs New York City Football Club @ Oct 14 7:30 PM :MLS 02
+76 US: TV Land
+77 NBA 07: Chicago Bulls @ Milwaukee Bucks [Bulls Feed] (10.14 8:00PM ET)
+78 US NBC 10 (WIS) Columbia (H)
+79 NBA 02: Brooklyn Nets @ Miami Heat [Nets Feed] (10.14 7:30PM ET)
+80 PT (VF) SIC
+81 (US) (Prime) FS1
+82 US: Hallmark Channel (D)
+83 US: TruTV
+84 NHL 00ⓧ: Montreal Canadiens at Washington Capitals | Wed 14th Oct 7:30PM ET
+85 US: Yes Network
+86 CA: TSN 1
+87 USA- FOOD NETWORK
+88 US: MSNBC FHD
+89 US MSNBC (S)
+90 US: FXX
+91 NHL | 02 - 8:30pm Stars at Avalanche
+92 US: Monumental Sports Network
+93 US: Cooking Channel
+94 CA Sportsnet West (FHD) (D)
+95 NHL 01: Montréal Canadiens @ Washington Capitals | Home Stream | 7:30 PM ET
+96 MLB: NLCS Milwaukee vs Los Angeles Dodgers Game 3 @ Oct 14 7:30 PM :Sportsnet+ 10
+97 US: Starz Comedy
+98 USA- ESPN
+99 US: USA Network (D)
+100 Carib TVJ (D)

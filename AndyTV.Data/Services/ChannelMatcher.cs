@@ -148,8 +148,8 @@ public static partial class ChannelMatcher
         return word.Success ? word.Value : null;
     }
 
-    // Optional leading channel number ("04 NHL 05:"), then country tags.
-    [GeneratedRegex(@"^\s*(?:\d+\s+)?(?:(?:USA?|UK|GB|CA)\b[\s:|\-]*|\((?:USA?|UK|CA|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
+    // Optional leading channel number ("04 NHL 05:"), then country and quality tags.
+    [GeneratedRegex(@"^\s*(?:\d+\s+)?(?:(?:USA?|UK|GB|CA|NZ|AU|PT|ES|LAT|MEX|FHD|UHD|HEVC|4K)\b[\s:|\-]*|\((?:USA?|UK|GB|CA|NZ|AU|PT|ES|LAT|MEX|PRIME)\)\s*)*", RegexOptions.IgnoreCase)]
     private static partial Regex CountryPrefixRegex();
 
     // Leading "NHL 01:", "NHL | 03 -", "LIVE EVENT 02 -", or trailing "... 8:00 PM :NBA 06".

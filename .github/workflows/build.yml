@@ -25,3 +25,6 @@ jobs:
 
       - name: Build project
         run: dotnet build
+
+      - name: Test
+        run: dotnet test --project AndyTV.Tests/AndyTV.Tests.csproj --no-build
