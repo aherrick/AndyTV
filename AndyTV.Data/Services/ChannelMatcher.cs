@@ -74,16 +74,8 @@ public static partial class ChannelMatcher
 
     private static List<MenuNode> BuildSmartGroups(IReadOnlyList<Channel> channels)
     {
-        // 24/7 entries are show titles, not channels.
-        List<(ChannelTop Entry, string Term)> curated =
-        [
-            .. new[] { ChannelService.TopUs(), ChannelService.TopUk(), ChannelService.TopGlobal() }
-                .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value))
-                .SelectMany(e => e.Terms, (e, term) => (e, term)),
-        ];
-
         var groups = channels
-            .GroupBy(ch => SmartKey(ch.DisplayName ?? string.Empty, curated), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(ch => SmartKey(ch.DisplayName ?? string.Empty), StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         List<MenuNode> nodes =
@@ -119,8 +111,16 @@ public static partial class ChannelMatcher
         return nodes;
     }
 
+    // 24/7 entries are show titles, not channels.
+    private static readonly List<(ChannelTop Entry, string Term)> SmartTerms =
+    [
+        .. new[] { ChannelService.TopUs(), ChannelService.TopUk(), ChannelService.TopGlobal() }
+            .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value))
+            .SelectMany(e => e.Terms, (e, term) => (e, term)),
+    ];
+
     // "24/7" anywhere, then an event tag, then the longest curated match (by family), then the first word.
-    private static string SmartKey(string name, List<(ChannelTop Entry, string Term)> curated)
+    private static string SmartKey(string name)
     {
         if (ChannelService.TwoFourSevenRegex().IsMatch(name))
         {
@@ -135,7 +135,7 @@ public static partial class ChannelMatcher
             return ev.Groups["key"].Value;
         }
 
-        var best = curated
+        var best = SmartTerms
             .Where(x => ContainsToken(name, x.Term) && !ContainsAny(name, x.Entry.ExcludeTerms ?? []))
             .OrderByDescending(x => x.Term.Length)
             .FirstOrDefault();

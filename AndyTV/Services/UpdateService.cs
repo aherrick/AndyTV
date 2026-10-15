@@ -33,7 +33,8 @@ static class UpdateService
                 MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
-                Logger.Info($"[UPDATE] Downloading {info.TargetFullRelease.Version}");
+                Logger.Info(
+                    $"[UPDATE] Downloading {info.TargetFullRelease.Version} via {info.DeltasToTarget.Length} delta(s) from {info.BaseRelease?.Version.ToString() ?? "none (full)"}");
                 await updater.DownloadUpdatesAsync(info);
                 updater.ApplyUpdatesAndRestart(info.TargetFullRelease);
             }

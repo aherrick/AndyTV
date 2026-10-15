@@ -11,6 +11,12 @@
     <NoWarn>$(NoWarn);WFO5001</NoWarn>
   </PropertyGroup>
 
+  <!-- -r win-x64 leaves Platform=AnyCPU, so LibVLC would also ship x86 and arm64 (~190 MB). -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="LibVLCSharp.WinForms" Version="3.10.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="10.0.110" />
