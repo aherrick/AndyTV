@@ -5,7 +5,10 @@
 // Cross-origin: the storage account must allow GET from this site's origin (CORS).
 const DATA_URL = "https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/latest.json";
 const WEEKEND_DATA_URL = DATA_URL.replace("latest.json", "latest_weekend.json");
-const ALL_DATA_URL = DATA_URL.replace("latest.json", "latest_all.json");
+const ALL_DATA_URLS = {
+  timeline: DATA_URL.replace("latest.json", "latest_all.json"),
+  weekend: DATA_URL.replace("latest.json", "latest_weekend_all.json"),
+};
 const TIME_ZONE = "America/New_York";
 
 function easternParts(now, options) {
@@ -31,6 +34,7 @@ function watchlistDay(now = new Date()) {
 }
 
 const weekdayFormat = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, weekday: "long" });
+const shortWeekdayFormat = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, weekday: "short" });
 
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
@@ -49,7 +53,7 @@ function andyTv() {
       plan: { summary: "", steps: [] },
     },
     weekendModel: null,
-    allEvents: [],
+    allEvents: { timeline: [], weekend: [] },
     get tabs() {
       return ["top", "timeline", "plan", ...(this.weekendModel ? ["weekend"] : [])];
     },
@@ -59,7 +63,7 @@ function andyTv() {
     // The feed arrives in rank order; Weekend can flip it to start-time order and back.
     get rankedGames() {
       const games = this.bySport(this.displayedModel.top.games);
-      return this.activeTab === "weekend" && this.weekendView === "timeline" ? byTime(games) : games;
+      return this.view === "timeline" ? byTime(games) : games;
     },
     // Sports in the current list, most games first, for the filter chips.
     get sports() {
@@ -72,12 +76,18 @@ function andyTv() {
       return [...counts.values()].sort((a, b) => b.count - a.count);
     },
     get filterGames() {
-      return this.activeTab === "timeline" && this.timelineView === "all" ? this.allEvents : this.displayedModel.top.games;
+      return this.allView ? this.allEvents[this.activeTab] : this.displayedModel.top.games;
+    },
+    // Sub-view per tab; undefined for tabs without subtabs.
+    get view() {
+      return this.views[this.activeTab];
+    },
+    get allView() {
+      return this.view === "all";
     },
     sport: "",
     activeTab: "top",
-    weekendView: "top",
-    timelineView: "top",
+    views: { timeline: "top", weekend: "top" },
     a2hs: null,
     loadedDay: "",
 
@@ -95,7 +105,7 @@ function andyTv() {
       try {
         this.model = await fetchJson(DATA_URL);
         this.loadedDay = day;
-        if (this.timelineView === "all") this.showAll();
+        if (this.views.timeline === "all") this.setView("all", "timeline");
       } catch {
         this.model.date = "Could not load the watchlist.";
       }
@@ -112,11 +122,11 @@ function andyTv() {
       }
     },
 
-    // The full schedule is only fetched when Timeline switches to All.
-    async showAll() {
-      this.timelineView = "all";
+    // The full schedule is only fetched when a view switches to All.
+    async setView(view, tab = this.activeTab) {
+      this.views[tab] = view;
       this.sport = "";
-      this.allEvents = await fetchJson(ALL_DATA_URL);
+      if (view === "all") this.allEvents[tab] = await fetchJson(ALL_DATA_URLS[tab]);
     },
 
     // Resume refresh is only for the existing daily watchlist.
@@ -127,6 +137,11 @@ function andyTv() {
     eventTime(event) {
       if (this.activeTab !== "weekend") return event.time;
       return `${weekdayFormat.format(new Date(event.timeIso))} · ${event.time}`;
+    },
+
+    // Weekend All rows span two days; TBD events have no timeIso.
+    rowDay(row) {
+      return this.activeTab === "weekend" && row.timeIso ? shortWeekdayFormat.format(new Date(row.timeIso)) : "";
     },
 
     // ---- clean-path tab routing (no '#') ----
@@ -162,7 +177,7 @@ function andyTv() {
 
     // Top is the ranked games re-sorted by start time; All is the full schedule, already in time order.
     get timelineGames() {
-      if (this.timelineView === "all") return this.bySport(this.allEvents);
+      if (this.allView) return this.bySport(this.allEvents[this.activeTab]);
       return byTime(this.bySport(this.model.top.games));
     },
 

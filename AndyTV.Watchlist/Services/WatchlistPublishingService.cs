@@ -51,11 +51,8 @@ public sealed class WatchlistPublishingService(
             {
                 var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
                 await blobStore.PublishData(json, kind, cancellationToken);
-                if (kind == WatchlistKind.Daily)
-                {
-                    var schedule = JsonSerializer.Serialize(WatchlistSiteBuilder.Schedule(events, watchlist), JsonSerializerOptions.Web);
-                    await blobStore.PublishSchedule(schedule, cancellationToken);
-                }
+                var schedule = JsonSerializer.Serialize(WatchlistSiteBuilder.Schedule(events, watchlist), JsonSerializerOptions.Web);
+                await blobStore.PublishSchedule(schedule, kind, cancellationToken);
                 run.Feed = true;
             }
 

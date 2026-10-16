@@ -217,7 +217,7 @@ body {
   display: block;
 }
 
-/* Weekend Top / Timeline switch */
+/* Timeline / Weekend sub-view switch */
 .subtabs {
   display: flex;
   width: fit-content;
@@ -489,6 +489,12 @@ body {
 
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+.row-day {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
 }
 
 .row-game {

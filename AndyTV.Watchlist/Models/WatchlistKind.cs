@@ -16,6 +16,14 @@ public static class WatchlistKindExtensions
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
+    // Full schedule for the site's All view.
+    public static string ScheduleFileName(this WatchlistKind kind) => kind switch
+    {
+        WatchlistKind.Daily => "latest_all.json",
+        WatchlistKind.Weekend => "latest_weekend_all.json",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
     // Weekend runs on Friday and covers Saturday + Sunday.
     public static DateOnly[] Days(this WatchlistKind kind, DateOnly runDate) =>
         kind == WatchlistKind.Weekend ? [runDate.AddDays(1), runDate.AddDays(2)] : [runDate];

@@ -148,13 +148,14 @@
             </template>
         </div>
 
-        <!-- TOP / WEEKEND: same ranked-list layout, separate data -->
-        <section class="panel" :class="{ active: activeTab === 'top' || activeTab === 'weekend' }">
+        <div class="subtabs" x-show="view" x-cloak>
+            <button type="button" :class="{ active: view === 'top' }" @click="setView('top')">Top</button>
+            <button type="button" x-show="activeTab === 'weekend'" :class="{ active: view === 'timeline' }" @click="setView('timeline')">Timeline</button>
+            <button type="button" :class="{ active: view === 'all' }" @click="setView('all')">All</button>
+        </div>
 
-            <div class="subtabs" x-show="activeTab === 'weekend'" x-cloak>
-                <button type="button" :class="{ active: weekendView === 'top' }" @click="weekendView = 'top'">Top</button>
-                <button type="button" :class="{ active: weekendView === 'timeline' }" @click="weekendView = 'timeline'">Timeline</button>
-            </div>
+        <!-- TOP / WEEKEND: same ranked-list layout, separate data -->
+        <section class="panel" :class="{ active: (activeTab === 'top' || activeTab === 'weekend') && !allView }">
 
             <template x-if="displayedModel.top.picks.length">
                 <div class="top-picks">
@@ -207,17 +208,13 @@
             </ol>
         </section>
 
-        <!-- TIMELINE -->
-        <section class="panel" :class="{ active: activeTab === 'timeline' }">
-            <div class="subtabs">
-                <button type="button" :class="{ active: timelineView === 'top' }" @click="timelineView = 'top'; sport = ''">Top</button>
-                <button type="button" :class="{ active: timelineView === 'all' }" @click="showAll()">All</button>
-            </div>
-
+        <!-- TIMELINE / WEEKEND ALL -->
+        <section class="panel" :class="{ active: activeTab === 'timeline' || allView }">
             <ul class="rows">
                 <template x-for="(row, i) in timelineGames" :key="i">
                     <li>
                         <div class="row-time">
+                            <div class="row-day" x-show="rowDay(row)" x-text="rowDay(row)"></div>
                             <time :datetime="row.timeIso" x-text="row.time"></time>
                         </div>
                         <div>
