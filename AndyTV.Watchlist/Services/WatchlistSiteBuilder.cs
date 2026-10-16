@@ -13,8 +13,8 @@ public static class WatchlistSiteBuilder
 
         return new WatchlistSiteModel(
             Date: SportsFormat.Dates(kind, targetDate),
-            Updated: $"Updated {targetDate.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}",
-            Top: new TopTab(TopPicks(games), games.ConvertAll(ToGame)),
+            Updated: $"Updated {EasternTimeZone.Now.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)} at {SportsFormat.Time(DateTimeOffset.UtcNow)}",
+            Top: new TopTab(TopPicks(games), games.ConvertAll(ToSiteGame)),
             Plan: PlanTab(watchlist)
         );
     }
@@ -53,7 +53,7 @@ public static class WatchlistSiteBuilder
             ));
 
     // Ranked games for the Top tab; the client re-sorts these by time for the Timeline tab.
-    private static Game ToGame(WatchlistGame game) =>
+    private static SiteGame ToSiteGame(WatchlistGame game) =>
         new(
             game.Rank,
             SportsFormat.Icon(game.Sport),

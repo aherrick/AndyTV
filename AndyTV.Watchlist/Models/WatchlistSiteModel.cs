@@ -8,11 +8,11 @@ public sealed record WatchlistSiteModel(
     PlanTab Plan
 );
 
-public sealed record TopTab(List<TopPick> Picks, List<Game> Games);
+public sealed record TopTab(List<TopPick> Picks, List<SiteGame> Games);
 
 public sealed record TopPick(string Icon, string Label, string Matchup, string Time, string TimeIso);
 
-public sealed record Game(
+public sealed record SiteGame(
     int Rank,
     string Icon,
     string Matchup,
