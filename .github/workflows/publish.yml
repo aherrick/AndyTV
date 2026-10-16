@@ -16,15 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Local install so the self-hosted runner's system .NET isn't touched; 9.0 is for vpk
+      # Local install so the self-hosted runner's system .NET isn't touched
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
         with:
-          dotnet-version: |
-            11.0.x
-            9.0.x
+          dotnet-version: 11.0.x
           dotnet-quality: preview
 
       - name: Publish (self-contained win-x64)
@@ -33,6 +31,10 @@ jobs:
 
       - name: Package and release with Velopack
         shell: powershell
+        env:
+          # vpk targets up to net10.0; force it onto the .NET 11 RC runtime.
+          DOTNET_ROLL_FORWARD: LatestMajor
+          DOTNET_ROLL_FORWARD_TO_PRERELEASE: 1
         run: |
           $vpk = "vpk@$env:VPK_VERSION"
 

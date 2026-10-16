@@ -10,6 +10,8 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>preview</LangVersion>
+		<!-- [RelayCommand] methods must stay instance members even when they touch no instance state. -->
+		<NoWarn>$(NoWarn);CA1822</NoWarn>
 		<Nullable>disable</Nullable>
 		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 

@@ -115,11 +115,7 @@ public static class LocalScraper
                     }
 
                     // Clean title: use direct text only to ignore "New" badges in spans
-                    var rawTitle = string.Join(
-                            "",
-                            titleEl.ChildNodes.OfType<IText>().Select(t => t.Text)
-                        )
-                        .Trim();
+                    var rawTitle = string.Concat(titleEl.ChildNodes.OfType<IText>().Select(t => t.Text)).Trim();
 
                     // Construct Subject
                     var subject = rawTitle;

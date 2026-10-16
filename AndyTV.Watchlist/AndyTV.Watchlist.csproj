@@ -6,7 +6,8 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>630ebcdf-86f3-4a8f-9082-1d406b3a891a</UserSecretsId>
-    <NoWarn>$(NoWarn);GHCP001</NoWarn>
+    <!-- CA1873: log-argument allocations don't matter for a once-a-day job. -->
+    <NoWarn>$(NoWarn);GHCP001;CA1873</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

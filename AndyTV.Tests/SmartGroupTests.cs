@@ -1,6 +1,8 @@
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 
+[assembly: DoNotParallelize]
+
 namespace AndyTV.Tests;
 
 // Each Lists/*.txt holds "Group = count  # note" expectations, a "---" line, then one channel name per line.

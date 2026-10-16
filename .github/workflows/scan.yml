@@ -6,22 +6,25 @@ on:
 jobs:
   analyze:
     runs-on: [self-hosted, ajwin]
+    env:
+      # Roslynator targets up to net10.0; force it onto the .NET 11 RC runtime.
+      DOTNET_ROLL_FORWARD: LatestMajor
+      DOTNET_ROLL_FORWARD_TO_PRERELEASE: 1
     steps:
       - uses: actions/checkout@v5
 
-      # Local install so the self-hosted runner's system .NET isn't touched; 9.0 runs the Roslynator CLI
+      # Local install so the self-hosted runner's system .NET isn't touched
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
           DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
         with:
-          dotnet-version: |
-            9.0.x
-            11.0.x
+          dotnet-version: 11.0.x
           dotnet-quality: preview
 
+      # 0.11.0's bundled MSBuild can't load the .NET 11 SDK (MissingMethodException); 1.0.1 can.
       - name: Install Roslynator CLI
-        run: dotnet tool install roslynator.dotnet.cli --version 0.11.0 --tool-path tools
+        run: dotnet tool install roslynator.dotnet.cli --version 1.0.1 --tool-path tools
 
       # Analyzers aren't referenced by the projects, so pull the package directly
       - name: Download Roslynator Analyzers
