@@ -556,7 +556,9 @@ internal sealed class PlayerForm : Form
 
     private void SwapChannelItems(List<ToolStripItem> items)
     {
-        using (_menu.SuspendPainting())
+        // Not SuspendPainting(): its WM_SETREDRAW(TRUE) shows the hidden menu.
+        _menu.SuspendLayout();
+        try
         {
             foreach (var item in _channelItems)
             {
@@ -568,6 +570,10 @@ internal sealed class PlayerForm : Form
                 _menu.Items.Add(item);
                 _channelItems.Add(item);
             }
+        }
+        finally
+        {
+            _menu.ResumeLayout();
         }
     }
 
