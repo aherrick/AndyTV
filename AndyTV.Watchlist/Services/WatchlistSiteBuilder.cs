@@ -19,26 +19,27 @@ public static class WatchlistSiteBuilder
         );
     }
 
-    // By start time, then sport; events without a time go last as TBD. Ranked games keep their feed
-    // matchup, so an exact match tags them; a renamed one just shows no rank.
+    // By start time, then rank (unranked last), then matchup A-Z; events without a time go last as TBD.
+    // Ranked games keep their feed matchup, so an exact match tags them; a renamed one just shows no rank.
     public static List<ScheduleEvent> Schedule(List<SportsEvent> events, DailyWatchlist watchlist)
     {
         var ranks = watchlist.BestWatches.DistinctBy(g => g.Matchup).ToDictionary(g => g.Matchup, g => g.Rank);
         return
         [
             .. events
-                .OrderBy(e => e.StartTimeIso ?? DateTimeOffset.MaxValue)
-                .ThenBy(e => e.Sport)
-                .ThenBy(e => e.League)
-                .Select(e => new ScheduleEvent(
-                    e.StartTimeIso is { } start ? SportsFormat.TimeNoZone(start) : "TBD",
-                    e.StartTimeIso is { } iso ? Iso(iso) : "",
-                    SportsFormat.Icon(e.Sport),
-                    e.Sport,
-                    e.League,
-                    e.Matchup,
-                    e.Network?.Trim() ?? "",
-                    ranks.TryGetValue(e.Matchup, out var rank) ? rank : null
+                .Select(e => (Event: e, Rank: ranks.TryGetValue(e.Matchup, out var rank) ? rank : (int?)null))
+                .OrderBy(x => x.Event.StartTimeIso ?? DateTimeOffset.MaxValue)
+                .ThenBy(x => x.Rank ?? int.MaxValue)
+                .ThenBy(x => x.Event.Matchup, StringComparer.OrdinalIgnoreCase)
+                .Select(x => new ScheduleEvent(
+                    x.Event.StartTimeIso is { } start ? SportsFormat.TimeNoZone(start) : "TBD",
+                    x.Event.StartTimeIso is { } iso ? Iso(iso) : "",
+                    SportsFormat.Icon(x.Event.Sport),
+                    x.Event.Sport,
+                    x.Event.League,
+                    x.Event.Matchup,
+                    x.Event.Network?.Trim() ?? "",
+                    x.Rank
                 )),
         ];
     }

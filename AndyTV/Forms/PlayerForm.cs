@@ -294,6 +294,8 @@ internal sealed class PlayerForm : Form
 
     private void ShowGuide()
     {
+        // The first GuideForm construction blocks the UI thread while WebView2/Syncfusion load.
+        Cursor.Current = Cursors.WaitCursor;
         using var form = new GuideForm();
         if (form.ShowDialog(this) == DialogResult.OK
             && form.SelectedStreamingTvId is { } id
