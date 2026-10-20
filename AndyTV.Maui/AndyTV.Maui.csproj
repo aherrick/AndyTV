@@ -2,6 +2,8 @@
 
 	<PropertyGroup>
 		<TargetFramework>net11.0-ios</TargetFramework>
+		<!-- Restore both simulator RIDs so the IDE's choice always has an assets target; device builds pass -r ios-arm64. -->
+		<RuntimeIdentifiers>iossimulator-arm64;iossimulator-x64</RuntimeIdentifiers>
 		<SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
 
 		<OutputType>Exe</OutputType>
