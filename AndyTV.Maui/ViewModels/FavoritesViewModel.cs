@@ -25,7 +25,7 @@ public partial class FavoritesViewModel(IFavoriteChannelService favoriteChannelS
             {
                 channel.Category = "Favorite";
             }
-            Favorites = new ObservableCollection<Channel>(favorites);
+            Favorites = [.. favorites];
         }
         finally
         {
@@ -45,13 +45,5 @@ public partial class FavoritesViewModel(IFavoriteChannelService favoriteChannelS
     }
 
     [RelayCommand]
-    private async Task SelectChannel(Channel channel)
-    {
-        if (channel == null || string.IsNullOrEmpty(channel.Url))
-        {
-            return;
-        }
-
-        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel));
-    }
+    private Task SelectChannel(Channel channel) => Views.PlayerPage.OpenAsync(channel);
 }

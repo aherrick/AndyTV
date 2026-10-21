@@ -18,7 +18,6 @@ internal sealed class PlayerForm : Form
     private readonly ToolStripSeparator _recentSeparator = new();
     private readonly ToolStripSeparator _favoritesSeparator = new();
 
-    private readonly IStorageProvider _storage = new LocalStorageProvider();
     private readonly LocalConfigService _configService;
     private readonly LocalConfig _config;
     private readonly PlaylistService _playlistService;
@@ -61,12 +60,13 @@ internal sealed class PlayerForm : Form
 
     public PlayerForm()
     {
-        _configService = new LocalConfigService(_storage);
+        var storage = new LocalStorageProvider();
+        _configService = new LocalConfigService(storage);
         _config = _configService.Load();
-        _playlistService = new PlaylistService(_storage);
-        _recentService = new RecentChannelService(_storage);
-        _lastService = new LastChannelService(_storage);
-        _favoriteService = new FavoriteChannelService(_storage);
+        _playlistService = new PlaylistService(storage);
+        _recentService = new RecentChannelService(storage);
+        _lastService = new LastChannelService(storage);
+        _favoriteService = new FavoriteChannelService(storage);
 
         Text = AppVersionName;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -582,7 +582,7 @@ internal sealed class PlayerForm : Form
     // Runs off the UI thread; only creates ToolStripItems (safe until added to the menu).
     private List<ToolStripItem> BuildChannelItems()
     {
-        var items = new List<ToolStripItem>();
+        List<ToolStripItem> items = [];
 
         foreach (
             var (playlist, channels) in _playlistService.PlaylistChannels.Where(x =>
@@ -598,22 +598,11 @@ internal sealed class PlayerForm : Form
         // US/UK match only playlists flagged for it, so TV-show/movie playlists don't
         // pollute the curated lists; 24-7 still spans all channels.
         var usUkChannels = _playlistService.UsUkChannels;
-        items.Add(
-            Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels))
-        );
-        items.Add(
-            Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels))
-        );
-        items.Add(
-            Render(
-                ChannelMatcher.BuildTopRegion(
-                    "Global",
-                    ChannelService.TopGlobal(),
-                    _playlistService.Channels
-                )
-            )
-        );
-        var menu247 = Render(ChannelMatcher.Build247(_playlistService.Channels));
+        var allChannels = _playlistService.Channels;
+        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("Global", ChannelService.TopGlobal(), allChannels)));
+        var menu247 = Render(ChannelMatcher.Build247(allChannels));
         if (menu247.DropDownItems.Count > 0)
         {
             items.Add(menu247);

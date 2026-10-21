@@ -77,7 +77,7 @@ public static class LocalScraper
                     "MM-dd-yyyy",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
-                    out var datePart
+                    out _
                 )
             )
             {
@@ -115,10 +115,7 @@ public static class LocalScraper
                     }
 
                     // Clean title: use direct text only to ignore "New" badges in spans
-                    var rawTitle = string.Concat(titleEl.ChildNodes.OfType<IText>().Select(t => t.Text)).Trim();
-
-                    // Construct Subject
-                    var subject = rawTitle;
+                    var subject = string.Concat(titleEl.ChildNodes.OfType<IText>().Select(t => t.Text)).Trim();
                     var epTitle = epTitleEl?.TextContent?.Trim();
                     if (!string.IsNullOrWhiteSpace(epTitle))
                     {

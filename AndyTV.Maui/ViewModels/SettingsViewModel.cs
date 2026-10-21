@@ -24,8 +24,7 @@ public partial class SettingsViewModel(
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsLoaded { get; set; }
+    private bool _isLoaded;
 
     [ObservableProperty]
     public partial string LocalServerUrl { get; set; }
@@ -41,14 +40,14 @@ public partial class SettingsViewModel(
 
     public void Initialize()
     {
-        if (IsLoaded)
+        if (_isLoaded)
         {
             return;
         }
 
         LoadPlaylists();
         LoadLocalConfig();
-        IsLoaded = true;
+        _isLoaded = true;
     }
 
     private void LoadLocalConfig()
@@ -58,35 +57,27 @@ public partial class SettingsViewModel(
         SelectedQuality = string.IsNullOrEmpty(config.Quality) ? "320" : config.Quality;
     }
 
-    public void SaveLocalConfig()
+    private void SaveLocalConfig()
     {
+        if (!_isLoaded)
+        {
+            return;
+        }
+
         var config = localConfigService.Load();
         config.ServerUrl = LocalServerUrl?.Trim();
         config.Quality = SelectedQuality;
         localConfigService.Save(config);
     }
 
-    partial void OnLocalServerUrlChanged(string value)
-    {
-        if (IsLoaded)
-        {
-            SaveLocalConfig();
-        }
-    }
+    partial void OnLocalServerUrlChanged(string value) => SaveLocalConfig();
 
-    partial void OnSelectedQualityChanged(string value)
-    {
-        if (IsLoaded)
-        {
-            SaveLocalConfig();
-        }
-    }
+    partial void OnSelectedQualityChanged(string value) => SaveLocalConfig();
 
     private void LoadPlaylists()
     {
         Playlists.Clear();
-        var playlists = playlistService.LoadPlaylists();
-        foreach (var p in playlists)
+        foreach (var p in playlistService.LoadPlaylists())
         {
             Playlists.Add(p);
         }

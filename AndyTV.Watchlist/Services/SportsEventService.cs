@@ -210,10 +210,10 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
                     board.School
                     && competitor.TryGetProperty("curatedRank", out var rank)
                     && rank.TryGetProperty("current", out var current)
-                    && current.GetInt32() is >= 1 and <= 25
+                    && current.GetInt32() is >= 1 and <= 25 and var position
                 )
                 {
-                    team = $"#{current.GetInt32()} {team}";
+                    team = $"#{position} {team}";
                 }
                 if (competitor.GetProperty("homeAway").GetString() == "home")
                 {

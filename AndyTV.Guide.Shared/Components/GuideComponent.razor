@@ -1,12 +1,8 @@
-@using System.Net.Http.Json
-@using AndyTV.Data.Models
 @using AndyTV.Guide.Shared
-@using Syncfusion.Blazor.Schedule
 @inject HttpClient Http
 @inject IServiceProvider Services
 
 <SfSchedule TValue="ShowEvent"
-            @ref="ScheduleRef"
             Width="100%"
             Height="98vh"
             @bind-SelectedDate="CurrentDate"
@@ -62,11 +58,10 @@
 </SfSchedule>
 
 @code {
-    private SfSchedule<ShowEvent> ScheduleRef;
     private View CurrentView = View.TimelineDay;
     private DateTime CurrentDate = DateTime.Today;
     private string StartHour = "00:00";
-    private string EndHour = "23:59";
+    private const string EndHour = "23:59";
 
     public string[] GroupData { get; set; } = ["Categories", "Channels"];
 
@@ -84,7 +79,7 @@
     {
         var items = await Http.GetFromJsonAsync<List<Show>>(
             "https://raw.githubusercontent.com/aherrick/AndyTV/guide/guide.json");
-        if (items is null || items.Count == 0)
+        if (items is not { Count: > 0 })
         {
             return;
         }

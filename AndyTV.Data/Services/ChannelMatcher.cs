@@ -18,7 +18,7 @@ public static partial class ChannelMatcher
         // Materialized once: the Terms iterator would otherwise allocate per channel.
         List<string> terms = [.. entry.Terms];
         var excludes = entry.ExcludeTerms ?? [];
-        var matches = new List<Channel>();
+        List<Channel> matches = [];
         foreach (var ch in channels)
         {
             var name = ch.DisplayName;
@@ -170,7 +170,7 @@ public static partial class ChannelMatcher
         var episodic =
             !string.IsNullOrWhiteSpace(playlist.NameFind) && playlist.NameReplace is not null;
 
-        var letters = new List<MenuNode>();
+        List<MenuNode> letters = [];
         var groups = channels
             .GroupBy(ch => FirstCharKey(ch.DisplayName), StringComparer.OrdinalIgnoreCase)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
@@ -208,10 +208,7 @@ public static partial class ChannelMatcher
                         .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
                         .Select(ch => Leaf(ch, ch.DisplayName)));
             }
-            if (letterNode.Children.Count > 0)
-            {
-                letters.Add(letterNode);
-            }
+            letters.Add(letterNode);
         }
         return letters;
     }
