@@ -50,6 +50,7 @@ internal sealed class PlayerForm : Form
 
     private readonly CancellationTokenSource _cts = new();
     private readonly StreamHealthMonitor _healthMonitor = new();
+    private volatile bool _videoLate;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
     private readonly System.Windows.Forms.Timer _sleepTimer = new();
     private ToolStripMenuItem _sleepOffItem;
@@ -765,7 +766,7 @@ internal sealed class PlayerForm : Form
         if (
             !IsDisposed
             && current == _current
-            && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures)
+            && (_videoLate || _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures))
         )
         {
             Logger.Warn($"[HEALTH] No playback progress, restarting {current.DisplayName}");
@@ -801,6 +802,7 @@ internal sealed class PlayerForm : Form
         RunPlayback(() =>
         {
             _mediaPlayer.Stop();
+            _videoLate = false;
             using var media = new Media(_libVLC, new Uri(channel.Url));
             if (bufferMilliseconds is >= 0 and <= 60000)
             {
@@ -846,11 +848,23 @@ internal sealed class PlayerForm : Form
         };
     }
 
-    // Runs on VLC's decoder threads: errors only, since warnings flood at hundreds per second and
+    // Runs on VLC's decoder threads: log sparingly, since warnings flood at hundreds per second and
     // the synchronous file writes slow decoding further.
-    private static void OnLibVlcLog(object _, LogEventArgs e)
+    private void OnLibVlcLog(object _, LogEventArgs e)
     {
-        if (e.Level is LogLevel.Error)
+        // VLC has no event for this and rarely recovers; logged per frame, so flag instead of writing.
+        if (e.Message.Contains("late video", StringComparison.Ordinal))
+        {
+            _videoLate = true;
+            return;
+        }
+
+        // Once per stream; absent means VLC fell back to software decoding.
+        if (e.Message.Contains("for hardware decoding", StringComparison.Ordinal))
+        {
+            Logger.Info($"[VLC/{e.Module}] {e.Message}");
+        }
+        else if (e.Level is LogLevel.Error)
         {
             Logger.Error($"[VLC/{e.Module}] {e.Message}");
         }
