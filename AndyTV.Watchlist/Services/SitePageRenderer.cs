@@ -108,10 +108,11 @@ public static class SitePageRenderer
             : $"""<span class="daily-only">{E(daily)}</span><span class="weekend-only">{E(weekend)}</span>""";
 
     private static string Tab(string tab, string label, string icon) =>
-        $"""<button type="button"{Active(tab == "top")} data-go="{tab}">{icon}{label}</button>""";
+        $"""<button type="button" data-go="{tab}">{icon}{label}</button>""";
 
+    // All panels start hidden; app.js activates the one for the URL, so the wrong tab never paints.
     private static string Panel(string key, string content) =>
-        $"""<section class="panel{(key == "top" ? " active" : "")}" data-panel="{key}">{content}</section>""";
+        $"""<section class="panel" data-panel="{key}">{content}</section>""";
 
     private static string Subtabs(string tab, string active)
     {
