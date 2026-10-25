@@ -52,6 +52,7 @@ public static class SitePageRenderer
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>AndyTV Watchlist — Best Sports Today</title>
+            <link rel="canonical" href="https://andytv.today/">
             <link rel="icon" type="image/png" href="/img/icon-192.png">
             <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
             <link rel="manifest" href="/manifest.webmanifest">
@@ -69,9 +70,6 @@ public static class SitePageRenderer
             <meta property="og:url" content="https://andytv.today/">
             <meta property="og:image" content="https://andytv.today/img/andytvwatchlist_header3.png">
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="AndyTV Watchlist — Best Sports Today">
-            <meta name="twitter:description" content="The best sports to watch today, ranked daily by AndyTV.">
-            <meta name="twitter:image" content="https://andytv.today/img/andytvwatchlist_header3.png">
             <link rel="stylesheet" href="/styles.css">
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2972208898178828" crossorigin="anonymous"></script>
             </head>

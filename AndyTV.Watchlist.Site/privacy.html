@@ -12,13 +12,7 @@
     <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)" />
 
-    <script>
-        (function () {
-          var saved = localStorage.getItem("andytv-theme");
-          var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-          document.documentElement.setAttribute("data-theme", theme);
-        })();
-    </script>
+    <script>document.documentElement.dataset.theme = localStorage.getItem("andytv-theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");</script>
 
     <link rel="stylesheet" href="/styles.css" />
 </head>
