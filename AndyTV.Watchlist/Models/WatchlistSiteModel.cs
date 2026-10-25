@@ -1,6 +1,6 @@
 namespace AndyTV.Watchlist.Models;
 
-// Render-ready shape serialized to latest.json and consumed by the static site's app.js.
+// Render-ready shape serialized to latest.json and read back by SitePageRenderer.
 public sealed record WatchlistSiteModel(
     string Date,
     string Updated,
@@ -41,3 +41,6 @@ public sealed record PlanAlt(string Icon, string Matchup);
 
 // Every feed event for the edition, serialized to latest_all.json / latest_weekend_all.json for the All views.
 public sealed record ScheduleEvent(string Time, string TimeIso, string Icon, string Sport, string League, string Matchup, string Network, int? Rank);
+
+// One published edition (Daily or Weekend) as the page renderer needs it.
+public sealed record SiteEdition(WatchlistSiteModel Model, List<ScheduleEvent> Schedule);

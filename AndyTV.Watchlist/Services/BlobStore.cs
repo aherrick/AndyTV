@@ -7,7 +7,7 @@ using Azure.Storage.Sas;
 
 namespace AndyTV.Watchlist.Services;
 
-// One public container hosts latest.json, latest_weekend.json, and Instagram cards.
+// One public container hosts the feeds, the rendered index.html, and Instagram cards.
 public sealed class BlobStore(AppSettings settings)
 {
     private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
@@ -82,9 +82,21 @@ public sealed class BlobStore(AppSettings settings)
     public Task<Uri> PublishData(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
         Upload(kind.FeedFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
 
-    // The full schedule, fetched by the site only when a view switches to All.
+    // The full schedule, rendered into the site's All views.
     public Task<Uri> PublishSchedule(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
         Upload(kind.ScheduleFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
+
+    // The deploy workflow downloads this and publishes it as the site's index.html.
+    public Task<Uri> PublishPage(string html, CancellationToken cancellationToken = default) =>
+        Upload("index.html", BinaryData.FromString(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
+
+    public async Task<T> ReadFeed<T>(string blobName, CancellationToken cancellationToken = default)
+    {
+        var blob = Container.GetBlobClient(blobName);
+        return await blob.ExistsAsync(cancellationToken)
+            ? (await blob.DownloadContentAsync(cancellationToken)).Value.Content.ToObjectFromJson<T>(JsonSerializerOptions.Web)
+            : default;
+    }
 
     // Sunday expires only the weekend feeds. No container creation or deletion is
     // needed here, and an already-missing blob is a successful no-op.

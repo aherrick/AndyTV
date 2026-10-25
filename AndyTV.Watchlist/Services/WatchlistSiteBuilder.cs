@@ -3,8 +3,8 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Builds the render-ready view model the static site fetches as latest.json. All presentation
-// logic (Eastern times, sport icons, top picks, watch plan) stays here so app.js just fills the template.
+// Builds the render-ready view model saved as latest.json. Presentation logic (Eastern times,
+// sport icons, top picks, watch plan) stays here so SitePageRenderer just writes the HTML.
 public static class WatchlistSiteBuilder
 {
     public static WatchlistSiteModel Build(DailyWatchlist watchlist, WatchlistKind kind, DateOnly targetDate)
@@ -53,7 +53,7 @@ public static class WatchlistSiteBuilder
                 Iso(pick.Game.StartTimeIso)
             ));
 
-    // Ranked games for the Top tab; the client re-sorts these by time for the Timeline tab.
+    // Ranked games for the Top tab; the renderer re-sorts these by time for the Timeline tab.
     private static SiteGame ToSiteGame(WatchlistGame game) =>
         new(
             game.Rank,

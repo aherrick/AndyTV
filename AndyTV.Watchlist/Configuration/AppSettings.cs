@@ -14,9 +14,12 @@ public sealed record AppSettings(
     string XConsumerSecret,
     string XAccessToken,
     string XAccessTokenSecret,
-    string FeedsPin
+    string FeedsPin,
+    string GitHubDeployToken
 )
 {
+    public bool CanDeploySite => !string.IsNullOrWhiteSpace(GitHubDeployToken);
+
     public bool CanPostToX =>
         !string.IsNullOrWhiteSpace(XConsumerKey)
         && !string.IsNullOrWhiteSpace(XConsumerSecret)
@@ -53,7 +56,9 @@ public sealed record AppSettings(
             config["X_CONSUMER_SECRET"],
             config["X_ACCESS_TOKEN"],
             config["X_ACCESS_TOKEN_SECRET"],
-            config["FEEDS_PIN"]
+            config["FEEDS_PIN"],
+            // Fine-grained PAT for aherrick/AndyTV with only "Actions: Read and write".
+            config["GITHUB_DEPLOY_TOKEN"]
         );
     }
 }

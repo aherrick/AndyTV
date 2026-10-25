@@ -16,13 +16,18 @@ missing networks are researched.
 
 Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 `{dates}`, `{firstDay}`, `{count}` placeholders), `COPILOT_GITHUB_TOKEN` (fine-grained PAT with
-"Copilot Requests"; optional locally when signed in to Copilot), plus the existing blob,
+"Copilot Requests"; optional locally when signed in to Copilot), `GITHUB_DEPLOY_TOKEN` (fine-grained PAT
+for `aherrick/AndyTV` with only "Actions: Read and write"; optional, skips the site deploy), plus the existing blob,
 Cloudflare, Instagram and X settings.
 
 Daily publishes `latest.json` and its full schedule `latest_all.json`; weekend publishes
 `latest_weekend.json` and `latest_weekend_all.json` for the site's Weekend tab. Both kinds post
 to Instagram and X; Friday posts the daily and weekend editions separately. Sunday's daily run
 deletes both weekend files first.
+
+After the runs, `SitePublishService` renders every tab from those feeds into one static
+`index.html`, uploads it to the same container, and dispatches the `publish-watchlist-site`
+workflow, which downloads it and deploys the site.
 
 `INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
 the current token in the private `andytv-watchlist-private` container. After setting a new

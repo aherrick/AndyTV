@@ -31,8 +31,14 @@
   box-sizing: border-box;
 }
 
-[x-cloak] {
+/* Beats display rules like .game { display: grid } so filtered items really hide. */
+[hidden] {
   display: none !important;
+}
+
+body:not([data-tab="weekend"]) .weekend-only,
+body[data-tab="weekend"] .daily-only {
+  display: none;
 }
 
 body {

@@ -8,7 +8,7 @@ namespace AndyTV.Watchlist;
 /// Runs Daily every day and Weekend on Friday at 2:30 AM Eastern.
 /// WatchlistPublishingService handles research, publishing, and Sunday cleanup.
 /// </summary>
-public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingService)
+public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingService, SitePublishService sitePublishService)
 {
     // Debug only: flip either to true to run it once at startup. Keep both false when deploying.
     private const bool ForceDaily = false;
@@ -52,6 +52,14 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
         }
 
         // WhenAll lets one run finish even if the other fails, then surfaces the failure.
-        await Task.WhenAll(runs);
+        // The page is rebuilt from whatever feeds are live, so a failed social post never leaves the site stale.
+        try
+        {
+            await Task.WhenAll(runs);
+        }
+        finally
+        {
+            await sitePublishService.Publish(cancellationToken);
+        }
     }
 }
