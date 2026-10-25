@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
@@ -28,10 +27,10 @@ public sealed class WatchlistPublishingService(
         var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
         try
         {
-            // 1. Sunday's daily run expires the weekend feed.
+            // 1. Sunday's daily run expires the weekend edition.
             if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
             {
-                await blobStore.DeleteWeekendData(cancellationToken);
+                await blobStore.DeleteWeekendEdition(cancellationToken);
             }
 
             // 2. Load schedule events; none leaves the existing feed alone.
@@ -46,13 +45,14 @@ public sealed class WatchlistPublishingService(
             // 3. Copilot ranks and enriches the events.
             (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
 
-            // 4. Publish the site feed before social so it's live even if a later step fails.
+            // 4. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)
             {
-                var json = JsonSerializer.Serialize(WatchlistSiteBuilder.Build(watchlist, kind, targetDate), JsonSerializerOptions.Web);
-                await blobStore.PublishData(json, kind, cancellationToken);
-                var schedule = JsonSerializer.Serialize(WatchlistSiteBuilder.Schedule(events, watchlist), JsonSerializerOptions.Web);
-                await blobStore.PublishSchedule(schedule, kind, cancellationToken);
+                var edition = new SiteEdition(
+                    WatchlistSiteBuilder.Build(watchlist, kind, targetDate),
+                    WatchlistSiteBuilder.Schedule(events, watchlist)
+                );
+                await blobStore.SaveEdition(edition, kind, cancellationToken);
                 run.Feed = true;
             }
 

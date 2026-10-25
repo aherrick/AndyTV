@@ -3,7 +3,7 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Builds the render-ready view model saved as latest.json. Presentation logic (Eastern times,
+// Builds the render-ready view model saved in each SiteEdition. Presentation logic (Eastern times,
 // sport icons, top picks, watch plan) stays here so SitePageRenderer just writes the HTML.
 public static class WatchlistSiteBuilder
 {

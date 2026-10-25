@@ -20,14 +20,14 @@ Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 for `aherrick/AndyTV` with only "Actions: Read and write"; optional, skips the site deploy), plus the existing blob,
 Cloudflare, Instagram and X settings.
 
-Daily publishes `latest.json` and its full schedule `latest_all.json`; weekend publishes
-`latest_weekend.json` and `latest_weekend_all.json` for the site's Weekend tab. Both kinds post
-to Instagram and X; Friday posts the daily and weekend editions separately. Sunday's daily run
-deletes both weekend files first.
+Each kind saves its site edition (ranked games, picks, plan and full schedule) privately as
+`andytv-watchlist-private/site/daily.json` or `site/weekend.json`. Both kinds post to Instagram
+and X; Friday posts the daily and weekend editions separately. Sunday's daily run deletes the
+weekend edition first.
 
-After the runs, `SitePublishService` renders every tab from those feeds into one static
-`index.html`, uploads it to the same container, and dispatches the `publish-watchlist-site`
-workflow, which downloads it and deploys the site.
+After the runs, `SitePublishService` renders every tab from those editions into one static
+`index.html`, uploads it to the public `andytv-watchlist` container, and dispatches the
+`publish-watchlist-site` workflow, which downloads it and deploys the site.
 
 `INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
 the current token in the private `andytv-watchlist-private` container. After setting a new
@@ -43,9 +43,9 @@ The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 
 `WatchlistPublishingService` carries out each run in this order:
 
-1. On Sunday, delete the weekend feeds.
+1. On Sunday, delete the weekend edition.
 2. `WatchlistResearchService` loads the day's (or weekend's) events, runs the prompt
    and validates the result. Stop if the feeds returned no events.
-3. Build the site's JSON model and publish that kind's feed and full schedule to blob storage.
+3. Build that kind's site edition and save it to private blob storage.
 4. Capture each Instagram card, upload them and publish the carousel when configured.
 5. Log the X thread and post it when X credentials are present.

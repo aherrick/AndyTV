@@ -7,7 +7,7 @@ using Azure.Storage.Sas;
 
 namespace AndyTV.Watchlist.Services;
 
-// One public container hosts the feeds, the rendered index.html, and Instagram cards.
+// The public container hosts the rendered index.html and Instagram cards; editions stay private.
 public sealed class BlobStore(AppSettings settings)
 {
     private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
@@ -78,34 +78,23 @@ public sealed class BlobStore(AppSettings settings)
     public Task<Uri> UploadImage(string blobName, byte[] png, CancellationToken cancellationToken = default) =>
         Upload(blobName, BinaryData.FromBytes(png), "image/png", null, cancellationToken);
 
-    // Uploads a watchlist feed to the container root and returns its blob URL.
-    public Task<Uri> PublishData(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
-        Upload(kind.FeedFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
-
-    // The full schedule, rendered into the site's All views.
-    public Task<Uri> PublishSchedule(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
-        Upload(kind.ScheduleFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
-
     // The deploy workflow downloads this and publishes it as the site's index.html.
     public Task<Uri> PublishPage(string html, CancellationToken cancellationToken = default) =>
         Upload("index.html", BinaryData.FromString(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
 
-    public async Task<T> ReadFeed<T>(string blobName, CancellationToken cancellationToken = default)
-    {
-        var blob = Container.GetBlobClient(blobName);
-        return await blob.ExistsAsync(cancellationToken)
-            ? (await blob.DownloadContentAsync(cancellationToken)).Value.Content.ToObjectFromJson<T>(JsonSerializerOptions.Web)
-            : default;
-    }
+    // Each kind's latest edition, kept so later days can re-render the page (e.g. Saturday keeps Friday's weekend).
+    public Task SaveEdition(SiteEdition edition, WatchlistKind kind, CancellationToken cancellationToken = default) =>
+        WritePrivate(kind.EditionBlobName(), JsonSerializer.Serialize(edition, JsonSerializerOptions.Web), cancellationToken);
 
-    // Sunday expires only the weekend feeds. No container creation or deletion is
-    // needed here, and an already-missing blob is a successful no-op.
-    public async Task DeleteWeekendData(CancellationToken cancellationToken = default)
-    {
-        var container = Container;
-        await container.GetBlobClient(WatchlistKind.Weekend.FeedFileName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
-        await container.GetBlobClient(WatchlistKind.Weekend.ScheduleFileName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
-    }
+    // Null when that kind isn't published (no weekend outside Friday-Saturday).
+    public async Task<SiteEdition> ReadEdition(WatchlistKind kind, CancellationToken cancellationToken = default) =>
+        await ReadPrivate(kind.EditionBlobName(), cancellationToken) is { } json
+            ? JsonSerializer.Deserialize<SiteEdition>(json, JsonSerializerOptions.Web)
+            : null;
+
+    // Sunday expires the weekend edition; an already-missing blob is a no-op.
+    public async Task DeleteWeekendEdition(CancellationToken cancellationToken = default) =>
+        await PrivateContainer.GetBlobClient(WatchlistKind.Weekend.EditionBlobName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
 
     private async Task<Uri> Upload(
         string blobName,

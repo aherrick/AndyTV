@@ -6,21 +6,13 @@ public enum WatchlistKind
     Weekend,
 }
 
-// Each kind publishes to its own feed so the Friday runs cannot overwrite each other.
+// Each kind saves its own edition so the Friday runs cannot overwrite each other.
 public static class WatchlistKindExtensions
 {
-    public static string FeedFileName(this WatchlistKind kind) => kind switch
+    public static string EditionBlobName(this WatchlistKind kind) => kind switch
     {
-        WatchlistKind.Daily => "latest.json",
-        WatchlistKind.Weekend => "latest_weekend.json",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-    };
-
-    // Full schedule for the site's All view.
-    public static string ScheduleFileName(this WatchlistKind kind) => kind switch
-    {
-        WatchlistKind.Daily => "latest_all.json",
-        WatchlistKind.Weekend => "latest_weekend_all.json",
+        WatchlistKind.Daily => "site/daily.json",
+        WatchlistKind.Weekend => "site/weekend.json",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
