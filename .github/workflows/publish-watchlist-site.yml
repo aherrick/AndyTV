@@ -14,7 +14,7 @@ jobs:
 
       # Rendered by the Watchlist function; --fail stops the deploy if it's missing.
       - name: Download index.html
-        run: curl --fail --silent --show-error -o AndyTV.Watchlist.Site/index.html https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/index.html
+        run: curl --fail --silent --show-error --retry 3 -o AndyTV.Watchlist.Site/index.html https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/index.html
 
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
