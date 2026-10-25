@@ -2,6 +2,8 @@
 
 	<PropertyGroup>
 		<TargetFramework>net11.0-ios</TargetFramework>
+		<!-- Restore both simulator RIDs so the IDE's choice always has an assets target; device builds pass -r ios-arm64. -->
+		<RuntimeIdentifiers>iossimulator-arm64;iossimulator-x64</RuntimeIdentifiers>
 		<SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
 
 		<OutputType>Exe</OutputType>
@@ -52,7 +54,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-rc.2.26505.5" />
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.2" />
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.40" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.41" />
 	</ItemGroup>
 
 	<ItemGroup>

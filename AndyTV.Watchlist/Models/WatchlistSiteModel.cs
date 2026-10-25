@@ -8,11 +8,11 @@ public sealed record WatchlistSiteModel(
     PlanTab Plan
 );
 
-public sealed record TopTab(List<TopPick> Picks, List<Game> Games);
+public sealed record TopTab(List<TopPick> Picks, List<SiteGame> Games);
 
 public sealed record TopPick(string Icon, string Label, string Matchup, string Time, string TimeIso);
 
-public sealed record Game(
+public sealed record SiteGame(
     int Rank,
     string Icon,
     string Matchup,
@@ -39,5 +39,5 @@ public sealed record PlanStep(
 
 public sealed record PlanAlt(string Icon, string Matchup);
 
-// Every feed event for the day, serialized to latest_all.json for the Timeline tab's All view.
+// Every feed event for the edition, serialized to latest_all.json / latest_weekend_all.json for the All views.
 public sealed record ScheduleEvent(string Time, string TimeIso, string Icon, string Sport, string League, string Matchup, string Network, int? Rank);

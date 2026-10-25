@@ -14,7 +14,7 @@
                 <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
             </div>
         }
-        else if (_channels.Any())
+        else if (_channels.Count > 0)
         {
             <MudDataGrid T="Channel"
                          Items="_channels"
@@ -66,7 +66,7 @@
                 </PagerContent>
             </MudDataGrid>
         }
-        else if (!_loading && !string.IsNullOrWhiteSpace(_playlistUrl))
+        else if (!string.IsNullOrWhiteSpace(_playlistUrl))
         {
             <div style="max-width:800px;margin:0 auto;">
                 <MudAlert Severity="Severity.Warning" Class="mt-2">No channels found in playlist</MudAlert>
@@ -78,9 +78,9 @@
 
 @code {
     private string _playlistUrl = string.Empty;
-    private bool _loading = false;
+    private bool _loading;
     private string _search = string.Empty;
-    private List<Channel> _channels = new();
+    private List<Channel> _channels = [];
 
     // Moved storage access to OnAfterRenderAsync because JS interop is not available during prerender.
     protected override async Task OnAfterRenderAsync(bool firstRender)

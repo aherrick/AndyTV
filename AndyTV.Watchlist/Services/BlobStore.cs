@@ -82,15 +82,18 @@ public sealed class BlobStore(AppSettings settings)
     public Task<Uri> PublishData(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
         Upload(kind.FeedFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
 
-    // The full daily schedule, fetched by the site only when Timeline switches to All.
-    public Task<Uri> PublishSchedule(string json, CancellationToken cancellationToken = default) =>
-        Upload("latest_all.json", BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
+    // The full schedule, fetched by the site only when a view switches to All.
+    public Task<Uri> PublishSchedule(string json, WatchlistKind kind, CancellationToken cancellationToken = default) =>
+        Upload(kind.ScheduleFileName(), BinaryData.FromString(json), "application/json; charset=utf-8", "no-cache", cancellationToken);
 
-    // Sunday expires only the weekend feed. No container creation or deletion is
+    // Sunday expires only the weekend feeds. No container creation or deletion is
     // needed here, and an already-missing blob is a successful no-op.
-    public Task DeleteWeekendData(CancellationToken cancellationToken = default) =>
-        Container.GetBlobClient(WatchlistKind.Weekend.FeedFileName())
-            .DeleteIfExistsAsync(cancellationToken: cancellationToken);
+    public async Task DeleteWeekendData(CancellationToken cancellationToken = default)
+    {
+        var container = Container;
+        await container.GetBlobClient(WatchlistKind.Weekend.FeedFileName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+        await container.GetBlobClient(WatchlistKind.Weekend.ScheduleFileName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+    }
 
     private async Task<Uri> Upload(
         string blobName,

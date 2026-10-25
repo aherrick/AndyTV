@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        @if (Manager.Playlists.Any())
+        @if (Manager.Playlists.Count > 0)
         {
             <ul class="list-group mb-3">
                 @foreach (var playlist in Manager.Playlists)
@@ -53,8 +53,5 @@
         _url = "";
     }
 
-    private async Task DeletePlaylist(Playlist playlist)
-    {
-        await Manager.DeletePlaylistAsync(playlist);
-    }
+    private Task DeletePlaylist(Playlist playlist) => Manager.DeletePlaylistAsync(playlist);
 }

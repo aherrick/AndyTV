@@ -19,9 +19,10 @@ Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 "Copilot Requests"; optional locally when signed in to Copilot), plus the existing blob,
 Cloudflare, Instagram and X settings.
 
-Daily publishes `latest.json`; weekend publishes `latest_weekend.json` for the
-site's Weekend tab. Both kinds post to Instagram and X; Friday posts the daily and
-weekend editions separately. Sunday's daily run deletes `latest_weekend.json` first.
+Daily publishes `latest.json` and its full schedule `latest_all.json`; weekend publishes
+`latest_weekend.json` and `latest_weekend_all.json` for the site's Weekend tab. Both kinds post
+to Instagram and X; Friday posts the daily and weekend editions separately. Sunday's daily run
+deletes both weekend files first.
 
 `INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
 the current token in the private `andytv-watchlist-private` container. After setting a new
@@ -37,9 +38,9 @@ The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 
 `WatchlistPublishingService` carries out each run in this order:
 
-1. On Sunday, delete the weekend feed.
+1. On Sunday, delete the weekend feeds.
 2. `WatchlistResearchService` loads the day's (or weekend's) events, runs the prompt
    and validates the result. Stop if the feeds returned no events.
-3. Build the site's JSON model and publish that kind's feed to blob storage.
+3. Build the site's JSON model and publish that kind's feed and full schedule to blob storage.
 4. Capture each Instagram card, upload them and publish the carousel when configured.
 5. Log the X thread and post it when X credentials are present.

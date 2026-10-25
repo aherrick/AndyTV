@@ -16,10 +16,17 @@
             background-color: #1e1e1e;
             color: #ffffff;
         }
+
+        /* Blazor replaces this on first render. */
+        .loading {
+            position: fixed;
+            inset: 0;
+            cursor: wait;
+        }
     </style>
 </head>
 <body>
-    <div id="app">Loading...</div>
+    <div id="app"><div class="loading">Loading...</div></div>
 
     <script src="_framework/blazor.webview.js"></script>
     <script src="_content/Syncfusion.Blazor.Core/scripts/syncfusion-blazor.min.js"></script>

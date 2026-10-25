@@ -26,20 +26,8 @@ static class CursorExtensions
 
     public static void ShowWaiting(this Control control) => SetCursor(control, Cursors.WaitCursor);
 
-    public static void SetCursorForCurrentView(this Control control)
-    {
-        var form = control.FindForm();
-        if (form?.IsFullscreen() == true)
-        {
-            control.HideCursor();
-        }
-        else
-        {
-            control.ShowDefault();
-        }
-    }
-
-    private static void HideCursor(this Control control) => SetCursor(control, HiddenCursor);
+    public static void SetCursorForCurrentView(this Control control) =>
+        SetCursor(control, control.FindForm()?.IsFullscreen() == true ? HiddenCursor : Cursors.Default);
 
     private static void SetCursor(Control control, Cursor cursor)
     {

@@ -50,19 +50,15 @@ sealed class SearchForm : Form
     {
         var term = _search.Text.Trim();
 
-        // Empty box shows nothing; user types to filter.
-        if (term.Length == 0)
-        {
-            _results.DataSource = null;
-            return;
-        }
-
-        var matches = _channels.Where(c =>
-            c.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
-        );
-
+        // Empty box shows nothing. Never assign null: that clears DisplayMember.
         // DataSource resets selection to the first (top) match, so Enter plays it.
-        _results.DataSource = matches.Take(MaxResults).ToList();
+        _results.DataSource =
+            term.Length == 0
+                ? []
+                : _channels
+                    .Where(c => c.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    .Take(MaxResults)
+                    .ToList();
     }
 
     private void OnSearchKeyDown(object sender, KeyEventArgs e)

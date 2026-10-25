@@ -10,11 +10,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
     private const string PlaylistsFileName = "playlists.json";
     private static readonly HttpClient _httpClient = new();
 
-    public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels
-    {
-        get;
-        private set;
-    } = [];
+    public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels { get; private set; } = [];
 
     public List<Channel> Channels { get; private set; } = [];
 
@@ -39,12 +35,7 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
 
         static List<Channel> Dedup(
             IEnumerable<(Playlist Playlist, List<Channel> Channels)> source) =>
-            [
-                .. source
-                    .SelectMany(x => x.Channels)
-                    .GroupBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
-                    .Select(g => g.First()),
-            ];
+            [.. source.SelectMany(x => x.Channels).DistinctBy(c => c.Url, StringComparer.OrdinalIgnoreCase)];
     }
 
     public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(

@@ -129,9 +129,9 @@ public static class SportsFormat
 
         Add("🔥", "Best overall", games);
         // Every sport in the list, ordered by its best-ranked game.
-        foreach (var sport in games.Select(game => game.Sport).Distinct())
+        foreach (var sport in games.GroupBy(game => game.Sport))
         {
-            Add(Icon(sport), $"Best {sport.ToLowerInvariant()}", games.Where(game => game.Sport == sport));
+            Add(Icon(sport.Key), $"Best {sport.Key.ToLowerInvariant()}", sport);
         }
         Add("🌙", "Best late-night", games.Where(game => EasternTimeZone.Convert(game.StartTimeIso).Hour >= 22));
 

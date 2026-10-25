@@ -12,6 +12,7 @@ sealed class GuideForm : Form
 
     public GuideForm()
     {
+        UseWaitCursor = true;
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96F, 96F);
         Text = "AndyTV Guide";
@@ -42,6 +43,8 @@ sealed class GuideForm : Form
             Services = services.BuildServiceProvider(),
         };
         blazorWebView.RootComponents.Add<GuideComponent>("#app");
+        // From here the WebView2 window owns the cursor; index.html keeps the spinner until Blazor renders.
+        blazorWebView.BlazorWebViewInitialized += (_, _) => UseWaitCursor = false;
 
         Controls.Add(blazorWebView);
     }

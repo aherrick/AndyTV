@@ -5,7 +5,7 @@ public static class EasternTimeZone
     // .NET resolves IANA ids on both Windows and Linux.
     private static readonly TimeZoneInfo Zone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
 
-    public static DateTimeOffset Now => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Zone);
+    public static DateTimeOffset Now => Convert(DateTimeOffset.UtcNow);
 
     public static DateOnly Today => Date(DateTimeOffset.UtcNow);
 

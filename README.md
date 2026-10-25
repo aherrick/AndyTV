@@ -54,7 +54,7 @@ C:\Users\Andy\Playlists\tv.m3u
 
 - **ShowInMenu** – whether this playlist's full channel list appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
-- **SmartGroup** – group the playlist's channels so every feed of the same channel sits together: event titles (`NHL 01:`, `LIVE EVENT 02 -`, or a trailing `:NBA 06`) by their league tag, otherwise the longest match in the curated US/UK/Global lists (entries sharing a `ChannelFamily`, like TSN, Sportsnet, Sky Sports, HBO, Starz, share one group), otherwise the first word. Largest groups first; overrides GroupByFirstChar.
+- **SmartGroup** – group feeds of the same channel or league together, largest groups first. Overrides GroupByFirstChar.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 
 ## 🤝 Contributing
@@ -66,7 +66,7 @@ If you’d like to add new features, improve the UI, or just fix a typo, PRs are
 ## 📚 Tech Stack
 AndyTV is built with a modern .NET toolchain and a few carefully chosen libraries:
 
-- ⚡ **.NET 10 / C# 14** — modern performance and language features
+- ⚡ **.NET 11 / C# 15** — modern performance and language features
 - 🖼️ **WinForms** — classic, lightweight Windows desktop UI  
 - 🎵 **LibVLCSharp** — handles reliable media playback  
 - 📦 **Velopack** — simple auto-updates & packaging  
@@ -84,14 +84,16 @@ Planned highlights:
 This project is experimental and under active development; APIs and features may change.
 
 ## 🏆 AndyTV.Watchlist (Daily Sports Guide)
-`AndyTV.Watchlist` is an Azure Functions app that creates and posts a daily sports watch guide to X. It gathers verified schedules for major baseball, football, hockey, basketball, and soccer events, then uses AI research to rank the best matchups and build a viewing plan.
+`AndyTV.Watchlist` is an Azure Functions app that builds a daily sports watch guide and publishes it to [andytv.today](https://andytv.today), Instagram, and X. It pulls schedules from ESPN (baseball, football, hockey, basketball, soccer, UFC, racing, golf, and tennis), then uses AI research to rank the best matchups and build a viewing plan.
 
-The daily thread includes:
+Every day the guide includes:
 - 📺 Ranked sports to watch today
-- ⏰ A chronological sports timeline
+- ⏰ A chronological timeline, plus the full schedule of every event
 - ⭐ Top picks and an AI watch plan
 
-Follow the daily guide at [andytv.today](https://andytv.today) or [@AndyTVWatchlist on X](https://x.com/AndyTVWatchlist).
+On Fridays it also publishes a **Weekend** edition covering Saturday and Sunday, with its own ranked list, timeline, and full schedule.
+
+Follow the guide at [andytv.today](https://andytv.today) or [@AndyTVWatchlist on X](https://x.com/AndyTVWatchlist).
 
 ## ▶️ AndyTV.VLC (Companion)
 `AndyTV.VLC` is a lightweight Blazor Server companion that lets you browse an IPTV playlist and launch any channel directly in VLC. Use it when you prefer VLC's player or want fast filtering/grouping.
@@ -103,7 +105,7 @@ Follow the daily guide at [andytv.today](https://andytv.today) or [@AndyTVWatchl
 - One‑click launch in VLC
 
 **Requires**
-- .NET 10 SDK (or change target to `net8.0`)
+- .NET 11 SDK
 - VLC installed (`C:/Program Files/VideoLAN/VLC/vlc.exe` default)
 
 **Configure VLC path** (`appsettings.json`):
@@ -117,7 +119,7 @@ cd AndyTV.VLC
 dotnet restore
 dotnet run
 ```
-Open https://localhost:5001 and paste your M3U URL.
+Open https://localhost:7001 and paste your M3U URL.
 
 > Security: Only the selected stream URL is passed to VLC; keep usage local/private.
 

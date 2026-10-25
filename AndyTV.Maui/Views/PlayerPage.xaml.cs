@@ -72,10 +72,19 @@ public partial class PlayerPage
     {
         base.OnAppearing();
         ShowControls();
+        // Explicit registrations: RegisterAll relies on reflection, which isn't safe under iOS AOT/trimming.
         WeakReferenceMessenger.Default.Register<AppResumedMessage>(this);
         WeakReferenceMessenger.Default.Register<AppStoppedMessage>(this);
         WeakReferenceMessenger.Default.Register<AudioInterruptedMessage>(this);
         WeakReferenceMessenger.Default.Register<AudioResumableMessage>(this);
+    }
+
+    public static async Task OpenAsync(Channel channel)
+    {
+        if (!string.IsNullOrEmpty(channel?.Url))
+        {
+            await Shell.Current.Navigation.PushAsync(new PlayerPage(channel));
+        }
     }
 
     public void Receive(AppResumedMessage _)
@@ -136,20 +145,13 @@ public partial class PlayerPage
         });
     }
 
-    private bool ShouldRestartOnResume()
-    {
-        return _mediaPlayer.State
-            is VLCState.NothingSpecial
-                or VLCState.Stopped
-                or VLCState.Ended
-                or VLCState.Error;
-    }
+    private bool ShouldRestartOnResume() =>
+        _mediaPlayer.State is VLCState.NothingSpecial or VLCState.Stopped or VLCState.Ended or VLCState.Error;
 
     // Every (re)start gets a new server session, which makes the server pop a fresh stream.
     private void Play()
     {
         var url = _localPlaybackService.GetUrl(_sourceUrl);
-        _viewModel.Url = url;
         _paused = false;
 
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
@@ -218,10 +220,7 @@ public partial class PlayerPage
         DeviceDisplay.Current.KeepScreenOn = false;
         NowPlaying.Clear();
 
-        WeakReferenceMessenger.Default.Unregister<AppResumedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<AppStoppedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<AudioInterruptedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<AudioResumableMessage>(this);
+        WeakReferenceMessenger.Default.UnregisterAll(this);
 
         _healthTimer.Stop();
         _controlsTimer.Stop();

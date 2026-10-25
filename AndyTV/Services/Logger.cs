@@ -23,8 +23,8 @@ static class Logger
 
     public static void Error(string message) => Write("ERROR", message);
 
-    public static void Error(Exception ex, string message = null) =>
-        Write("ERROR", (message is null ? "" : message + Environment.NewLine) + ex);
+    public static void Error(Exception ex, string message) =>
+        Write("ERROR", message + Environment.NewLine + ex);
 
     public static void WireGlobalHandlers()
     {
@@ -48,9 +48,7 @@ static class Logger
     {
         try
         {
-            var line =
-                $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss} [{level}] "
-                + $"[T{Environment.CurrentManagedThreadId}] {message}{Environment.NewLine}";
+            var line = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss} [{level}] [T{Environment.CurrentManagedThreadId}] {message}{Environment.NewLine}";
             File.AppendAllText(CurrentFile, line, Encoding.UTF8);
         }
         catch

@@ -18,7 +18,6 @@ internal sealed class PlayerForm : Form
     private readonly ToolStripSeparator _recentSeparator = new();
     private readonly ToolStripSeparator _favoritesSeparator = new();
 
-    private readonly IStorageProvider _storage = new LocalStorageProvider();
     private readonly LocalConfigService _configService;
     private readonly LocalConfig _config;
     private readonly PlaylistService _playlistService;
@@ -51,6 +50,7 @@ internal sealed class PlayerForm : Form
 
     private readonly CancellationTokenSource _cts = new();
     private readonly StreamHealthMonitor _healthMonitor = new();
+    private volatile bool _videoLate;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
     private readonly System.Windows.Forms.Timer _sleepTimer = new();
     private ToolStripMenuItem _sleepOffItem;
@@ -61,12 +61,13 @@ internal sealed class PlayerForm : Form
 
     public PlayerForm()
     {
-        _configService = new LocalConfigService(_storage);
+        var storage = new LocalStorageProvider();
+        _configService = new LocalConfigService(storage);
         _config = _configService.Load();
-        _playlistService = new PlaylistService(_storage);
-        _recentService = new RecentChannelService(_storage);
-        _lastService = new LastChannelService(_storage);
-        _favoriteService = new FavoriteChannelService(_storage);
+        _playlistService = new PlaylistService(storage);
+        _recentService = new RecentChannelService(storage);
+        _lastService = new LastChannelService(storage);
+        _favoriteService = new FavoriteChannelService(storage);
 
         Text = AppVersionName;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -294,6 +295,8 @@ internal sealed class PlayerForm : Form
 
     private void ShowGuide()
     {
+        // The first GuideForm construction blocks the UI thread while WebView2/Syncfusion load.
+        Cursor.Current = Cursors.WaitCursor;
         using var form = new GuideForm();
         if (form.ShowDialog(this) == DialogResult.OK
             && form.SelectedStreamingTvId is { } id
@@ -556,7 +559,9 @@ internal sealed class PlayerForm : Form
 
     private void SwapChannelItems(List<ToolStripItem> items)
     {
-        using (_menu.SuspendPainting())
+        // Not SuspendPainting(): its WM_SETREDRAW(TRUE) shows the hidden menu.
+        _menu.SuspendLayout();
+        try
         {
             foreach (var item in _channelItems)
             {
@@ -569,12 +574,16 @@ internal sealed class PlayerForm : Form
                 _channelItems.Add(item);
             }
         }
+        finally
+        {
+            _menu.ResumeLayout();
+        }
     }
 
     // Runs off the UI thread; only creates ToolStripItems (safe until added to the menu).
     private List<ToolStripItem> BuildChannelItems()
     {
-        var items = new List<ToolStripItem>();
+        List<ToolStripItem> items = [];
 
         foreach (
             var (playlist, channels) in _playlistService.PlaylistChannels.Where(x =>
@@ -590,22 +599,11 @@ internal sealed class PlayerForm : Form
         // US/UK match only playlists flagged for it, so TV-show/movie playlists don't
         // pollute the curated lists; 24-7 still spans all channels.
         var usUkChannels = _playlistService.UsUkChannels;
-        items.Add(
-            Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels))
-        );
-        items.Add(
-            Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels))
-        );
-        items.Add(
-            Render(
-                ChannelMatcher.BuildTopRegion(
-                    "Global",
-                    ChannelService.TopGlobal(),
-                    _playlistService.Channels
-                )
-            )
-        );
-        var menu247 = Render(ChannelMatcher.Build247(_playlistService.Channels));
+        var allChannels = _playlistService.Channels;
+        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels)));
+        items.Add(Render(ChannelMatcher.BuildTopRegion("Global", ChannelService.TopGlobal(), allChannels)));
+        var menu247 = Render(ChannelMatcher.Build247(allChannels));
         if (menu247.DropDownItems.Count > 0)
         {
             items.Add(menu247);
@@ -768,7 +766,7 @@ internal sealed class PlayerForm : Form
         if (
             !IsDisposed
             && current == _current
-            && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures)
+            && (_videoLate || _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures))
         )
         {
             Logger.Warn($"[HEALTH] No playback progress, restarting {current.DisplayName}");
@@ -804,6 +802,7 @@ internal sealed class PlayerForm : Form
         RunPlayback(() =>
         {
             _mediaPlayer.Stop();
+            _videoLate = false;
             using var media = new Media(_libVLC, new Uri(channel.Url));
             if (bufferMilliseconds is >= 0 and <= 60000)
             {
@@ -849,11 +848,23 @@ internal sealed class PlayerForm : Form
         };
     }
 
-    // Runs on VLC's decoder threads: errors only, since warnings flood at hundreds per second and
+    // Runs on VLC's decoder threads: log sparingly, since warnings flood at hundreds per second and
     // the synchronous file writes slow decoding further.
-    private static void OnLibVlcLog(object _, LogEventArgs e)
+    private void OnLibVlcLog(object _, LogEventArgs e)
     {
-        if (e.Level is LogLevel.Error)
+        // VLC has no event for this and rarely recovers; logged per frame, so flag instead of writing.
+        if (e.Message.Contains("late video", StringComparison.Ordinal))
+        {
+            _videoLate = true;
+            return;
+        }
+
+        // Once per stream; absent means VLC fell back to software decoding.
+        if (e.Message.Contains("for hardware decoding", StringComparison.Ordinal))
+        {
+            Logger.Info($"[VLC/{e.Module}] {e.Message}");
+        }
+        else if (e.Level is LogLevel.Error)
         {
             Logger.Error($"[VLC/{e.Module}] {e.Message}");
         }

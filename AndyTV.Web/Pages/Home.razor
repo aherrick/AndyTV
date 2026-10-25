@@ -85,7 +85,6 @@
     private string _currentChannel = "";
     private string _currentUrl = "";
     private bool _playerInitialized;
-    private bool _attemptedAutoResume;
 
     private Tab _activeTab = Tab.Recent;
     private List<Channel> _recentChannels = [];
@@ -112,12 +111,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _attemptedAutoResume)
+        if (!firstRender)
         {
             return;
         }
-
-        _attemptedAutoResume = true;
 
         if (LastChannelService.LoadLastChannel() is { } last && !string.IsNullOrWhiteSpace(last.Url))
         {

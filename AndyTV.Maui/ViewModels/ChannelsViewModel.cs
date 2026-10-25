@@ -15,8 +15,7 @@ public partial class ChannelsViewModel(
     ILocalConfigService localConfigService
 ) : ObservableObject
 {
-    [ObservableProperty]
-    public partial bool IsBusy { get; set; }
+    private bool _isBusy;
 
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }
@@ -142,12 +141,12 @@ public partial class ChannelsViewModel(
     [RelayCommand]
     private async Task LoadChannels()
     {
-        if (IsBusy)
+        if (_isBusy)
         {
             return;
         }
 
-        IsBusy = true;
+        _isBusy = true;
 
         try
         {
@@ -162,7 +161,7 @@ public partial class ChannelsViewModel(
         }
         finally
         {
-            IsBusy = false;
+            _isBusy = false;
             IsRefreshing = false;
         }
     }
@@ -188,13 +187,5 @@ public partial class ChannelsViewModel(
     }
 
     [RelayCommand]
-    private async Task SelectChannel(Channel channel)
-    {
-        if (channel == null || string.IsNullOrEmpty(channel.Url))
-        {
-            return;
-        }
-
-        await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(channel));
-    }
+    private Task SelectChannel(Channel channel) => Views.PlayerPage.OpenAsync(channel);
 }
