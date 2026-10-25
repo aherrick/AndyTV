@@ -5,11 +5,15 @@
       "headers": {
         "Cache-Control": "no-cache"
       }
+    },
+    {
+      "route": "/privacy",
+      "rewrite": "/privacy.html"
     }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/styles.css", "/app.js", "/*.json", "/*.webmanifest", "/*.ico", "/*.png"]
+    "exclude": ["/styles.css", "/app.js", "/*.json", "/*.txt", "/*.html", "/*.webmanifest", "/*.ico", "/*.png"]
   },
   "mimeTypes": {
     ".webmanifest": "application/manifest+json"
