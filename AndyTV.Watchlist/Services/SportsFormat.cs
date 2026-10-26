@@ -26,6 +26,10 @@ public static class SportsFormat
 
     public static string Time(DateTimeOffset value) => $"{TimeNoZone(value)} ET";
 
+    // Machine-readable ISO timestamp for the site's <time datetime="...">.
+    public static string Iso(DateTimeOffset value) =>
+        value.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
+
     // Weekend times need the day, e.g. "Sat 1:00 PM ET".
     public static string Time(DateTimeOffset value, WatchlistKind kind) =>
         kind == WatchlistKind.Weekend ? $"{Day(value)} {Time(value)}" : Time(value);

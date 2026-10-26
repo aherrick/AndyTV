@@ -20,6 +20,7 @@ function show(target, push) {
   for (const section of $$(".panel")) {
     section.classList.toggle("active", section.dataset.panel === panel);
     filter(section, "");
+    section.querySelector(".sport-filter")?.scrollTo(0, 0);
   }
   if (push) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
 }

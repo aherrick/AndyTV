@@ -48,10 +48,7 @@ public sealed class WatchlistPublishingService(
             // 4. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)
             {
-                var edition = new SiteEdition(
-                    WatchlistSiteBuilder.Build(watchlist, kind, targetDate),
-                    WatchlistSiteBuilder.Schedule(events, watchlist)
-                );
+                var edition = new SiteEdition(targetDate, DateTimeOffset.UtcNow, watchlist, events);
                 await blobStore.SaveEdition(edition, kind, cancellationToken);
                 run.Feed = true;
             }
