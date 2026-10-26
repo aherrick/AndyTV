@@ -10,21 +10,28 @@ jobs:
       # Roslynator targets up to net10.0; force it onto the .NET 11 RC runtime.
       DOTNET_ROLL_FORWARD: LatestMajor
       DOTNET_ROLL_FORWARD_TO_PRERELEASE: 1
+      ROSLYNATOR_VERSION: 1.0.1
+      ROSLYNATOR_DIR: C:\runners\tools\roslynator\1.0.1
     steps:
       - uses: actions/checkout@v5
 
-      # Local install so the self-hosted runner's system .NET isn't touched
+      # Private SDK outside the workspace: survives checkout's clean, leaves system .NET alone
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
-          DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
+          DOTNET_INSTALL_DIR: C:\runners\dotnet
         with:
           dotnet-version: 11.0.x
           dotnet-quality: preview
 
       # 0.11.0's bundled MSBuild can't load the .NET 11 SDK (MissingMethodException); 1.0.1 can.
       - name: Install Roslynator CLI
-        run: dotnet tool install roslynator.dotnet.cli --version 1.0.1 --tool-path tools
+        shell: powershell
+        run: |
+          if (-not (Test-Path "$env:ROSLYNATOR_DIR\roslynator.exe")) {
+            dotnet tool install roslynator.dotnet.cli --version $env:ROSLYNATOR_VERSION --tool-path $env:ROSLYNATOR_DIR
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       # Analyzers aren't referenced by the projects, so pull the package directly
       - name: Download Roslynator Analyzers
@@ -36,12 +43,17 @@ jobs:
           Remove-Item package.zip
 
       - name: Analyze
-        run: ./tools/roslynator analyze AndyTV.slnx --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers" --ignore-compiler-diagnostics
+        shell: powershell
+        run: >
+          & "$env:ROSLYNATOR_DIR\roslynator" analyze AndyTV.slnx
+          --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers"
+          --ignore-compiler-diagnostics
 
       - name: Find unused private code
         continue-on-error: true
+        shell: powershell
         run: >
-          ./tools/roslynator find-symbol AndyTV.slnx
+          & "$env:ROSLYNATOR_DIR\roslynator" find-symbol AndyTV.slnx
           --symbol-kind type-or-member
           --unused
           --visibility private

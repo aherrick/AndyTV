@@ -16,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Local install so the self-hosted runner's system .NET isn't touched
+      # Private SDK outside the workspace: survives checkout's clean, leaves system .NET alone
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
-          DOTNET_INSTALL_DIR: ${{ github.workspace }}\.dotnet
+          DOTNET_INSTALL_DIR: C:\runners\dotnet
         with:
           dotnet-version: 11.0.x
           dotnet-quality: preview

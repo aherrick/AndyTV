@@ -19,6 +19,8 @@ env:
 
 jobs:
   build-ios-adhoc:
+    # workflow_run fires on failure too; only ship builds from a green ios-dev-push
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, ajmacmini]
 
     steps:

@@ -1,0 +1,19 @@
+name: runner-cleanup
+
+# Wipes the persistent SDK/tool dirs; the next build reinstalls only what's current.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 1 * *" # 1st of the month
+
+jobs:
+  windows:
+    runs-on: [self-hosted, ajwin]
+    steps:
+      - shell: powershell
+        run: if (Test-Path C:\runners) { Remove-Item C:\runners -Recurse -Force }
+
+  mac:
+    runs-on: [self-hosted, ajmacmini]
+    steps:
+      - run: rm -rf "$HOME/runners"
