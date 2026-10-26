@@ -11,7 +11,7 @@ jobs:
       DOTNET_ROLL_FORWARD: LatestMajor
       DOTNET_ROLL_FORWARD_TO_PRERELEASE: 1
       ROSLYNATOR_VERSION: 1.0.1
-      ROSLYNATOR_DIR: C:\runners\tools\roslynator\1.0.1
+      ROSLYNATOR_DIR: C:\code\_runners\_tools\roslynator\1.0.1
     steps:
       - uses: actions/checkout@v5
 
@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
-          DOTNET_INSTALL_DIR: C:\runners\dotnet
+          DOTNET_INSTALL_DIR: C:\code\_runners\_tools\dotnet
         with:
           dotnet-version: 11.0.x
           dotnet-quality: preview

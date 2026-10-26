@@ -11,7 +11,7 @@ jobs:
     runs-on: [self-hosted, ajwin]
     steps:
       - shell: powershell
-        run: if (Test-Path C:\runners) { Remove-Item C:\runners -Recurse -Force }
+        run: if (Test-Path C:\code\_runners\_tools) { Remove-Item C:\code\_runners\_tools -Recurse -Force }
 
   mac:
     runs-on: [self-hosted, ajmacmini]

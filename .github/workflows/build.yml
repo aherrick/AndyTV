@@ -16,7 +16,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         env:
-          DOTNET_INSTALL_DIR: C:\runners\dotnet
+          DOTNET_INSTALL_DIR: C:\code\_runners\_tools\dotnet
         with:
           dotnet-version: '11.0.x'
           dotnet-quality: preview
