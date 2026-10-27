@@ -54,6 +54,8 @@
                     Grid.Column="1"
                     Placeholder="Search channels"
                     Text="{Binding SearchText}"
+                    IsSpellCheckEnabled="False"
+                    IsTextPredictionEnabled="False"
                     BackgroundColor="Transparent"
                     FontSize="14" />
             </Grid>

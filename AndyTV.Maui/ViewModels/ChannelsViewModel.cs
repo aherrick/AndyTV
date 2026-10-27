@@ -45,7 +45,7 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial List<Channel> Channels { get; set; }
 
-    // One line per search-only playlist; those aren't listed, only searched.
+    // One line per search-only playlist still loading or failed; loaded ones just show up in search.
     [ObservableProperty]
     public partial string SearchOnlyStatus { get; set; }
 
@@ -149,13 +149,13 @@ public partial class ChannelsViewModel(
         var lines = playlistService
             .LoadPlaylists()
             .Where(p => !p.ShowInMenu)
-            .Select(p =>
+            .Select(p => loaded.Find(x => x.Playlist.Url == p.Url && x.Playlist.Name == p.Name).Channels switch
             {
-                var match = loaded.Find(x => x.Playlist.Url == p.Url && x.Playlist.Name == p.Name);
-                return match.Channels is null
-                    ? $"{p.Name}: Loading…"
-                    : $"{p.Name}: {match.Channels.Count:N0} channels (search only)";
-            });
+                null => $"{p.Name}: Loading…",
+                [] => $"{p.Name}: Failed to load",
+                _ => null,
+            })
+            .Where(line => line is not null);
         return string.Join(Environment.NewLine, lines);
     }
 

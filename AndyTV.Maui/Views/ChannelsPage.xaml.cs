@@ -14,16 +14,17 @@ public partial class ChannelsPage : ContentPage
         {
             if (e.PropertyName == nameof(ChannelsViewModel.Channels))
             {
-                Dispatcher.Dispatch(CollapseAllButRecent);
+                Dispatcher.Dispatch(UpdateGroups);
             }
         };
     }
 
-    // Search results stay expanded so matches aren't hidden.
-    private void CollapseAllButRecent()
+    // Search results open every matching group; the full list starts with only Recent open.
+    private void UpdateGroups()
     {
         if (_viewModel.SearchText?.Trim().Length >= 2)
         {
+            channelListView.ExpandAll();
             return;
         }
 
