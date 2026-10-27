@@ -130,6 +130,18 @@ public partial class SettingsViewModel(
         playlistService.SavePlaylists([.. Playlists]);
     }
 
+    // Switches also raise Toggled when bound, so only an actual change is saved.
+    public void SetSearchOnly(Playlist playlist, bool searchOnly)
+    {
+        if (playlist.ShowInMenu != searchOnly)
+        {
+            return;
+        }
+
+        playlist.ShowInMenu = !searchOnly;
+        SaveCurrentOrder();
+    }
+
     [RelayCommand]
     private async Task Delete(Playlist playlist)
     {

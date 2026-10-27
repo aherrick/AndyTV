@@ -5,9 +5,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:AndyTV.Data.Models;assembly=AndyTV.Data"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:sfListView="clr-namespace:Syncfusion.Maui.ListView;assembly=Syncfusion.Maui.ListView"
     Title="Settings"
     x:DataType="vm:SettingsViewModel">
+
+    <ContentPage.Resources>
+        <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+    </ContentPage.Resources>
 
     <ScrollView>
     <Grid
@@ -92,7 +97,7 @@
                         StrokeShape="RoundRectangle 8"
                         Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                             <sfListView:DragIndicatorView
                                 Grid.Column="0"
                                 ListView="{x:Reference playlistListView}"
@@ -117,8 +122,20 @@
                                     Text="{Binding Url}"
                                     TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
                             </VerticalStackLayout>
-                            <ImageButton
+                            <Label
                                 Grid.Column="2"
+                                Margin="8,0,4,0"
+                                FontSize="11"
+                                Text="Search only"
+                                TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}"
+                                VerticalOptions="Center" />
+                            <Switch
+                                Grid.Column="3"
+                                IsToggled="{Binding ShowInMenu, Mode=OneWay, Converter={StaticResource InvertedBoolConverter}}"
+                                Toggled="OnSearchOnlyToggled"
+                                VerticalOptions="Center" />
+                            <ImageButton
+                                Grid.Column="4"
                                 BackgroundColor="Transparent"
                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=DeleteCommand}"
                                 CommandParameter="{Binding .}"
