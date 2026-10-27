@@ -101,6 +101,8 @@ public static class SitePageRenderer
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.css">
             <script defer src="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.js"></script>
             <script>{{Script}}</script>
+            <script src="https://cdn.jsdelivr.net/gh/aherrick/andy-fx@1.0.2/andy-fx.min.js"></script>
+            <script>new AndyFX({ theme: 'auto', country: 'auto', intensity: 'subtle', fallback: 'none' }).start();</script>
             <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "0ddc91364f5746f4814895c9d169b965"}'></script>
             </body>
             </html>
