@@ -12,11 +12,11 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.30.1" />
-    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.24-preview.0" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.27" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Octokit" Version="14.0.0" />
-    <PackageReference Include="Polly.Core" Version="8.8.0" />
-    <PackageReference Include="RestSharp" Version="114.0.1-alpha.0.10" />
+    <PackageReference Include="Polly.Core" Version="8.8.1" />
+    <PackageReference Include="RestSharp" Version="114.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.2.0" />
