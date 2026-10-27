@@ -64,6 +64,11 @@ body {
   padding: 0 16px 48px;
 }
 
+/* At least a screen tall, so switching to a short list never pulls the pinned tab bar down. */
+main {
+  min-height: 100vh;
+}
+
 /* ========================================================
    HEADER
    ======================================================== */
@@ -215,12 +220,7 @@ body {
 }
 
 .panel {
-  display: none;
   margin-top: 20px;
-}
-
-.panel.active {
-  display: block;
 }
 
 /* Timeline / Weekend sub-view switch */

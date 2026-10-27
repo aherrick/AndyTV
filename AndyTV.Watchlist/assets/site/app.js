@@ -13,12 +13,9 @@ function show(target, push) {
   const panel = tab in views ? `${tab}:${views[tab]}` : tab;
 
   document.body.dataset.tab = tab;
-  for (const button of $$(".tabs [data-go]")) {
-    button.classList.toggle("active", button.dataset.go === tab);
-    button.setAttribute("aria-selected", button.dataset.go === tab);
-  }
+  for (const button of $$(".tabs [data-go]")) button.classList.toggle("active", button.dataset.go === tab);
   for (const section of $$(".panel")) {
-    section.classList.toggle("active", section.dataset.panel === panel);
+    section.hidden = section.dataset.panel !== panel;
     filter(section, "");
     section.querySelector(".sport-filter")?.scrollTo(0, 0);
   }
@@ -31,10 +28,15 @@ function filter(panel, sport) {
 }
 
 const pathTab = () => location.pathname.replace(/^\/+|\/+$/g, "");
+const header = document.querySelector(".site-header");
 
 document.addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
-  if (go) show(go.dataset.go, !go.dataset.go.includes(":"));
+  if (go) {
+    show(go.dataset.go, !go.dataset.go.includes(":"));
+    // Scrolled past the header: keep the tab bar pinned and start the new list at its top.
+    scrollTo(0, Math.min(scrollY, header.offsetTop + header.offsetHeight));
+  }
   const chip = e.target.closest("[data-filter]");
   if (chip) filter(chip.closest(".panel"), chip.dataset.filter);
 });
