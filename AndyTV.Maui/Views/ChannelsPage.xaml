@@ -30,7 +30,7 @@
     </ContentPage.Resources>
 
     <Grid
-        RowDefinitions="Auto,*"
+        RowDefinitions="Auto,Auto,*"
         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
 
         <!-- Search Bar -->
@@ -59,12 +59,21 @@
             </Grid>
         </Border>
 
+        <Label
+            Grid.Row="1"
+            Margin="20,0,20,8"
+            FontSize="12"
+            Text="{Binding SearchOnlyStatus}"
+            IsVisible="{Binding SearchOnlyStatus, Converter={StaticResource IsStringNotNullOrEmptyConverter}}"
+            TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
+
         <!-- Pull-to-refresh wrapping Syncfusion ListView -->
         <RefreshView
-            Grid.Row="1"
+            Grid.Row="2"
             Command="{Binding LoadChannelsCommand}"
             IsRefreshing="{Binding IsRefreshing}">
         <sfListView:SfListView
+            x:Name="channelListView"
             ItemsSource="{Binding Channels}"
             ItemSize="62"
             GroupHeaderSize="40"

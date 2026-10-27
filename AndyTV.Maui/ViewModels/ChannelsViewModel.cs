@@ -45,6 +45,10 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial List<Channel> Channels { get; set; }
 
+    // One line per search-only playlist; those aren't listed, only searched.
+    [ObservableProperty]
+    public partial string SearchOnlyStatus { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UseLocalColor))]
     public partial bool UseLocal { get; set; }
@@ -135,7 +139,31 @@ public partial class ChannelsViewModel(
         ];
         SearchText = string.Empty;
         Channels = _listChannels;
+        SearchOnlyStatus = BuildSearchOnlyStatus();
         _hasLoaded = true;
+    }
+
+    private string BuildSearchOnlyStatus()
+    {
+        var loaded = playlistService.PlaylistChannels;
+        var lines = playlistService
+            .LoadPlaylists()
+            .Where(p => !p.ShowInMenu)
+            .Select(p =>
+            {
+                var match = loaded.Find(x => x.Playlist.Url == p.Url && x.Playlist.Name == p.Name);
+                return match.Channels is null
+                    ? $"{p.Name}: Loading…"
+                    : $"{p.Name}: {match.Channels.Count:N0} channels (search only)";
+            });
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private async Task UpdateWhenSearchOnlyLoaded(Task searchOnlyLoaded)
+    {
+        await searchOnlyLoaded;
+        SearchOnlyStatus = BuildSearchOnlyStatus();
+        await FilterChannels(SearchText);
     }
 
     [RelayCommand]
@@ -151,8 +179,9 @@ public partial class ChannelsViewModel(
         try
         {
             // Off the UI thread: parsing large M3U playlists otherwise freezes the app
-            await Task.Run(() => playlistService.RefreshMenuChannelsFirst());
+            var searchOnlyLoaded = await Task.Run(() => playlistService.RefreshMenuChannelsFirst());
             Populate();
+            _ = UpdateWhenSearchOnlyLoaded(searchOnlyLoaded);
             await Toast.Make($"Loaded {_listChannels.Count} channels").Show();
         }
         catch (Exception ex)
