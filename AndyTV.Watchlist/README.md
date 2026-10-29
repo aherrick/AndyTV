@@ -44,8 +44,8 @@ The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 `WatchlistPublishingService` carries out each run in this order:
 
 1. On Sunday, delete the weekend edition.
-2. `WatchlistResearchService` loads the day's (or weekend's) events, runs the prompt
-   and validates the result. Stop if the feeds returned no events.
+2. `WatchlistResearchService` loads the day's (or weekend's) events; stop if the feeds returned none.
+   Otherwise Copilot ranks and enriches them (one retry on a failed session).
 3. Build that kind's site edition and save it to private blob storage.
 4. Capture each Instagram card, upload them and publish the carousel when configured.
 5. Log the X thread and post it when X credentials are present.

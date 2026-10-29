@@ -12,7 +12,6 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
 {
     // Debug only: flip either to true to run it once at startup. Keep both false when deploying.
     private const bool ForceDaily = false;
-
     private const bool ForceWeekend = false;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
 
@@ -46,9 +45,7 @@ public sealed class AndyTVWatchlistFn(WatchlistPublishingService publishingServi
 
         if (RunOnStartup ? ForceWeekend : targetDate.DayOfWeek == DayOfWeek.Friday)
         {
-            runs.Add(
-                publishingService.Publish(WatchlistKind.Weekend, targetDate, cancellationToken)
-            );
+            runs.Add(publishingService.Publish(WatchlistKind.Weekend, targetDate, cancellationToken));
         }
 
         // WhenAll lets one run finish even if the other fails, then surfaces the failure.

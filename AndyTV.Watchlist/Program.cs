@@ -1,6 +1,6 @@
+using System.Net;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Services;
-using System.Net;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;

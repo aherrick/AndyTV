@@ -136,7 +136,7 @@ public static class SitePageRenderer
     {
         string[] views = tab == "weekend" ? ["top", "timeline", "all"] : ["top", "all"];
         var buttons = views.Select(view =>
-            $"""<button type="button"{Active(view == active)} data-go="{tab}:{view}">{char.ToUpperInvariant(view[0])}{view[1..]}</button>""");
+            $"""<button type="button"{(view == active ? " class=\"active\"" : "")} data-go="{tab}:{view}">{char.ToUpperInvariant(view[0])}{view[1..]}</button>""");
         return $"""<div class="subtabs">{string.Concat(buttons)}</div>""";
     }
 
@@ -272,8 +272,6 @@ public static class SitePageRenderer
     }
 
     private static string Net(string network) => $"""<span class="net">{E(network.Trim())}</span>""";
-
-    private static string Active(bool active) => active ? " class=\"active\"" : "";
 
     private static string Svg(string body, string cssClass = null) =>
         $"""<svg{(cssClass is null ? "" : $" class=\"{cssClass}\"")} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{body}</svg>""";

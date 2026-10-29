@@ -148,25 +148,27 @@ public static class SportsFormat
     {
         var byRank = watchlist.BestWatches.DistinctBy(game => game.Rank).ToDictionary(game => game.Rank);
 
-        return watchlist
-            .WatchPlan.Steps.Where(step => byRank.ContainsKey(step.PrimaryRank))
-            .OrderBy(step => step.StartTimeIso)
-            .Select(step =>
-            {
-                var primary = byRank[step.PrimaryRank];
-                return new WatchPlanEntry(
-                    step.StartTimeIso,
-                    Icon(primary.Sport),
-                    primary.Matchup,
-                    step.Instruction.Trim(),
-                    [
-                        .. step
-                            .SecondaryRanks.Where(byRank.ContainsKey)
-                            .Select(rank => (Icon(byRank[rank].Sport), byRank[rank].Matchup)),
-                    ]
-                );
-            })
-            .ToList();
+        return
+        [
+            .. watchlist
+                .WatchPlan.Steps.Where(step => byRank.ContainsKey(step.PrimaryRank))
+                .OrderBy(step => step.StartTimeIso)
+                .Select(step =>
+                {
+                    var primary = byRank[step.PrimaryRank];
+                    return new WatchPlanEntry(
+                        step.StartTimeIso,
+                        Icon(primary.Sport),
+                        primary.Matchup,
+                        step.Instruction.Trim(),
+                        [
+                            .. step
+                                .SecondaryRanks.Where(byRank.ContainsKey)
+                                .Select(rank => (Icon(byRank[rank].Sport), byRank[rank].Matchup)),
+                        ]
+                    );
+                }),
+        ];
     }
 }
 

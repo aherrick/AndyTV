@@ -49,7 +49,7 @@ public sealed record AppSettings(
             config["WATCHLIST_PROMPT"],
             config["CLOUDFLARE_ACCOUNT_ID"],
             config["CLOUDFLARE_API_TOKEN"],
-            config["BLOB_CONNECTION_STRING"] ?? config["AzureWebJobsStorage"] ?? "",
+            config["BLOB_CONNECTION_STRING"] ?? config["AzureWebJobsStorage"],
             config["INSTAGRAM_USER_ID"],
             config["INSTAGRAM_ACCESS_TOKEN"],
             config["X_CONSUMER_KEY"],

@@ -16,7 +16,6 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     private static readonly SemaphoreSlim Throttle = new(8);
 
     private const string BaseUrl = "https://site.api.espn.com/apis/site/v2/sports/";
-    private const string GolfUrl = BaseUrl + "golf/pga/scoreboard";
 
     // ESPN's CFL data stops at 2023, so CFL comes from TheSportsDB's free tier (league 4405).
     private const string CflUrl = "https://www.thesportsdb.com/api/v1/json/123/eventsday.php?l=4405&d=";
@@ -155,19 +154,13 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         }
     }
 
-    // Every event across the given boards, copied out so the documents can be released; failed boards add nothing.
-    private async Task<List<JsonElement>> FetchEvents(string[] urls, string league, CancellationToken cancellationToken)
+    // The feed's events, cloned so the document can be released; a failed feed or "events": null (TheSportsDB) adds nothing.
+    private async Task<List<JsonElement>> FetchEvents(string url, string league, CancellationToken cancellationToken)
     {
-        var documents = await Task.WhenAll(urls.Select(url => Fetch(url, league, cancellationToken)));
-        List<JsonElement> events = [];
-        foreach (var document in documents.Where(d => d is not null))
-        {
-            using (document)
-            {
-                events.AddRange(document.RootElement.GetProperty("events").EnumerateArray().Select(e => e.Clone()));
-            }
-        }
-        return events;
+        using var document = await Fetch(url, league, cancellationToken);
+        return document?.RootElement.GetProperty("events") is { ValueKind: JsonValueKind.Array } events
+            ? [.. events.EnumerateArray().Select(e => e.Clone())]
+            : [];
     }
 
     private static bool IsCanceled(JsonElement game) =>
@@ -182,8 +175,11 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     )
     {
         // ESPN files each game under its ET day, so one board covers the date.
-        var url = $"{BaseUrl}{board.Path}/scoreboard";
-        var games = await FetchEvents([$"{url}?dates={date:yyyyMMdd}&{board.Query}"], $"{board.Sport} {board.League}", cancellationToken);
+        var games = await FetchEvents(
+            $"{BaseUrl}{board.Path}/scoreboard?dates={date:yyyyMMdd}&{board.Query}",
+            $"{board.Sport} {board.League}",
+            cancellationToken
+        );
 
         List<SportsEvent> events = [];
         foreach (var game in games)
@@ -321,45 +317,34 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     private async Task<List<SportsEvent>> LoadCfl(DateOnly date, CancellationToken cancellationToken)
     {
         DateOnly[] days = [date, date.AddDays(1)];
-        var documents = await Task.WhenAll(
-            days.Select(day => Fetch($"{CflUrl}{day:yyyy-MM-dd}", "CFL", cancellationToken))
+        var feeds = await Task.WhenAll(
+            days.Select(day => FetchEvents($"{CflUrl}{day:yyyy-MM-dd}", "CFL", cancellationToken))
         );
 
         List<SportsEvent> events = [];
-        foreach (var document in documents.Where(d => d is not null))
+        foreach (var game in feeds.SelectMany(games => games))
         {
-            using (document)
+            var home = game.GetProperty("strHomeTeam").GetString();
+            var away = game.GetProperty("strAwayTeam").GetString();
+            if (
+                string.IsNullOrWhiteSpace(home)
+                || string.IsNullOrWhiteSpace(away)
+                || game.GetProperty("strPostponed").GetString() == "yes"
+                || !DateTime.TryParse(
+                    game.GetProperty("strTimestamp").GetString(),
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var utc
+                )
+            )
             {
-                if (document.RootElement.GetProperty("events") is not { ValueKind: JsonValueKind.Array } games)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                foreach (var game in games.EnumerateArray())
-                {
-                    var home = game.GetProperty("strHomeTeam").GetString();
-                    var away = game.GetProperty("strAwayTeam").GetString();
-                    if (
-                        string.IsNullOrWhiteSpace(home)
-                        || string.IsNullOrWhiteSpace(away)
-                        || game.GetProperty("strPostponed").GetString() == "yes"
-                        || !DateTime.TryParse(
-                            game.GetProperty("strTimestamp").GetString(),
-                            CultureInfo.InvariantCulture,
-                            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-                            out var utc
-                        )
-                    )
-                    {
-                        continue;
-                    }
-
-                    var start = EasternTimeZone.Convert(new DateTimeOffset(utc, TimeSpan.Zero));
-                    if (EasternTimeZone.Date(start) == date)
-                    {
-                        events.Add(new("Football", "CFL", home, away, start));
-                    }
-                }
+            var start = EasternTimeZone.Convert(new DateTimeOffset(utc, TimeSpan.Zero));
+            if (EasternTimeZone.Date(start) == date)
+            {
+                events.Add(new("Football", "CFL", home, away, start));
             }
         }
         return events;
@@ -368,8 +353,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     // One event per UFC card; ESPN's card date is the first bout, so the main-card time is left for the model to research.
     private async Task<List<SportsEvent>> LoadUfc(DateOnly date, CancellationToken cancellationToken)
     {
-        var url = $"{BaseUrl}mma/ufc/scoreboard";
-        var cards = await FetchEvents([$"{url}?dates={date:yyyyMMdd}"], "UFC", cancellationToken);
+        var cards = await FetchEvents($"{BaseUrl}mma/ufc/scoreboard?dates={date:yyyyMMdd}", "UFC", cancellationToken);
 
         return
         [
@@ -384,7 +368,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     private async Task<List<SportsEvent>> LoadGolf(DateOnly date, CancellationToken cancellationToken)
     {
         List<SportsEvent> events = [];
-        foreach (var tournament in await FetchEvents([GolfUrl], "PGA Tour", cancellationToken))
+        foreach (var tournament in await FetchEvents($"{BaseUrl}golf/pga/scoreboard", "PGA Tour", cancellationToken))
         {
             var name = tournament.GetProperty("name").GetString();
             var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
@@ -416,7 +400,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     private async Task<List<SportsEvent>> LoadTennis(DateOnly date, CancellationToken cancellationToken)
     {
         var feeds = await Task.WhenAll(
-            TennisTours.Select(tour => FetchEvents([$"{BaseUrl}tennis/{tour}/scoreboard"], $"Tennis {tour}", cancellationToken))
+            TennisTours.Select(tour => FetchEvents($"{BaseUrl}tennis/{tour}/scoreboard", $"Tennis {tour}", cancellationToken))
         );
 
         // Slams are combined events, so ATP and WTA can both list the same tournament and matches.
@@ -509,9 +493,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         CancellationToken cancellationToken
     )
     {
-        var url = $"{BaseUrl}racing/{slug}/scoreboard";
         List<SportsEvent> events = [];
-        foreach (var race in await FetchEvents([url], league, cancellationToken))
+        foreach (var race in await FetchEvents($"{BaseUrl}racing/{slug}/scoreboard", league, cancellationToken))
         {
             var name = race.GetProperty("name").GetString();
             if (string.IsNullOrWhiteSpace(name))

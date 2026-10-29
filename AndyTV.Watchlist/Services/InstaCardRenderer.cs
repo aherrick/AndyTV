@@ -25,7 +25,7 @@ public static class InstaCardRenderer
         var timelineFooter = $"YOUR {span} • IN WATCHING ORDER";
 
         var games = watchlist.BestWatches;
-        var byTime = games.OrderBy(game => game.StartTimeIso).ToList();
+        List<WatchlistGame> byTime = [.. games.OrderBy(game => game.StartTimeIso)];
 
         InstaCard Card(string name, string title, string body, string footerNote, string callout = "") =>
             new(

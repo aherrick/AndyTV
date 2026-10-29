@@ -23,34 +23,24 @@ public sealed class BlobStore(AppSettings settings)
             : null;
     }
 
-    public async Task WritePrivate(string blobName, string value, CancellationToken cancellationToken = default)
-    {
-        var container = PrivateContainer;
-        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
-        await container.GetBlobClient(blobName).UploadAsync(BinaryData.FromString(value), overwrite: true, cancellationToken);
-    }
+    public Task WritePrivate(string blobName, string value, CancellationToken cancellationToken = default) =>
+        Upload(false, blobName, BinaryData.FromString(value), cancellationToken: cancellationToken);
 
     // Names sort by UTC start time, so newest-first is a reverse name sort.
     public Task SaveRun(WatchlistRun run) =>
         WritePrivate($"runs/{RunName(run)}.json", JsonSerializer.Serialize(run, JsonSerializerOptions.Web));
 
     // Kept outside runs/ because ReadRuns parses every blob there as JSON.
-    public async Task SaveRunLog(WatchlistRun run, string text)
-    {
-        var container = PrivateContainer;
-        await container.CreateIfNotExistsAsync(PublicAccessType.None);
-        await container.GetBlobClient($"logs/{RunName(run)}.txt").UploadAsync(
-            BinaryData.FromString(text),
-            new BlobUploadOptions { HttpHeaders = new() { ContentType = "text/plain; charset=utf-8" } }
-        );
-    }
+    public Task SaveRunLog(WatchlistRun run, string text) =>
+        Upload(false, LogName(run), BinaryData.FromString(text), "text/plain; charset=utf-8");
 
     // Short-lived read link so the log stays private.
     public Uri RunLogUri(WatchlistRun run) =>
-        PrivateContainer.GetBlobClient($"logs/{RunName(run)}.txt")
-            .GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
+        PrivateContainer.GetBlobClient(LogName(run)).GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
 
     private static string RunName(WatchlistRun run) => $"{run.Started:yyyyMMdd-HHmmss}-{run.Kind}";
+
+    private static string LogName(WatchlistRun run) => $"logs/{RunName(run)}.txt";
 
     public async Task<List<WatchlistRun>> ReadRuns(int count)
     {
@@ -76,11 +66,11 @@ public sealed class BlobStore(AppSettings settings)
 
     // Uploads a card PNG to a public container and returns its blob URL.
     public Task<Uri> UploadImage(string blobName, byte[] png, CancellationToken cancellationToken = default) =>
-        Upload(blobName, BinaryData.FromBytes(png), "image/png", null, cancellationToken);
+        Upload(true, blobName, BinaryData.FromBytes(png), "image/png", cancellationToken: cancellationToken);
 
     // The deploy workflow downloads this and publishes it as the site's index.html.
     public Task<Uri> PublishPage(string html, CancellationToken cancellationToken = default) =>
-        Upload("index.html", BinaryData.FromString(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
+        Upload(true, "index.html", BinaryData.FromString(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
 
     // Each kind's latest edition, kept so later days can re-render the page (e.g. Saturday keeps Friday's weekend).
     public Task SaveEdition(SiteEdition edition, WatchlistKind kind, CancellationToken cancellationToken = default) =>
@@ -97,15 +87,19 @@ public sealed class BlobStore(AppSettings settings)
         await PrivateContainer.GetBlobClient(WatchlistKind.Weekend.EditionBlobName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
 
     private async Task<Uri> Upload(
+        bool isPublic,
         string blobName,
         BinaryData content,
-        string contentType,
-        string cacheControl,
-        CancellationToken cancellationToken
+        string contentType = null,
+        string cacheControl = null,
+        CancellationToken cancellationToken = default
     )
     {
-        var container = Container;
-        await container.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
+        var container = isPublic ? Container : PrivateContainer;
+        await container.CreateIfNotExistsAsync(
+            isPublic ? PublicAccessType.Blob : PublicAccessType.None,
+            cancellationToken: cancellationToken
+        );
 
         var blob = container.GetBlobClient(blobName);
         await blob.UploadAsync(

@@ -150,7 +150,9 @@ main {
   color: var(--text);
 }
 
-.tabs button.active {
+.tabs button.active,
+.subtabs button.active,
+.sport-filter button.active {
   color: #0b0e13;
   background: var(--accent);
   border-color: var(--accent);
@@ -168,7 +170,7 @@ main {
 }
 
 /* ========================================================
-   TOP CONTROLS (install + share + theme)
+   TOP CONTROLS (install, share, effects, theme)
    ======================================================== */
 
 .top-controls {
@@ -255,11 +257,6 @@ main {
   font-weight: 700;
 }
 
-.subtabs button.active {
-  color: #0b0e13;
-  background: var(--accent);
-}
-
 /* Sport filter chips: one line everywhere; swipe, trackpad, or mouse wheel scrolls sideways */
 .sport-filter {
   display: flex;
@@ -270,7 +267,8 @@ main {
   scrollbar-width: none;
 }
 
-.sport-filter::-webkit-scrollbar {
+.sport-filter::-webkit-scrollbar,
+.odds::-webkit-scrollbar {
   display: none;
 }
 
@@ -294,12 +292,6 @@ main {
   margin-left: 2px;
   color: var(--muted);
   font-weight: 700;
-}
-
-.sport-filter button.active {
-  border-color: var(--accent);
-  color: #0b0e13;
-  background: var(--accent);
 }
 
 .sport-filter button.active .count {
@@ -392,10 +384,6 @@ main {
   margin: 0 0 8px;
   overflow-x: auto;
   scrollbar-width: none;
-}
-
-.odds::-webkit-scrollbar {
-  display: none;
 }
 
 .odds span {

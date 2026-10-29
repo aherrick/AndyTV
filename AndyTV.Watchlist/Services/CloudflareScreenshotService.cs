@@ -76,17 +76,11 @@ public sealed class CloudflareScreenshotService(
             cancellationToken
         );
 
+        // The caller logs the exception, so the response body rides along in the message.
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            logger.LogError(
-                "Cloudflare screenshot failed ({status}): {error}",
-                (int)response.StatusCode,
-                error
-            );
-            throw new InvalidOperationException(
-                $"Cloudflare screenshot failed ({(int)response.StatusCode})."
-            );
+            throw new InvalidOperationException($"Cloudflare screenshot failed ({(int)response.StatusCode}): {error}");
         }
 
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
