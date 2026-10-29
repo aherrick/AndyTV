@@ -48,7 +48,7 @@ internal sealed class PlayerForm : Form
     private const int LeftHoldSeconds = 1;
     private const int RightHoldSeconds = 5;
 
-    private readonly CancellationTokenSource _cts = new();
+    private readonly PeriodicTimer _refreshTimer = new(TimeSpan.FromHours(1));
     private readonly StreamHealthMonitor _healthMonitor = new();
     private volatile bool _videoLate;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
@@ -237,28 +237,16 @@ internal sealed class PlayerForm : Form
     // Single place that decides the cursor: visible while the menu is open, otherwise
     // the spinner while channels load (_busy) or a channel connects (_pending), and
     // hidden (fullscreen) / default (windowed) when idle.
-    private void UpdateCursor()
-    {
-        if (_menuOpen)
-        {
-            _videoView.ShowDefault();
-        }
-        else if (_busy || _pending is not null)
-        {
-            _videoView.ShowWaiting();
-        }
-        else
-        {
-            _videoView.SetCursorForCurrentView();
-        }
-    }
+    private void UpdateCursor() =>
+        _videoView.Cursor =
+            _menuOpen ? Cursors.Default
+            : _busy || _pending is not null ? Cursors.WaitCursor
+            : this.IdleCursor();
 
     private async Task RunHourlyRefresh()
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
-        // Dispose on shutdown so the wait returns false instead of throwing (no debugger break).
-        await using var registration = _cts.Token.Register(timer.Dispose);
-        while (await timer.WaitForNextTickAsync())
+        // Disposed on shutdown, which ends the loop instead of throwing.
+        while (await _refreshTimer.WaitForNextTickAsync())
         {
             try
             {
@@ -326,9 +314,6 @@ internal sealed class PlayerForm : Form
 
     private void BuildStaticMenu()
     {
-        _menu.Items.Clear();
-        _channelItems.Clear();
-
         var header = new ToolStripMenuItem(AppVersionName);
         header.Click += (_, _) => OpenUrl(UpdateService.RepoUrl);
         _menu.Items.Add(header);
@@ -337,11 +322,7 @@ internal sealed class PlayerForm : Form
         var manage = new ToolStripMenuItem("Manage");
         manage.DropDownItems.Add("Search\u2026", null, (_, _) => SearchChannels());
         manage.DropDownItems.Add("Guide", null, (_, _) => ShowGuide());
-        manage.DropDownItems.Add(
-            "Watchlist",
-            null,
-            (_, _) => OpenUrl("https://andytv.today/")
-        );
+        manage.DropDownItems.Add("Watchlist", null, (_, _) => OpenUrl("https://andytv.today/"));
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.Add("Playlists\u2026", null, async (_, _) => await ManagePlaylists());
         manage.DropDownItems.Add("Refresh", null, async (_, _) => await RefreshChannels());
@@ -714,7 +695,7 @@ internal sealed class PlayerForm : Form
             new ProcessStartInfo
             {
                 FileName = Application.ExecutablePath,
-                Arguments = "--new-instance --right",
+                Arguments = $"{Program.NewInstanceArg} {Program.RightArg}",
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
             }
@@ -837,8 +818,7 @@ internal sealed class PlayerForm : Form
     private void ShowNowPlaying(string text)
     {
         _toast?.Close();
-        var toast = Toast.Show(this, text);
-        _toast = toast;
+        var toast = _toast = Toast.Show(this, text);
         toast.FormClosed += (_, _) =>
         {
             if (_toast == toast)
@@ -874,8 +854,7 @@ internal sealed class PlayerForm : Form
     {
         if (disposing)
         {
-            _cts.Cancel();
-            _cts.Dispose();
+            _refreshTimer.Dispose();
             _healthTimer.Tick -= OnHealthTick;
             _healthTimer.Dispose();
             _sleepTimer.Dispose();

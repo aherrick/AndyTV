@@ -6,8 +6,8 @@ namespace AndyTV;
 
 static class Program
 {
-    private const string NewInstanceArg = "--new-instance";
-    private const string RightArg = "--right";
+    public const string NewInstanceArg = "--new-instance";
+    public const string RightArg = "--right";
 
     public static bool StartOnRight { get; private set; }
 

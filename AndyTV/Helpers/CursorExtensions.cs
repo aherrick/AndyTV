@@ -22,22 +22,6 @@ static class CursorExtensions
         return cursor;
     }
 
-    public static void ShowDefault(this Control control) => SetCursor(control, Cursors.Default);
-
-    public static void ShowWaiting(this Control control) => SetCursor(control, Cursors.WaitCursor);
-
-    public static void SetCursorForCurrentView(this Control control) =>
-        SetCursor(control, control.FindForm()?.IsFullscreen() == true ? HiddenCursor : Cursors.Default);
-
-    private static void SetCursor(Control control, Cursor cursor)
-    {
-        if (control.InvokeRequired)
-        {
-            control.BeginInvoke(() => control.Cursor = cursor);
-        }
-        else
-        {
-            control.Cursor = cursor;
-        }
-    }
+    // Hidden over fullscreen video, default otherwise.
+    public static Cursor IdleCursor(this Form form) => form.IsFullscreen() ? HiddenCursor : Cursors.Default;
 }
