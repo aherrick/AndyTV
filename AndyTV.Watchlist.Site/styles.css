@@ -219,6 +219,11 @@ main {
   display: block;
 }
 
+#fx-toggle[aria-pressed="true"] .icon-pause,
+#fx-toggle[aria-pressed="false"] .icon-play {
+  display: none;
+}
+
 .panel {
   margin-top: 20px;
 }

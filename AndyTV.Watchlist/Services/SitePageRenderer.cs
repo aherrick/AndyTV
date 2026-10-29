@@ -15,6 +15,8 @@ public static class SitePageRenderer
     private static readonly string Share = Svg("""<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>""");
     private static readonly string Sun = Svg("""<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>""", "icon-sun");
     private static readonly string Moon = Svg("""<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>""", "icon-moon");
+    private static readonly string Pause = Svg("""<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>""", "icon-pause");
+    private static readonly string Play = Svg("""<polygon points="6 3 20 12 6 21 6 3"/>""", "icon-play");
 
     private static readonly string Script = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "site", "app.js"));
 
@@ -85,6 +87,7 @@ public static class SitePageRenderer
             <div class="top-controls">
             <button class="control-btn" id="install-btn" type="button" aria-label="Add to Home Screen" title="Add to Home Screen" hidden>{{Download}}</button>
             <button class="control-btn" id="share-btn" type="button" aria-label="Share" hidden>{{Share}}</button>
+            <button class="control-btn" id="fx-toggle" type="button" aria-label="Pause or resume effects" title="Pause or resume effects" aria-pressed="false" hidden>{{Pause}}{{Play}}</button>
             <button class="control-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme">{{Sun}}{{Moon}}</button>
             </div>
             <header class="site-header">
@@ -102,7 +105,14 @@ public static class SitePageRenderer
             <script defer src="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.js"></script>
             <script>{{Script}}</script>
             <script src="https://cdn.jsdelivr.net/gh/aherrick/andy-fx@1/andy-fx.min.js"></script>
-            <script>new AndyFX({ theme: 'auto', country: 'auto', intensity: 'subtle', fallback: 'none' }).start();</script>
+            <script>
+            const fx = new AndyFX({ intensity: 'subtle' }).start();
+            const fxToggle = document.getElementById('fx-toggle');
+            // Show only on a holiday and when reduce-motion isn't pausing it (paused without opting out).
+            fxToggle.hidden = AndyFX.detectTheme() === 'off' || (fx.paused && !fx.optedOut);
+            fxToggle.ariaPressed = fx.optedOut;
+            fxToggle.onclick = () => fxToggle.ariaPressed = (fx.optedOut ? fx.optIn() : fx.optOut()).optedOut;
+            </script>
             <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "0ddc91364f5746f4814895c9d169b965"}'></script>
             </body>
             </html>
