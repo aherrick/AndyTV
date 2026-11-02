@@ -231,20 +231,22 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             string[] networks = competition.TryGetProperty("broadcasts", out var broadcasts)
                 ? [.. broadcasts.EnumerateArray().SelectMany(b => b.GetProperty("names").EnumerateArray()).Select(n => n.GetString())]
                 : [];
+            var neutralSite = competition.TryGetProperty("neutralSite", out var neutral) && neutral.GetBoolean();
             events.Add(
                 new(board.Sport, board.League, home, away, timeValid ? start : null)
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                     Betting = Odds(competition),
-                    Note = Note(competition),
+                    Note = Note(competition, neutralSite),
+                    NeutralSite = neutralSite,
                 }
             );
         }
         return events;
     }
 
-    // ESPN's round headline plus series summary, e.g. "ALDS - Game 5 · Series tied 2-2"; null when neither exists.
-    private static string Note(JsonElement competition)
+    // ESPN's round headline, series summary, and (neutral sites only) venue city, e.g. "ALDS - Game 5 · Series tied 2-2"; null when none exist.
+    private static string Note(JsonElement competition, bool neutralSite)
     {
         List<string> parts = [];
         if (competition.TryGetProperty("notes", out var notes) && notes.ValueKind == JsonValueKind.Array)
@@ -256,6 +258,19 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         if (competition.TryGetProperty("series", out var series) && series.TryGetProperty("summary", out var summary))
         {
             parts.Add(summary.GetString());
+        }
+        if (
+            neutralSite
+            && competition.TryGetProperty("venue", out var venue)
+            && venue.TryGetProperty("address", out var address)
+            && address.TryGetProperty("city", out var city)
+        )
+        {
+            // International venues have no state; fall back to the country.
+            var region = address.TryGetProperty("state", out var state) ? state.GetString()
+                : address.TryGetProperty("country", out var country) ? country.GetString()
+                : null;
+            parts.Add(string.IsNullOrWhiteSpace(region) ? city.GetString() : $"{city.GetString()}, {region}");
         }
         parts.RemoveAll(string.IsNullOrWhiteSpace);
         return parts.Count > 0 ? string.Join(" · ", parts) : null;

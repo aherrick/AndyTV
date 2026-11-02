@@ -19,5 +19,7 @@ public sealed record SportsEvent(
     // Round and series state, e.g. "ALDS - Game 5 · Series tied 2-2".
     public string Note { get; init; }
 
-    public string Matchup => EventName ?? $"{AwayTeam} @ {HomeTeam}";
+    public bool NeutralSite { get; init; }
+
+    public string Matchup => EventName ?? $"{AwayTeam} {(NeutralSite ? "vs" : "@")} {HomeTeam}";
 }

@@ -32,7 +32,7 @@ public sealed record WatchlistGame(
 
 public sealed record WatchSource(string Title, string Url);
 
-// Any field may be null; the away/home order matches the "Away @ Home" matchup.
+// Any field may be null; the away/home order matches the "Away @ Home" (or "Away vs Home") matchup.
 public sealed record Betting(
     decimal? AwaySpread,
     decimal? HomeSpread,
