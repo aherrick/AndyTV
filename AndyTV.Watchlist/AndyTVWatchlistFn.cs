@@ -14,7 +14,7 @@ public sealed class AndyTVWatchlistFn(
 )
 {
     // Debug only: flip either to true to run it once at startup. Keep both false when deploying.
-    private const bool ForceDaily = true;
+    private const bool ForceDaily = false;
 
     private const bool ForceWeekend = false;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
