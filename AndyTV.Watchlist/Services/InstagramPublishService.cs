@@ -31,6 +31,19 @@ public sealed class InstagramPublishService(
         )
         .Build();
 
+    // Even after FINISHED, media_publish can briefly reject with subcode 2207027 "media is not ready".
+    private static readonly ResiliencePipeline WhileNotReady = new ResiliencePipelineBuilder()
+        .AddRetry(
+            new RetryStrategyOptions
+            {
+                ShouldHandle = new PredicateBuilder().Handle<InvalidOperationException>(ex => ex.Message.Contains("2207027")),
+                MaxRetryAttempts = 6,
+                Delay = TimeSpan.FromSeconds(10),
+                BackoffType = DelayBackoffType.Constant,
+            }
+        )
+        .Build();
+
     // Publishes the given image URLs as a single Instagram carousel and returns the post's permalink.
     public async Task<string> PublishCarousel(
         IEnumerable<Uri> imageUrls,
@@ -54,7 +67,10 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
         await WaitUntilFinished(carouselId, token, cancellationToken);
-        var mediaId = await Post("media_publish", new() { ["creation_id"] = carouselId }, token, cancellationToken);
+        var mediaId = await WhileNotReady.ExecuteAsync(
+            async ct => await Post("media_publish", new() { ["creation_id"] = carouselId }, token, ct),
+            cancellationToken
+        );
 
         var media = await httpClient.GetFromJsonAsync<JsonElement>(
             $"{GraphBase}/{mediaId}?fields=permalink&access_token={token}",

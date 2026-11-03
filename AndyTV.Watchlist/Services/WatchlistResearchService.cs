@@ -21,9 +21,18 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken
     )
     {
-        var feeds = await Task.WhenAll(days.Select(day => sportsEvents.GetEventsForDate(day, cancellationToken)));
-        List<SportsEvent> events = [.. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso)];
-        logger.LogInformation("Loaded {count} events for {days}.", events.Count, string.Join(", ", days));
+        var feeds = await Task.WhenAll(
+            days.Select(day => sportsEvents.GetEventsForDate(day, cancellationToken))
+        );
+        List<SportsEvent> events =
+        [
+            .. feeds.SelectMany(feed => feed).Distinct().OrderBy(e => e.StartTimeIso),
+        ];
+        logger.LogInformation(
+            "Loaded {count} events for {days}.",
+            events.Count,
+            string.Join(", ", days)
+        );
         foreach (var e in events)
         {
             logger.LogInformation("Event: {event}", SportsFormat.EventLine(e));
@@ -39,18 +48,29 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken
     )
     {
-        logger.LogInformation("{kind} supplied {events} events, {odds} with odds.", kind, events.Count, events.Count(e => e.Betting is not null));
+        logger.LogInformation(
+            "{kind} supplied {events} events, {odds} with odds.",
+            kind,
+            events.Count,
+            events.Count(e => e.Betting is not null)
+        );
         var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events);
         var cost = 0.0;
+        void AddCost(double attemptCost) => cost += attemptCost;
         try
         {
-            return (await ResearchOnce(kind, prompt, attemptCost => cost += attemptCost, cancellationToken), cost);
+            return (await ResearchOnce(kind, prompt, AddCost, cancellationToken), cost);
         }
         // Copilot occasionally fails a session server-side; a fresh session usually succeeds.
         catch (InvalidOperationException ex)
         {
-            logger.LogWarning("{kind} research failed (~${cost:N2} spent), retrying once: {error}", kind, cost, ex.Message);
-            return (await ResearchOnce(kind, prompt, attemptCost => cost += attemptCost, cancellationToken), cost);
+            logger.LogWarning(
+                "{kind} research failed (~${cost:N2} spent), retrying once: {error}",
+                kind,
+                cost,
+                ex.Message
+            );
+            return (await ResearchOnce(kind, prompt, AddCost, cancellationToken), cost);
         }
     }
 
@@ -69,7 +89,7 @@ public sealed class WatchlistResearchService(
             new SessionConfig
             {
                 Model = ModelId,
-                ReasoningEffort = "max",
+                ReasoningEffort = "xhigh",
                 AvailableTools = ["web_search", "web_fetch"],
                 OnPermissionRequest = PermissionHandler.ApproveAll,
             },
@@ -141,30 +161,18 @@ public sealed class WatchlistResearchService(
             return 0;
         }
 
-        foreach (var (model, metric) in metrics.ModelMetrics)
-        {
-            logger.LogInformation(
-                "{kind} {model}: {requests} requests, {input:N0} in / {output:N0} out / {reasoning:N0} reasoning / {cacheRead:N0} cache-read tokens, {credits:N2} AI credits.",
-                kind,
-                model,
-                metric.Requests.Count,
-                metric.Usage.InputTokens,
-                metric.Usage.OutputTokens,
-                metric.Usage.ReasoningTokens ?? 0,
-                metric.Usage.CacheReadTokens,
-                (metric.TotalNanoAiu ?? 0) / 1e9
-            );
-        }
-
+        var usage = metrics.ModelMetrics.Values.Select(metric => metric.Usage).ToList();
         var credits = (metrics.TotalNanoAiu ?? 0) / 1e9;
         var cost = credits * 0.01;
         logger.LogInformation(
-            "{kind} research finished in {elapsed}: {searches} searches, {fetches} fetches, {apiTime} API time, {credits:N2} AI credits (~${dollars:N2}).",
+            "{kind} research finished in {elapsed}: {searches} searches, {fetches} fetches, {input:N0} in / {output:N0} out / {reasoning:N0} reasoning tokens, {credits:N2} AI credits (~${dollars:N2}).",
             kind,
             elapsed.ToString(@"mm\:ss"),
             searches,
             fetches,
-            metrics.TotalApiDuration.ToString(@"mm\:ss"),
+            usage.Sum(u => u.InputTokens),
+            usage.Sum(u => u.OutputTokens),
+            usage.Sum(u => u.ReasoningTokens ?? 0),
             credits,
             cost
         );
