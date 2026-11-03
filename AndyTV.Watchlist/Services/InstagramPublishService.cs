@@ -18,27 +18,14 @@ public sealed class InstagramPublishService(
     private const string GraphBase = "https://graph.instagram.com/v26.0";
     private const string TokenBlob = "instagram-token.txt";
 
-    // Containers process asynchronously; publishing before FINISHED fails with "Media ID is not available".
-    private static readonly ResiliencePipeline<string> WhileInProgress = new ResiliencePipelineBuilder<string>()
-        .AddRetry(
-            new RetryStrategyOptions<string>
-            {
-                ShouldHandle = new PredicateBuilder<string>().HandleResult("IN_PROGRESS"),
-                MaxRetryAttempts = 30,
-                Delay = TimeSpan.FromSeconds(5),
-                BackoffType = DelayBackoffType.Constant,
-            }
-        )
-        .Build();
-
-    // Even after FINISHED, media_publish can briefly reject with subcode 2207027 "media is not ready".
+    // Containers process asynchronously; publishing too early fails with subcode 2207027 "media is not ready".
     private static readonly ResiliencePipeline WhileNotReady = new ResiliencePipelineBuilder()
         .AddRetry(
             new RetryStrategyOptions
             {
                 ShouldHandle = new PredicateBuilder().Handle<InvalidOperationException>(ex => ex.Message.Contains("2207027")),
-                MaxRetryAttempts = 6,
-                Delay = TimeSpan.FromSeconds(10),
+                MaxRetryAttempts = 30,
+                Delay = TimeSpan.FromSeconds(5),
                 BackoffType = DelayBackoffType.Constant,
             }
         )
@@ -66,7 +53,6 @@ public sealed class InstagramPublishService(
             token,
             cancellationToken
         );
-        await WaitUntilFinished(carouselId, token, cancellationToken);
         var mediaId = await WhileNotReady.ExecuteAsync(
             async ct => await Post("media_publish", new() { ["creation_id"] = carouselId }, token, ct),
             cancellationToken
@@ -77,24 +63,6 @@ public sealed class InstagramPublishService(
             cancellationToken
         );
         return media.GetProperty("permalink").GetString();
-    }
-
-    private async Task WaitUntilFinished(string containerId, string token, CancellationToken cancellationToken)
-    {
-        var status = await WhileInProgress.ExecuteAsync(
-            async ct =>
-                (
-                    await httpClient.GetFromJsonAsync<JsonElement>(
-                        $"{GraphBase}/{containerId}?fields=status_code&access_token={token}",
-                        ct
-                    )
-                ).GetProperty("status_code").GetString(),
-            cancellationToken
-        );
-        if (status != "FINISHED")
-        {
-            throw new InvalidOperationException($"Instagram container {containerId} is {status}.");
-        }
     }
 
     // Tokens expire after 60 days, so refresh on each post and keep the newest privately.
