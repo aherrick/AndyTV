@@ -23,7 +23,7 @@ public static class SitePageRenderer
 
     private static readonly string Script = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "site", "app.js"));
 
-    // The homepage, or with nav the archived page for daily's date (same content, dated head and prev/next links).
+    // The homepage, or with nav the archived copy of daily's date: same body, plus a dated head and prev/next links.
     public static string Render(SiteEdition daily, SiteEdition weekend, ArchiveNav nav = null)
     {
         var games = daily.Watchlist.BestWatches;
@@ -105,22 +105,13 @@ public static class SitePageRenderer
             """;
     }
 
-    // Every saved day, newest first and grouped by month, each with its top-ranked game.
+    // Every saved day, newest first and grouped by month.
     public static string RenderArchive(List<SiteEdition> dailies)
     {
         var months = dailies
             .OrderByDescending(edition => edition.TargetDate)
             .GroupBy(edition => edition.TargetDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture))
-            .Select(month =>
-            {
-                var days = month.Select(edition =>
-                {
-                    var top = edition.Watchlist.BestWatches.FirstOrDefault()?.Matchup;
-                    var date = edition.TargetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture);
-                    return $"""<li><a href="{ArchivePath(edition.TargetDate)}">{date}</a>{(top is null ? "" : $" — {E(top)}")}</li>""";
-                });
-                return $"""<h2>{month.Key}</h2><ul>{string.Concat(days)}</ul>""";
-            });
+            .Select(month => $"""<h2>{month.Key}</h2><ul>{string.Concat(month.Select(ArchiveDay))}</ul>""");
 
         return $$"""
             <!DOCTYPE html>
@@ -140,7 +131,7 @@ public static class SitePageRenderer
 
     public static string RenderSitemap(List<SiteEdition> dailies)
     {
-        string[] paths = ["/", "/archive/", "/about", "/contact", "/privacy", .. dailies.Select(edition => ArchivePath(edition.TargetDate)).Reverse()];
+        string[] paths = ["/", "/archive/", "/about", "/contact", "/privacy", .. dailies.Select(edition => ArchivePath(edition.TargetDate))];
         return $"""
             <?xml version="1.0" encoding="UTF-8"?>
             <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -150,6 +141,14 @@ public static class SitePageRenderer
 
     // e.g. /2026/11/10/ — a folder, so Static Web Apps serves its index.html with no routing rules.
     public static string ArchivePath(DateOnly date) => $"/{date.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}/";
+
+    // One archive line: the date, linked, and that day's #1 game.
+    private static string ArchiveDay(SiteEdition edition)
+    {
+        var date = edition.TargetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture);
+        var top = edition.Watchlist.BestWatches.FirstOrDefault()?.Matchup;
+        return $"""<li><a href="{ArchivePath(edition.TargetDate)}">{date}</a>{(top is null ? "" : $" — {E(top)}")}</li>""";
+    }
 
     private static string Head(string title, string description, string path) =>
         $"""
@@ -189,10 +188,12 @@ public static class SitePageRenderer
 
     private static string ArchiveLinks(ArchiveNav nav)
     {
-        static string Day(DateOnly? date, string format) =>
-            date is { } value ? $"""<a href="{ArchivePath(value)}">{string.Format(format, value.ToString("MMM d", CultureInfo.InvariantCulture))}</a>""" : "";
-        return $"""<nav class="archive-nav">{Day(nav.Previous, "← {0}")}<a href="/archive/">All days</a><a href="/">Today</a>{Day(nav.Next, "{0} →")}</nav>""";
+        var previous = nav.Previous is { } p ? $"""<a href="{ArchivePath(p)}">← {ShortDate(p)}</a>""" : "";
+        var next = nav.Next is { } n ? $"""<a href="{ArchivePath(n)}">{ShortDate(n)} →</a>""" : "";
+        return $"""<nav class="archive-nav">{previous}<a href="/archive/">All days</a><a href="/">Today</a>{next}</nav>""";
     }
+
+    private static string ShortDate(DateOnly date) => date.ToString("MMM d", CultureInfo.InvariantCulture);
 
     // Header and footer text that differs on the Weekend tab; CSS shows one by the active tab.
     private static string Swap(string daily, string weekend) =>

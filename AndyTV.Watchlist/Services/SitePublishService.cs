@@ -35,12 +35,13 @@ public sealed class SitePublishService(BlobStore blobStore, AppSettings settings
                 writer.Write(content);
             }
 
+            // Today, not the latest daily's date, so a failed daily run never brings back an expired weekend.
             Add("index.html", SitePageRenderer.Render(dailies[^1], Weekend(EasternTimeZone.Today)));
             for (var i = 0; i < dailies.Count; i++)
             {
                 var date = dailies[i].TargetDate;
                 var nav = new ArchiveNav(dailies.ElementAtOrDefault(i - 1)?.TargetDate, dailies.ElementAtOrDefault(i + 1)?.TargetDate);
-                Add($"{SitePageRenderer.ArchivePath(date)[1..]}index.html", SitePageRenderer.Render(dailies[i], Weekend(date), nav));
+                Add($"{SitePageRenderer.ArchivePath(date).TrimStart('/')}index.html", SitePageRenderer.Render(dailies[i], Weekend(date), nav));
             }
             Add("archive/index.html", SitePageRenderer.RenderArchive(dailies));
             Add("sitemap.xml", SitePageRenderer.RenderSitemap(dailies));
