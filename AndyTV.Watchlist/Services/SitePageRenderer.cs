@@ -98,7 +98,7 @@ public static class SitePageRenderer
             <nav class="tabs" aria-label="Watchlist sections">{{string.Concat(tabs)}}</nav>
             <main class="wrap">{{string.Concat(panels)}}</main>
             <footer class="site-footer">
-            <p>Made with ❤️ by <a href="https://x.com/andrew_herrick" target="_blank" rel="noopener">@andrew_herrick</a> · <a href="https://x.com/andytvwatchlist" target="_blank" rel="noopener">@andytvwatchlist</a> · <a href="/privacy">Privacy</a></p>
+            <p>Made with ❤️ by <a href="https://x.com/andrew_herrick" target="_blank" rel="noopener">@andrew_herrick</a> · <a href="https://x.com/andytvwatchlist" target="_blank" rel="noopener">@andytvwatchlist</a> · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a></p>
             <p class="updated">{{updated}}</p>
             </footer>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.css">

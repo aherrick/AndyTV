@@ -15,6 +15,14 @@
     {
       "route": "/privacy",
       "rewrite": "/privacy.html"
+    },
+    {
+      "route": "/about",
+      "rewrite": "/about.html"
+    },
+    {
+      "route": "/contact",
+      "rewrite": "/contact.html"
     }
   ],
   "navigationFallback": {
@@ -22,7 +30,8 @@
     "exclude": ["/styles.css", "/*.json", "/*.txt", "/*.html", "/*.webmanifest", "/*.ico", "/*.png"]
   },
   "mimeTypes": {
-    ".webmanifest": "application/manifest+json"
+    ".webmanifest": "application/manifest+json",
+    ".xml": "application/xml"
   }
 }
 
