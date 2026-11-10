@@ -40,10 +40,13 @@ jobs:
           Expand-Archive package.zip -DestinationPath analyzers/Roslynator.Analyzers
           Remove-Item package.zip
 
+      # The persistent SDK dir can hold several SDKs (e.g. an old RC beside GA), which makes Roslynator
+      # refuse to pick one; point it at the SDK this repo resolves to.
       - name: Analyze
         shell: powershell
         run: >
           & "$env:ROSLYNATOR_DIR\roslynator" analyze AndyTV.slnx
+          --msbuild-path "$env:DOTNET_ROOT\sdk\$(dotnet --version)"
           --analyzer-assemblies "analyzers/Roslynator.Analyzers/analyzers"
           --ignore-compiler-diagnostics
 
@@ -52,6 +55,7 @@ jobs:
         shell: powershell
         run: >
           & "$env:ROSLYNATOR_DIR\roslynator" find-symbol AndyTV.slnx
+          --msbuild-path "$env:DOTNET_ROOT\sdk\$(dotnet --version)"
           --symbol-kind type-or-member
           --unused
           --visibility private
