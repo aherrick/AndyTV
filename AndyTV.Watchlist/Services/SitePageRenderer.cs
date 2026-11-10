@@ -81,7 +81,6 @@ public static class SitePageRenderer
             <meta property="og:image" content="https://andytv.today/img/andytvwatchlist_header3.png">
             <meta name="twitter:card" content="summary_large_image">
             <link rel="stylesheet" href="/styles.css">
-            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2972208898178828" crossorigin="anonymous"></script>
             </head>
             <body>
             <div class="top-controls">
