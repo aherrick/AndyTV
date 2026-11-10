@@ -7,7 +7,7 @@ using Azure.Storage.Sas;
 
 namespace AndyTV.Watchlist.Services;
 
-// The public container hosts the rendered index.html and Instagram cards; editions stay private.
+// The public container hosts the rendered site.zip and Instagram cards; editions stay private.
 public sealed class BlobStore(AppSettings settings)
 {
     private BlobContainerClient Container => new(settings.BlobConnectionString, "andytv-watchlist");
@@ -42,49 +42,53 @@ public sealed class BlobStore(AppSettings settings)
 
     private static string LogName(WatchlistRun run) => $"logs/{RunName(run)}.txt";
 
-    public async Task<List<WatchlistRun>> ReadRuns(int count)
-    {
-        var container = PrivateContainer;
-        if (!await container.ExistsAsync())
-        {
-            return [];
-        }
-
-        List<string> names = [];
-        await foreach (var blob in container.GetBlobsAsync(BlobTraits.None, BlobStates.None, "runs/", default))
-        {
-            names.Add(blob.Name);
-        }
-
-        var runs = await Task.WhenAll(
-            names.OrderDescending().Take(count).Select(async name =>
-                (await container.GetBlobClient(name).DownloadContentAsync()).Value.Content.ToObjectFromJson<WatchlistRun>(JsonSerializerOptions.Web)
-            )
-        );
-        return [.. runs];
-    }
+    public async Task<List<WatchlistRun>> ReadRuns(int count) =>
+        await ReadJson<WatchlistRun>((await ListPrivate("runs/")).OrderDescending().Take(count));
 
     // Uploads a card PNG to a public container and returns its blob URL.
     public Task<Uri> UploadImage(string blobName, byte[] png, CancellationToken cancellationToken = default) =>
         Upload(true, blobName, BinaryData.FromBytes(png), "image/png", cancellationToken: cancellationToken);
 
-    // The deploy workflow downloads this and publishes it as the site's index.html.
-    public Task<Uri> PublishPage(string html, CancellationToken cancellationToken = default) =>
-        Upload(true, "index.html", BinaryData.FromString(html), "text/html; charset=utf-8", "no-cache", cancellationToken);
+    // The deploy workflow downloads this zip of every rendered page and publishes it as the site.
+    public Task<Uri> PublishSite(byte[] zip, CancellationToken cancellationToken = default) =>
+        Upload(true, "site.zip", BinaryData.FromBytes(zip), "application/zip", "no-cache", cancellationToken);
 
-    // Each kind's latest edition, kept so later days can re-render the page (e.g. Saturday keeps Friday's weekend).
+    // Keyed by date, so a re-run replaces that day's edition and every past day stays archived.
     public Task SaveEdition(SiteEdition edition, WatchlistKind kind, CancellationToken cancellationToken = default) =>
-        WritePrivate(kind.EditionBlobName(), JsonSerializer.Serialize(edition, JsonSerializerOptions.Web), cancellationToken);
+        WritePrivate(kind.EditionBlobName(edition.TargetDate), JsonSerializer.Serialize(edition, JsonSerializerOptions.Web), cancellationToken);
 
-    // Null when that kind isn't published (no weekend outside Friday-Saturday).
-    public async Task<SiteEdition> ReadEdition(WatchlistKind kind, CancellationToken cancellationToken = default) =>
-        await ReadPrivate(kind.EditionBlobName(), cancellationToken) is { } json
-            ? JsonSerializer.Deserialize<SiteEdition>(json, JsonSerializerOptions.Web)
-            : null;
+    // Every saved edition of a kind, oldest first.
+    public async Task<List<SiteEdition>> ReadEditions(WatchlistKind kind, CancellationToken cancellationToken = default) =>
+        await ReadJson<SiteEdition>((await ListPrivate(kind.EditionPrefix(), cancellationToken)).Order(), cancellationToken);
 
-    // Sunday expires the weekend edition; an already-missing blob is a no-op.
-    public async Task DeleteWeekendEdition(CancellationToken cancellationToken = default) =>
-        await PrivateContainer.GetBlobClient(WatchlistKind.Weekend.EditionBlobName()).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+    private async Task<List<string>> ListPrivate(string prefix, CancellationToken cancellationToken = default)
+    {
+        var container = PrivateContainer;
+        List<string> names = [];
+        if (!await container.ExistsAsync(cancellationToken))
+        {
+            return names;
+        }
+
+        await foreach (var blob in container.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, cancellationToken))
+        {
+            names.Add(blob.Name);
+        }
+        return names;
+    }
+
+    private async Task<List<T>> ReadJson<T>(IEnumerable<string> names, CancellationToken cancellationToken = default)
+    {
+        var container = PrivateContainer;
+        return
+        [
+            .. await Task.WhenAll(
+                names.Select(async name =>
+                    (await container.GetBlobClient(name).DownloadContentAsync(cancellationToken)).Value.Content.ToObjectFromJson<T>(JsonSerializerOptions.Web)
+                )
+            ),
+        ];
+    }
 
     private async Task<Uri> Upload(
         bool isPublic,

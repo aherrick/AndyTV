@@ -6,7 +6,7 @@ namespace AndyTV.Watchlist;
 
 /// <summary>
 /// Runs Daily every day and Weekend on Friday at 2:30 AM Eastern.
-/// WatchlistPublishingService handles research, publishing, and Sunday cleanup.
+/// WatchlistPublishingService handles research and publishing.
 /// </summary>
 public sealed class AndyTVWatchlistFn(
     WatchlistPublishingService publishingService,
@@ -23,7 +23,6 @@ public sealed class AndyTVWatchlistFn(
     private static bool _forcedRunDone;
 
     // One daily run: publish Daily, and on Fridays research Weekend at the same time.
-    // The service deletes the weekend feed first on Sundays.
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
         [TimerTrigger("0 30 6,7 * * *", RunOnStartup = RunOnStartup)] TimerInfo _,

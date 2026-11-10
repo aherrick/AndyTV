@@ -27,7 +27,7 @@
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/styles.css", "/*.json", "/*.txt", "/*.html", "/*.webmanifest", "/*.ico", "/*.png"]
+    "exclude": ["/styles.css", "/*.json", "/*.txt", "/*.html", "/*.webmanifest", "/*.ico", "/*.png", "/20*", "/archive*"]
   },
   "mimeTypes": {
     ".webmanifest": "application/manifest+json",

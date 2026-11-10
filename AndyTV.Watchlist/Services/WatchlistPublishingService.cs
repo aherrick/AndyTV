@@ -27,13 +27,7 @@ public sealed class WatchlistPublishingService(
         var run = new WatchlistRun { Started = DateTimeOffset.UtcNow, Kind = kind.ToString() };
         try
         {
-            // 1. Sunday's daily run expires the weekend edition.
-            if (kind == WatchlistKind.Daily && targetDate.DayOfWeek == DayOfWeek.Sunday && settings.CanPublishSite)
-            {
-                await blobStore.DeleteWeekendEdition(cancellationToken);
-            }
-
-            // 2. Load schedule events; none leaves the existing feed alone.
+            // 1. Load schedule events; none leaves the existing feed alone.
             var days = kind.Days(targetDate);
             var events = await researchService.LoadEvents(days, cancellationToken);
             run.Events = events.Count;
@@ -42,10 +36,10 @@ public sealed class WatchlistPublishingService(
                 return;
             }
 
-            // 3. Copilot ranks and enriches the events.
+            // 2. Copilot ranks and enriches the events.
             (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
 
-            // 4. Save the site edition before social; the timer renders the page from it after the runs.
+            // 3. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)
             {
                 var edition = new SiteEdition(targetDate, DateTimeOffset.UtcNow, watchlist, events);
@@ -53,7 +47,7 @@ public sealed class WatchlistPublishingService(
                 run.Feed = true;
             }
 
-            // 5. Social posts run independently so one failing doesn't block the other.
+            // 4. Social posts run independently so one failing doesn't block the other.
             List<string> errors = [];
             async Task<string> Social(string name, Task<string> post)
             {

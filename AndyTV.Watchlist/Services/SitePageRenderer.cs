@@ -4,9 +4,12 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-// Renders the whole site as one static index.html; app.js only switches panels and filters lists.
+// Renders the site's pages as static HTML: the homepage, one archived copy per date, the archive hub and the sitemap.
+// app.js only switches panels and filters lists.
 public static class SitePageRenderer
 {
+    private const string Site = "https://andytv.today";
+
     private static readonly string Trophy = Svg("""<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>""");
     private static readonly string Clock = Svg("""<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/>""");
     private static readonly string Tv = Svg("""<rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/>""");
@@ -20,7 +23,8 @@ public static class SitePageRenderer
 
     private static readonly string Script = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "site", "app.js"));
 
-    public static string Render(SiteEdition daily, SiteEdition weekend)
+    // The homepage, or with nav the archived page for daily's date (same content, dated head and prev/next links).
+    public static string Render(SiteEdition daily, SiteEdition weekend, ArchiveNav nav = null)
     {
         var games = daily.Watchlist.BestWatches;
         var schedule = Schedule(daily);
@@ -54,35 +58,21 @@ public static class SitePageRenderer
             weekend is null ? null : SportsFormat.Dates(WatchlistKind.Weekend, weekend.TargetDate)
         );
         var updated = Swap(Updated(daily), weekend is null ? null : Updated(weekend));
+        var footer = Footer($"""<p class="updated">{updated}</p>""");
+        var day = daily.TargetDate.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture);
+        var head = nav is null
+            ? Head("AndyTV Watchlist — Best Sports Today", "The best sports to watch today, ranked daily by AndyTV.", "/")
+            : Head(
+                $"Best Sports on TV for {day} — AndyTV Watchlist",
+                $"The best sports to watch on {day}, ranked by AndyTV: {string.Join(", ", games.Take(3).Select(game => game.Matchup))}.",
+                ArchivePath(daily.TargetDate)
+            );
 
         return $$"""
             <!DOCTYPE html>
             <html lang="en">
-            <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>AndyTV Watchlist — Best Sports Today</title>
-            <link rel="canonical" href="https://andytv.today/">
-            <link rel="icon" type="image/png" href="/img/icon-192.png">
-            <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-            <link rel="manifest" href="/manifest.webmanifest">
-            <meta name="mobile-web-app-capable" content="yes">
-            <meta name="apple-mobile-web-app-capable" content="yes">
-            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-            <meta name="apple-mobile-web-app-title" content="AndyTV">
-            <meta name="description" content="The best sports to watch today, ranked daily by AndyTV.">
-            <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
-            <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
-            <script>document.documentElement.dataset.theme = localStorage.getItem("andytv-theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");</script>
-            <meta property="og:type" content="website">
-            <meta property="og:title" content="AndyTV Watchlist — Best Sports Today">
-            <meta property="og:description" content="The best sports to watch today, ranked daily by AndyTV.">
-            <meta property="og:url" content="https://andytv.today/">
-            <meta property="og:image" content="https://andytv.today/img/andytvwatchlist_header3.png">
-            <meta name="twitter:card" content="summary_large_image">
-            <link rel="stylesheet" href="/styles.css">
-            </head>
-            <body>
+            {{head}}
+            <body{{(nav is null ? "" : " data-archived")}}>
             <div class="top-controls">
             <button class="control-btn" id="install-btn" type="button" aria-label="Add to Home Screen" title="Add to Home Screen" hidden>{{Download}}</button>
             <button class="control-btn" id="share-btn" type="button" aria-label="Share" hidden>{{Share}}</button>
@@ -92,14 +82,11 @@ public static class SitePageRenderer
             <header class="site-header">
             <img class="banner" src="/img/andytvwatchlist_header3.png" alt="AndyTV Watchlist">
             <h1>{{date}}</h1>
-            <p class="times-note">All times ET</p>
+            <p class="times-note">All times ET</p>{{(nav is null ? "" : ArchiveLinks(nav))}}
             </header>
             <nav class="tabs" aria-label="Watchlist sections">{{string.Concat(tabs)}}</nav>
             <main class="wrap">{{string.Concat(panels)}}</main>
-            <footer class="site-footer">
-            <p>Made with ❤️ by <a href="https://x.com/andrew_herrick" target="_blank" rel="noopener">@andrew_herrick</a> · <a href="https://x.com/andytvwatchlist" target="_blank" rel="noopener">@andytvwatchlist</a> · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a></p>
-            <p class="updated">{{updated}}</p>
-            </footer>
+            {{footer}}
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.css">
             <script defer src="https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@4.4.0/dist/add-to-homescreen.min.js"></script>
             <script>{{Script}}</script>
@@ -116,6 +103,95 @@ public static class SitePageRenderer
             </body>
             </html>
             """;
+    }
+
+    // Every saved day, newest first and grouped by month, each with its top-ranked game.
+    public static string RenderArchive(List<SiteEdition> dailies)
+    {
+        var months = dailies
+            .OrderByDescending(edition => edition.TargetDate)
+            .GroupBy(edition => edition.TargetDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture))
+            .Select(month =>
+            {
+                var days = month.Select(edition =>
+                {
+                    var top = edition.Watchlist.BestWatches.FirstOrDefault()?.Matchup;
+                    var date = edition.TargetDate.ToString("dddd, MMMM d", CultureInfo.InvariantCulture);
+                    return $"""<li><a href="{ArchivePath(edition.TargetDate)}">{date}</a>{(top is null ? "" : $" — {E(top)}")}</li>""";
+                });
+                return $"""<h2>{month.Key}</h2><ul>{string.Concat(days)}</ul>""";
+            });
+
+        return $$"""
+            <!DOCTYPE html>
+            <html lang="en">
+            {{Head("AndyTV Watchlist Archive — Past Daily Sports Picks", "Every past AndyTV Watchlist: the best sports to watch, day by day.", "/archive/")}}
+            <body>
+            <main class="wrap legal">
+            <p><a href="/">← Back to AndyTV Watchlist</a></p>
+            <h1>Archive</h1>
+            {{string.Concat(months)}}
+            </main>
+            {{Footer()}}
+            </body>
+            </html>
+            """;
+    }
+
+    public static string RenderSitemap(List<SiteEdition> dailies)
+    {
+        string[] paths = ["/", "/archive/", "/about", "/contact", "/privacy", .. dailies.Select(edition => ArchivePath(edition.TargetDate)).Reverse()];
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            {string.Concat(paths.Select(path => $"<url><loc>{Site}{path}</loc></url>\n"))}</urlset>
+            """;
+    }
+
+    // e.g. /2026/11/10/ — a folder, so Static Web Apps serves its index.html with no routing rules.
+    public static string ArchivePath(DateOnly date) => $"/{date.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}/";
+
+    private static string Head(string title, string description, string path) =>
+        $"""
+            <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>{E(title)}</title>
+            <link rel="canonical" href="{Site}{path}">
+            <link rel="icon" type="image/png" href="/img/icon-192.png">
+            <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+            <link rel="manifest" href="/manifest.webmanifest">
+            <meta name="mobile-web-app-capable" content="yes">
+            <meta name="apple-mobile-web-app-capable" content="yes">
+            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+            <meta name="apple-mobile-web-app-title" content="AndyTV">
+            <meta name="description" content="{E(description)}">
+            <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
+            <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
+            <script>document.documentElement.dataset.theme = localStorage.getItem("andytv-theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");</script>
+            <meta property="og:type" content="website">
+            <meta property="og:title" content="{E(title)}">
+            <meta property="og:description" content="{E(description)}">
+            <meta property="og:url" content="{Site}{path}">
+            <meta property="og:image" content="{Site}/img/andytvwatchlist_header3.png">
+            <meta name="twitter:card" content="summary_large_image">
+            <link rel="stylesheet" href="/styles.css">
+            </head>
+            """;
+
+    private static string Footer(string extra = "") =>
+        $"""
+            <footer class="site-footer">
+            <p>Made with ❤️ by <a href="https://x.com/andrew_herrick" target="_blank" rel="noopener">@andrew_herrick</a> · <a href="https://x.com/andytvwatchlist" target="_blank" rel="noopener">@andytvwatchlist</a> · <a href="/archive/">Archive</a> · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a></p>
+            {extra}
+            </footer>
+            """;
+
+    private static string ArchiveLinks(ArchiveNav nav)
+    {
+        static string Day(DateOnly? date, string format) =>
+            date is { } value ? $"""<a href="{ArchivePath(value)}">{string.Format(format, value.ToString("MMM d", CultureInfo.InvariantCulture))}</a>""" : "";
+        return $"""<nav class="archive-nav">{Day(nav.Previous, "← {0}")}<a href="/archive/">All days</a><a href="/">Today</a>{Day(nav.Next, "{0} →")}</nav>""";
     }
 
     // Header and footer text that differs on the Weekend tab; CSS shows one by the active tab.
@@ -280,3 +356,6 @@ public static class SitePageRenderer
     // One line in a Timeline list: a ranked game, or a feed event tagged with its rank when it has one.
     private sealed record ScheduleRow(DateTimeOffset? Start, string Sport, string League, string Matchup, string Network, int? Rank);
 }
+
+// Neighbouring saved dates for an archived page's prev/next links; null at either end.
+public sealed record ArchiveNav(DateOnly? Previous, DateOnly? Next);

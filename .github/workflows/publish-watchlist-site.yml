@@ -12,9 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Rendered by the Watchlist function; --fail stops the deploy if it's missing.
-      - name: Download index.html
-        run: curl --fail --silent --show-error --retry 3 -o AndyTV.Watchlist.Site/index.html https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/index.html
+      # Rendered by the Watchlist function: index.html, every archived day, archive/ and sitemap.xml.
+      # --fail stops the deploy if it's missing.
+      - name: Download site.zip
+        run: |
+          curl --fail --silent --show-error --retry 3 -o site.zip https://andytvwatchlist.blob.core.windows.net/andytv-watchlist/site.zip
+          unzip -o -q site.zip -d AndyTV.Watchlist.Site
 
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1

@@ -19,7 +19,8 @@ function show(target, push) {
     filter(section, "");
     section.querySelector(".sport-filter")?.scrollTo(0, 0);
   }
-  if (push) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
+  // Archived pages live at /yyyy/mm/dd/, so tab switches there don't touch the URL.
+  if (push && !("archived" in document.body.dataset)) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
 }
 
 function filter(panel, sport) {

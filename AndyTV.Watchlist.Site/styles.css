@@ -593,15 +593,27 @@ main {
   text-align: center;
 }
 
-.site-footer a {
+.site-footer a,
+.archive-nav a {
   color: var(--accent-2);
 
   font-weight: 600;
   text-decoration: none;
 }
 
-.site-footer a:hover {
+.site-footer a:hover,
+.archive-nav a:hover {
   text-decoration: underline;
+}
+
+.archive-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin-top: 10px;
+
+  font-size: 0.85rem;
 }
 
 .updated {

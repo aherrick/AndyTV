@@ -20,14 +20,15 @@ Settings: `WATCHLIST_PROMPT` (required; one-line prompt with
 for `aherrick/AndyTV` with only "Actions: Read and write"; optional, skips the site deploy), plus the existing blob,
 Cloudflare, Instagram and X settings.
 
-Each kind saves its site edition (ranked games, picks, plan and full schedule) privately as
-`andytv-watchlist-private/site/daily.json` or `site/weekend.json`. Both kinds post to Instagram
-and X; Friday posts the daily and weekend editions separately. Sunday's daily run deletes the
-weekend edition first.
+Each kind saves its site edition (ranked games, picks, plan and full schedule) privately, one blob per date:
+`andytv-watchlist-private/site/daily/2026-11-10.json` or `site/weekend/2026-11-13.json` (keyed to the Friday
+it ran). Both kinds post to Instagram and X; Friday posts the daily and weekend editions separately.
 
-After the runs, `SitePublishService` renders every tab from those editions into one static
-`index.html`, uploads it to the public `andytv-watchlist` container, and dispatches the
-`publish-watchlist-site` workflow, which downloads it and deploys the site.
+After the runs, `SitePublishService` reads every saved edition and renders the whole site as static HTML: the
+homepage (latest daily, plus the weekend tab Friday-Saturday), an archived copy of each day at `/yyyy/mm/dd/`,
+the `/archive/` index and `sitemap.xml`. It zips them into `site.zip` in the public `andytv-watchlist` container
+and dispatches the `publish-watchlist-site` workflow, which unzips it into the site and deploys. A deploy
+replaces the whole site, so every zip carries the full archive.
 
 `INSTAGRAM_ACCESS_TOKEN` is only the seed: the function refreshes it on each post and keeps
 the current token in the private `andytv-watchlist-private` container. After setting a new
@@ -43,9 +44,8 @@ The hour check skips the UTC firing that does not fall at 2 AM Eastern.
 
 `WatchlistPublishingService` carries out each run in this order:
 
-1. On Sunday, delete the weekend edition.
-2. `WatchlistResearchService` loads the day's (or weekend's) events; stop if the feeds returned none.
+1. `WatchlistResearchService` loads the day's (or weekend's) events; stop if the feeds returned none.
    Otherwise Copilot ranks and enriches them (one retry on a failed session).
-3. Build that kind's site edition and save it to private blob storage.
-4. Capture each Instagram card, upload them and publish the carousel when configured.
-5. Log the X thread and post it when X credentials are present.
+2. Build that kind's site edition and save it to private blob storage under its date.
+3. Capture each Instagram card, upload them and publish the carousel when configured.
+4. Log the X thread and post it when X credentials are present.
