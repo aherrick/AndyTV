@@ -7,9 +7,8 @@ jobs:
   analyze:
     runs-on: [self-hosted, ajwin]
     env:
-      # Roslynator targets up to net10.0; force it onto the .NET 11 RC runtime.
+      # Roslynator targets up to net10.0; roll forward to the .NET 11 runtime.
       DOTNET_ROLL_FORWARD: LatestMajor
-      DOTNET_ROLL_FORWARD_TO_PRERELEASE: 1
       ROSLYNATOR_VERSION: 1.0.1
       ROSLYNATOR_DIR: C:\code\_runners\_tools\roslynator\1.0.1
     steps:
@@ -22,7 +21,6 @@ jobs:
           DOTNET_INSTALL_DIR: C:\code\_runners\_tools\dotnet
         with:
           dotnet-version: 11.0.x
-          dotnet-quality: preview
 
       # 0.11.0's bundled MSBuild can't load the .NET 11 SDK (MissingMethodException); 1.0.1 can.
       - name: Install Roslynator CLI

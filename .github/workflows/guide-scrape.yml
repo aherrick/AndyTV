@@ -21,7 +21,6 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '11.0.x'
-          dotnet-quality: preview
 
       - name: Run scraper (writes out/guide.json)
         run: dotnet run -c Release --project ./AndyTV.Guide.Scraper/AndyTV.Guide.Scraper.csproj

@@ -19,7 +19,6 @@ jobs:
           DOTNET_INSTALL_DIR: C:\code\_runners\_tools\dotnet
         with:
           dotnet-version: '11.0.x'
-          dotnet-quality: preview
 
       - name: Install MAUI Workload
         run: dotnet workload restore
