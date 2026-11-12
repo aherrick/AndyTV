@@ -54,6 +54,8 @@ static class Program
             {
                 Core.Initialize();
                 ApplicationConfiguration.Initialize();
+                Application.SetDefaultVisualStylesMode(VisualStylesMode.Net11);
+                Application.SetDefaultFormRevealMode(FormRevealMode.Deferred);
                 Application.SetColorMode(SystemColorMode.System);
                 Application.Run(new PlayerForm());
             }
