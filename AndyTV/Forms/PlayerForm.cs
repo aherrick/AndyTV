@@ -42,8 +42,7 @@ internal sealed class PlayerForm : Form
     private Form _toast;
     private DateTime _leftDown = DateTime.MinValue;
     private DateTime _rightDown = DateTime.MinValue;
-    private FormWindowState _restoreState = FormWindowState.Maximized;
-    private Rectangle _restoreBounds;
+    private Rectangle? _restoreBounds;
 
     private const int LeftHoldSeconds = 1;
     private const int RightHoldSeconds = 5;
@@ -132,13 +131,11 @@ internal sealed class PlayerForm : Form
     {
         if (this.IsFullscreen())
         {
-            this.ExitFullscreen(_restoreState, _restoreBounds);
+            this.ExitFullscreen(_restoreBounds);
         }
         else
         {
-            _restoreState = WindowState;
-            _restoreBounds = Bounds;
-            this.EnterFullscreen();
+            _restoreBounds = this.EnterFullscreen();
         }
         UpdateCursor();
     }
