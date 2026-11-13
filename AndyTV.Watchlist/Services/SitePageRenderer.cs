@@ -230,9 +230,9 @@ public static class SitePageRenderer
                 .Select(e =>
                 {
                     var game = ranked.GetValueOrDefault(e.Matchup);
-                    // The feed often lacks a network the ranked game has.
+                    // The feed often lacks a network or start time (golf, racing) the ranked game has.
                     var network = string.IsNullOrWhiteSpace(e.Network) ? game?.Network : e.Network;
-                    return new ScheduleRow(e.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank);
+                    return new ScheduleRow(e.StartTimeIso ?? game?.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank);
                 })
                 .OrderBy(row => row.Start ?? DateTimeOffset.MaxValue)
                 .ThenBy(row => row.Rank ?? int.MaxValue)
