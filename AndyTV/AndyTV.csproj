@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="LibVLCSharp.WinForms" Version="3.10.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="11.0.0-rc.2.26505.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="11.0.10" />
     <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
   </ItemGroup>

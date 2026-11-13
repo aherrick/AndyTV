@@ -48,13 +48,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui" Version="16.0.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="17.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="Microsoft.Maui.Essentials" Version="11.0.0-rc.2.26505.5" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-rc.2.26505.5" />
+		<PackageReference Include="Microsoft.Maui.Essentials" Version="11.0.10" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.10" />
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.2" />
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.43" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.1.46" />
 	</ItemGroup>
 
 	<ItemGroup>
