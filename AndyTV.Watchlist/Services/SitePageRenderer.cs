@@ -28,13 +28,13 @@ public static class SitePageRenderer
     {
         var games = daily.Watchlist.BestWatches;
         var schedule = Schedule(daily);
-        var chips = Chips(games.ConvertAll(game => game.Sport));
+        var chips = Chips(games.ConvertAll(game => (game.Sport, game.League)));
         List<string> tabs = [Tab("top", "Top", Trophy), Tab("timeline", "Timeline", Clock), Tab("plan", "Plan", Tv)];
         List<string> panels =
         [
             Panel("top", chips + Picks(games, false) + Cards(games, false)),
             Panel("timeline:top", chips + Subtabs("timeline", "top") + Rows(ByTime(games).ConvertAll(ToRow), false)),
-            Panel("timeline:all", Chips(schedule.ConvertAll(row => row.Sport)) + Subtabs("timeline", "all") + Rows(schedule, false)),
+            Panel("timeline:all", Chips(schedule.ConvertAll(row => (row.Sport, row.League))) + Subtabs("timeline", "all") + Rows(schedule, false)),
             Panel("plan", Plan(daily.Watchlist)),
         ];
 
@@ -42,14 +42,14 @@ public static class SitePageRenderer
         {
             var weekendGames = weekend.Watchlist.BestWatches;
             var weekendSchedule = Schedule(weekend);
-            var weekendChips = Chips(weekendGames.ConvertAll(game => game.Sport));
+            var weekendChips = Chips(weekendGames.ConvertAll(game => (game.Sport, game.League)));
             var picks = Picks(weekendGames, true);
             tabs.Add(Tab("weekend", "Weekend", Calendar));
             panels.AddRange(
             [
                 Panel("weekend:top", weekendChips + Subtabs("weekend", "top") + picks + Cards(weekendGames, true)),
                 Panel("weekend:timeline", weekendChips + Subtabs("weekend", "timeline") + picks + Cards(ByTime(weekendGames), true)),
-                Panel("weekend:all", Chips(weekendSchedule.ConvertAll(row => row.Sport)) + Subtabs("weekend", "all") + Rows(weekendSchedule, true)),
+                Panel("weekend:all", Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Subtabs("weekend", "all") + Rows(weekendSchedule, true)),
             ]);
         }
 
@@ -241,18 +241,37 @@ public static class SitePageRenderer
         ];
     }
 
-    // Sport chips for one list, most games first; omitted when the list has a single sport.
-    private static string Chips(List<string> sports)
+    // Sport chips for one list, most games first, each followed by a hidden league row when that sport
+    // spans 2+ leagues; omitted when the list has a single sport in a single league.
+    private static string Chips(List<(string Sport, string League)> games)
     {
-        var groups = sports.GroupBy(sport => sport).OrderByDescending(group => group.Count()).ToList();
-        if (groups.Count < 2)
+        var groups = games.GroupBy(game => game.Sport).OrderByDescending(group => group.Count()).ToList();
+        var leagueRows = groups.Select(LeagueChips).ToList();
+        if (groups.Count < 2 && leagueRows.All(row => row == ""))
         {
             return "";
         }
 
         var chips = groups.Select(group =>
             $"""<button type="button" data-filter="{E(group.Key)}"><span>{SportsFormat.Icon(group.Key)} {E(group.Key)}</span> <span class="count">{group.Count()}</span></button>""");
-        return $"""<div class="sport-filter"><button type="button" class="active" data-filter="">All <span class="count">{sports.Count}</span></button>{string.Concat(chips)}</div>""";
+        return $"""<div class="sport-filter"><button type="button" class="active" data-filter="">All <span class="count">{games.Count}</span></button>{string.Concat(chips)}</div>{string.Concat(leagueRows)}""";
+    }
+
+    private static string LeagueChips(IGrouping<string, (string Sport, string League)> sport)
+    {
+        var leagues = sport
+            .Where(game => !string.IsNullOrWhiteSpace(game.League))
+            .GroupBy(game => game.League)
+            .OrderByDescending(group => group.Count())
+            .ToList();
+        if (leagues.Count < 2)
+        {
+            return "";
+        }
+
+        var chips = leagues.Select(group =>
+            $"""<button type="button" data-league="{E(group.Key)}">{E(group.Key)} <span class="count">{group.Count()}</span></button>""");
+        return $"""<div class="sport-filter league-filter" data-for="{E(sport.Key)}" hidden><button type="button" class="active" data-league="">All {E(sport.Key)} <span class="count">{sport.Count()}</span></button>{string.Concat(chips)}</div>""";
     }
 
     private static string Picks(List<WatchlistGame> games, bool weekend)
@@ -288,7 +307,7 @@ public static class SitePageRenderer
             ? ""
             : $"""<details class="sources"><summary>Sources {links.Count}</summary><div class="source-links">{string.Concat(links)}</div></details>""";
 
-        return $"""<li class="game" data-sport="{E(game.Sport)}"><div class="rank">{game.Rank}</div><div class="body"><div class="title">{E(game.Matchup)}</div><div class="meta">{Time(game.StartTimeIso, weekend)}{network} · {SportsFormat.Icon(game.Sport)} {E(game.League)}</div>{odds}<div class="desc">{E(game.Reason.Trim())}</div>{sources}</div></li>""";
+        return $"""<li class="game" data-sport="{E(game.Sport)}" data-league="{E(game.League)}"><div class="rank">{game.Rank}</div><div class="body"><div class="title">{E(game.Matchup)}</div><div class="meta">{Time(game.StartTimeIso, weekend)}{network} · {SportsFormat.Icon(game.Sport)} {E(game.League)}</div>{odds}<div class="desc">{E(game.Reason.Trim())}</div>{sources}</div></li>""";
     }
 
     private static string Rows(List<ScheduleRow> rows, bool weekend) =>
@@ -299,7 +318,7 @@ public static class SitePageRenderer
         var day = weekend && row.Start is { } start ? $"""<div class="row-day">{SportsFormat.Day(start)}</div>""" : "";
         var rank = row.Rank is { } value ? $"#{value} overall · " : "";
         var network = string.IsNullOrWhiteSpace(row.Network) ? "" : $"{Net(row.Network)} · ";
-        return $"""<li data-sport="{E(row.Sport)}"><div class="row-time">{day}{Time(row.Start)}</div><div><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div></div></li>""";
+        return $"""<li data-sport="{E(row.Sport)}" data-league="{E(row.League)}"><div class="row-time">{day}{Time(row.Start)}</div><div><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div></div></li>""";
     }
 
     private static string Plan(DailyWatchlist watchlist)

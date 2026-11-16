@@ -23,9 +23,17 @@ function show(target, push) {
   if (push && !("archived" in document.body.dataset)) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
 }
 
-function filter(panel, sport) {
+// A league row (shown under its sport chip when that sport spans 2+ leagues) narrows the list further.
+function filter(panel, sport, league = "") {
   for (const chip of $$("[data-filter]", panel)) chip.classList.toggle("active", chip.dataset.filter === sport);
-  for (const item of $$("[data-sport]", panel)) item.hidden = sport !== "" && item.dataset.sport !== sport;
+  for (const row of $$(".league-filter", panel)) {
+    row.hidden = row.dataset.for !== sport;
+    if (row.hidden) row.scrollLeft = 0;
+    for (const chip of $$("[data-league]", row)) chip.classList.toggle("active", chip.dataset.league === league);
+  }
+  for (const item of $$("[data-sport]", panel)) {
+    item.hidden = (sport !== "" && item.dataset.sport !== sport) || (league !== "" && item.dataset.league !== league);
+  }
 }
 
 const pathTab = () => location.pathname.replace(/^\/+|\/+$/g, "");
@@ -40,6 +48,11 @@ document.addEventListener("click", (e) => {
   }
   const chip = e.target.closest("[data-filter]");
   if (chip) filter(chip.closest(".panel"), chip.dataset.filter);
+  const leagueChip = e.target.closest(".league-filter [data-league]");
+  if (leagueChip) {
+    const row = leagueChip.closest(".league-filter");
+    filter(row.closest(".panel"), row.dataset.for, leagueChip.dataset.league);
+  }
 });
 addEventListener("popstate", () => show(pathTab(), false));
 show(pathTab(), false);
