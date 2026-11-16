@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.31.0-beta.1" />
-    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.33-preview.0" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.34" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="Polly.Core" Version="8.9.1" />
