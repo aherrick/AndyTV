@@ -64,8 +64,9 @@ body {
   padding: 0 16px 48px;
 }
 
-/* At least a screen tall, so switching to a short list never pulls the pinned tab bar down. */
-main {
+/* app.js adds .tall when a tab switch happens while scrolled down, so a short list never pulls the
+   pinned tab bar down; otherwise the footer sits right under the content. */
+main.tall {
   min-height: 100vh;
 }
 

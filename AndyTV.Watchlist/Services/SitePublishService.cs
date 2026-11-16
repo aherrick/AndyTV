@@ -44,6 +44,14 @@ public sealed class SitePublishService(BlobStore blobStore, AppSettings settings
                 Add($"{SitePageRenderer.ArchivePath(date).TrimStart('/')}index.html", SitePageRenderer.Render(dailies[i], Weekend(date), nav));
             }
             Add("archive/index.html", SitePageRenderer.RenderArchive(dailies));
+            foreach (var year in dailies.GroupBy(edition => edition.TargetDate.Year))
+            {
+                Add($"{year.Key}/index.html", SitePageRenderer.RenderArchive(dailies, year.Key));
+                foreach (var month in year.Select(edition => edition.TargetDate.Month).Distinct())
+                {
+                    Add($"{year.Key}/{month:00}/index.html", SitePageRenderer.RenderArchive(dailies, year.Key, month));
+                }
+            }
             Add("sitemap.xml", SitePageRenderer.RenderSitemap(dailies));
         }
         await blobStore.PublishSite(zip.ToArray(), cancellationToken);

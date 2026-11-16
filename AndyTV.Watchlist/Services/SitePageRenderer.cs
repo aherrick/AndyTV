@@ -82,7 +82,7 @@ public static class SitePageRenderer
             <header class="site-header">
             <img class="banner" src="/img/andytvwatchlist_header3.png" alt="AndyTV Watchlist">
             <h1>{{date}}</h1>
-            <p class="times-note">All times ET</p>{{(nav is null ? "" : ArchiveLinks(nav))}}
+            <p class="times-note">All times ET</p>{{(nav is null ? "" : ArchiveLinks(daily.TargetDate, nav))}}
             </header>
             <nav class="tabs" aria-label="Watchlist sections">{{string.Concat(tabs)}}</nav>
             <main class="wrap">{{string.Concat(panels)}}</main>
@@ -105,22 +105,41 @@ public static class SitePageRenderer
             """;
     }
 
-    // Every saved day, newest first and grouped by month.
-    public static string RenderArchive(List<SiteEdition> dailies)
+    // The archive hub (/archive/), or with year (and month) a year or month page (/2026/, /2026/11/):
+    // its days newest first, grouped under month headings that link to each month's page.
+    public static string RenderArchive(List<SiteEdition> dailies, int? year = null, int? month = null)
     {
         var months = dailies
+            .Where(edition => (year is null || edition.TargetDate.Year == year) && (month is null || edition.TargetDate.Month == month))
             .OrderByDescending(edition => edition.TargetDate)
-            .GroupBy(edition => edition.TargetDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture))
-            .Select(month => $"""<h2>{month.Key}</h2><ul>{string.Concat(month.Select(ArchiveDay))}</ul>""");
+            .GroupBy(edition => MonthPath(edition.TargetDate))
+            .Select(group =>
+            {
+                var heading = month is null ? $"""<h2><a href="{group.Key}">{MonthName(group.First().TargetDate)}</a></h2>""" : "";
+                return $"""{heading}<ul>{string.Concat(group.Select(ArchiveDay))}</ul>""";
+            });
+
+        const string Archive = """ › <a href="/archive/">Archive</a>""";
+        var first = new DateOnly(year ?? 1, month ?? 1, 1);
+        var (title, path, crumbs) = (year, month) switch
+        {
+            (null, _) => ("Archive", "/archive/", ""),
+            (_, null) => ($"{year}", $"/{year}/", Archive),
+            _ => (MonthName(first), MonthPath(first), $"""{Archive} › <a href="/{year}/">{year}</a>"""),
+        };
+        var head = year is null ? "AndyTV Watchlist Archive — Past Daily Sports Picks" : $"Best Sports on TV in {title} — AndyTV Watchlist Archive";
+        var description = year is null
+            ? "Every past AndyTV Watchlist: the best sports to watch, day by day."
+            : $"Every AndyTV Watchlist from {title}: the best sports to watch, day by day.";
 
         return $$"""
             <!DOCTYPE html>
             <html lang="en">
-            {{Head("AndyTV Watchlist Archive — Past Daily Sports Picks", "Every past AndyTV Watchlist: the best sports to watch, day by day.", "/archive/")}}
+            {{Head(head, description, path)}}
             <body>
             <main class="wrap legal">
-            <p><a href="/">← Back to AndyTV Watchlist</a></p>
-            <h1>Archive</h1>
+            <p><a href="/">AndyTV Watchlist</a>{{crumbs}}</p>
+            <h1>{{title}}</h1>
             {{string.Concat(months)}}
             </main>
             {{Footer()}}
@@ -131,7 +150,14 @@ public static class SitePageRenderer
 
     public static string RenderSitemap(List<SiteEdition> dailies)
     {
-        string[] paths = ["/", "/archive/", "/about", "/contact", "/privacy", .. dailies.Select(edition => ArchivePath(edition.TargetDate))];
+        var dates = dailies.Select(edition => edition.TargetDate).ToList();
+        string[] paths =
+        [
+            "/", "/archive/", "/about", "/contact", "/privacy",
+            .. dates.Select(date => $"/{date.Year}/").Distinct(),
+            .. dates.Select(MonthPath).Distinct(),
+            .. dates.Select(ArchivePath),
+        ];
         return $"""
             <?xml version="1.0" encoding="UTF-8"?>
             <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -141,6 +167,10 @@ public static class SitePageRenderer
 
     // e.g. /2026/11/10/ — a folder, so Static Web Apps serves its index.html with no routing rules.
     public static string ArchivePath(DateOnly date) => $"/{date.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}/";
+
+    private static string MonthPath(DateOnly date) => $"/{date.ToString("yyyy/MM", CultureInfo.InvariantCulture)}/";
+
+    private static string MonthName(DateOnly date) => date.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
     // One archive line: the date, linked, and that day's #1 game.
     private static string ArchiveDay(SiteEdition edition)
@@ -187,11 +217,11 @@ public static class SitePageRenderer
             </footer>
             """;
 
-    private static string ArchiveLinks(ArchiveNav nav)
+    private static string ArchiveLinks(DateOnly date, ArchiveNav nav)
     {
         var previous = nav.Previous is { } p ? $"""<a href="{ArchivePath(p)}">← {ShortDate(p)}</a>""" : "";
         var next = nav.Next is { } n ? $"""<a href="{ArchivePath(n)}">{ShortDate(n)} →</a>""" : "";
-        return $"""<nav class="archive-nav">{previous}<a href="/archive/">All days</a><a href="/">Today</a>{next}</nav>""";
+        return $"""<nav class="archive-nav">{previous}<a href="{MonthPath(date)}">{MonthName(date)}</a><a href="/">Today</a>{next}</nav>""";
     }
 
     private static string ShortDate(DateOnly date) => date.ToString("MMM d", CultureInfo.InvariantCulture);

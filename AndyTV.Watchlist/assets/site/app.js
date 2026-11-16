@@ -38,10 +38,12 @@ function filter(panel, sport, league = "") {
 
 const pathTab = () => location.pathname.replace(/^\/+|\/+$/g, "");
 const header = document.querySelector(".site-header");
+const main = document.querySelector("main");
 
 document.addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (go) {
+    main.classList.toggle("tall", scrollY > 0);
     show(go.dataset.go, !go.dataset.go.includes(":"));
     // Scrolled past the header: keep the tab bar pinned and start the new list at its top.
     scrollTo(0, Math.min(scrollY, header.offsetTop + header.offsetHeight));
