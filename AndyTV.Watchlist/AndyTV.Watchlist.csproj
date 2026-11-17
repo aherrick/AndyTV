@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <Features>$(Features);runtime-async=on</Features>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>630ebcdf-86f3-4a8f-9082-1d406b3a891a</UserSecretsId>
