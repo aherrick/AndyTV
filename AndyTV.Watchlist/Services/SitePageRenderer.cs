@@ -10,6 +10,16 @@ public static class SitePageRenderer
 {
     private const string Site = "https://andytv.today";
 
+    // Google tag (GTM-KDDH6L6Z), which sends to the GA4 stream; must be first in <head>, once per page.
+    private const string GoogleTag = """
+        <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-KDDH6L6Z"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        </script>
+        """;
+
     private static readonly string Trophy = Svg("""<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>""");
     private static readonly string Clock = Svg("""<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/>""");
     private static readonly string Tv = Svg("""<rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/>""");
@@ -99,7 +109,6 @@ public static class SitePageRenderer
             fxToggle.ariaPressed = fx.optedOut;
             fxToggle.onclick = () => fxToggle.ariaPressed = (fx.optedOut ? fx.optIn() : fx.optOut()).optedOut;
             </script>
-            <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "0ddc91364f5746f4814895c9d169b965"}'></script>
             </body>
             </html>
             """;
@@ -183,6 +192,7 @@ public static class SitePageRenderer
     private static string Head(string title, string description, string path) =>
         $"""
             <head>
+            {GoogleTag}
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>{E(title)}</title>
