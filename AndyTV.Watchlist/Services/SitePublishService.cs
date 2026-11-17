@@ -26,8 +26,8 @@ public sealed class SitePublishService(BlobStore blobStore, AppSettings settings
         // Friday's weekend edition stays up through Saturday.
         SiteEdition Weekend(DateOnly day) => weekends.GetValueOrDefault(day) ?? weekends.GetValueOrDefault(day.AddDays(-1));
 
-        using var zip = new MemoryStream();
-        using (var archive = new ZipArchive(zip, ZipArchiveMode.Create, leaveOpen: true))
+        await using var zip = new MemoryStream();
+        await using (var archive = new ZipArchive(zip, ZipArchiveMode.Create, leaveOpen: true))
         {
             void Add(string path, string content)
             {

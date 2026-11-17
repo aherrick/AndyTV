@@ -159,7 +159,7 @@ public static class SitePageRenderer
 
     public static string RenderSitemap(List<SiteEdition> dailies)
     {
-        var dates = dailies.Select(edition => edition.TargetDate).ToList();
+        var dates = dailies.ConvertAll(edition => edition.TargetDate);
         string[] paths =
         [
             "/", "/archive/", "/about", "/contact", "/privacy",
@@ -286,8 +286,8 @@ public static class SitePageRenderer
     private static string Chips(List<(string Sport, string League)> games)
     {
         var groups = games.GroupBy(game => game.Sport).OrderByDescending(group => group.Count()).ToList();
-        var leagueRows = groups.Select(LeagueChips).ToList();
-        if (groups.Count < 2 && leagueRows.All(row => row == ""))
+        var leagueRows = groups.ConvertAll(LeagueChips);
+        if (groups.Count < 2 && leagueRows.All(row => row.Length == 0))
         {
             return "";
         }
