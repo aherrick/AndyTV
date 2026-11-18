@@ -1,8 +1,8 @@
 # Watchlist schedule
 
-One function runs at 2:30 AM Eastern every day. It researches and publishes Daily,
+One function runs at 3:00 AM Eastern every day. It researches and publishes Daily,
 and on Fridays researches Weekend (Saturday + Sunday) at the same time.
-The timer uses 06:30 and 07:30 UTC with an Eastern-hour guard for daylight saving time.
+The timer uses 07:00 and 08:00 UTC with an Eastern-hour guard for daylight saving time.
 The app runs on Linux Flex Consumption, where Azure does not support
 [`WEBSITE_TIME_ZONE`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer#ncrontab-time-zones).
 
@@ -40,7 +40,7 @@ Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, er
 ## Processing flow
 
 `AndyTVWatchlistFn` has one timer, an Eastern-hour check, and a Friday condition.
-The hour check skips the UTC firing that does not fall at 2 AM Eastern.
+The hour check skips the UTC firing that does not fall at 3 AM Eastern.
 
 `WatchlistPublishingService` carries out each run in this order:
 
