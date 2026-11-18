@@ -32,6 +32,9 @@
   "mimeTypes": {
     ".webmanifest": "application/manifest+json",
     ".xml": "application/xml"
+  },
+  "globalHeaders": {
+    "Referrer-Policy": "strict-origin-when-cross-origin"
   }
 }
 
