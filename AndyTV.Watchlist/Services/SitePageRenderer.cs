@@ -11,11 +11,13 @@ public static class SitePageRenderer
     private const string Site = "https://andytv.today";
 
     // Google tag (GTM-KDDH6L6Z), which sends to the GA4 stream; must be first in <head>, once per page.
+    // EEA/UK/CH visitors start denied until the AdSense consent message (Google CMP) updates consent mode.
     private const string GoogleTag = """
         <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-KDDH6L6Z"></script>
         <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
+        gtag('consent', 'default', {ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']});
         gtag('js', new Date());
         </script>
         """;
