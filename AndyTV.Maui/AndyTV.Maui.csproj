@@ -40,8 +40,8 @@
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.png" />
 
-		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\AppIcon\appicon.png" Color="#000000" />
+		<!-- Splash Screen: iOS draws the image at BaseSize points without scaling, so without it the 1254px source fills and crops the screen. -->
+		<MauiSplashScreen Include="Resources\AppIcon\appicon.png" Color="#000000" BaseSize="200,200" />
 
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
