@@ -45,8 +45,8 @@ public static class SitePageRenderer
         List<string> panels =
         [
             Panel("top", chips + Picks(games, false) + Cards(games, false)),
-            Panel("timeline:top", chips + Subtabs("timeline", "top") + Rows(ByTime(games).ConvertAll(ToRow), false)),
-            Panel("timeline:all", Chips(schedule.ConvertAll(row => (row.Sport, row.League))) + Subtabs("timeline", "all") + Rows(schedule, false)),
+            Panel("timeline:top", Subtabs("timeline", "top") + chips + Rows(ByTime(games).ConvertAll(ToRow), false)),
+            Panel("timeline:all", Subtabs("timeline", "all") + Chips(schedule.ConvertAll(row => (row.Sport, row.League))) + Rows(schedule, false)),
             Panel("plan", Plan(daily.Watchlist)),
         ];
 
@@ -59,9 +59,9 @@ public static class SitePageRenderer
             tabs.Add(Tab("weekend", "Weekend", Calendar));
             panels.AddRange(
             [
-                Panel("weekend:top", weekendChips + Subtabs("weekend", "top") + picks + Cards(weekendGames, true)),
-                Panel("weekend:timeline", weekendChips + Subtabs("weekend", "timeline") + picks + Cards(ByTime(weekendGames), true)),
-                Panel("weekend:all", Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Subtabs("weekend", "all") + Rows(weekendSchedule, true)),
+                Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks + Cards(weekendGames, true)),
+                Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true)),
+                Panel("weekend:all", Subtabs("weekend", "all") + Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Rows(weekendSchedule, true)),
             ]);
         }
 

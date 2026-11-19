@@ -52,10 +52,26 @@ https://provider.example.com/playlist.m3u
 C:\Users\Andy\Playlists\tv.m3u
 ```
 
+- **Enabled** – uncheck to skip loading the playlist entirely (menus, search, guide) while keeping its settings.
 - **ShowInMenu** – whether this playlist's full channel list appears in the CHANNELS menu.
 - **GroupByFirstChar** – group channels under A/B/C… based on their name.
 - **SmartGroup** – group feeds of the same channel or league together, largest groups first. Overrides GroupByFirstChar.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
+
+## 🔄 Updates (delta)
+
+Use **Menu → Manage → Check for Updates** in an installed copy; it downloads only the
+small delta packages since your version. Re-downloading Setup.exe or the ZIP is always a full download.
+
+The [publish workflow](.github/workflows/publish.yml) follows Velopack's
+[standard GitHub flow](https://docs.velopack.io/distributing/github-actions):
+`vpk download github` fetches the previous full package, `vpk pack` builds the new full package
+plus a [delta](https://docs.velopack.io/packaging/deltas) against it, and `vpk upload github`
+publishes both. The workflow fails rather than publish a release without a delta.
+
+Keep old releases: skipped versions update by chaining their deltas. Velopack falls back to the
+full package if the chain is too long or larger than the full package, or a delta fails to apply; details
+are in `%LocalAppData%\velopack\velopack_com.ajh.AndyTV.log`.
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome!  

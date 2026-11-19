@@ -9,6 +9,12 @@ internal sealed class PlaylistManagerForm : GridManagerForm<Playlist>
     {
         Size = new Size(1200, 640);
 
+        Grid.Columns.Add(new DataGridViewCheckBoxColumn
+        {
+            HeaderText = "Enabled",
+            DataPropertyName = nameof(Playlist.Enabled),
+            ToolTipText = "Load this playlist and include its channels in menus, search, and the guide.",
+        });
         Grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Name",

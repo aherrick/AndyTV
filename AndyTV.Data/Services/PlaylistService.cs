@@ -42,6 +42,8 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         List<Playlist> playlists
     )
     {
+        playlists = [.. playlists.Where(p => p.Enabled)];
+
         // Playlists sharing a URL (different configs) download it once.
         var downloads = playlists
             .Select(p => p.Url)
