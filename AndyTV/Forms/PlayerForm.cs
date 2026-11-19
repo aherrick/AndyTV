@@ -69,7 +69,8 @@ internal sealed class PlayerForm : Form
         _favoriteService = new FavoriteChannelService(storage);
 
         Text = AppVersionName;
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        // The embedded .ico has every size, so the window icon stays sharp at any DPI.
+        Icon = new Icon(typeof(PlayerForm), "AndyTV.ico");
         BackColor = Color.Black;
 
         // Decode mode and video output are fixed at LibVLC creation, so changing either requires an app restart.

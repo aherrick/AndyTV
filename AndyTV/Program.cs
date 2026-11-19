@@ -41,12 +41,15 @@ static class Program
             {
                 return;
             }
-
-            // Must run first so Velopack can handle install/update hooks.
-            VelopackApp.Build()
-                .OnAfterUpdateFastCallback(_ => SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero))
-                .Run();
         }
+
+        // Must run first so Velopack can handle install/update hooks. It also sets the app ID that
+        // ties every window, including a New Window, to the shortcut's taskbar icon. A New Window
+        // must not restart to apply a pending update, which would close the first window too.
+        VelopackApp.Build()
+            .SetAutoApplyOnStartup(!isNewInstance)
+            .OnAfterUpdateFastCallback(_ => SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero))
+            .Run();
 
         using (mutex)
         {
