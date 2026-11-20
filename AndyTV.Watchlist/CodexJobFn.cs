@@ -16,10 +16,7 @@ public sealed class CodexJobFn(ChatGptClient chatGpt, ILogger<CodexJobFn> logger
         CancellationToken cancellationToken
     )
     {
-        var text = await chatGpt.Ask(
-            "Say hello from my Azure Function.",
-            cancellationToken: cancellationToken
-        );
+        var text = await chatGpt.Ask("Say hello from my Azure Function.", cancellationToken);
         logger.LogInformation("Response: {text}", text);
     }
 }

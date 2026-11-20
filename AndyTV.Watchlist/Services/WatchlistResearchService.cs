@@ -10,11 +10,15 @@ namespace AndyTV.Watchlist.Services;
 // Loads feed events and has Copilot rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
     SportsEventService sportsEvents,
+    ChatGptClient chatGpt,
     AppSettings settings,
     ILogger<WatchlistResearchService> logger
 )
 {
     private const string ModelId = "gpt-6.1-sol";
+
+    // Flip to true to research through the ChatGPT plan (ChatGptClient) instead of Copilot.
+    private static readonly bool UseChatGpt = false;
 
     public async Task<List<SportsEvent>> LoadEvents(
         DateOnly[] days,
@@ -81,6 +85,19 @@ public sealed class WatchlistResearchService(
         CancellationToken cancellationToken
     )
     {
+        if (UseChatGpt)
+        {
+            var started = Stopwatch.GetTimestamp();
+            var result = await chatGpt.Ask<DailyWatchlist>(prompt, cancellationToken);
+            result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+            logger.LogInformation(
+                "{kind} research finished in {elapsed} on the ChatGPT plan (no per-call cost).",
+                kind,
+                Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+            );
+            return result;
+        }
+
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
