@@ -20,9 +20,6 @@ public sealed class AndyTVWatchlistFn(
     private const bool ForceWeekend = false;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
 
-    // Research through the ChatGPT plan (ChatGptClient) instead of Copilot; Daily and Weekend then run one after another.
-    private const bool UseChatGpt = true;
-
     // Timer invocations never overlap, so a plain static is enough.
     private static bool _forcedRunDone;
 
@@ -44,21 +41,20 @@ public sealed class AndyTVWatchlistFn(
         _forcedRunDone = true;
 
         var targetDate = EasternTimeZone.Date(easternNow);
-        List<Func<Task>> runs = [];
+        List<Task> runs = [];
         if (!RunOnStartup || ForceDaily)
         {
-            runs.Add(() => publishingService.Publish(WatchlistKind.Daily, targetDate, UseChatGpt, cancellationToken));
+            runs.Add(publishingService.Publish(WatchlistKind.Daily, targetDate, cancellationToken));
         }
 
         if (RunOnStartup ? ForceWeekend : targetDate.DayOfWeek == DayOfWeek.Friday)
         {
-            runs.Add(() => publishingService.Publish(WatchlistKind.Weekend, targetDate, UseChatGpt, cancellationToken));
+            runs.Add(publishingService.Publish(WatchlistKind.Weekend, targetDate, cancellationToken));
         }
 
-        // Either way, one run still finishes if the other fails, then the failure surfaces.
+        // One run still finishes if the other fails, then the failure surfaces.
         // The page is rebuilt from whatever feeds are live, so a failed social post never leaves the site stale.
-        // Locals, so the compiler doesn't flag the unused branch of a constant as unreachable.
-        var chatGpt = UseChatGpt;
+        // A local, so the compiler doesn't flag the unused branch of a constant as unreachable.
 #if DEBUG
         var debug = true;
 #else
@@ -66,31 +62,7 @@ public sealed class AndyTVWatchlistFn(
 #endif
         try
         {
-            if (chatGpt)
-            {
-                // One after another, so ChatGPT plan usage isn't spent by two long researches at once.
-                List<Exception> errors = [];
-                foreach (var run in runs)
-                {
-                    try
-                    {
-                        await run();
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        errors.Add(ex);
-                    }
-                }
-
-                if (errors.Count > 0)
-                {
-                    throw new AggregateException(errors);
-                }
-            }
-            else
-            {
-                await Task.WhenAll(runs.Select(run => run()));
-            }
+            await Task.WhenAll(runs);
         }
         finally
         {

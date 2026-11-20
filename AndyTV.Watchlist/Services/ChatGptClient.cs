@@ -16,7 +16,6 @@ namespace AndyTV.Watchlist.Services;
 public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<ChatGptClient> logger)
 {
     private const string SessionBlob = "chatgpt-session.json";
-    private const string Model = "gpt-6.1-sol";
 
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
@@ -27,7 +26,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
     };
 
     // Web search on, response constrained to T's JSON schema.
-    public async Task<T> Ask<T>(string prompt, CancellationToken cancellationToken = default)
+    public async Task<T> Ask<T>(string model, string prompt, CancellationToken cancellationToken = default)
     {
         var schema = JsonSchemaExporter.GetJsonSchemaAsNode(
             SchemaOptions,
@@ -35,6 +34,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }
         );
         var text = await Send(
+            model,
             // Web search otherwise puts markdown citation links inside the text fields.
             prompt + "\n\nPut links only in the sources fields; never put citations, URLs or markdown inside any other field.",
             schema,
@@ -50,7 +50,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         }
     }
 
-    private async Task<string> Send(string prompt, JsonNode schema, CancellationToken cancellationToken)
+    private async Task<string> Send(string model, string prompt, JsonNode schema, CancellationToken cancellationToken)
     {
         var accessToken = await RefreshAccessToken(cancellationToken);
         logger.LogInformation("ChatGPT session refreshed, sending request ({chars:N0} chars).", prompt.Length);
@@ -58,7 +58,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         // The API requires a streamed request here, with the same effort as the Copilot research path.
         var options = new CreateResponseOptions
         {
-            Model = Model,
+            Model = model,
             StoredOutputEnabled = false,
             StreamingEnabled = true,
             ReasoningOptions = new ResponseReasoningOptions

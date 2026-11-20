@@ -1,4 +1,3 @@
-using System.ClientModel;
 using System.Diagnostics;
 using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
@@ -8,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
 
-// Loads feed events and has Copilot rank them into a DailyWatchlist.
+// Loads feed events and has the model rank them into a DailyWatchlist.
 public sealed class WatchlistResearchService(
     SportsEventService sportsEvents,
     ChatGptClient chatGpt,
@@ -16,6 +15,7 @@ public sealed class WatchlistResearchService(
     ILogger<WatchlistResearchService> logger
 )
 {
+    // Both connections run the same model at extra-high reasoning effort.
     private const string ModelId = "gpt-6.1-sol";
 
     public async Task<List<SportsEvent>> LoadEvents(
@@ -47,7 +47,6 @@ public sealed class WatchlistResearchService(
         WatchlistKind kind,
         DateOnly[] days,
         List<SportsEvent> events,
-        bool useChatGpt,
         CancellationToken cancellationToken
     )
     {
@@ -58,63 +57,85 @@ public sealed class WatchlistResearchService(
             events.Count(e => e.Betting is not null)
         );
         var prompt = WatchlistPrompt.Build(settings.WatchlistPrompt, days, events);
+
+        // Daily uses the ChatGPT plan. Weekend researches more days, so it goes straight to Copilot:
+        // the plan closes streams after 15 minutes and Copilot allows 45.
+        var (watchlist, cost) =
+            kind == WatchlistKind.Daily && await AskChatGpt(kind, prompt, cancellationToken) is { } answer
+                ? (answer, 0.0)
+                : await AskCopilot(kind, prompt, cancellationToken);
+
+        // Every formatter (and SportsFormat.TopPicks) relies on rank order.
+        watchlist.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+        return (watchlist, cost);
+    }
+
+    // Returns null on any failure (usage limit, the 15-minute stream cut, invalid JSON), so the caller
+    // falls back to Copilot instead of spending another long attempt on the plan.
+    private async Task<DailyWatchlist> AskChatGpt(
+        WatchlistKind kind,
+        string prompt,
+        CancellationToken cancellationToken
+    )
+    {
+        logger.LogInformation("{kind} research running on ChatGPT.", kind);
+        var started = Stopwatch.GetTimestamp();
+        try
+        {
+            var result = await chatGpt.Ask<DailyWatchlist>(ModelId, prompt, cancellationToken);
+            logger.LogInformation(
+                "{kind} research finished on ChatGPT in {elapsed} (no per-call cost).",
+                kind,
+                Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+            );
+            return result;
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(
+                "{kind} research failed on ChatGPT after {elapsed}, falling back to Copilot: {error}",
+                kind,
+                Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss"),
+                ex.Message
+            );
+            return null;
+        }
+    }
+
+    // Returns the watchlist and the cost in dollars of every attempt.
+    private async Task<(DailyWatchlist Watchlist, double Cost)> AskCopilot(
+        WatchlistKind kind,
+        string prompt,
+        CancellationToken cancellationToken
+    )
+    {
         var cost = 0.0;
         void AddCost(double attemptCost) => cost += attemptCost;
         try
         {
-            return (await ResearchOnce(kind, prompt, useChatGpt, AddCost, cancellationToken), cost);
+            return (await AskCopilotOnce(kind, prompt, AddCost, cancellationToken), cost);
         }
         // Copilot occasionally fails a session server-side; a fresh session usually succeeds.
         catch (InvalidOperationException ex)
         {
             logger.LogWarning(
-                "{kind} research failed (~${cost:N2} spent), retrying once: {error}",
+                "{kind} research failed on Copilot (~${cost:N2} spent), retrying once: {error}",
                 kind,
                 cost,
                 ex.Message
             );
-            return (await ResearchOnce(kind, prompt, useChatGpt, AddCost, cancellationToken), cost);
+            return (await AskCopilotOnce(kind, prompt, AddCost, cancellationToken), cost);
         }
     }
 
-    // Before the stream opens the SDK throws with the HTTP status; mid-stream ChatGptClient throws with the error code.
-    private static bool IsUsageLimit(Exception ex) =>
-        ex is ClientResultException { Status: 429 or 503 }
-        || ex.Message.Contains("subscription_sharing_usage", StringComparison.Ordinal);
-
-    private async Task<DailyWatchlist> ResearchOnce(
+    private async Task<DailyWatchlist> AskCopilotOnce(
         WatchlistKind kind,
         string prompt,
-        bool useChatGpt,
         Action<double> addCost,
         CancellationToken cancellationToken
     )
     {
-        if (useChatGpt)
-        {
-            var started = Stopwatch.GetTimestamp();
-            try
-            {
-                var result = await chatGpt.Ask<DailyWatchlist>(prompt, cancellationToken);
-                result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
-                logger.LogInformation(
-                    "{kind} research finished in {elapsed} on the ChatGPT plan (no per-call cost).",
-                    kind,
-                    Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
-                );
-                return result;
-            }
-            // The plan's allowance is used up (429) or its usage check is down (503): fall through to Copilot.
-            catch (Exception ex) when (IsUsageLimit(ex))
-            {
-                logger.LogWarning(
-                    "{kind} ChatGPT plan unavailable, falling back to Copilot: {error}",
-                    kind,
-                    ex.Message
-                );
-            }
-        }
-
+        logger.LogInformation("{kind} research running on Copilot.", kind);
         await using var client = new CopilotClient(
             new CopilotClientOptions { GitHubToken = settings.CopilotGitHubToken }
         );
@@ -158,15 +179,11 @@ public sealed class WatchlistResearchService(
         try
         {
             // SendAndWaitAsync<T> infers a strict JSON schema from DailyWatchlist.
-            var result = await session.SendAndWaitAsync<DailyWatchlist>(
+            return await session.SendAndWaitAsync<DailyWatchlist>(
                 prompt,
                 timeout: TimeSpan.FromMinutes(45),
                 cancellationToken: cancellationToken
             );
-
-            // Every formatter (and SportsFormat.TopPicks) relies on rank order.
-            result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
-            return result;
         }
         finally
         {
@@ -199,7 +216,7 @@ public sealed class WatchlistResearchService(
         var credits = (metrics.TotalNanoAiu ?? 0) / 1e9;
         var cost = credits * 0.01;
         logger.LogInformation(
-            "{kind} research finished in {elapsed}: {searches} searches, {fetches} fetches, {input:N0} in / {output:N0} out / {reasoning:N0} reasoning tokens, {credits:N2} AI credits (~${dollars:N2}).",
+            "{kind} research finished on Copilot in {elapsed}: {searches} searches, {fetches} fetches, {input:N0} in / {output:N0} out / {reasoning:N0} reasoning tokens, {credits:N2} AI credits (~${dollars:N2}).",
             kind,
             elapsed.ToString(@"mm\:ss"),
             searches,

@@ -21,7 +21,6 @@ public sealed class WatchlistPublishingService(
     public async Task Publish(
         WatchlistKind kind,
         DateOnly targetDate,
-        bool useChatGpt,
         CancellationToken cancellationToken = default
     )
     {
@@ -38,8 +37,8 @@ public sealed class WatchlistPublishingService(
                 return;
             }
 
-            // 2. The model ranks and enriches the events (Copilot, or ChatGPT when useChatGpt is set).
-            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, useChatGpt, cancellationToken);
+            // 2. The model ranks and enriches the events.
+            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
 
 #if DEBUG
             // Debug runs don't write results to blob storage, so the result is only logged.

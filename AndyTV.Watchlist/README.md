@@ -39,7 +39,7 @@ Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, er
 
 ## ChatGPT session keep-alive
 
-`ChatGptClient.Ask<T>(prompt)` runs a web-search research call on the ChatGPT plan and returns T from a JSON schema. `WatchlistResearchService` uses it instead of Copilot when `AndyTVWatchlistFn.UseChatGpt` is true (default false; Daily and Weekend then run one after another), and falls back to Copilot when the plan's usage limit is hit (429/503). Debug builds never write results to blob storage (editions, run logs, `site.zip`); they log the result instead. Each call refreshes the Sign in with ChatGPT OAuth session
+`ChatGptClient.Ask<T>(model, prompt)` runs a web-search research call on the ChatGPT plan and returns T from a JSON schema. `WatchlistResearchService` uses it for Daily and Copilot for Weekend, both on `gpt-6.1-sol` at extra-high effort: the plan closes streams after about 15 minutes, and Weekend research can take longer. Daily falls back to Copilot if the ChatGPT call fails for any reason (usage limit, the 15-minute stream cut, invalid JSON); the run log says which one each research ran on. Debug builds never write results to blob storage (editions, run logs, `site.zip`); they log the result instead. Each call refreshes the Sign in with ChatGPT OAuth session
 stored in `andytv-watchlist-private/chatgpt-session.json`, saves the rotated refresh token back to that blob,
 then streams one `gpt-6.1-sol` Responses call. Create the first session once with
 `dotnet run --project AndyTV.OpenAIAuth` (browser sign-in, writes `~/chatgpt-session.json`), then upload it:
