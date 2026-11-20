@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text.RegularExpressions;
 using AndyTV.Data.Helpers;
 using AndyTV.Data.Models;
@@ -8,7 +9,18 @@ namespace AndyTV.Data.Services;
 public class PlaylistService(IStorageProvider storage) : IPlaylistService
 {
     private const string PlaylistsFileName = "playlists.json";
-    private static readonly HttpClient _httpClient = new();
+    private static readonly HttpClient _httpClient = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new HttpClientHandler();
+        // Browsers negotiate compression themselves.
+        if (!OperatingSystem.IsBrowser() && handler.SupportsAutomaticDecompression)
+        {
+            handler.AutomaticDecompression = DecompressionMethods.All;
+        }
+        return new HttpClient(handler);
+    }
 
     public List<(Playlist Playlist, List<Channel> Channels)> PlaylistChannels { get; private set; } = [];
 
@@ -44,50 +56,39 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
     {
         playlists = [.. playlists.Where(p => p.Enabled)];
 
-        // Playlists sharing a URL (different configs) download it once.
-        var downloads = playlists
+        // Share the read and parse, but apply each playlist's settings independently.
+        var sources = playlists
             .Select(p => p.Url)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(url => url, LoadPlaylistTextAsync, StringComparer.OrdinalIgnoreCase);
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(url => url, LoadSourceAsync, StringComparer.Ordinal);
 
         return
         [
             .. await Task.WhenAll(
-                playlists.Select(async p => (p, await LoadChannels(p, downloads[p.Url])))
+                playlists.Select(async p => (p, await LoadChannels(p, sources[p.Url])))
             ),
         ];
     }
 
-    private static async Task<List<Channel>> LoadChannels(Playlist playlist, Task<string> download)
+    private static async Task<List<Channel>> LoadChannels(
+        Playlist playlist, Task<IReadOnlyList<M3uEntry>> source)
     {
         try
         {
-            var m3uText = await download;
-            if (string.IsNullOrWhiteSpace(m3uText))
-            {
-                return [];
-            }
-
-            var parsed = M3UManager.M3UManager.ParseFromString(m3uText);
+            var parsed = await source.ConfigureAwait(false);
             var rename = NameRegex(playlist);
             var category = playlist.Name ?? "Playlist";
-            var channels = new List<Channel>(parsed.Channels.Count);
+            var channels = new List<Channel>(parsed.Count);
 
-            foreach (var item in parsed.Channels)
+            foreach (var item in parsed)
             {
-                // Drop malformed entries at the source so a null title/URL can never reach the menu.
-                if (string.IsNullOrWhiteSpace(item.MediaUrl) || string.IsNullOrWhiteSpace(item.Title))
-                {
-                    continue;
-                }
-
                 channels.Add(
                     new Channel
                     {
                         RawName = item.Title,
                         Name = rename?.Replace(item.Title, playlist.NameReplace) ?? item.Title,
-                        Url = item.MediaUrl,
-                        Group = item.GroupTitle,
+                        Url = item.Url,
+                        Group = item.Group,
                         LogoUrl = item.Logo,
                         Category = category,
                     }
@@ -121,15 +122,24 @@ public class PlaylistService(IStorageProvider storage) : IPlaylistService
         }
     }
 
-    // Async so failures surface when awaited inside LoadChannels' try/catch.
-    private static async Task<string> LoadPlaylistTextAsync(string source)
+    private static async Task<IReadOnlyList<M3uEntry>> LoadSourceAsync(string source)
     {
         if (UrlHelper.IsValidUrl(source))
-            return await _httpClient.GetStringAsync(source);
+        {
+            using var response = await _httpClient
+                .GetAsync(source, HttpCompletionOption.ResponseHeadersRead)
+                .ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            return await M3uParser.ParseAsync(stream).ConfigureAwait(false);
+        }
 
         if (File.Exists(source))
-            return await File.ReadAllTextAsync(source);
+        {
+            await using var stream = File.OpenRead(source);
+            return await M3uParser.ParseAsync(stream).ConfigureAwait(false);
+        }
 
-        return string.Empty;
+        return [];
     }
 }

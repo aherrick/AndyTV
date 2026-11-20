@@ -40,8 +40,7 @@ internal sealed class PlayerForm : Form
     private Channel _current;
     private Channel _pending;
 
-    // Channel-tree items (playlists + Top US/UK/24-7) currently in the menu. Built off
-    // the UI thread and swapped in, so the menu is usable before they finish loading.
+    // Channel roots currently attached to the menu.
     private readonly List<ToolStripItem> _channelItems = [];
 
     // Spinner shows while channels are loading (_busy) or a channel is connecting (_pending).
@@ -55,6 +54,7 @@ internal sealed class PlayerForm : Form
 
     private const int LeftHoldSeconds = 1;
     private const int RightHoldSeconds = 5;
+    private const int ChannelMenuPageSize = 250;
 
     private readonly PeriodicTimer _refreshTimer = new(TimeSpan.FromHours(1));
     private readonly StreamHealthMonitor _healthMonitor = new();
@@ -533,19 +533,21 @@ internal sealed class PlayerForm : Form
         }
     }
 
-    // Downloads/parses channels and builds the channel tree off the UI thread (only the
-    // final Add/Remove swap runs on the UI thread), so the menu never freezes on load.
+    // Prepare the channel data off the UI thread. Only visible menu levels need controls.
     private async Task RefreshChannels()
     {
         SetBusy(true);
         try
         {
-            var items = await Task.Run(async () =>
+            var timer = Stopwatch.StartNew();
+            var (roots, loadMs) = await Task.Run(async () =>
             {
                 await _playlistService.RefreshChannelsAsync();
-                return BuildChannelItems();
+                var elapsed = timer.ElapsedMilliseconds;
+                return (BuildChannelRoots(), elapsed);
             });
-            SwapChannelItems(items);
+            SwapChannelItems(roots);
+            Logger.Info($"[REFRESH] Channel load {loadMs} ms, menu preparation {timer.ElapsedMilliseconds - loadMs} ms");
         }
         finally
         {
@@ -553,7 +555,7 @@ internal sealed class PlayerForm : Form
         }
     }
 
-    private void SwapChannelItems(List<ToolStripItem> items)
+    private void SwapChannelItems(List<MenuNode> roots)
     {
         // Not SuspendPainting(): its WM_SETREDRAW(TRUE) shows the hidden menu.
         _menu.SuspendLayout();
@@ -562,10 +564,13 @@ internal sealed class PlayerForm : Form
             foreach (var item in _channelItems)
             {
                 _menu.Items.Remove(item);
+                item.Dispose();
             }
             _channelItems.Clear();
-            foreach (var item in items)
+            foreach (var root in roots)
             {
+                var item = Render(root);
+                item.Enabled = root.Children.Count > 0;
                 _menu.Items.Add(item);
                 _channelItems.Add(item);
             }
@@ -576,10 +581,9 @@ internal sealed class PlayerForm : Form
         }
     }
 
-    // Runs off the UI thread; only creates ToolStripItems (safe until added to the menu).
-    private List<ToolStripItem> BuildChannelItems()
+    private List<MenuNode> BuildChannelRoots()
     {
-        List<ToolStripItem> items = [];
+        List<MenuNode> roots = [];
 
         foreach (
             var (playlist, channels) in _playlistService.PlaylistChannels.Where(x =>
@@ -587,25 +591,27 @@ internal sealed class PlayerForm : Form
             )
         )
         {
-            var item = new ToolStripMenuItem(playlist.Name) { Enabled = channels.Count > 0 };
-            item.DropDownItems.AddRange([.. ChannelMatcher.BuildPlaylistNodes(playlist, channels).Select(RenderItem)]);
-            items.Add(item);
+            roots.Add(new MenuNode
+            {
+                Text = playlist.Name,
+                Children = ChannelMatcher.BuildPlaylistNodes(playlist, channels),
+            });
         }
 
         // US/UK match only playlists flagged for it, so TV-show/movie playlists don't
         // pollute the curated lists; 24-7 still spans all channels.
         var usUkChannels = _playlistService.UsUkChannels;
         var allChannels = _playlistService.Channels;
-        items.Add(Render(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels)));
-        items.Add(Render(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels)));
-        items.Add(Render(ChannelMatcher.BuildTopRegion("Global", ChannelService.TopGlobal(), allChannels)));
-        var menu247 = Render(ChannelMatcher.Build247(allChannels));
-        if (menu247.DropDownItems.Count > 0)
+        roots.Add(ChannelMatcher.BuildTopRegion("US", ChannelService.TopUs(), usUkChannels));
+        roots.Add(ChannelMatcher.BuildTopRegion("UK", ChannelService.TopUk(), usUkChannels));
+        roots.Add(ChannelMatcher.BuildTopRegion("Global", ChannelService.TopGlobal(), allChannels));
+        var menu247 = ChannelMatcher.Build247(allChannels);
+        if (menu247.Children.Count > 0)
         {
-            items.Add(menu247);
+            roots.Add(menu247);
         }
 
-        return items;
+        return roots;
     }
 
     // Rebuilds only the favorites section (between the two separators) in place,
@@ -648,9 +654,42 @@ internal sealed class PlayerForm : Form
         var item = new ToolStripMenuItem(node.Text);
         if (node.Children is { Count: > 0 } children)
         {
-            item.DropDownItems.AddRange([.. children.Select(RenderItem)]);
+            // WinForms needs a child to show the submenu arrow before its first opening.
+            var placeholder = item.DropDownItems.Add(string.Empty);
+            item.DropDownOpening += Populate;
+
+            void Populate(object sender, EventArgs e)
+            {
+                item.DropDownOpening -= Populate;
+                placeholder.Dispose();
+                item.DropDownItems.AddRange([.. RenderChildren(children)]);
+            }
         }
         return item;
+    }
+
+    private IEnumerable<ToolStripItem> RenderChildren(List<MenuNode> children)
+    {
+        if (children.Count <= ChannelMenuPageSize)
+        {
+            foreach (var child in children)
+            {
+                yield return RenderItem(child);
+            }
+            yield break;
+        }
+
+        // A flat provider list can contain tens of thousands of entries. Each range
+        // uses the same lazy submenu as a named group, preserving the source order.
+        for (int start = 0; start < children.Count; start += ChannelMenuPageSize)
+        {
+            int count = Math.Min(ChannelMenuPageSize, children.Count - start);
+            yield return Render(new MenuNode
+            {
+                Text = $"{start + 1:N0}–{start + count:N0}",
+                Children = children.GetRange(start, count),
+            });
+        }
     }
 
     private ToolStripItem RenderItem(MenuNode node) =>

@@ -63,7 +63,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
             StreamingEnabled = true,
             ReasoningOptions = new ResponseReasoningOptions
             {
-                ReasoningEffortLevel = ResponseReasoningEffortLevel.High,
+                ReasoningEffortLevel = ResponseReasoningEffortLevel.Max,
             },
             Tools = { ResponseTool.CreateWebSearchTool() },
             TextOptions = new ResponseTextOptions

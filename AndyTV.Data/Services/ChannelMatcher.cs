@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using AndyTV.Data.Models;
@@ -42,6 +43,13 @@ public static partial class ChannelMatcher
         IReadOnlyList<Channel> channels)
     {
         var regionNode = new MenuNode { Text = region, Children = [] };
+        // Scan the full playlist once for any regional term. Only those candidates
+        // need the per-station token boundary and exclusion checks below.
+        var regionTerms = SearchValues.Create(
+            [.. categories.Values.SelectMany(entries => entries).SelectMany(entry => entry.Terms)
+                .Where(term => !string.IsNullOrEmpty(term))],
+            StringComparison.OrdinalIgnoreCase);
+        List<Channel> candidates = [.. channels.Where(ch => ch.DisplayName.AsSpan().ContainsAny(regionTerms))];
         foreach (
             var (category, entries) in categories.OrderBy(
                 c => c.Key,
@@ -50,7 +58,7 @@ public static partial class ChannelMatcher
             var categoryNode = new MenuNode { Text = category, Children = [] };
             foreach (var entry in entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var matches = MatchTop(entry, channels);
+                var matches = MatchTop(entry, candidates);
                 if (matches.Count > 0)
                 {
                     categoryNode.Children.Add(
@@ -116,7 +124,8 @@ public static partial class ChannelMatcher
     [
         .. new[] { ChannelService.TopUs(), ChannelService.TopUk(), ChannelService.TopGlobal() }
             .SelectMany(top => top.Where(kv => kv.Key != "24/7").SelectMany(kv => kv.Value))
-            .SelectMany(e => e.Terms, (e, term) => (e, term)),
+            .SelectMany(e => e.Terms, (entry, term) => (Entry: entry, Term: term))
+            .OrderByDescending(x => x.Term.Length),
     ];
 
     // "24/7" anywhere, then an event tag, then the longest curated match (by family), then the first word.
@@ -135,13 +144,12 @@ public static partial class ChannelMatcher
             return ev.Groups["key"].Value;
         }
 
-        var best = SmartTerms
-            .Where(x => ContainsToken(name, x.Term) && !ContainsAny(name, x.Entry.ExcludeTerms ?? []))
-            .OrderByDescending(x => x.Term.Length)
-            .FirstOrDefault();
-        if (best.Entry is not null)
+        foreach (var (entry, term) in SmartTerms)
         {
-            return best.Entry.Family ?? best.Entry.Name;
+            if (ContainsToken(name, term) && !ContainsAny(name, entry.ExcludeTerms ?? []))
+            {
+                return entry.Family ?? entry.Name;
+            }
         }
 
         var word = FirstWordRegex().Match(rest);
