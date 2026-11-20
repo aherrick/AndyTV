@@ -20,6 +20,7 @@ public sealed class WatchlistPublishingService(
     public async Task Publish(
         WatchlistKind kind,
         DateOnly targetDate,
+        bool useChatGpt,
         CancellationToken cancellationToken = default
     )
     {
@@ -36,8 +37,8 @@ public sealed class WatchlistPublishingService(
                 return;
             }
 
-            // 2. Copilot ranks and enriches the events.
-            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, cancellationToken);
+            // 2. The model ranks and enriches the events (Copilot, or ChatGPT when useChatGpt is set).
+            (var watchlist, run.Cost) = await researchService.Research(kind, days, events, useChatGpt, cancellationToken);
 
             // 3. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)

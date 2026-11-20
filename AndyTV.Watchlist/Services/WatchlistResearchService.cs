@@ -17,9 +17,6 @@ public sealed class WatchlistResearchService(
 {
     private const string ModelId = "gpt-6.1-sol";
 
-    // Flip to true to research through the ChatGPT plan (ChatGptClient) instead of Copilot.
-    private static readonly bool UseChatGpt = false;
-
     public async Task<List<SportsEvent>> LoadEvents(
         DateOnly[] days,
         CancellationToken cancellationToken
@@ -49,6 +46,7 @@ public sealed class WatchlistResearchService(
         WatchlistKind kind,
         DateOnly[] days,
         List<SportsEvent> events,
+        bool useChatGpt,
         CancellationToken cancellationToken
     )
     {
@@ -63,7 +61,7 @@ public sealed class WatchlistResearchService(
         void AddCost(double attemptCost) => cost += attemptCost;
         try
         {
-            return (await ResearchOnce(kind, prompt, AddCost, cancellationToken), cost);
+            return (await ResearchOnce(kind, prompt, useChatGpt, AddCost, cancellationToken), cost);
         }
         // Copilot occasionally fails a session server-side; a fresh session usually succeeds.
         catch (InvalidOperationException ex)
@@ -74,18 +72,19 @@ public sealed class WatchlistResearchService(
                 cost,
                 ex.Message
             );
-            return (await ResearchOnce(kind, prompt, AddCost, cancellationToken), cost);
+            return (await ResearchOnce(kind, prompt, useChatGpt, AddCost, cancellationToken), cost);
         }
     }
 
     private async Task<DailyWatchlist> ResearchOnce(
         WatchlistKind kind,
         string prompt,
+        bool useChatGpt,
         Action<double> addCost,
         CancellationToken cancellationToken
     )
     {
-        if (UseChatGpt)
+        if (useChatGpt)
         {
             var started = Stopwatch.GetTimestamp();
             var result = await chatGpt.Ask<DailyWatchlist>(prompt, cancellationToken);

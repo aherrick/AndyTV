@@ -15,10 +15,13 @@ public sealed class AndyTVWatchlistFn(
 )
 {
     // Debug only: flip either to true to run it once at startup. Keep both false when deploying.
-    private const bool ForceDaily = false;
+    private const bool ForceDaily = true;
 
-    private const bool ForceWeekend = false;
+    private const bool ForceWeekend = true;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
+
+    // Research through the ChatGPT plan (ChatGptClient) instead of Copilot; Daily and Weekend then run one after another.
+    private const bool UseChatGpt = true;
 
     // Timer invocations never overlap, so a plain static is enough.
     private static bool _forcedRunDone;
@@ -41,24 +44,48 @@ public sealed class AndyTVWatchlistFn(
         _forcedRunDone = true;
 
         var targetDate = EasternTimeZone.Date(easternNow);
-        List<Task> runs = [];
+        List<Func<Task>> runs = [];
         if (!RunOnStartup || ForceDaily)
         {
-            runs.Add(publishingService.Publish(WatchlistKind.Daily, targetDate, cancellationToken));
+            runs.Add(() => publishingService.Publish(WatchlistKind.Daily, targetDate, UseChatGpt, cancellationToken));
         }
 
         if (RunOnStartup ? ForceWeekend : targetDate.DayOfWeek == DayOfWeek.Friday)
         {
-            runs.Add(
-                publishingService.Publish(WatchlistKind.Weekend, targetDate, cancellationToken)
-            );
+            runs.Add(() => publishingService.Publish(WatchlistKind.Weekend, targetDate, UseChatGpt, cancellationToken));
         }
 
-        // WhenAll lets one run finish even if the other fails, then surfaces the failure.
+        // Either way, one run still finishes if the other fails, then the failure surfaces.
         // The page is rebuilt from whatever feeds are live, so a failed social post never leaves the site stale.
         try
         {
-            await Task.WhenAll(runs);
+            // A local, so the compiler doesn't flag the unused branch of the constant as unreachable.
+            var sequential = UseChatGpt;
+            if (sequential)
+            {
+                // One after another, so ChatGPT plan usage isn't spent by two long researches at once.
+                List<Exception> errors = [];
+                foreach (var run in runs)
+                {
+                    try
+                    {
+                        await run();
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        errors.Add(ex);
+                    }
+                }
+
+                if (errors.Count > 0)
+                {
+                    throw new AggregateException(errors);
+                }
+            }
+            else
+            {
+                await Task.WhenAll(runs.Select(run => run()));
+            }
         }
         finally
         {
