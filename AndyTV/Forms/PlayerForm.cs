@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using AndyTV.Data.Models;
 using AndyTV.Data.Services;
 using LibVLCSharp.Shared;
@@ -9,6 +10,14 @@ namespace AndyTV;
 internal sealed class PlayerForm : Form
 {
     private static string AppVersionName => $"AndyTV {Application.ProductVersion}";
+
+    private static readonly string VlcPluginCachePath = Path.Combine(
+        AppContext.BaseDirectory,
+        "libvlc",
+        $"win-{RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}",
+        "plugins",
+        "plugins.dat"
+    );
 
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
@@ -74,11 +83,19 @@ internal sealed class PlayerForm : Form
         BackColor = Color.Black;
 
         // Decode mode and video output are fixed at LibVLC creation, so changing either requires an app restart.
-        _libVLC = new LibVLC(
+        List<string> vlcOptions =
+        [
             _config.DisableHardwareAcceleration ? "--avcodec-hw=none" : "--avcodec-hw=any",
             // ",any" falls back to automatic when the chosen output isn't available.
-            _config.VideoOutput is { } vout ? $"--vout={vout},any" : "--vout=any"
-        );
+            _config.VideoOutput is { } vout ? $"--vout={vout},any" : "--vout=any",
+        ];
+        // Without plugins.dat VLC loads all ~320 plugin DLLs on every start. Writing it costs no more
+        // than that, and each update replaces the install folder, so the first start after one rebuilds it.
+        if (!File.Exists(VlcPluginCachePath))
+        {
+            vlcOptions.Add("--reset-plugins-cache");
+        }
+        _libVLC = new LibVLC([.. vlcOptions]);
 
         // Native VLC breadcrumbs (decoder/network errors) that often precede a hard crash.
         _libVLC.Log += OnLibVlcLog;

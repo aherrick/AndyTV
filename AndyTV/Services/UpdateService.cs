@@ -12,8 +12,11 @@ static class UpdateService
     {
         try
         {
+            // Deltas disabled: rebuilding the full package from a delta took ~60s locally,
+            // longer than downloading the full package outright.
             var updater = new UpdateManager(
-                new GithubSource(RepoUrl, accessToken: null, prerelease: false));
+                new GithubSource(RepoUrl, accessToken: null, prerelease: false),
+                new UpdateOptions { MaximumDeltasBeforeFallback = -1 });
 
             var info = await updater.CheckForUpdatesAsync();
             if (info is null)
