@@ -37,6 +37,17 @@ seed token, delete `instagram-token.txt` from that container.
 Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, error) to
 `andytv-watchlist-private/runs/`. `GET /api/runs?code=<function key>` shows the latest 60 as a table.
 
+## ChatGPT session keep-alive
+
+`CodexJobFn` runs every 30 minutes. It refreshes the Sign in with ChatGPT OAuth session
+stored in `andytv-watchlist-private/chatgpt-session.json`, saves the rotated refresh token back to that blob,
+then streams one `gpt-6.1-sol` Responses call. Create the first session once with
+`dotnet run --project AndyTV.OpenAIAuth` (browser sign-in, writes `~/chatgpt-session.json`), then upload it:
+
+```json
+{ "client_id": "oaiapp_...", "access_token": "...", "refresh_token": "...", "id_token": "...", "ext_agent_host_id": "urn:uuid:..." }
+```
+
 ## Processing flow
 
 `AndyTVWatchlistFn` has one timer, an Eastern-hour check, and a Friday condition.

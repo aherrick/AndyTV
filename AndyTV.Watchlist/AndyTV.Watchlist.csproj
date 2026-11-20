@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>630ebcdf-86f3-4a8f-9082-1d406b3a891a</UserSecretsId>
     <!-- CA1873: log-argument allocations don't matter for a once-a-day job. -->
-    <NoWarn>$(NoWarn);GHCP001;CA1873</NoWarn>
+    <NoWarn>$(NoWarn);GHCP001;OPENAI001;CA1873</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +14,7 @@
     <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.34" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Octokit" Version="14.0.0" />
+    <PackageReference Include="OpenAI" Version="2.15.0" />
     <PackageReference Include="Polly.Core" Version="8.9.1" />
     <PackageReference Include="RestSharp" Version="114.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.53.0-preview.1" />
