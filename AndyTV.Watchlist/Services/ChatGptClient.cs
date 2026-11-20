@@ -1,6 +1,9 @@
+using System.ClientModel;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 
@@ -15,14 +18,29 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
 
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
+    // Web defaults accept numbers as strings, which would make the schema say "string or integer".
+    private static readonly JsonSerializerOptions SchemaOptions = new(JsonSerializerOptions.Web)
+    {
+        NumberHandling = JsonNumberHandling.Strict,
+    };
+
     public async Task<string> Ask(string prompt, CancellationToken cancellationToken = default) =>
         await Send(prompt, null, cancellationToken);
 
     // Web search on, response constrained to T's JSON schema.
     public async Task<T> Ask<T>(string prompt, CancellationToken cancellationToken = default)
     {
-        var schema = JsonSchemaExporter.GetJsonSchemaAsNode(JsonSerializerOptions.Web, typeof(T));
-        var text = await Send(prompt, schema, cancellationToken);
+        var schema = JsonSchemaExporter.GetJsonSchemaAsNode(
+            SchemaOptions,
+            typeof(T),
+            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }
+        );
+        var text = await Send(
+            // Web search otherwise puts markdown citation links inside the text fields.
+            prompt + "\n\nPut links only in the sources fields; never put citations, URLs or markdown inside any other field.",
+            schema,
+            cancellationToken
+        );
         try
         {
             return JsonSerializer.Deserialize<T>(text, JsonSerializerOptions.Web)!;
@@ -58,10 +76,19 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
             };
         }
 
-        var client = new ResponsesClient(accessToken);
+        var client = new ResponsesClient(
+            new ApiKeyCredential(accessToken),
+            new ResponsesClientOptions { NetworkTimeout = TimeSpan.FromMinutes(45) }
+        );
+        // The final event's output is empty when tools run, so the text is collected from the deltas.
+        var text = new StringBuilder();
         await foreach (var update in await client.CreateResponseStreamingAsync(options, cancellationToken))
         {
-            if (update is StreamingResponseCompletedUpdate completed)
+            if (update is StreamingResponseOutputTextDeltaUpdate delta)
+            {
+                text.Append(delta.Delta);
+            }
+            else if (update is StreamingResponseCompletedUpdate completed)
             {
                 if (completed.Response.Usage is { } usage)
                 {
@@ -73,7 +100,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
                         usage.OutputTokenDetails?.ReasoningTokenCount
                     );
                 }
-                return completed.Response.GetOutputText();
+                return text.ToString();
             }
         }
 

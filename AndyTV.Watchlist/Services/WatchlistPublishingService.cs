@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,17 @@ public sealed class WatchlistPublishingService(
 
             // 2. The model ranks and enriches the events (Copilot, or ChatGPT when useChatGpt is set).
             (var watchlist, run.Cost) = await researchService.Research(kind, days, events, useChatGpt, cancellationToken);
+
+            // ChatGPT runs are a dry run: log the result and save nothing.
+            if (useChatGpt)
+            {
+                logger.LogInformation(
+                    "{kind} ChatGPT result (not saved): {watchlist}",
+                    kind,
+                    JsonSerializer.Serialize(watchlist, JsonSerializerOptions.Web)
+                );
+                return;
+            }
 
             // 3. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)
@@ -83,7 +95,7 @@ public sealed class WatchlistPublishingService(
         finally
         {
             run.Duration = (DateTimeOffset.UtcNow - run.Started).ToString(@"mm\:ss");
-            if (settings.CanPublishSite)
+            if (settings.CanPublishSite && !useChatGpt)
             {
                 await blobStore.SaveRunLog(run, log.ToString());
                 await blobStore.SaveRun(run);

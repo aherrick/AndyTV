@@ -20,7 +20,8 @@ public sealed class AndyTVWatchlistFn(
     private const bool ForceWeekend = true;
     private const bool RunOnStartup = ForceDaily || ForceWeekend;
 
-    // Research through the ChatGPT plan (ChatGptClient) instead of Copilot; Daily and Weekend then run one after another.
+    // Dry run through the ChatGPT plan (ChatGptClient) instead of Copilot: Daily and Weekend run one after
+    // another, and nothing is saved or published (the result is only logged).
     private const bool UseChatGpt = true;
 
     // Timer invocations never overlap, so a plain static is enough.
@@ -57,11 +58,11 @@ public sealed class AndyTVWatchlistFn(
 
         // Either way, one run still finishes if the other fails, then the failure surfaces.
         // The page is rebuilt from whatever feeds are live, so a failed social post never leaves the site stale.
+        // A local, so the compiler doesn't flag the unused branch of the constant as unreachable.
+        var chatGpt = UseChatGpt;
         try
         {
-            // A local, so the compiler doesn't flag the unused branch of the constant as unreachable.
-            var sequential = UseChatGpt;
-            if (sequential)
+            if (chatGpt)
             {
                 // One after another, so ChatGPT plan usage isn't spent by two long researches at once.
                 List<Exception> errors = [];
@@ -89,7 +90,11 @@ public sealed class AndyTVWatchlistFn(
         }
         finally
         {
-            await sitePublishService.Publish(cancellationToken);
+            // A ChatGPT run is a dry run, so it leaves the published site alone.
+            if (!chatGpt)
+            {
+                await sitePublishService.Publish(cancellationToken);
+            }
         }
     }
 }
