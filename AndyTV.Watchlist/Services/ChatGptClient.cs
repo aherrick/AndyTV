@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -86,12 +87,15 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         var searches = 0;
         await foreach (var update in await client.CreateResponseStreamingAsync(options, cancellationToken))
         {
-            if (update is StreamingResponseWebSearchCallSearchingUpdate)
+            if (update is StreamingResponseOutputItemDoneUpdate { Item: WebSearchCallResponseItem search })
             {
+                // The typed item doesn't expose the query, so it's read from its JSON.
+                var action = JsonNode.Parse(ModelReaderWriter.Write(search).ToString())!["action"];
                 logger.LogInformation(
-                    "ChatGPT web search #{n} [{elapsed}]",
+                    "ChatGPT web search #{n} [{elapsed}]: {query}",
                     ++searches,
-                    Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+                    Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss"),
+                    (string)action?["query"] ?? (string)action?["url"] ?? action?.ToJsonString()
                 );
             }
             else if (update is StreamingResponseOutputTextDeltaUpdate delta)
