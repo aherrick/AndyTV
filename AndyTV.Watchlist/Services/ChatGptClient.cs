@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -54,6 +55,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
     private async Task<string> Send(string prompt, JsonNode schema, CancellationToken cancellationToken)
     {
         var accessToken = await RefreshAccessToken(cancellationToken);
+        logger.LogInformation("ChatGPT session refreshed, sending request ({chars:N0} chars).", prompt.Length);
 
         // The API requires a streamed request here; the final event carries the whole response.
         var options = new CreateResponseOptions
@@ -65,6 +67,11 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         };
         if (schema is not null)
         {
+            // Same effort as the Copilot research path.
+            options.ReasoningOptions = new ResponseReasoningOptions
+            {
+                ReasoningEffortLevel = ResponseReasoningEffortLevel.ExtraHigh,
+            };
             options.Tools.Add(ResponseTool.CreateWebSearchTool());
             options.TextOptions = new ResponseTextOptions
             {
@@ -82,10 +89,27 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         );
         // The final event's output is empty when tools run, so the text is collected from the deltas.
         var text = new StringBuilder();
+        var started = Stopwatch.GetTimestamp();
+        var searches = 0;
         await foreach (var update in await client.CreateResponseStreamingAsync(options, cancellationToken))
         {
-            if (update is StreamingResponseOutputTextDeltaUpdate delta)
+            if (update is StreamingResponseWebSearchCallSearchingUpdate)
             {
+                logger.LogInformation(
+                    "ChatGPT web search #{n} [{elapsed}]",
+                    ++searches,
+                    Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+                );
+            }
+            else if (update is StreamingResponseOutputTextDeltaUpdate delta)
+            {
+                if (text.Length == 0)
+                {
+                    logger.LogInformation(
+                        "ChatGPT is writing the response [{elapsed}]",
+                        Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+                    );
+                }
                 text.Append(delta.Delta);
             }
             else if (update is StreamingResponseCompletedUpdate completed)
