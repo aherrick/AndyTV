@@ -63,7 +63,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
             StreamingEnabled = true,
             ReasoningOptions = new ResponseReasoningOptions
             {
-                ReasoningEffortLevel = ResponseReasoningEffortLevel.ExtraHigh,
+                ReasoningEffortLevel = ResponseReasoningEffortLevel.High,
             },
             Tools = { ResponseTool.CreateWebSearchTool() },
             TextOptions = new ResponseTextOptions
@@ -147,7 +147,8 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         );
     }
 
-    private async Task<string> RefreshAccessToken(CancellationToken cancellationToken)
+    // Refreshes the session and returns a fresh access token.
+    public async Task<string> RefreshAccessToken(CancellationToken cancellationToken)
     {
         await _refreshLock.WaitAsync(cancellationToken);
         try
