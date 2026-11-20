@@ -25,9 +25,6 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         NumberHandling = JsonNumberHandling.Strict,
     };
 
-    public async Task<string> Ask(string prompt, CancellationToken cancellationToken = default) =>
-        await Send(prompt, null, cancellationToken);
-
     // Web search on, response constrained to T's JSON schema.
     public async Task<T> Ask<T>(string prompt, CancellationToken cancellationToken = default)
     {
@@ -57,31 +54,27 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         var accessToken = await RefreshAccessToken(cancellationToken);
         logger.LogInformation("ChatGPT session refreshed, sending request ({chars:N0} chars).", prompt.Length);
 
-        // The API requires a streamed request here; the final event carries the whole response.
+        // The API requires a streamed request here, with the same effort as the Copilot research path.
         var options = new CreateResponseOptions
         {
             Model = Model,
             StoredOutputEnabled = false,
             StreamingEnabled = true,
-            InputItems = { ResponseItem.CreateUserMessageItem(prompt) },
-        };
-        if (schema is not null)
-        {
-            // Same effort as the Copilot research path.
-            options.ReasoningOptions = new ResponseReasoningOptions
+            ReasoningOptions = new ResponseReasoningOptions
             {
                 ReasoningEffortLevel = ResponseReasoningEffortLevel.ExtraHigh,
-            };
-            options.Tools.Add(ResponseTool.CreateWebSearchTool());
-            options.TextOptions = new ResponseTextOptions
+            },
+            Tools = { ResponseTool.CreateWebSearchTool() },
+            TextOptions = new ResponseTextOptions
             {
                 TextFormat = ResponseTextFormat.CreateJsonSchemaFormat(
                     "response",
                     BinaryData.FromString(schema.ToJsonString()),
                     jsonSchemaIsStrict: false
                 ),
-            };
-        }
+            },
+            InputItems = { ResponseItem.CreateUserMessageItem(prompt) },
+        };
 
         var client = new ResponsesClient(
             new ApiKeyCredential(accessToken),
