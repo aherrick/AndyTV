@@ -39,7 +39,7 @@ Each run saves a JSON summary (events, duration, cost, feed, X/Instagram ids, er
 
 ## ChatGPT session keep-alive
 
-`CodexJobFn` runs every 30 minutes. It refreshes the Sign in with ChatGPT OAuth session
+`ChatGptClient.Ask(prompt)` calls a model on the ChatGPT plan; `CodexJobFn` uses it every 30 minutes. Each call refreshes the Sign in with ChatGPT OAuth session
 stored in `andytv-watchlist-private/chatgpt-session.json`, saves the rotated refresh token back to that blob,
 then streams one `gpt-6.1-sol` Responses call. Create the first session once with
 `dotnet run --project AndyTV.OpenAIAuth` (browser sign-in, writes `~/chatgpt-session.json`), then upload it:

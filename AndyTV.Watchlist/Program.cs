@@ -26,6 +26,7 @@ builder.Services.AddSingleton<SportsEventService>();
 builder.Services.AddSingleton<WatchlistResearchService>();
 builder.Services.AddSingleton<CloudflareScreenshotService>();
 builder.Services.AddSingleton<BlobStore>();
+builder.Services.AddSingleton<ChatGptClient>();
 builder.Services.AddSingleton<InstagramPublishService>();
 builder.Services.AddSingleton<WatchlistPublishingService>();
 builder.Services.AddSingleton<SitePublishService>();
