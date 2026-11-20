@@ -123,9 +123,28 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
                 }
                 return text.ToString();
             }
+            else if (update is StreamingResponseFailedUpdate failed)
+            {
+                throw new InvalidOperationException(
+                    $"Response failed: {failed.Response.Error?.Code} {failed.Response.Error?.Message}"
+                );
+            }
+            else if (update is StreamingResponseIncompleteUpdate incomplete)
+            {
+                throw new InvalidOperationException(
+                    $"Response incomplete: {incomplete.Response.IncompleteStatusDetails?.Reason}"
+                );
+            }
+            else if (update is StreamingResponseErrorUpdate error)
+            {
+                throw new InvalidOperationException($"Stream error: {error.Code} {error.Message}");
+            }
         }
 
-        throw new InvalidOperationException("Stream ended without response.completed.");
+        throw new InvalidOperationException(
+            $"Stream ended without response.completed after {Stopwatch.GetElapsedTime(started):mm\\:ss} "
+                + $"({searches} searches, {text.Length:N0} chars of text received)."
+        );
     }
 
     private async Task<string> RefreshAccessToken(CancellationToken cancellationToken)
