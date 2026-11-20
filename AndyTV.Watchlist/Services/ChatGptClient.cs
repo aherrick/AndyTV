@@ -147,8 +147,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         );
     }
 
-    // Refreshes the session and returns a fresh access token.
-    public async Task<string> RefreshAccessToken(CancellationToken cancellationToken)
+    private async Task<string> RefreshAccessToken(CancellationToken cancellationToken)
     {
         await _refreshLock.WaitAsync(cancellationToken);
         try

@@ -1,3 +1,4 @@
+using System.ClientModel;
 using System.Diagnostics;
 using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
@@ -76,6 +77,11 @@ public sealed class WatchlistResearchService(
         }
     }
 
+    // Before the stream opens the SDK throws with the HTTP status; mid-stream ChatGptClient throws with the error code.
+    private static bool IsUsageLimit(Exception ex) =>
+        ex is ClientResultException { Status: 429 or 503 }
+        || ex.Message.Contains("subscription_sharing_usage", StringComparison.Ordinal);
+
     private async Task<DailyWatchlist> ResearchOnce(
         WatchlistKind kind,
         string prompt,
@@ -87,14 +93,26 @@ public sealed class WatchlistResearchService(
         if (useChatGpt)
         {
             var started = Stopwatch.GetTimestamp();
-            var result = await chatGpt.Ask<DailyWatchlist>(prompt, cancellationToken);
-            result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
-            logger.LogInformation(
-                "{kind} research finished in {elapsed} on the ChatGPT plan (no per-call cost).",
-                kind,
-                Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
-            );
-            return result;
+            try
+            {
+                var result = await chatGpt.Ask<DailyWatchlist>(prompt, cancellationToken);
+                result.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+                logger.LogInformation(
+                    "{kind} research finished in {elapsed} on the ChatGPT plan (no per-call cost).",
+                    kind,
+                    Stopwatch.GetElapsedTime(started).ToString(@"mm\:ss")
+                );
+                return result;
+            }
+            // The plan's allowance is used up (429) or its usage check is down (503): fall through to Copilot.
+            catch (Exception ex) when (IsUsageLimit(ex))
+            {
+                logger.LogWarning(
+                    "{kind} ChatGPT plan unavailable, falling back to Copilot: {error}",
+                    kind,
+                    ex.Message
+                );
+            }
         }
 
         await using var client = new CopilotClient(
