@@ -1,140 +1,92 @@
-using System.Text;
-
 namespace AndyTV.Data.Helpers;
 
-public readonly record struct M3uEntry(string Title, string Url, string Group, string Logo);
+internal readonly record struct M3uEntry(string Title, string Url, string Group, string Logo);
 
-// Minimal streaming parser for M3U/M3U8 playlists; extracts only the fields AndyTV uses.
-public static class M3uParser
+// Reads only the M3U fields AndyTV uses, line by line, so large playlists parse while they download.
+internal static class M3uParser
 {
-    private const string ExtInf = "#EXTINF:";
-    private const string ExtGrp = "#EXTGRP:";
-
     public static async Task<List<M3uEntry>> ParseAsync(Stream stream)
     {
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 65536, leaveOpen: true);
-        return await ParseAsync(reader).ConfigureAwait(false);
-    }
-
-    public static async Task<List<M3uEntry>> ParseAsync(TextReader reader)
-    {
+        using var reader = new StreamReader(stream);
         List<M3uEntry> entries = [];
-        string title = null;
-        string group = null;
-        string logo = null;
+        string extInf = null;
+        string extGrp = null;
 
-        while (await reader.ReadLineAsync().ConfigureAwait(false) is { } rawLine)
+        while (await reader.ReadLineAsync() is { } rawLine)
         {
-            var line = rawLine.AsSpan().Trim();
-            if (line.IsEmpty)
+            var line = rawLine.Trim();
+            if (line.StartsWith("#EXTINF:", StringComparison.OrdinalIgnoreCase))
             {
-                continue;
+                extInf = line;
+                extGrp = null;
             }
-
-            if (line.StartsWith(ExtInf, StringComparison.OrdinalIgnoreCase))
+            else if (line.StartsWith("#EXTGRP:", StringComparison.OrdinalIgnoreCase))
             {
-                ParseExtInf(line[ExtInf.Length..], out title, out group, out logo);
+                extGrp = line["#EXTGRP:".Length..].Trim();
             }
-            else if (line.StartsWith(ExtGrp, StringComparison.OrdinalIgnoreCase))
+            else if (line.Length > 0 && line[0] != '#' && extInf is not null)
             {
-                if (title is not null && string.IsNullOrEmpty(group))
+                if (ToEntry(extInf, line, extGrp) is { } entry)
                 {
-                    var extGrp = line[ExtGrp.Length..].Trim();
-                    if (!extGrp.IsEmpty)
-                    {
-                        group = extGrp.ToString();
-                    }
+                    entries.Add(entry);
                 }
-            }
-            else if (line[0] != '#' && title is not null)
-            {
-                entries.Add(new M3uEntry(title, line.ToString(), group, logo));
-                title = null;
-                group = null;
-                logo = null;
+                extInf = null;
             }
         }
 
         return entries;
     }
 
-    private static void ParseExtInf(
-        ReadOnlySpan<char> header,
-        out string title,
-        out string group,
-        out string logo)
+    // #EXTINF:-1 tvg-logo="..." group-title="...",Title
+    private static M3uEntry? ToEntry(string extInf, string url, string extGrp)
     {
-        var comma = FindTitleComma(header);
-        if (comma < 0)
+        var comma = TitleComma(extInf);
+        var title = comma < 0 ? null : extInf[(comma + 1)..].Trim();
+        if (string.IsNullOrEmpty(title))
         {
-            title = null;
-            group = null;
-            logo = null;
-            return;
+            return null;
         }
 
-        var titleSpan = header[(comma + 1)..].Trim();
-        if (titleSpan.IsEmpty)
-        {
-            title = null;
-            group = null;
-            logo = null;
-            return;
-        }
-
-        var attrs = header[..comma];
-        title = titleSpan.ToString();
-        group = ReadAttribute(attrs, "group-title");
-        logo = ReadAttribute(attrs, "tvg-logo");
+        var attributes = extInf[..comma];
+        var group = Attribute(attributes, "group-title");
+        return new M3uEntry(
+            title,
+            url,
+            string.IsNullOrEmpty(group) ? extGrp : group,
+            Attribute(attributes, "tvg-logo"));
     }
 
-    // First comma outside quotes splits attributes from the channel title;
-    // falls back to the last comma if a provider emits an unclosed quote.
-    private static int FindTitleComma(ReadOnlySpan<char> header)
+    // Reads name="value" from the attribute part of an #EXTINF line.
+    private static string Attribute(string attributes, string name)
     {
-        var inQuotes = false;
-        for (var i = 0; i < header.Length; i++)
+        var key = $" {name}=\"";
+        var start = attributes.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+        if (start < 0)
         {
-            var ch = header[i];
-            if (ch == '"')
+            return null;
+        }
+
+        start += key.Length;
+        var end = attributes.IndexOf('"', start);
+        return end < 0 ? null : attributes[start..end];
+    }
+
+    // The first comma outside quotes starts the title, since attribute values can contain commas.
+    private static int TitleComma(string extInf)
+    {
+        var quoted = false;
+        for (var i = 0; i < extInf.Length; i++)
+        {
+            if (extInf[i] == '"')
             {
-                inQuotes = !inQuotes;
+                quoted = !quoted;
             }
-            else if (ch == ',' && !inQuotes)
+            else if (extInf[i] == ',' && !quoted)
             {
                 return i;
             }
         }
-        return header.LastIndexOf(',');
-    }
-
-    private static string ReadAttribute(ReadOnlySpan<char> attrs, ReadOnlySpan<char> name)
-    {
-        var pos = 0;
-        while (pos < attrs.Length)
-        {
-            var idx = attrs[pos..].IndexOf(name, StringComparison.OrdinalIgnoreCase);
-            if (idx < 0)
-            {
-                return null;
-            }
-
-            idx += pos;
-            var afterName = idx + name.Length;
-            if ((idx == 0 || char.IsWhiteSpace(attrs[idx - 1]))
-                && afterName < attrs.Length
-                && attrs[afterName] == '=')
-            {
-                var rest = attrs[(afterName + 1)..];
-                if (rest.Length >= 2 && rest[0] is '"' or '\'')
-                {
-                    var end = rest[1..].IndexOf(rest[0]);
-                    return end > 0 ? rest.Slice(1, end).ToString() : null;
-                }
-            }
-
-            pos = afterName;
-        }
-        return null;
+        // An unclosed quote hides every comma; the last one is the best guess.
+        return extInf.LastIndexOf(',');
     }
 }
