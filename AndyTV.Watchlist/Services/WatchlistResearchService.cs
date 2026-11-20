@@ -14,7 +14,7 @@ public sealed class WatchlistResearchService(
     ILogger<WatchlistResearchService> logger
 )
 {
-    private const string ModelId = "gpt-6.2-sol";
+    private const string ModelId = "gpt-6.1-sol";
 
     public async Task<List<SportsEvent>> LoadEvents(
         DateOnly[] days,
