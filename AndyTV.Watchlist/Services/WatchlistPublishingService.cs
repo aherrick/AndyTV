@@ -41,17 +41,14 @@ public sealed class WatchlistPublishingService(
             // 2. The model ranks and enriches the events (Copilot, or ChatGPT when useChatGpt is set).
             (var watchlist, run.Cost) = await researchService.Research(kind, days, events, useChatGpt, cancellationToken);
 
-            // ChatGPT runs are a dry run: log the result and save nothing.
-            if (useChatGpt)
-            {
-                logger.LogInformation(
-                    "{kind} ChatGPT result (not saved): {watchlist}",
-                    kind,
-                    JsonSerializer.Serialize(watchlist, JsonSerializerOptions.Web)
-                );
-                return;
-            }
-
+#if DEBUG
+            // Debug runs don't write results to blob storage, so the result is only logged.
+            logger.LogInformation(
+                "{kind} result: {watchlist}",
+                kind,
+                JsonSerializer.Serialize(watchlist, JsonSerializerOptions.Web)
+            );
+#else
             // 3. Save the site edition before social; the timer renders the page from it after the runs.
             if (settings.CanPublishSite)
             {
@@ -59,6 +56,7 @@ public sealed class WatchlistPublishingService(
                 await blobStore.SaveEdition(edition, kind, cancellationToken);
                 run.Feed = true;
             }
+#endif
 
             // 4. Social posts run independently so one failing doesn't block the other.
             List<string> errors = [];
@@ -95,11 +93,13 @@ public sealed class WatchlistPublishingService(
         finally
         {
             run.Duration = (DateTimeOffset.UtcNow - run.Started).ToString(@"mm\:ss");
-            if (settings.CanPublishSite && !useChatGpt)
+#if !DEBUG
+            if (settings.CanPublishSite)
             {
                 await blobStore.SaveRunLog(run, log.ToString());
                 await blobStore.SaveRun(run);
             }
+#endif
         }
     }
 
