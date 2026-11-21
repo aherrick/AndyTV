@@ -31,6 +31,7 @@ internal sealed class PlayerForm : Form
     private readonly LocalConfig _config;
     private readonly PlaylistService _playlistService;
     private readonly RecentChannelService _recentService;
+    private readonly RecentSearchService _recentSearchService;
     private readonly LastChannelService _lastService;
     private readonly FavoriteChannelService _favoriteService;
     private readonly ToolStripMenuItem _muteItem = new("Mute");
@@ -74,6 +75,7 @@ internal sealed class PlayerForm : Form
         _config = _configService.Load();
         _playlistService = new PlaylistService(storage);
         _recentService = new RecentChannelService(storage);
+        _recentSearchService = new RecentSearchService(storage);
         _lastService = new LastChannelService(storage);
         _favoriteService = new FavoriteChannelService(storage);
 
@@ -289,7 +291,7 @@ internal sealed class PlayerForm : Form
 
     private void SearchChannels()
     {
-        using var form = new SearchForm(_playlistService.Channels);
+        using var form = new SearchForm(_playlistService.Channels, _recentSearchService);
         if (form.ShowDialog(this) == DialogResult.OK && form.Selected is { } channel)
         {
             Play(channel);
@@ -357,6 +359,7 @@ internal sealed class PlayerForm : Form
         );
         manage.DropDownItems.Add("Logs", null, (_, _) => OpenUrl(Logger.LogFolder));
         manage.DropDownItems.Add(BuildAdvancedMenu());
+        manage.DropDownItems.Add(BuildStartupItem());
         manage.DropDownItems.Add(_muteItem);
         manage.DropDownItems.Add(new ToolStripSeparator());
         manage.DropDownItems.AddRange(BuildSleepMenus());
@@ -371,6 +374,17 @@ internal sealed class PlayerForm : Form
         _menu.Items.Add(_favoritesSeparator);
         _menu.Items.Add(_recentSeparator);
         RebuildFavorites();
+    }
+
+    private static ToolStripMenuItem BuildStartupItem()
+    {
+        var item = new ToolStripMenuItem("Run at Startup")
+        {
+            Checked = StartupHelper.IsEnabled,
+            CheckOnClick = true,
+        };
+        item.CheckedChanged += (_, _) => StartupHelper.IsEnabled = item.Checked;
+        return item;
     }
 
     private ToolStripMenuItem BuildAdvancedMenu()
