@@ -398,6 +398,43 @@ main.tall {
   min-width: 0;
 }
 
+/* Per-card share: a small icon at the top right; turns accent once its link is copied */
+.card-share {
+  float: right;
+  margin: -4px -6px 0 8px;
+  padding: 6px;
+
+  cursor: pointer;
+
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.card-share svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.card-share:hover,
+.card-share.copied {
+  color: var(--accent);
+}
+
+/* A deep-linked card flashes once when opened */
+.game.flash {
+  animation: flash 2s ease-out;
+}
+
+@keyframes flash {
+  0%,
+  40% {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}
+
 /* Odds chips: one line, swipe sideways (same as sport filter) */
 .odds {
   display: flex;
@@ -525,6 +562,19 @@ main.tall {
 .row-meta {
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.row-body {
+  min-width: 0;
+}
+
+.row-body .odds {
+  margin: 4px 0 0;
+}
+
+.row-body .odds span {
+  padding: 1px 6px;
+  font-size: 0.72rem;
 }
 
 /* ========================================================

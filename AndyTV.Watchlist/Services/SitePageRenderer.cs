@@ -39,12 +39,13 @@ public static class SitePageRenderer
     public static string Render(SiteEdition daily, SiteEdition weekend, ArchiveNav nav = null)
     {
         var games = daily.Watchlist.BestWatches;
+        List<WatchlistGame> all = [.. games, .. weekend?.Watchlist.BestWatches ?? []];
         var schedule = Schedule(daily);
         var chips = Chips(games.ConvertAll(game => (game.Sport, game.League)));
         List<string> tabs = [Tab("top", "Top", Trophy), Tab("timeline", "Timeline", Clock), Tab("plan", "Plan", Tv)];
         List<string> panels =
         [
-            Panel("top", chips + Picks(games, false) + Cards(games, false)),
+            Panel("top", chips + Picks(games, false) + Cards(games, false, all)),
             Panel("timeline:top", Subtabs("timeline", "top") + chips + Rows(ByTime(games).ConvertAll(ToRow), false)),
             Panel("timeline:all", Subtabs("timeline", "all") + Chips(schedule.ConvertAll(row => (row.Sport, row.League))) + Rows(schedule, false)),
             Panel("plan", Plan(daily.Watchlist)),
@@ -59,8 +60,8 @@ public static class SitePageRenderer
             tabs.Add(Tab("weekend", "Weekend", Calendar));
             panels.AddRange(
             [
-                Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks + Cards(weekendGames, true)),
-                Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true)),
+                Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks +                 Cards(weekendGames, true, all)),
+                                Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true, all)),
                 Panel("weekend:all", Subtabs("weekend", "all") + Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Rows(weekendSchedule, true)),
             ]);
         }
@@ -275,7 +276,10 @@ public static class SitePageRenderer
                     var game = ranked.GetValueOrDefault(e.Matchup);
                     // The feed often lacks a network or start time (golf, racing) the ranked game has.
                     var network = string.IsNullOrWhiteSpace(e.Network) ? game?.Network : e.Network;
-                    return new ScheduleRow(e.StartTimeIso ?? game?.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank);
+                    var odds = game?.Betting is null
+                        ? SportsFormat.OddsParts(e.Betting)
+                        : SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
+                    return new ScheduleRow(e.StartTimeIso ?? game?.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank, odds);
                 })
                 .OrderBy(row => row.Start ?? DateTimeOffset.MaxValue)
                 .ThenBy(row => row.Rank ?? int.MaxValue)
@@ -329,16 +333,14 @@ public static class SitePageRenderer
         return $"""<div class="top-picks"><h3 class="summary-title top-picks-title">⭐ Top Picks</h3><ul class="summary">{string.Concat(items)}</ul></div>""";
     }
 
-    private static string Cards(List<WatchlistGame> games, bool weekend) =>
-        $"""<ol class="games">{string.Concat(games.Select(game => Card(game, weekend)))}</ol>""";
+    private static string Cards(List<WatchlistGame> games, bool weekend, List<WatchlistGame> all) =>
+        $"""<ol class="games">{string.Concat(games.Select(game => Card(game, weekend, all)))}</ol>""";
 
-    private static string Card(WatchlistGame game, bool weekend)
+    private static string Card(WatchlistGame game, bool weekend, List<WatchlistGame> all)
     {
         var network = string.IsNullOrWhiteSpace(game.Network) ? "" : $" · {Net(game.Network)}";
-        var oddsParts = SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
-        var odds = oddsParts.Count == 0
-            ? ""
-            : $"""<div class="odds">{string.Concat(oddsParts.Select(odd => $"<span>{E(odd)}</span>"))}</div>""";
+        var odds = Odds(SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
+        var share = $"""<button class="card-share" type="button" aria-label="Share {E(game.Matchup)}" title="Share">{Share}</button>""";
 
         // AI-researched links: only http(s) URLs are rendered.
         var links = (game.Sources ?? [])
@@ -349,7 +351,7 @@ public static class SitePageRenderer
             ? ""
             : $"""<details class="sources"><summary>Sources {links.Count}</summary><div class="source-links">{string.Concat(links)}</div></details>""";
 
-        return $"""<li class="game" data-sport="{E(game.Sport)}" data-league="{E(game.League)}"><div class="rank">{game.Rank}</div><div class="body"><div class="title">{E(game.Matchup)}</div><div class="meta">{Time(game.StartTimeIso, weekend)}{network} · {SportsFormat.Icon(game.Sport)} {E(game.League)}</div>{odds}<div class="desc">{E(game.Reason.Trim())}</div>{sources}</div></li>""";
+        return $"""<li class="game" data-slug="{Slug(game, all)}" data-sport="{E(game.Sport)}" data-league="{E(game.League)}"><div class="rank">{game.Rank}</div><div class="body">{share}<div class="title">{E(game.Matchup)}</div><div class="meta">{Time(game.StartTimeIso, weekend)}{network} · {SportsFormat.Icon(game.Sport)} {E(game.League)}</div>{odds}<div class="desc">{E(game.Reason.Trim())}</div>{sources}</div></li>""";
     }
 
     private static string Rows(List<ScheduleRow> rows, bool weekend) =>
@@ -360,8 +362,12 @@ public static class SitePageRenderer
         var day = weekend && row.Start is { } start ? $"""<div class="row-day">{SportsFormat.Day(start)}</div>""" : "";
         var rank = row.Rank is { } value ? $"#{value} overall · " : "";
         var network = string.IsNullOrWhiteSpace(row.Network) ? "" : $"{Net(row.Network)} · ";
-        return $"""<li data-sport="{E(row.Sport)}" data-league="{E(row.League)}"><div class="row-time">{day}{Time(row.Start)}</div><div><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div></div></li>""";
+        return $"""<li data-sport="{E(row.Sport)}" data-league="{E(row.League)}"><div class="row-time">{day}{Time(row.Start)}</div><div class="row-body"><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div>{Odds(row.Odds)}</div></li>""";
     }
+
+    // Odds chips shared by Top cards and Timeline rows; nothing when there are no lines.
+    private static string Odds(List<string> parts) =>
+        parts.Count == 0 ? "" : $"""<div class="odds">{string.Concat(parts.Select(odd => $"<span>{E(odd)}</span>"))}</div>""";
 
     private static string Plan(DailyWatchlist watchlist)
     {
@@ -393,7 +399,8 @@ public static class SitePageRenderer
     }
 
     private static ScheduleRow ToRow(WatchlistGame game) =>
-        new(game.StartTimeIso, game.Sport, game.League, game.Matchup, game.Network, game.Rank);
+        new(game.StartTimeIso, game.Sport, game.League, game.Matchup, game.Network, game.Rank,
+            SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
 
     private static List<WatchlistGame> ByTime(List<WatchlistGame> games) => [.. games.OrderBy(game => game.StartTimeIso)];
 
@@ -417,7 +424,15 @@ public static class SitePageRenderer
     private static string E(string value) => WebUtility.HtmlEncode(value);
 
     // One line in a Timeline list: a ranked game, or a feed event tagged with its rank when it has one.
-    private sealed record ScheduleRow(DateTimeOffset? Start, string Sport, string League, string Matchup, string Network, int? Rank);
+    private sealed record ScheduleRow(DateTimeOffset? Start, string Sport, string League, string Matchup, string Network, int? Rank, List<string> Odds);
+
+    // Deep-link slug, e.g. "indiana-vs-purdue-20261122"; a same-day rematch (doubleheader) adds its start time.
+    private static string Slug(WatchlistGame game, List<WatchlistGame> all)
+    {
+        var slug = SportsFormat.Slug(game.Matchup, game.StartTimeIso);
+        var rematch = all.Any(other => other.StartTimeIso != game.StartTimeIso && SportsFormat.Slug(other.Matchup, other.StartTimeIso) == slug);
+        return rematch ? SportsFormat.Slug(game.Matchup, game.StartTimeIso, withTime: true) : slug;
+    }
 }
 
 // Neighbouring saved dates for an archived page's prev/next links; null at either end.

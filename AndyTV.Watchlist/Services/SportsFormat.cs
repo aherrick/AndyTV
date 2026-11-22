@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
@@ -36,6 +38,14 @@ public static class SportsFormat
 
     public static string Day(DateTimeOffset value) =>
         EasternTimeZone.Convert(value).ToString("ddd", CultureInfo.InvariantCulture);
+
+    // "Indiana @ Purdue" → "indiana-vs-purdue-20261122" (Eastern date); withTime adds "-1930" for doubleheaders.
+    public static string Slug(string matchup, DateTimeOffset start, bool withTime = false)
+    {
+        var ascii = string.Concat(matchup.Replace("@", "vs").Normalize(NormalizationForm.FormD).Where(char.IsAscii));
+        var name = Regex.Replace(ascii.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        return $"{name}-{EasternTimeZone.Convert(start).ToString(withTime ? "yyyyMMdd-HHmm" : "yyyyMMdd", CultureInfo.InvariantCulture)}";
+    }
 
     public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
 

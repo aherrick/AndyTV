@@ -55,9 +55,43 @@ document.addEventListener("click", (e) => {
     const row = leagueChip.closest(".league-filter");
     filter(row.closest(".panel"), row.dataset.for, leagueChip.dataset.league);
   }
+  const share = e.target.closest(".card-share");
+  if (share) shareGame(share);
 });
 addEventListener("popstate", () => show(pathTab(), false));
 show(pathTab(), false);
+
+// Native share sheet, else copy the link: this page (/ or an archived /yyyy/mm/dd/) plus the card's #slug.
+function shareGame(button) {
+  const card = button.closest(".game");
+  const page = "archived" in document.body.dataset ? location.pathname : "/";
+  const url = `${location.origin}${page}#${card.dataset.slug}`;
+  if ("share" in navigator) return navigator.share({ title: card.querySelector(".title").textContent, url }).catch(() => {});
+  navigator.clipboard.writeText(url).then(() => {
+    button.classList.add("copied");
+    setTimeout(() => button.classList.remove("copied"), 1500);
+  });
+}
+
+// #slug opens the card's tab, scrolls to it and flashes it. The homepage only holds today, so an
+// unknown slug goes to the archived page for the date at its end (…-20261122 or …-20261122-1930).
+function reveal() {
+  const slug = decodeURIComponent(location.hash.slice(1));
+  const card = slug && document.querySelector(`[data-slug="${CSS.escape(slug)}"]`);
+  if (!card) {
+    const date = slug.match(/-(\d{4})(\d{2})(\d{2})(?:-\d{4})?$/);
+    if (date && !("archived" in document.body.dataset)) location.replace(`/${date[1]}/${date[2]}/${date[3]}/#${slug}`);
+    return;
+  }
+  show(card.closest(".panel").dataset.panel, false);
+  card.classList.add("flash");
+  card.addEventListener("animationend", () => card.classList.remove("flash"), { once: true });
+  // Again after load, once the banner image above has shifted the layout.
+  card.scrollIntoView({ block: "center" });
+  addEventListener("load", () => card.scrollIntoView({ block: "center" }), { once: true });
+}
+addEventListener("hashchange", reveal);
+reveal();
 
 // Mouse wheel scrolls a one-line sport filter sideways; at either end the page scrolls as usual.
 for (const bar of $$(".sport-filter")) {
