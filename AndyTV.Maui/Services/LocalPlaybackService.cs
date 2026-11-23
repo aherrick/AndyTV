@@ -2,7 +2,7 @@ using AndyTV.Data.Services;
 
 namespace AndyTV.Maui.Services;
 
-public class LocalPlaybackService(ILocalConfigService localConfigService)
+public class LocalPlaybackService(LocalConfigService localConfigService)
 {
     // A new session id makes the server kill the previous stream and start a fresh one on the first playlist fetch.
     public string GetUrl(string sourceUrl)

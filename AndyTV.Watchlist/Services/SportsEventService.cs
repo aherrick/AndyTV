@@ -167,6 +167,32 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         game.GetProperty("status").GetProperty("type").GetProperty("name").GetString()
             is "STATUS_CANCELED" or "STATUS_POSTPONED";
 
+    // The value at a property path, e.g. At(odds, "moneyline", "home", "close", "odds"); null when a step is missing or not an object.
+    private static JsonElement? At(JsonElement element, params ReadOnlySpan<string> path)
+    {
+        foreach (var name in path)
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var next))
+            {
+                return null;
+            }
+            element = next;
+        }
+        return element;
+    }
+
+    // Optional flags like "timeValid"; missing counts as false.
+    private static bool IsTrue(JsonElement element, string name) => At(element, name)?.ValueKind == JsonValueKind.True;
+
+    // ESPN's "date" (an event's or session's start) in Eastern time.
+    private static DateTimeOffset Start(JsonElement element) =>
+        EasternTimeZone.Convert(element.GetProperty("date").GetDateTimeOffset());
+
+    // Golf and tennis tournaments run date..endDate; overseas play can begin the prior ET evening, so widen a day.
+    private static bool InWindow(JsonElement tournament, DateOnly date) =>
+        date >= EasternTimeZone.Date(Start(tournament)).AddDays(-1)
+        && date <= EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
+
     // Team-sport games with the TV network and odds ESPN lists.
     private async Task<List<SportsEvent>> LoadScoreboard(
         Scoreboard board,
@@ -190,7 +216,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             }
 
             var competition = game.GetProperty("competitions")[0];
-            var start = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+            var start = Start(competition);
             if (EasternTimeZone.Date(start) != date)
             {
                 continue;
@@ -202,12 +228,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             {
                 var team = competitor.GetProperty("team").GetProperty(board.School ? "location" : "displayName").GetString();
                 // ESPN's curated rank is the AP Top 25 (99 = unranked).
-                if (
-                    board.School
-                    && competitor.TryGetProperty("curatedRank", out var rank)
-                    && rank.TryGetProperty("current", out var current)
-                    && current.GetInt32() is >= 1 and <= 25 and var position
-                )
+                if (board.School && At(competitor, "curatedRank", "current")?.GetInt32() is >= 1 and <= 25 and var position)
                 {
                     team = $"#{position} {team}";
                 }
@@ -227,11 +248,11 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             }
 
             // TBA start times carry a placeholder with timeValid=false.
-            var timeValid = competition.TryGetProperty("timeValid", out var valid) && valid.GetBoolean();
+            var timeValid = IsTrue(competition, "timeValid");
             string[] networks = competition.TryGetProperty("broadcasts", out var broadcasts)
                 ? [.. broadcasts.EnumerateArray().SelectMany(b => b.GetProperty("names").EnumerateArray()).Select(n => n.GetString())]
                 : [];
-            var neutralSite = competition.TryGetProperty("neutralSite", out var neutral) && neutral.GetBoolean();
+            var neutralSite = IsTrue(competition, "neutralSite");
             events.Add(
                 new(board.Sport, board.League, home, away, timeValid ? start : null)
                 {
@@ -249,27 +270,15 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     private static string Note(JsonElement competition, bool neutralSite)
     {
         List<string> parts = [];
-        if (competition.TryGetProperty("notes", out var notes) && notes.ValueKind == JsonValueKind.Array)
+        if (At(competition, "notes") is { ValueKind: JsonValueKind.Array } notes)
         {
-            parts.AddRange(
-                notes.EnumerateArray().Select(n => n.TryGetProperty("headline", out var headline) ? headline.GetString() : null)
-            );
+            parts.AddRange(notes.EnumerateArray().Select(n => At(n, "headline")?.GetString()));
         }
-        if (competition.TryGetProperty("series", out var series) && series.TryGetProperty("summary", out var summary))
-        {
-            parts.Add(summary.GetString());
-        }
-        if (
-            neutralSite
-            && competition.TryGetProperty("venue", out var venue)
-            && venue.TryGetProperty("address", out var address)
-            && address.TryGetProperty("city", out var city)
-        )
+        parts.Add(At(competition, "series", "summary")?.GetString());
+        if (neutralSite && At(competition, "venue", "address") is { } address && At(address, "city") is { } city)
         {
             // International venues have no state; fall back to the country.
-            var region = address.TryGetProperty("state", out var state) ? state.GetString()
-                : address.TryGetProperty("country", out var country) ? country.GetString()
-                : null;
+            var region = (At(address, "state") ?? At(address, "country"))?.GetString();
             parts.Add(string.IsNullOrWhiteSpace(region) ? city.GetString() : $"{city.GetString()}, {region}");
         }
         parts.RemoveAll(string.IsNullOrWhiteSpace);
@@ -306,16 +315,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
     // Lines arrive as strings like "+7.5" or "-305"; "EVEN" is +100 and anything else ("OFF") is missing.
     private static decimal? Line(JsonElement odds, string market, string side, string field)
     {
-        if (
-            !odds.TryGetProperty(market, out var outcomes)
-            || outcomes.ValueKind != JsonValueKind.Object
-            || !outcomes.TryGetProperty(side, out var outcome)
-            || outcome.ValueKind != JsonValueKind.Object
-            || !outcome.TryGetProperty("close", out var close)
-            || close.ValueKind != JsonValueKind.Object
-            || !close.TryGetProperty(field, out var value)
-            || value.ValueKind != JsonValueKind.String
-        )
+        if (At(odds, market, side, "close", field) is not { ValueKind: JsonValueKind.String } value)
         {
             return null;
         }
@@ -373,7 +373,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         return
         [
             .. cards
-                .Where(card => !IsCanceled(card) && EasternTimeZone.Date(card.GetProperty("date").GetDateTimeOffset()) == date)
+                .Where(card => !IsCanceled(card) && EasternTimeZone.Date(Start(card)) == date)
                 .Select(card => card.GetProperty("name").GetString())
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Select(name => new SportsEvent("MMA", "UFC", null, null, null) { EventName = name }),
@@ -386,10 +386,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         foreach (var tournament in await FetchEvents($"{BaseUrl}golf/pga/scoreboard", "PGA Tour", cancellationToken))
         {
             var name = tournament.GetProperty("name").GetString();
-            var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
-            var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
-            // Overseas play can begin the prior ET evening, so widen a day.
-            if (string.IsNullOrWhiteSpace(name) || date < start.AddDays(-1) || date > end || IsCanceled(tournament))
+            if (string.IsNullOrWhiteSpace(name) || !InWindow(tournament, date) || IsCanceled(tournament))
             {
                 continue;
             }
@@ -397,9 +394,9 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             // ESPN's date is a midnight placeholder unless timeValid is true; null lets the model research it.
             var competition = tournament.GetProperty("competitions")[0];
             DateTimeOffset? startTime = null;
-            if (competition.TryGetProperty("timeValid", out var timeValid) && timeValid.GetBoolean())
+            if (IsTrue(competition, "timeValid"))
             {
-                var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                var time = Start(competition);
                 if (EasternTimeZone.Date(time) == date)
                 {
                     startTime = time;
@@ -424,19 +421,7 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         foreach (var tournament in feeds.SelectMany(tournaments => tournaments))
         {
             var name = tournament.GetProperty("name").GetString();
-            if (
-                string.IsNullOrWhiteSpace(name)
-                || !tournament.TryGetProperty("major", out var major)
-                || !major.GetBoolean()
-            )
-            {
-                continue;
-            }
-
-            var start = EasternTimeZone.Date(tournament.GetProperty("date").GetDateTimeOffset());
-            var end = EasternTimeZone.Date(tournament.GetProperty("endDate").GetDateTimeOffset());
-            // Overseas sessions can begin the prior ET evening, so widen a day.
-            if (date < start.AddDays(-1) || date > end)
+            if (string.IsNullOrWhiteSpace(name) || !IsTrue(tournament, "major") || !InWindow(tournament, date))
             {
                 continue;
             }
@@ -452,14 +437,13 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
                 var type = competition.GetProperty("type");
                 if (
                     type.GetProperty("slug").GetString()?.EndsWith("singles", StringComparison.Ordinal) != true
-                    || !competition.TryGetProperty("timeValid", out var timeValid)
-                    || !timeValid.GetBoolean()
+                    || !IsTrue(competition, "timeValid")
                 )
                 {
                     continue;
                 }
 
-                var time = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                var time = Start(competition);
                 if (EasternTimeZone.Date(time) != date)
                 {
                     continue;
@@ -522,17 +506,15 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             foreach (var competition in competitions.EnumerateArray())
             {
                 // NASCAR and IndyCar may expose a sole untyped race competition.
-                var session =
-                    competition.TryGetProperty("type", out var type)
-                    && type.TryGetProperty("abbreviation", out var abbreviation)
-                        ? abbreviation.GetString()
-                        : competitions.GetArrayLength() == 1 ? "Race" : null;
+                var session = At(competition, "type", "abbreviation") is { } abbreviation
+                    ? abbreviation.GetString()
+                    : competitions.GetArrayLength() == 1 ? "Race" : null;
                 if (session is null || !sessions.Contains(session, StringComparer.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                var start = EasternTimeZone.Convert(competition.GetProperty("date").GetDateTimeOffset());
+                var start = Start(competition);
                 if (EasternTimeZone.Date(start) != date)
                 {
                     continue;

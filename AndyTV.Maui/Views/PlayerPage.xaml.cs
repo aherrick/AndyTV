@@ -46,8 +46,8 @@ public partial class PlayerPage
         DeviceDisplay.Current.KeepScreenOn = true;
 
         var services = IPlatformApplication.Current.Services;
-        services.GetRequiredService<IRecentChannelService>().AddOrPromote(channel);
-        services.GetRequiredService<ILastChannelService>().SaveLastChannel(channel);
+        services.GetRequiredService<RecentChannelService>().AddOrPromote(channel);
+        services.GetRequiredService<LastChannelService>().SaveLastChannel(channel);
         _localPlaybackService = services.GetRequiredService<LocalPlaybackService>();
         _libVLC = services.GetRequiredService<LibVLC>();
         _mediaPlayer = new LibVLCSharp.Shared.MediaPlayer(_libVLC);

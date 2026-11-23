@@ -11,9 +11,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<IStorageProvider, BlazorStorageProvider>();
-builder.Services.AddScoped<IPlaylistService, PlaylistService>();
+builder.Services.AddScoped<PlaylistService>();
 builder.Services.AddScoped<ChannelManagerService>();
-builder.Services.AddScoped<IRecentChannelService, RecentChannelService>();
-builder.Services.AddScoped<ILastChannelService, LastChannelService>();
+builder.Services.AddScoped<RecentChannelService>();
+builder.Services.AddScoped<LastChannelService>();
 
 await builder.Build().RunAsync();

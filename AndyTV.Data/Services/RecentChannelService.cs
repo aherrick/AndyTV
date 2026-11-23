@@ -2,7 +2,7 @@ using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
 
-public class RecentChannelService(IStorageProvider storage) : IRecentChannelService
+public class RecentChannelService(IStorageProvider storage)
 {
     private const int MaxRecent = 5;
     private const string RecentChannelsFile = "recents.json";

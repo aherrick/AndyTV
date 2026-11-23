@@ -83,8 +83,9 @@ public static class SportsFormat
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
     // e.g. "DAL -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
-    public static string Odds(WatchlistGame game) =>
-        string.Join(" · ", OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
+    public static string Odds(WatchlistGame game) => string.Join(" · ", OddsParts(game));
+
+    public static List<string> OddsParts(WatchlistGame game) => OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
 
     // With both abbreviations: ["BAL -3.5", "ML -180 / +150", "O/U 52.5"].
     public static List<string> OddsParts(Betting betting, string awayAbbr = null, string homeAbbr = null)

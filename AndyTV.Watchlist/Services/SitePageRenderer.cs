@@ -11,13 +11,13 @@ public static class SitePageRenderer
     private const string Site = "https://andytv.today";
 
     // Google tag (GTM-KDDH6L6Z), which sends to the GA4 stream; must be first in <head>, once per page.
-    // EEA/UK/CH visitors start denied until the AdSense consent message (Google CMP) updates consent mode.
+    // EEA/UK/CH visitors stay denied (there's no consent banner), so GA4 gets only cookieless pings from them.
     private const string GoogleTag = """
         <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-KDDH6L6Z"></script>
         <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
-        gtag('consent', 'default', {ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']});
+        gtag('consent', 'default', {ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']});
         gtag('js', new Date());
         </script>
         """;
@@ -60,8 +60,8 @@ public static class SitePageRenderer
             tabs.Add(Tab("weekend", "Weekend", Calendar));
             panels.AddRange(
             [
-                Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks +                 Cards(weekendGames, true, all)),
-                                Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true, all)),
+                Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks + Cards(weekendGames, true, all)),
+                Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true, all)),
                 Panel("weekend:all", Subtabs("weekend", "all") + Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Rows(weekendSchedule, true)),
             ]);
         }
@@ -218,7 +218,6 @@ public static class SitePageRenderer
             <meta property="og:image" content="{Site}/img/andytvwatchlist_header3.png">
             <meta name="twitter:card" content="summary_large_image">
             <link rel="stylesheet" href="/styles.css">
-            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2972208898178828" crossorigin="anonymous"></script>
             </head>
             """;
 
@@ -276,9 +275,7 @@ public static class SitePageRenderer
                     var game = ranked.GetValueOrDefault(e.Matchup);
                     // The feed often lacks a network or start time (golf, racing) the ranked game has.
                     var network = string.IsNullOrWhiteSpace(e.Network) ? game?.Network : e.Network;
-                    var odds = game?.Betting is null
-                        ? SportsFormat.OddsParts(e.Betting)
-                        : SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
+                    var odds = game?.Betting is null ? SportsFormat.OddsParts(e.Betting) : SportsFormat.OddsParts(game);
                     return new ScheduleRow(e.StartTimeIso ?? game?.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank, odds);
                 })
                 .OrderBy(row => row.Start ?? DateTimeOffset.MaxValue)
@@ -339,7 +336,7 @@ public static class SitePageRenderer
     private static string Card(WatchlistGame game, bool weekend, List<WatchlistGame> all)
     {
         var network = string.IsNullOrWhiteSpace(game.Network) ? "" : $" · {Net(game.Network)}";
-        var odds = Odds(SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
+        var odds = Odds(SportsFormat.OddsParts(game));
         var share = $"""<button class="card-share" type="button" aria-label="Share {E(game.Matchup)}" title="Share">{Share}</button>""";
 
         // AI-researched links: only http(s) URLs are rendered.
@@ -399,8 +396,7 @@ public static class SitePageRenderer
     }
 
     private static ScheduleRow ToRow(WatchlistGame game) =>
-        new(game.StartTimeIso, game.Sport, game.League, game.Matchup, game.Network, game.Rank,
-            SportsFormat.OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr));
+        new(game.StartTimeIso, game.Sport, game.League, game.Matchup, game.Network, game.Rank, SportsFormat.OddsParts(game));
 
     private static List<WatchlistGame> ByTime(List<WatchlistGame> games) => [.. games.OrderBy(game => game.StartTimeIso)];
 

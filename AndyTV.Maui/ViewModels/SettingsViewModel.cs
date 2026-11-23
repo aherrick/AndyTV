@@ -7,8 +7,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace AndyTV.Maui.ViewModels;
 
 public partial class SettingsViewModel(
-    IPlaylistService playlistService,
-    ILocalConfigService localConfigService
+    PlaylistService playlistService,
+    LocalConfigService localConfigService
 ) : ObservableObject
 {
     [ObservableProperty]

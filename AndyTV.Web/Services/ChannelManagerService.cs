@@ -3,7 +3,7 @@ using AndyTV.Data.Services;
 
 namespace AndyTV.Web.Services;
 
-public class ChannelManagerService(IPlaylistService playlistService)
+public class ChannelManagerService(PlaylistService playlistService)
 {
     public List<Playlist> Playlists { get; private set; } = [];
     public List<Channel> Channels => playlistService.Channels;

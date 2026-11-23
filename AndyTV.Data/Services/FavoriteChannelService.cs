@@ -2,7 +2,7 @@ using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
 
-public class FavoriteChannelService(IStorageProvider storage) : IFavoriteChannelService
+public class FavoriteChannelService(IStorageProvider storage)
 {
     private const string FavoriteChannelsFile = "favorite_channels.json";
 

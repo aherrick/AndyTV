@@ -4,6 +4,7 @@
 const $$ = (selector, root = document) => root.querySelectorAll(selector);
 const tabs = [...$$(".tabs [data-go]")].map((button) => button.dataset.go);
 const views = { timeline: "top", weekend: "top" };
+const archived = "archived" in document.body.dataset;
 
 // target is a tab ("plan") or tab:view ("timeline:all"); unknown tabs fall back to Top.
 function show(target, push) {
@@ -20,7 +21,7 @@ function show(target, push) {
     section.querySelector(".sport-filter")?.scrollTo(0, 0);
   }
   // Archived pages live at /yyyy/mm/dd/, so tab switches there don't touch the URL.
-  if (push && !("archived" in document.body.dataset)) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
+  if (push && !archived) history.pushState(null, "", tab === "top" ? "/" : `/${tab}`);
 }
 
 // A league row (shown under its sport chip when that sport spans 2+ leagues) narrows the list further.
@@ -64,7 +65,7 @@ show(pathTab(), false);
 // Native share sheet, else copy the link: this page (/ or an archived /yyyy/mm/dd/) plus the card's #slug.
 function shareGame(button) {
   const card = button.closest(".game");
-  const page = "archived" in document.body.dataset ? location.pathname : "/";
+  const page = archived ? location.pathname : "/";
   const url = `${location.origin}${page}#${card.dataset.slug}`;
   if ("share" in navigator) return navigator.share({ title: card.querySelector(".title").textContent, url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => {
@@ -80,15 +81,16 @@ function reveal() {
   const card = slug && document.querySelector(`[data-slug="${CSS.escape(slug)}"]`);
   if (!card) {
     const date = slug.match(/-(\d{4})(\d{2})(\d{2})(?:-\d{4})?$/);
-    if (date && !("archived" in document.body.dataset)) location.replace(`/${date[1]}/${date[2]}/${date[3]}/#${slug}`);
+    if (date && !archived) location.replace(`/${date[1]}/${date[2]}/${date[3]}/#${slug}`);
     return;
   }
   show(card.closest(".panel").dataset.panel, false);
   card.classList.add("flash");
   card.addEventListener("animationend", () => card.classList.remove("flash"), { once: true });
   // Again after load, once the banner image above has shifted the layout.
-  card.scrollIntoView({ block: "center" });
-  addEventListener("load", () => card.scrollIntoView({ block: "center" }), { once: true });
+  const center = () => card.scrollIntoView({ block: "center" });
+  center();
+  addEventListener("load", center, { once: true });
 }
 addEventListener("hashchange", reveal);
 reveal();

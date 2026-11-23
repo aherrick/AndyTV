@@ -8,11 +8,11 @@ using CommunityToolkit.Mvvm.Input;
 namespace AndyTV.Maui.ViewModels;
 
 public partial class ChannelsViewModel(
-    IPlaylistService playlistService,
-    IRecentChannelService recentChannelService,
-    IFavoriteChannelService favoriteChannelService,
-    ILastChannelService lastChannelService,
-    ILocalConfigService localConfigService
+    PlaylistService playlistService,
+    RecentChannelService recentChannelService,
+    FavoriteChannelService favoriteChannelService,
+    LastChannelService lastChannelService,
+    LocalConfigService localConfigService
 ) : ObservableObject
 {
     private bool _isBusy;

@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AndyTV.Maui.ViewModels;
 
-public partial class FavoritesViewModel(IFavoriteChannelService favoriteChannelService) : ObservableObject
+public partial class FavoritesViewModel(FavoriteChannelService favoriteChannelService) : ObservableObject
 {
     [ObservableProperty]
     public partial bool IsRefreshing { get; set; }

@@ -6,7 +6,7 @@ using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
 
-public class PlaylistService(IStorageProvider storage) : IPlaylistService
+public class PlaylistService(IStorageProvider storage)
 {
     private const string PlaylistsFileName = "playlists.json";
     private static readonly HttpClient _httpClient = CreateHttpClient();

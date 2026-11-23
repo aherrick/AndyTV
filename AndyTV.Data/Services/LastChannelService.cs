@@ -2,7 +2,7 @@ using AndyTV.Data.Models;
 
 namespace AndyTV.Data.Services;
 
-public class LastChannelService(IStorageProvider storage) : ILastChannelService
+public class LastChannelService(IStorageProvider storage)
 {
     private const string LastChannelFile = "last_channel.json";
 

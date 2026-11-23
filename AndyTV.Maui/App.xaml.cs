@@ -18,7 +18,7 @@ public partial class App : Application
 
         window.Created += async (_, _) =>
         {
-            var lastChannel = services.GetRequiredService<ILastChannelService>().LoadLastChannel();
+            var lastChannel = services.GetRequiredService<LastChannelService>().LoadLastChannel();
             if (!string.IsNullOrEmpty(lastChannel?.Url))
             {
                 await Shell.Current.Navigation.PushAsync(new Views.PlayerPage(lastChannel), animated: false);
