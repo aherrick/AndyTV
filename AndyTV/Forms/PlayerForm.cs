@@ -19,6 +19,9 @@ internal sealed class PlayerForm : Form
         "plugins.dat"
     );
 
+    // A blank 1x1 icon, shown over fullscreen video.
+    private static readonly Cursor HiddenCursor = new(new Bitmap(1, 1).GetHicon());
+
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
     private readonly VideoView _videoView;
@@ -258,7 +261,8 @@ internal sealed class PlayerForm : Form
         _videoView.Cursor =
             _menuOpen ? Cursors.Default
             : _busy || _pending is not null ? Cursors.WaitCursor
-            : this.IdleCursor();
+            : this.IsFullscreen() ? HiddenCursor
+            : Cursors.Default;
 
     private async Task RunHourlyRefresh()
     {
@@ -390,52 +394,44 @@ internal sealed class PlayerForm : Form
     private ToolStripMenuItem BuildAdvancedMenu()
     {
         var advanced = new ToolStripMenuItem("Advanced");
-        advanced.DropDownItems.Add(RestartOptionMenu(
+        advanced.DropDownItems.Add(OptionMenu(
             "Hardware Acceleration",
             [("Auto", false), ("Disabled", true)],
             _config.DisableHardwareAcceleration,
-            v => _config.DisableHardwareAcceleration = v));
-        advanced.DropDownItems.Add(RestartOptionMenu(
+            v => _config.DisableHardwareAcceleration = v,
+            restart: true));
+        advanced.DropDownItems.Add(OptionMenu(
             "Video Output",
             [("Auto", null), ("Direct3D11", "direct3d11"), ("OpenGL", "glwin32")],
             _config.VideoOutput,
-            v => _config.VideoOutput = v));
+            v => _config.VideoOutput = v,
+            restart: true));
 
-        var buffer = new ToolStripMenuItem("Network Buffer");
-        (string Label, int? Milliseconds)[] presets =
-        [
-            ("Default (VLC)", null),
-            ("None (0 ms)", 0),
-            ("Low Latency (300 ms)", 300),
-            ("Extra Buffer (2000 ms)", 2000),
-            ("High Stability (5000 ms)", 5000),
-        ];
-        foreach (var (label, milliseconds) in presets)
-        {
-            var item = new ToolStripMenuItem(label)
-            {
-                Checked = _config.NetworkBufferMilliseconds == milliseconds,
-            };
-            item.Click += (_, _) =>
-            {
-                _config.NetworkBufferMilliseconds = milliseconds;
-                _configService.Save(_config);
-                CheckOnly(item);
-            };
-            buffer.DropDownItems.Add(item);
-        }
+        var buffer = OptionMenu(
+            "Network Buffer",
+            [
+                ("Default (VLC)", null),
+                ("None (0 ms)", 0),
+                ("Low Latency (300 ms)", 300),
+                ("Extra Buffer (2000 ms)", 2000),
+                ("High Stability (5000 ms)", 5000),
+            ],
+            _config.NetworkBufferMilliseconds,
+            v => _config.NetworkBufferMilliseconds = v);
         buffer.DropDownItems.Add(new ToolStripSeparator());
         buffer.DropDownItems.Add(new ToolStripMenuItem("Applies on next channel change") { Enabled = false });
         advanced.DropDownItems.Add(buffer);
         return advanced;
     }
 
-    // Radio options baked into LibVLC at startup, so picking a new one saves and restarts.
-    private ToolStripMenuItem RestartOptionMenu<TValue>(
+    // Radio options saved to the config. Restart options are baked into LibVLC at startup,
+    // so picking a new one confirms, saves and restarts.
+    private ToolStripMenuItem OptionMenu<TValue>(
         string title,
         (string Label, TValue Value)[] options,
         TValue current,
-        Action<TValue> apply)
+        Action<TValue> apply,
+        bool restart = false)
     {
         var menu = new ToolStripMenuItem(title);
         foreach (var (label, value) in options)
@@ -446,19 +442,26 @@ internal sealed class PlayerForm : Form
             };
             item.Click += (_, _) =>
             {
-                if (item.Checked || MessageBox.Show(
+                if (restart && (item.Checked || MessageBox.Show(
                     this,
                     $"AndyTV will restart to apply {title}. Continue?",
                     title,
                     MessageBoxButtons.OKCancel,
                     MessageBoxIcon.Question
-                ) != DialogResult.OK)
+                ) != DialogResult.OK))
                 {
                     return;
                 }
                 apply(value);
                 _configService.Save(_config);
-                Application.Restart();
+                if (restart)
+                {
+                    Application.Restart();
+                }
+                else
+                {
+                    CheckOnly(item);
+                }
             };
             menu.DropDownItems.Add(item);
         }
@@ -490,24 +493,11 @@ internal sealed class PlayerForm : Form
         }
         _sleepOffItem = (ToolStripMenuItem)timer.DropDownItems[0];
 
-        var action = new ToolStripMenuItem("When Timer Ends");
-        (string Label, SleepAction Value)[] actions =
-        [
-            ("Close App", SleepAction.CloseApp),
-            ("Stop Playback", SleepAction.StopPlayback),
-            ("Mute", SleepAction.Mute),
-        ];
-        foreach (var (label, value) in actions)
-        {
-            var item = new ToolStripMenuItem(label) { Checked = _config.SleepAction == value };
-            item.Click += (_, _) =>
-            {
-                _config.SleepAction = value;
-                _configService.Save(_config);
-                CheckOnly(item);
-            };
-            action.DropDownItems.Add(item);
-        }
+        var action = OptionMenu(
+            "When Timer Ends",
+            [("Close App", SleepAction.CloseApp), ("Stop Playback", SleepAction.StopPlayback), ("Mute", SleepAction.Mute)],
+            _config.SleepAction,
+            v => _config.SleepAction = v);
 
         return [timer, action];
     }

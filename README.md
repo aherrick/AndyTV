@@ -58,20 +58,14 @@ C:\Users\Andy\Playlists\tv.m3u
 - **SmartGroup** – group feeds of the same channel or league together, largest groups first. Overrides GroupByFirstChar.
 - **NameFind / NameReplace** – optional regex pair applied to each channel title (for example, strip prefixes like `HD :` or remove `S01E01` when grouping episodic channels).
 
-## 🔄 Updates (delta)
+## 🔄 Updates
 
-Use **Menu → Manage → Check for Updates** in an installed copy; it downloads only the
-small delta packages since your version. Re-downloading Setup.exe or the ZIP is always a full download.
+Use **Menu → Manage → Check for Updates** in an installed copy; it downloads the latest full package
+and restarts. Delta updates are off: applying one took longer than downloading the full package.
 
-The [publish workflow](.github/workflows/publish.yml) follows Velopack's
-[standard GitHub flow](https://docs.velopack.io/distributing/github-actions):
-`vpk download github` fetches the previous full package, `vpk pack` builds the new full package
-plus a [delta](https://docs.velopack.io/packaging/deltas) against it, and `vpk upload github`
-publishes both. The workflow fails rather than publish a release without a delta.
-
-Keep old releases: skipped versions update by chaining their deltas. Velopack falls back to the
-full package if the chain is too long or larger than the full package, or a delta fails to apply; details
-are in `%LocalAppData%\velopack\velopack_com.ajh.AndyTV.log`.
+The [publish workflow](.github/workflows/publish.yml) builds each release with `vpk pack` and publishes it
+with `vpk upload github` (Velopack's [GitHub flow](https://docs.velopack.io/distributing/github-actions)).
+Update details are in `%LocalAppData%\velopack\velopack_com.ajh.AndyTV.log`.
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome!  

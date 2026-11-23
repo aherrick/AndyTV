@@ -37,12 +37,7 @@ jobs:
         run: |
           $vpk = "vpk@$env:VPK_VERSION"
 
-          # Fetches the previous full package so pack can build a delta against it.
-          dnx --yes $vpk -- download github `
-            --repoUrl https://github.com/${{ github.repository }} `
-            --channel win `
-            --token ${{ github.token }}
-
+          # Full package only: without the previous release downloaded, pack builds no delta (the app doesn't use deltas).
           dnx --yes $vpk -- pack `
             --packId com.ajh.AndyTV `
             --packVersion $env:VERSION `
@@ -52,9 +47,7 @@ jobs:
             --icon .\AndyTV\AndyTV.ico `
             --runtime win-x64 `
             --channel win
-
-          # A failed download or pack leaves no delta; don't publish a full-only release.
-          if (!(Test-Path ".\Releases\com.ajh.AndyTV-$env:VERSION-delta.nupkg")) { throw "No delta package was created." }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           dnx --yes $vpk -- upload github `
             --outputDir Releases `
