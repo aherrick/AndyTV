@@ -5,7 +5,7 @@ using AndyTV.Watchlist.Models;
 
 namespace AndyTV.Watchlist.Services;
 
-public static class SportsFormat
+public static partial class SportsFormat
 {
     public static string Icon(string sport) =>
         sport switch
@@ -43,9 +43,12 @@ public static class SportsFormat
     public static string Slug(string matchup, DateTimeOffset start, bool withTime = false)
     {
         var ascii = string.Concat(matchup.Replace("@", "vs").Normalize(NormalizationForm.FormD).Where(char.IsAscii));
-        var name = Regex.Replace(ascii.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        var name = NonSlugCharacters().Replace(ascii.ToLowerInvariant(), "-").Trim('-');
         return $"{name}-{EasternTimeZone.Convert(start).ToString(withTime ? "yyyyMMdd-HHmm" : "yyyyMMdd", CultureInfo.InvariantCulture)}";
     }
+
+    [GeneratedRegex("[^a-z0-9]+")]
+    private static partial Regex NonSlugCharacters();
 
     public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
 
