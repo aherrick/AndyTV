@@ -171,7 +171,7 @@ start-all.bat
 FFmpeg is downloaded automatically on first run if not already present.
 
 **Mobile app configuration:**
-In AndyTV.Maui Settings, enable **Local Streaming** and set the **Server URL** to your Tailscale IP (e.g. `http://100.x.x.x:5050`). When enabled, channel playback is routed through the server automatically.
+In AndyTV.Maui Settings, set the **Local Streaming** server URL to your PC's Tailscale IP (e.g. `http://100.x.x.x:5050`). Whenever Tailscale is connected on the phone, playback goes through the server; with Tailscale off, channels play directly.
 
 **Requirements:**
 - Windows PC on the same Tailscale network as your phone

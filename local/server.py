@@ -95,9 +95,11 @@ def open_stream(url, quality, sid):
 def stop_when_idle():
     while True:
         time.sleep(5)
-        if proc and time.monotonic() - last_request > IDLE_TIMEOUT:
-            print("idle, stopping ffmpeg", flush=True)
-            stop_stream()
+        # Checked under the lock so a stream that a fresh request is starting can't be killed as idle.
+        with lock:
+            if proc and time.monotonic() - last_request > IDLE_TIMEOUT:
+                print("idle, stopping ffmpeg", flush=True)
+                _kill()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -135,8 +137,9 @@ class Handler(SimpleHTTPRequestHandler):
         quality = q.get("quality", ["320"])[0]
         if quality not in QUALITY:
             quality = "320"
-        if not url or not re.fullmatch(r"[0-9a-f]{32}", sid):
-            self.send_error(400, "url and 32-hex session required")
+        # ffmpeg opens whatever it's given (local files included), so only stream URLs get through.
+        if not re.match(r"https?://", url, re.I) or not re.fullmatch(r"[0-9a-f]{32}", sid):
+            self.send_error(400, "http(s) url and 32-hex session required")
             return
 
         playlist = open_stream(url, quality, sid)

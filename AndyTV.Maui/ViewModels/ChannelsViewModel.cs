@@ -11,8 +11,7 @@ public partial class ChannelsViewModel(
     PlaylistService playlistService,
     RecentChannelService recentChannelService,
     FavoriteChannelService favoriteChannelService,
-    LastChannelService lastChannelService,
-    LocalConfigService localConfigService
+    LastChannelService lastChannelService
 ) : ObservableObject
 {
     private bool _isBusy;
@@ -49,23 +48,8 @@ public partial class ChannelsViewModel(
     [ObservableProperty]
     public partial string SearchOnlyStatus { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UseLocalColor))]
-    public partial bool UseLocal { get; set; }
-
-    partial void OnUseLocalChanged(bool value)
-    {
-        var config = localConfigService.Load();
-        config.Enabled = value;
-        localConfigService.Save(config);
-    }
-
-    public Color UseLocalColor => UseLocal ? Colors.LimeGreen : Colors.Gray;
-
     public async Task EnsureChannelsLoaded()
     {
-        UseLocal = localConfigService.Load().Enabled;
-
         if (_hasLoaded && _listChannels.Count > 0)
         {
             return;
@@ -120,9 +104,6 @@ public partial class ChannelsViewModel(
             Channels = results;
         }
     }
-
-    [RelayCommand]
-    private void ToggleUseLocal() => UseLocal = !UseLocal;
 
     private void Populate()
     {

@@ -165,7 +165,12 @@
                 FontAttributes="Bold"
                 FontSize="18"
                 Text="Local Streaming"
-                Margin="0,4,0,4" />
+                Margin="0,4,0,0" />
+
+            <Label
+                Text="Used whenever Tailscale is connected on this phone."
+                FontSize="13"
+                TextColor="{AppThemeBinding Light={StaticResource TextMutedLight}, Dark={StaticResource TextMutedDark}}" />
 
             <Border
                 StrokeShape="RoundRectangle 8"
@@ -173,7 +178,7 @@
                 BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceRaisedLight}, Dark={StaticResource SurfaceRaisedDark}}"
                 Padding="10,0">
                 <Entry
-                    Placeholder="http://192.168.1.100:8080"
+                    Placeholder="http://100.x.x.x:5050"
                     Text="{Binding LocalServerUrl}"
                     BackgroundColor="Transparent"
                     FontSize="15"
