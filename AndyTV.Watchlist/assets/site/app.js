@@ -62,11 +62,13 @@ document.addEventListener("click", (e) => {
 addEventListener("popstate", () => show(pathTab(), false));
 show(pathTab(), false);
 
-// Native share sheet, else copy the link: this page (/ or an archived /yyyy/mm/dd/) plus the card's #slug.
+// Native share sheet, else copy the link: the dated page for this list (body's data-path, /yyyy/mm/dd/,
+// on the homepage too) plus the card's #slug. That page is published with the homepage and stays up,
+// so the link opens the card today and after today, even when the slug's date is the next day
+// (a game after midnight ET). Sharing doesn't change this page's own URL.
 function shareGame(button) {
   const card = button.closest(".game");
-  const page = archived ? location.pathname : "/";
-  const url = `${location.origin}${page}#${card.dataset.slug}`;
+  const url = `${location.origin}${document.body.dataset.path}#${card.dataset.slug}`;
   if ("share" in navigator) return navigator.share({ title: card.querySelector(".title").textContent, url }).catch(() => {});
   navigator.clipboard.writeText(url).then(() => {
     button.classList.add("copied");
@@ -74,16 +76,11 @@ function shareGame(button) {
   });
 }
 
-// #slug opens the card's tab, scrolls to it and flashes it. The homepage only holds today, so an
-// unknown slug goes to the archived page for the date at its end (…-20261122 or …-20261122-1930).
+// #slug opens the card's tab, scrolls to it and flashes it; a slug that isn't on this page does nothing.
 function reveal() {
   const slug = decodeURIComponent(location.hash.slice(1));
   const card = slug && document.querySelector(`[data-slug="${CSS.escape(slug)}"]`);
-  if (!card) {
-    const date = slug.match(/-(\d{4})(\d{2})(\d{2})(?:-\d{4})?$/);
-    if (date && !archived) location.replace(`/${date[1]}/${date[2]}/${date[3]}/#${slug}`);
-    return;
-  }
+  if (!card) return;
   show(card.closest(".panel").dataset.panel, false);
   card.classList.add("flash");
   card.addEventListener("animationend", () => card.classList.remove("flash"), { once: true });

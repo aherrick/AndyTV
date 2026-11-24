@@ -85,7 +85,7 @@ public static class SitePageRenderer
             <!DOCTYPE html>
             <html lang="en">
             {{head}}
-            <body{{(nav is null ? "" : " data-archived")}}>
+            <body data-path="{{ArchivePath(daily.TargetDate)}}"{{(nav is null ? "" : " data-archived")}}>
             <div class="top-controls">
             <button class="control-btn" id="install-btn" type="button" aria-label="Add to Home Screen" title="Add to Home Screen" hidden>{{Download}}</button>
             <button class="control-btn" id="share-btn" type="button" aria-label="Share" hidden>{{Share}}</button>

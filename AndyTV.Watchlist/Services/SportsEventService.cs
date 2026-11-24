@@ -200,7 +200,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         CancellationToken cancellationToken
     )
     {
-        // ESPN files each game under its ET day, so one board covers the date.
+        // ESPN files each game under its sports day, so this one board holds the whole date, including
+        // late West Coast and Hawaii games that tip after midnight ET (see the date check below).
         var games = await FetchEvents(
             $"{BaseUrl}{board.Path}/scoreboard?dates={date:yyyyMMdd}&{board.Query}",
             $"{board.Sport} {board.League}",
@@ -217,7 +218,14 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
 
             var competition = game.GetProperty("competitions")[0];
             var start = Start(competition);
-            if (EasternTimeZone.Date(start) != date)
+            // A game that tips after midnight ET is still on this date's board: ESPN lists it under the
+            // day it belongs to, not under the next calendar day (e.g. a 9:30 PM Las Vegas tip is 12:30 AM ET
+            // the next day, yet it's on this board and not on the next day's). Its ET date is the next day,
+            // but we don't cut it for that. It's already in this response, so no extra request is needed,
+            // and the next day's board doesn't list it, so it isn't counted twice. Only games before 4 AM ET
+            // are kept this way, which covers the latest Hawaii tips.
+            var day = EasternTimeZone.Date(start);
+            if (day != date && !(day == date.AddDays(1) && start.Hour < 4))
             {
                 continue;
             }
