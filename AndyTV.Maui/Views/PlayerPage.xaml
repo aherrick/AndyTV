@@ -85,7 +85,7 @@
                 Grid.Column="1"
                 Padding="12,6"
                 BackgroundColor="#80000000"
-                HorizontalOptions="Start"
+                HorizontalOptions="Center"
                 InputTransparent="True"
                 StrokeShape="RoundRectangle 18"
                 StrokeThickness="0"
@@ -94,12 +94,14 @@
                     <Label
                         FontAttributes="Bold"
                         FontSize="15"
+                        HorizontalTextAlignment="Center"
                         LineBreakMode="TailTruncation"
                         MaxLines="1"
                         Text="{Binding ChannelName}"
                         TextColor="White" />
                     <Label
                         FontSize="12"
+                        HorizontalTextAlignment="Center"
                         IsVisible="{Binding Route, Converter={StaticResource IsStringNotNullOrEmptyConverter}}"
                         Text="{Binding Route}"
                         TextColor="LimeGreen" />
