@@ -7,6 +7,9 @@ public sealed class StreamHealthMonitor(int stallSeconds = 5, int startupSeconds
     private int _progress;
     private DateTime _progressAt = DateTime.UtcNow;
 
+    // True once the current stream has actually played something since the last Reset.
+    public bool HasStarted => _progress > 0;
+
     // Call when (re)starting a stream.
     public void Reset()
     {

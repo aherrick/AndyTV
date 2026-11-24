@@ -29,8 +29,18 @@ public partial class PlayerPage
     private const int HealthCheckMilliseconds = 1000;
     private const int ControlsHideMilliseconds = 3000;
 
+    // A stream that never starts gets this many tries, then waits for a tap instead of retrying forever.
+    private const int MaxStartAttempts = 3;
+
     private readonly string _sourceUrl;
+
+    // VLC's Stop blocks until the stream's connection closes, so VLC calls run in order off the UI thread.
+    private Task _vlc = Task.CompletedTask;
     private int _backgroundVideoTrack = -1;
+    private int _failedStarts;
+    private bool _hasPlayed;
+    private bool _controlsVisible;
+    private bool _closed;
     private bool _inBackground;
     private bool _needsRestart;
     private bool _paused;
@@ -60,9 +70,9 @@ public partial class PlayerPage
 
         _controlsTimer = Dispatcher.CreateTimer();
         _controlsTimer.Interval = TimeSpan.FromMilliseconds(ControlsHideMilliseconds);
-        _controlsTimer.Tick += OnControlsTimerTick;
+        _controlsTimer.Tick += (_, _) => HideControls();
 
-        PlayerTapGesture.Tapped += (_, _) => ShowControls();
+        PlayerTapGesture.Tapped += (_, _) => OnPlayerTapped();
         NowPlaying.Register(Play, Pause);
 
         Play();
@@ -87,14 +97,12 @@ public partial class PlayerPage
         }
     }
 
-    public void Receive(AppResumedMessage _)
-    {
-        Dispatcher.Dispatch(() =>
+    public void Receive(AppResumedMessage _) =>
+        OnUiThread(() =>
         {
             _inBackground = false;
             if (_paused)
             {
-                _backgroundVideoTrack = -1;
                 return;
             }
             _healthTimer.Start();
@@ -107,20 +115,22 @@ public partial class PlayerPage
             }
 
             // Re-enable the video track we disabled when the app was backgrounded
-            if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
+            RunVlc(() =>
             {
-                _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
-            }
-            _backgroundVideoTrack = -1;
+                if (_backgroundVideoTrack != -1 && _mediaPlayer.VideoTrack == -1)
+                {
+                    _mediaPlayer.SetVideoTrack(_backgroundVideoTrack);
+                }
+                _backgroundVideoTrack = -1;
+            });
 
             _healthMonitor.Reset();
         });
-    }
 
     public void Receive(AudioInterruptedMessage _) => _needsRestart = true;
 
     public void Receive(AudioResumableMessage _) =>
-        Dispatcher.Dispatch(() =>
+        OnUiThread(() =>
         {
             if (!_paused)
             {
@@ -128,22 +138,35 @@ public partial class PlayerPage
             }
         });
 
-    public void Receive(AppStoppedMessage _)
-    {
-        Dispatcher.Dispatch(() =>
+    public void Receive(AppStoppedMessage _) =>
+        OnUiThread(() =>
         {
             _inBackground = true;
             _healthTimer.Stop();
 
             // Keep audio playing in the background: disable video so VLC doesn't stall rendering off-screen
-            var currentVideoTrack = _mediaPlayer.VideoTrack;
-            if (currentVideoTrack != -1)
+            RunVlc(() =>
             {
-                _backgroundVideoTrack = currentVideoTrack;
-                _mediaPlayer.SetVideoTrack(-1);
+                var videoTrack = _mediaPlayer.VideoTrack;
+                if (videoTrack != -1)
+                {
+                    _backgroundVideoTrack = videoTrack;
+                    _mediaPlayer.SetVideoTrack(-1);
+                }
+            });
+        });
+
+    // Messages arrive off the UI thread and can land just after the page closed.
+    private void OnUiThread(Action action) =>
+        Dispatcher.Dispatch(() =>
+        {
+            if (!_closed)
+            {
+                action();
             }
         });
-    }
+
+    private void RunVlc(Action action) => _vlc = _vlc.ContinueWith(_ => action(), TaskScheduler.Default);
 
     private bool ShouldRestartOnResume() =>
         _mediaPlayer.State is VLCState.NothingSpecial or VLCState.Stopped or VLCState.Ended or VLCState.Error;
@@ -151,22 +174,34 @@ public partial class PlayerPage
     // Every (re)start gets a new server session, which makes the server pop a fresh stream.
     private void Play()
     {
-        var url = _localPlaybackService.GetUrl(_sourceUrl);
+        if (_closed)
+        {
+            return;
+        }
+
+        var (url, quality) = _localPlaybackService.GetStream(_sourceUrl);
+        _viewModel.Route = quality is null ? null : $"Local · {quality}p";
+        _viewModel.SetStatus(_hasPlayed ? "Reconnecting…" : "Connecting…");
         _paused = false;
 
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
-        _needsRestart = _inBackground;
+        var inBackground = _inBackground;
+        _needsRestart = inBackground;
         _healthMonitor.Reset();
-        _mediaPlayer.Stop();
-        using var media = new Media(_libVLC, url, FromType.FromLocation);
-        if (_inBackground)
+        RunVlc(() =>
         {
-            media.AddOption(":no-video");
-        }
-        _mediaPlayer.Play(media);
+            _mediaPlayer.Stop();
+            _backgroundVideoTrack = -1;
+            using var media = new Media(_libVLC, url, FromType.FromLocation);
+            if (inBackground)
+            {
+                media.AddOption(":no-video");
+            }
+            _mediaPlayer.Play(media);
+        });
 
         // Off-screen health checks stay off (VLC stalls rendering in the background).
-        if (!_inBackground)
+        if (!inBackground)
         {
             _healthTimer.Start();
         }
@@ -174,49 +209,101 @@ public partial class PlayerPage
     }
 
     // Live streams can't pause, so lock-screen pause stops; play restarts with a fresh session.
-    private void Pause()
+    private void Pause() => StopPlayback("Paused", "Tap to play");
+
+    private void StopPlayback(string status, string hint)
     {
+        if (_closed)
+        {
+            return;
+        }
+
         _paused = true;
+        _failedStarts = 0;
         _healthTimer.Stop();
-        _mediaPlayer.Stop();
+        RunVlc(_mediaPlayer.Stop);
+        _viewModel.SetStatus(status, hint);
         NowPlaying.Update(_viewModel.ChannelName, playing: false);
     }
 
     private void OnHealthTimerTick(object sender, EventArgs e)
     {
-        using var media = _mediaPlayer.Media;
-        if (media?.Statistics is { } stats
-            && _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures))
+        // Skip while VLC is still busy so checks and restarts never pile up behind a slow call.
+        if (!_vlc.IsCompleted)
         {
-            Play();
+            return;
         }
+
+        using var media = _mediaPlayer.Media;
+        if (media?.Statistics is not { } stats)
+        {
+            return;
+        }
+
+        var stalled = _healthMonitor.IsStalled(stats.PlayedAudioBuffers, stats.DisplayedPictures);
+        if (_healthMonitor.HasStarted)
+        {
+            _hasPlayed = true;
+            _failedStarts = 0;
+            _viewModel.SetStatus(null);
+        }
+
+        if (!stalled)
+        {
+            return;
+        }
+
+        if (!_healthMonitor.HasStarted && ++_failedStarts >= MaxStartAttempts)
+        {
+            StopPlayback("Channel isn't responding", "Tap to retry");
+            return;
+        }
+        Play();
     }
 
-    private void OnControlsTimerTick(object sender, EventArgs e)
+    // A tap starts a stopped stream; otherwise it shows or hides the controls.
+    private void OnPlayerTapped()
     {
-        _controlsTimer.Stop();
-        SetControlsVisible(false, BackButton, AirPlayBorder);
+        if (_paused)
+        {
+            Play();
+            ShowControls();
+        }
+        else if (_controlsVisible)
+        {
+            HideControls();
+        }
+        else
+        {
+            ShowControls();
+        }
     }
 
     private void ShowControls()
     {
-        SetControlsVisible(true, BackButton, AirPlayBorder);
+        SetControlsVisible(true);
         _controlsTimer.Stop();
         _controlsTimer.Start();
     }
 
-    private static void SetControlsVisible(bool visible, params View[] controls)
+    private void HideControls()
     {
-        foreach (var control in controls)
-        {
-            control.Opacity = visible ? 1 : 0;
-            control.InputTransparent = !visible;
-        }
+        _controlsTimer.Stop();
+        SetControlsVisible(false);
+    }
+
+    private void SetControlsVisible(bool visible)
+    {
+        _controlsVisible = visible;
+        TopBar.Opacity = visible ? 1 : 0;
+        BackButton.InputTransparent = !visible;
+        AirPlayBorder.InputTransparent = !visible;
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _closed = true;
         DeviceDisplay.Current.KeepScreenOn = false;
         NowPlaying.Clear();
 
@@ -224,8 +311,14 @@ public partial class PlayerPage
 
         _healthTimer.Stop();
         _controlsTimer.Stop();
-        _mediaPlayer.Stop();
+
+        // The view lets go of the player here; VLC only reads it when a stream starts, so the
+        // running one is stopped and released in the background after anything already queued.
         VideoView.MediaPlayer = null;
-        _mediaPlayer.Dispose();
+        RunVlc(() =>
+        {
+            _mediaPlayer.Stop();
+            _mediaPlayer.Dispose();
+        });
     }
 }

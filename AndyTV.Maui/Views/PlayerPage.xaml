@@ -3,6 +3,7 @@
     x:Class="AndyTV.Maui.Views.PlayerPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vlc="clr-namespace:LibVLCSharp.MAUI;assembly=LibVLCSharp.MAUI"
     xmlns:vm="clr-namespace:AndyTV.Maui.ViewModels"
     xmlns:views="clr-namespace:AndyTV.Maui.Views"
@@ -10,6 +11,10 @@
     Shell.NavBarIsVisible="False"
     Shell.TabBarIsVisible="False"
     x:DataType="vm:PlayerViewModel">
+
+    <ContentPage.Resources>
+        <toolkit:IsStringNotNullOrEmptyConverter x:Key="IsStringNotNullOrEmptyConverter" />
+    </ContentPage.Resources>
 
     <Grid BackgroundColor="Black">
         <vlc:VideoView
@@ -26,28 +31,91 @@
             </BoxView.GestureRecognizers>
         </BoxView>
 
-        <Button
-            x:Name="BackButton"
-            Margin="16,24,16,16"
-            Padding="14,8"
-            BackgroundColor="#80000000"
-            Command="{Binding GoBackCommand}"
-            CornerRadius="18"
-            HorizontalOptions="Start"
-            Text="Back to list"
-            TextColor="White"
-            VerticalOptions="Start" />
-
+        <!--  Connecting, reconnecting, paused or failed; hidden while the stream plays  -->
         <Border
-            x:Name="AirPlayBorder"
-            Margin="16,24,16,16"
-            Padding="6"
-            BackgroundColor="#80000000"
-            HorizontalOptions="End"
+            Padding="20,12"
+            BackgroundColor="#99000000"
+            HorizontalOptions="Center"
+            InputTransparent="True"
+            IsVisible="{Binding Status, Converter={StaticResource IsStringNotNullOrEmptyConverter}}"
             StrokeShape="RoundRectangle 18"
             StrokeThickness="0"
-            VerticalOptions="Start">
-            <views:AirPlayButton HeightRequest="30" WidthRequest="30" />
+            VerticalOptions="Center">
+            <VerticalStackLayout Spacing="4">
+                <Label
+                    FontSize="16"
+                    HorizontalTextAlignment="Center"
+                    Text="{Binding Status}"
+                    TextColor="White" />
+                <Label
+                    FontSize="13"
+                    HorizontalTextAlignment="Center"
+                    IsVisible="{Binding StatusHint, Converter={StaticResource IsStringNotNullOrEmptyConverter}}"
+                    Text="{Binding StatusHint}"
+                    TextColor="#B3FFFFFF" />
+            </VerticalStackLayout>
         </Border>
+
+        <!--  The bar itself lets taps through to the video; only its buttons take them, and only while shown  -->
+        <Grid
+            x:Name="TopBar"
+            Margin="16,24,16,0"
+            CascadeInputTransparent="False"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="10"
+            InputTransparent="True"
+            VerticalOptions="Start">
+
+            <Button
+                x:Name="BackButton"
+                Grid.Column="0"
+                Padding="0"
+                BackgroundColor="#80000000"
+                Command="{Binding GoBackCommand}"
+                CornerRadius="22"
+                FontFamily="FontAwesomeSolid"
+                FontSize="18"
+                HeightRequest="44"
+                SemanticProperties.Description="Back to list"
+                Text="&#xf053;"
+                TextColor="White"
+                WidthRequest="44" />
+
+            <Border
+                Grid.Column="1"
+                Padding="12,6"
+                BackgroundColor="#80000000"
+                HorizontalOptions="Start"
+                InputTransparent="True"
+                StrokeShape="RoundRectangle 18"
+                StrokeThickness="0"
+                VerticalOptions="Center">
+                <VerticalStackLayout>
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="15"
+                        LineBreakMode="TailTruncation"
+                        MaxLines="1"
+                        Text="{Binding ChannelName}"
+                        TextColor="White" />
+                    <Label
+                        FontSize="12"
+                        IsVisible="{Binding Route, Converter={StaticResource IsStringNotNullOrEmptyConverter}}"
+                        Text="{Binding Route}"
+                        TextColor="LimeGreen" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border
+                x:Name="AirPlayBorder"
+                Grid.Column="2"
+                Padding="7"
+                BackgroundColor="#80000000"
+                StrokeShape="RoundRectangle 22"
+                StrokeThickness="0"
+                VerticalOptions="Center">
+                <views:AirPlayButton HeightRequest="30" WidthRequest="30" />
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

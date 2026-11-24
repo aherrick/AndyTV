@@ -8,16 +8,18 @@ public class LocalPlaybackService(LocalConfigService localConfigService)
 {
     // Tailscale is the only route to the server, so streams go through it whenever Tailscale is connected.
     // A new session id makes the server kill the previous stream and start a fresh one on the first playlist fetch.
-    public string GetUrl(string sourceUrl)
+    // Quality is null when the stream plays direct.
+    public (string Url, string Quality) GetStream(string sourceUrl)
     {
         var config = localConfigService.Load();
         if (string.IsNullOrWhiteSpace(config.ServerUrl) || !IsTailscaleConnected())
         {
-            return sourceUrl;
+            return (sourceUrl, null);
         }
 
         var quality = string.IsNullOrWhiteSpace(config.Quality) ? "320" : config.Quality;
-        return $"{config.ServerUrl.TrimEnd('/')}/live.m3u8?session={Guid.NewGuid():N}&quality={quality}&url={Uri.EscapeDataString(sourceUrl)}";
+        var url = $"{config.ServerUrl.TrimEnd('/')}/live.m3u8?session={Guid.NewGuid():N}&quality={quality}&url={Uri.EscapeDataString(sourceUrl)}";
+        return (url, quality);
     }
 
     // Connected, Tailscale is an iOS tunnel (utun) holding an address in 100.64.0.0/10. Carriers hand out
