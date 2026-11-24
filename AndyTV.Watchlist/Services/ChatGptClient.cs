@@ -28,8 +28,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
     // Web search on, response constrained to T's JSON schema.
     public async Task<T> Ask<T>(string model, string prompt, CancellationToken cancellationToken = default)
     {
-        var schema = JsonSchemaExporter.GetJsonSchemaAsNode(
-            SchemaOptions,
+        var schema = SchemaOptions.GetJsonSchemaAsNode(
             typeof(T),
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }
         );

@@ -50,7 +50,7 @@ public class PlaylistService(IStorageProvider storage)
             [.. source.SelectMany(x => x.Channels).DistinctBy(c => c.Url, StringComparer.OrdinalIgnoreCase)];
     }
 
-    public async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
+    public static async Task<List<(Playlist Playlist, List<Channel> Channels)>> LoadChannelsAsync(
         List<Playlist> playlists
     )
     {

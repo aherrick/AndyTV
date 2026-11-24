@@ -8,10 +8,10 @@ public static class PlaylistServiceExtensions
     public static async Task<Task> RefreshMenuChannelsFirst(this PlaylistService playlistService)
     {
         var playlists = playlistService.LoadPlaylists();
-        var menu = await playlistService.LoadChannelsAsync([.. playlists.Where(p => p.ShowInMenu)]);
+        var menu = await PlaylistService.LoadChannelsAsync([.. playlists.Where(p => p.ShowInMenu)]);
         playlistService.SetChannels(menu);
 
-        return playlistService
+        return PlaylistService
             .LoadChannelsAsync([.. playlists.Where(p => !p.ShowInMenu)])
             .ContinueWith(t => playlistService.SetChannels([.. menu, .. t.Result]), TaskScheduler.Default);
     }

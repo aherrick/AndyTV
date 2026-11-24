@@ -23,6 +23,14 @@ public sealed class AndyTVWatchlistFn(
     // Timer invocations never overlap, so a plain static is enough.
     private static bool _forcedRunDone;
 
+    // Debug runs don't write to blob storage. A property, not a constant, so the compiler doesn't
+    // flag the skipped publish as unreachable code.
+#if DEBUG
+    private static bool IsDebugBuild => true;
+#else
+    private static bool IsDebugBuild => false;
+#endif
+
     // One daily run: publish Daily, and on Fridays research Weekend at the same time.
     [Function(nameof(AndyTVWatchlistFn))]
     public async Task Run(
@@ -54,20 +62,13 @@ public sealed class AndyTVWatchlistFn(
 
         // One run still finishes if the other fails, then the failure surfaces.
         // The page is rebuilt from whatever feeds are live, so a failed social post never leaves the site stale.
-        // A local, so the compiler doesn't flag the unused branch of a constant as unreachable.
-#if DEBUG
-        var debug = true;
-#else
-        var debug = false;
-#endif
         try
         {
             await Task.WhenAll(runs);
         }
         finally
         {
-            // Debug runs don't write to blob storage.
-            if (!debug)
+            if (!IsDebugBuild)
             {
                 await sitePublishService.Publish(cancellationToken);
             }
