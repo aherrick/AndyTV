@@ -19,7 +19,7 @@ public partial class PlayerPage
     private readonly LibVLC _libVLC;
     private readonly LibVLCSharp.Shared.MediaPlayer _mediaPlayer;
     private readonly IDispatcherTimer _healthTimer;
-    private readonly StreamHealthMonitor _healthMonitor = new();
+    private StreamHealthMonitor _healthMonitor = new();
     private readonly LocalPlaybackService _localPlaybackService;
     private readonly IDispatcherTimer _controlsTimer;
 
@@ -31,6 +31,10 @@ public partial class PlayerPage
 
     // A stream that never starts gets this many tries, then waits for a tap instead of retrying forever.
     private const int MaxStartAttempts = 3;
+
+    // The server waits up to 25 s for ffmpeg's first playlist (PLAYLIST_TIMEOUT in local/server.py). A retry
+    // starts a new session, which kills that start, so the phone waits longer than the server before retrying.
+    private const int LocalStartupSeconds = 30;
 
     private readonly string _sourceUrl;
 
@@ -187,7 +191,7 @@ public partial class PlayerPage
         // Audio-only in the background (VLC stalls rendering off-screen); restart with video on resume
         var inBackground = _inBackground;
         _needsRestart = inBackground;
-        _healthMonitor.Reset();
+        _healthMonitor = quality is null ? new() : new(startupSeconds: LocalStartupSeconds);
         RunVlc(() =>
         {
             _mediaPlayer.Stop();
