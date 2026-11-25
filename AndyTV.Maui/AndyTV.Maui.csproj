@@ -54,7 +54,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.10" />
 		<PackageReference Include="LibVLCSharp.MAUI" Version="3.10.2" />
 		<PackageReference Include="VideoLAN.LibVLC.iOS" Version="3.6.1" />
-		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.2.12" />
+		<PackageReference Include="Syncfusion.Maui.ListView" Version="35.2.13" />
 	</ItemGroup>
 
 	<ItemGroup>
