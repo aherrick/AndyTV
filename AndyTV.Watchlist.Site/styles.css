@@ -321,6 +321,161 @@ main.tall {
   border-color: var(--accent);
 }
 
+/* A chip row fades at the right while more chips are off screen (app.js sets .more) */
+.sport-filter.more {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+/* With a network picked, sports and leagues it doesn't carry dim to 0 */
+.sport-filter button.zero:not(.active) {
+  opacity: 0.45;
+}
+
+/* Network toggle (All lists): TV icon, "Network" on wider screens, chevron. Tinted blue while
+   open or while a network is picked; the sport row's All chip names the pick ("All ESPN+ 11"). */
+.sport-filter .net-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.net-toggle svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+.net-toggle .chev {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.4;
+  transition: transform 0.15s;
+}
+
+.net-toggle .net-word {
+  display: none;
+}
+
+.sport-filter .net-toggle[aria-expanded="true"],
+.sport-filter .net-toggle.on {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+.sport-filter .net-toggle.on {
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+
+.net-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+/* Network chips: the league row's look, in the blue already used for network names */
+.network-filter {
+  gap: 6px;
+  margin-top: -8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent-2);
+}
+
+.network-filter button {
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.network-filter button.active {
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  border-color: var(--accent-2);
+}
+
+/* All lists: the Top | All switch stays centred with Reset at the right, shown while anything is picked */
+.subtab-line {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.subtab-line .subtabs {
+  margin: 0;
+}
+
+.reset {
+  grid-column: 3;
+  justify-self: end;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 4px;
+
+  cursor: pointer;
+
+  border: 0;
+  background: none;
+  color: var(--muted);
+
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.reset svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.reset:hover {
+  color: var(--accent-2);
+}
+
+.reset:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* A sport or league with no games on the picked network */
+.empty {
+  margin: 0;
+  padding: 18px 14px;
+
+  color: var(--muted);
+  background: var(--surface);
+
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.empty button {
+  margin-left: 6px;
+  padding: 0;
+
+  cursor: pointer;
+
+  border: 0;
+  background: none;
+  color: var(--accent-2);
+
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .net-toggle .chev {
+    transition: none;
+  }
+}
+
 /* ========================================================
    TOP PICKS / RANKED GAMES
    ======================================================== */
@@ -719,6 +874,10 @@ main.tall {
 @media (min-width: 560px) {
   .site-header h1 {
     font-size: 1.8rem;
+  }
+
+  .net-toggle .net-word {
+    display: inline;
   }
 }
 

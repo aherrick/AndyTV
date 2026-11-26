@@ -32,6 +32,8 @@ public static class SitePageRenderer
     private static readonly string Moon = Svg("""<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>""", "icon-moon");
     private static readonly string Pause = Svg("""<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>""", "icon-pause");
     private static readonly string Play = Svg("""<polygon points="6 3 20 12 6 21 6 3"/>""", "icon-play");
+    private static readonly string Chevron = Svg("""<polyline points="6 9 12 15 18 9"/>""", "chev");
+    private static readonly string Undo = Svg("""<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>""");
 
     private static readonly string Script = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "site", "app.js"));
 
@@ -47,7 +49,7 @@ public static class SitePageRenderer
         [
             Panel("top", chips + Picks(games, false) + Cards(games, false, all)),
             Panel("timeline:top", Subtabs("timeline", "top") + chips + Rows(ByTime(games).ConvertAll(ToRow), false)),
-            Panel("timeline:all", Subtabs("timeline", "all") + Chips(schedule.ConvertAll(row => (row.Sport, row.League))) + Rows(schedule, false)),
+            AllPanel("timeline", schedule, false),
             Panel("plan", Plan(daily.Watchlist)),
         ];
 
@@ -62,7 +64,7 @@ public static class SitePageRenderer
             [
                 Panel("weekend:top", Subtabs("weekend", "top") + weekendChips + picks + Cards(weekendGames, true, all)),
                 Panel("weekend:timeline", Subtabs("weekend", "timeline") + weekendChips + picks + Cards(ByTime(weekendGames), true, all)),
-                Panel("weekend:all", Subtabs("weekend", "all") + Chips(weekendSchedule.ConvertAll(row => (row.Sport, row.League))) + Rows(weekendSchedule, true)),
+                AllPanel("weekend", weekendSchedule, true),
             ]);
         }
 
@@ -251,12 +253,24 @@ public static class SitePageRenderer
     private static string Panel(string key, string content) =>
         $"""<section class="panel" data-panel="{key}" hidden>{content}</section>""";
 
-    private static string Subtabs(string tab, string active)
+    // An All list: every feed event, filterable by network too, with an empty-state line for a pick that matches nothing.
+    private static string AllPanel(string tab, List<ScheduleRow> schedule, bool weekend) =>
+        Panel(
+            $"{tab}:all",
+            Subtabs(tab, "all", reset: true)
+                + Chips(schedule.ConvertAll(row => (row.Sport, row.League)), NetworkChips(schedule))
+                + Rows(schedule, weekend)
+                + """<p class="empty" hidden></p>"""
+        );
+
+    // With reset, the switch sits centred in a line with a Reset at the right that app.js shows while anything is picked.
+    private static string Subtabs(string tab, string active, bool reset = false)
     {
         string[] views = tab == "weekend" ? ["top", "timeline", "all"] : ["top", "all"];
         var buttons = views.Select(view =>
             $"""<button type="button"{(view == active ? " class=\"active\"" : "")} data-go="{tab}:{view}">{char.ToUpperInvariant(view[0])}{view[1..]}</button>""");
-        return $"""<div class="subtabs">{string.Concat(buttons)}</div>""";
+        var pill = $"""<div class="subtabs">{string.Concat(buttons)}</div>""";
+        return reset ? $"""<div class="subtab-line"><span></span>{pill}<button type="button" class="reset" hidden>{Undo}Reset</button></div>""" : pill;
     }
 
     private static string Updated(SiteEdition edition) =>
@@ -285,20 +299,52 @@ public static class SitePageRenderer
     }
 
     // Sport chips for one list, most games first, each followed by a hidden league row when that sport
-    // spans 2+ leagues; omitted when the list has a single sport in a single league.
-    private static string Chips(List<(string Sport, string League)> games)
+    // spans 2+ leagues; omitted when the list has a single sport in a single league and no network row.
+    // A network row (the All lists) goes last, opened by a TV toggle at the start of the sport row: the row
+    // scrolls sideways on a phone, so anything at its end would be off screen.
+    private static string Chips(List<(string Sport, string League)> games, string networkRow = "")
     {
         var groups = games.GroupBy(game => game.Sport).OrderByDescending(group => group.Count()).ToList();
         var leagueRows = groups.ConvertAll(LeagueChips);
-        if (groups.Count < 2 && leagueRows.All(row => row.Length == 0))
+        if (groups.Count < 2 && leagueRows.All(row => row.Length == 0) && networkRow.Length == 0)
+        {
+            return "";
+        }
+
+        var toggle = networkRow.Length == 0
+            ? ""
+            : $"""<button type="button" class="net-toggle" aria-expanded="false" aria-label="Filter by network">{Tv}<span class="net-word">Network</span>{Chevron}</button>""";
+        var chips = groups.Select(group =>
+            $"""<button type="button" data-filter="{E(group.Key)}"><span>{SportsFormat.Icon(group.Key)} {E(group.Key)}</span> <span class="count">{group.Count()}</span></button>""");
+        return $"""<div class="sport-filter">{toggle}<button type="button" class="active" data-filter=""><span class="all-label">All</span> <span class="count">{games.Count}</span></button>{string.Concat(chips)}</div>{string.Concat(leagueRows)}{networkRow}""";
+    }
+
+    // All networks, On TV (any network listed), then one chip per channel, most games first; "" when no row has a network.
+    // A game on "TNT, truTV, HBO Max" counts under each, so picking any of them shows it.
+    private static string NetworkChips(List<ScheduleRow> rows)
+    {
+        var networks = rows.ConvertAll(row => Networks(row.Network));
+        var groups = networks
+            .SelectMany(names => names)
+            .GroupBy(name => name)
+            .OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (groups.Count == 0)
         {
             return "";
         }
 
         var chips = groups.Select(group =>
-            $"""<button type="button" data-filter="{E(group.Key)}"><span>{SportsFormat.Icon(group.Key)} {E(group.Key)}</span> <span class="count">{group.Count()}</span></button>""");
-        return $"""<div class="sport-filter"><button type="button" class="active" data-filter="">All <span class="count">{games.Count}</span></button>{string.Concat(chips)}</div>{string.Concat(leagueRows)}""";
+            $"""<button type="button" data-net="{E(group.Key)}">{E(group.Key)} <span class="count">{group.Count()}</span></button>""");
+        return $"""<div class="sport-filter network-filter" hidden><button type="button" class="active" data-net="">All networks <span class="count">{rows.Count}</span></button><button type="button" data-net="*">On TV <span class="count">{networks.Count(names => names.Length > 0)}</span></button>{string.Concat(chips)}</div>""";
     }
+
+    // The feed joins a game's networks with ", "; the ranker's text sometimes uses "/" instead.
+    private static string[] Networks(string network) =>
+        string.IsNullOrWhiteSpace(network)
+            ? []
+            : [.. network.Split([',', '/'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct()];
 
     private static string LeagueChips(IGrouping<string, (string Sport, string League)> sport)
     {
@@ -359,7 +405,9 @@ public static class SitePageRenderer
         var day = weekend && row.Start is { } start ? $"""<div class="row-day">{SportsFormat.Day(start)}</div>""" : "";
         var rank = row.Rank is { } value ? $"#{value} overall · " : "";
         var network = string.IsNullOrWhiteSpace(row.Network) ? "" : $"{Net(row.Network)} · ";
-        return $"""<li data-sport="{E(row.Sport)}" data-league="{E(row.League)}"><div class="row-time">{day}{Time(row.Start)}</div><div class="row-body"><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div>{Odds(row.Odds)}</div></li>""";
+        var networks = Networks(row.Network);
+        var nets = networks.Length == 0 ? "" : $" data-nets=\"{E(string.Join('|', networks))}\"";
+        return $"""<li data-sport="{E(row.Sport)}" data-league="{E(row.League)}"{nets}><div class="row-time">{day}{Time(row.Start)}</div><div class="row-body"><div class="row-game">{E(row.Matchup)}</div><div class="row-meta">{rank}{network}{SportsFormat.Icon(row.Sport)} {E(row.League)}</div>{Odds(row.Odds)}</div></li>""";
     }
 
     // Odds chips shared by Top cards and Timeline rows; nothing when there are no lines.
