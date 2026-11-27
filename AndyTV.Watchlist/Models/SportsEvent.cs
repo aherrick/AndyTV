@@ -16,6 +16,10 @@ public sealed record SportsEvent(
 
     public Betting Betting { get; init; }
 
+    // ESPN's team abbreviations (e.g. "BAL"), so the odds can name the spread favorite; null outside ESPN team boards.
+    public string AwayAbbr { get; init; }
+    public string HomeAbbr { get; init; }
+
     // Round and series state, e.g. "ALDS - Game 5 · Series tied 2-2".
     public string Note { get; init; }
 

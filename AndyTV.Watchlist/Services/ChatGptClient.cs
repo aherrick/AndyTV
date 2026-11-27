@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
+using AndyTV.Watchlist.Models;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 
@@ -19,8 +20,11 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
 
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
+    // The model's answer leaves out [FromFeed] fields, which code fills in afterwards.
+    private static readonly JsonSerializerOptions ParseOptions = FromFeedAttribute.OmitFrom(JsonSerializerOptions.Web);
+
     // Web defaults accept numbers as strings, which would make the schema say "string or integer".
-    private static readonly JsonSerializerOptions SchemaOptions = new(JsonSerializerOptions.Web)
+    private static readonly JsonSerializerOptions SchemaOptions = new(ParseOptions)
     {
         NumberHandling = JsonNumberHandling.Strict,
     };
@@ -41,7 +45,7 @@ public sealed class ChatGptClient(BlobStore blobStore, HttpClient http, ILogger<
         );
         try
         {
-            return JsonSerializer.Deserialize<T>(text, JsonSerializerOptions.Web)!;
+            return JsonSerializer.Deserialize<T>(text, ParseOptions)!;
         }
         catch (JsonException ex)
         {

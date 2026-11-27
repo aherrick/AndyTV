@@ -3,7 +3,7 @@
 
 namespace AndyTV.Watchlist.Models;
 
-// Researched Daily/Weekend watchlist and the exact Copilot response schema.
+// Researched Daily/Weekend watchlist, and the model's response schema minus the [FromFeed] fields.
 // Game start times can span multiple days (weekend).
 public sealed class DailyWatchlist
 {
@@ -23,10 +23,16 @@ public sealed record WatchlistGame(
 )
 {
     public List<WatchSource> Sources { get; init; } = [];
+
+    // ESPN's lines and team abbreviations (e.g. "BAL") for the game. Editions saved before these came from
+    // ESPN hold the model's copies instead.
+    [FromFeed]
     public Betting? Betting { get; init; }
 
-    // Common league/broadcaster abbreviations (e.g. "BAL"); null when the prompt isn't confident.
+    [FromFeed]
     public string? AwayTeamAbbr { get; init; }
+
+    [FromFeed]
     public string? HomeTeamAbbr { get; init; }
 }
 

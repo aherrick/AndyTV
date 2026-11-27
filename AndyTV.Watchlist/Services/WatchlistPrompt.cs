@@ -5,6 +5,7 @@ using AndyTV.Watchlist.Models;
 namespace AndyTV.Watchlist.Services;
 
 // The WATCHLIST_PROMPT app setting; {dates}, {firstDay} and {count} are filled in and the supplied events appended.
+// Events go without their odds: the model doesn't rank by them, and code attaches them to its picks.
 public static class WatchlistPrompt
 {
     public static string Build(string template, DateOnly[] days, List<SportsEvent> events)
@@ -18,7 +19,6 @@ public static class WatchlistPrompt
                 StartTimeIso = sportsEvent.StartTimeIso?.ToString("o"),
                 sportsEvent.Network,
                 sportsEvent.Note,
-                sportsEvent.Betting,
             }),
             JsonSerializerOptions.Web
         );

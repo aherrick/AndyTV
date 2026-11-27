@@ -73,7 +73,7 @@ public static partial class SportsFormat
             parts.Add(e.Network);
         }
 
-        var odds = OddsParts(e.Betting);
+        var odds = OddsParts(e.Betting, e.AwayAbbr, e.HomeAbbr);
         if (odds.Count > 0)
         {
             parts.Add(string.Join(" · ", odds));
@@ -110,6 +110,8 @@ public static partial class SportsFormat
             }
             else
             {
+                // Without abbreviations (editions saved before the feed kept them) only the away / home order says
+                // who's favored, so both sides are shown.
                 parts.Add($"Spread {Line(-homeSpread, spreadFormat)} / {Line(homeSpread, spreadFormat)}");
             }
         }

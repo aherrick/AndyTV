@@ -3,6 +3,7 @@ using System.Text.Json;
 using AndyTV.Watchlist.Configuration;
 using AndyTV.Watchlist.Models;
 using GitHub.Copilot;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace AndyTV.Watchlist.Services;
@@ -17,6 +18,9 @@ public sealed class WatchlistResearchService(
 {
     // Both connections run the same model at extra-high reasoning effort.
     private const string ModelId = "gpt-6.1-sol";
+
+    // The SDK's default options, minus the [FromFeed] fields that AttachFeedData fills in.
+    private static readonly JsonSerializerOptions CopilotOptions = FromFeedAttribute.OmitFrom(AIJsonUtilities.DefaultOptions);
 
     public async Task<List<SportsEvent>> LoadEvents(
         DateOnly[] days,
@@ -67,7 +71,34 @@ public sealed class WatchlistResearchService(
 
         // Every formatter (and SportsFormat.TopPicks) relies on rank order.
         watchlist.BestWatches.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+        AttachFeedData(watchlist, events);
         return (watchlist, cost);
+    }
+
+    // Odds and team abbreviations come from each pick's ESPN event, not the model. The prompt has the model copy
+    // matchups exactly, so a pick finds its event by matchup; a doubleheader's games share one, so the nearest
+    // start time decides. A pick that matches no event keeps no odds.
+    private void AttachFeedData(DailyWatchlist watchlist, List<SportsEvent> events)
+    {
+        for (var i = 0; i < watchlist.BestWatches.Count; i++)
+        {
+            var game = watchlist.BestWatches[i];
+            var match = events
+                .Where(e => e.Matchup == game.Matchup)
+                .MinBy(e => ((e.StartTimeIso ?? game.StartTimeIso) - game.StartTimeIso).Duration());
+            if (match is null)
+            {
+                logger.LogWarning("Pick #{rank} {matchup} matches no feed event, so it has no odds.", game.Rank, game.Matchup);
+                continue;
+            }
+
+            watchlist.BestWatches[i] = game with
+            {
+                Betting = match.Betting,
+                AwayTeamAbbr = match.AwayAbbr,
+                HomeTeamAbbr = match.HomeAbbr,
+            };
+        }
     }
 
     // Returns null on any failure (usage limit, the 15-minute stream cut, invalid JSON), so the caller
@@ -181,6 +212,7 @@ public sealed class WatchlistResearchService(
             // SendAndWaitAsync<T> infers a strict JSON schema from DailyWatchlist.
             return await session.SendAndWaitAsync<DailyWatchlist>(
                 prompt,
+                serializerOptions: CopilotOptions,
                 timeout: TimeSpan.FromMinutes(45),
                 cancellationToken: cancellationToken
             );

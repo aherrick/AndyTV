@@ -289,7 +289,7 @@ public static class SitePageRenderer
                     var game = ranked.GetValueOrDefault(e.Matchup);
                     // The feed often lacks a network or start time (golf, racing) the ranked game has.
                     var network = string.IsNullOrWhiteSpace(e.Network) ? game?.Network : e.Network;
-                    var odds = game?.Betting is null ? SportsFormat.OddsParts(e.Betting) : SportsFormat.OddsParts(game);
+                    var odds = game?.Betting is null ? SportsFormat.OddsParts(e.Betting, e.AwayAbbr, e.HomeAbbr) : SportsFormat.OddsParts(game);
                     return new ScheduleRow(e.StartTimeIso ?? game?.StartTimeIso, e.Sport, e.League, e.Matchup, network, game?.Rank, odds);
                 })
                 .OrderBy(row => row.Start ?? DateTimeOffset.MaxValue)

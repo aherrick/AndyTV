@@ -232,6 +232,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
 
             string home = null;
             string away = null;
+            string homeAbbr = null;
+            string awayAbbr = null;
             foreach (var competitor in competition.GetProperty("competitors").EnumerateArray())
             {
                 var team = competitor.GetProperty("team").GetProperty(board.School ? "location" : "displayName").GetString();
@@ -240,13 +242,14 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
                 {
                     team = $"#{position} {team}";
                 }
+                var abbr = At(competitor, "team", "abbreviation")?.GetString();
                 if (competitor.GetProperty("homeAway").GetString() == "home")
                 {
-                    home = team;
+                    (home, homeAbbr) = (team, abbr);
                 }
                 else
                 {
-                    away = team;
+                    (away, awayAbbr) = (team, abbr);
                 }
             }
 
@@ -266,6 +269,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
                 {
                     Network = networks.Length > 0 ? string.Join(", ", networks) : null,
                     Betting = Odds(competition),
+                    AwayAbbr = awayAbbr,
+                    HomeAbbr = homeAbbr,
                     Note = Note(competition, neutralSite),
                     NeutralSite = neutralSite,
                 }
