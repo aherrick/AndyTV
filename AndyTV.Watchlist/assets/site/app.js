@@ -208,7 +208,8 @@ function reveal() {
 addEventListener("hashchange", reveal);
 reveal();
 
-// Mouse wheel scrolls a one-line chip row sideways; at either end the page scrolls as usual.
+// Chip rows wrap with a mouse (styles.css), so this matters only for a mouse on a touch-first device,
+// e.g. a tablet: the wheel scrolls a one-line row sideways, and at either end the page scrolls as usual.
 // Scrolling and resizing (which includes a row or its panel being shown) update the row's edge fade.
 const resized = new ResizeObserver((entries) => entries.forEach((entry) => edge(entry.target)));
 for (const bar of $$(".sport-filter")) {

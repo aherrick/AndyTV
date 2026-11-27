@@ -258,7 +258,7 @@ main.tall {
   font-weight: 700;
 }
 
-/* Sport filter chips: one line everywhere; swipe, trackpad, or mouse wheel scrolls sideways */
+/* Sport filter chips: one line that swipes sideways on touch screens; rows wrap with a mouse (see RESPONSIVE) */
 .sport-filter {
   display: flex;
   gap: 8px;
@@ -590,7 +590,7 @@ main.tall {
   }
 }
 
-/* Odds chips: one line, swipe sideways (same as sport filter) */
+/* Odds chips: one line, swipe sideways; unlike the chip rows they never wrap, so cards keep their height */
 .odds {
   display: flex;
   gap: 6px;
@@ -878,6 +878,14 @@ main.tall {
 
   .net-toggle .net-word {
     display: inline;
+  }
+}
+
+/* With a mouse or trackpad, chip rows wrap instead of hiding chips off to the side,
+   since scrolling a row sideways with a wheel isn't obvious. Touch screens keep the swipe. */
+@media (hover: hover) and (pointer: fine) {
+  .sport-filter {
+    flex-wrap: wrap;
   }
 }
 
