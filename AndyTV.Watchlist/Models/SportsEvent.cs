@@ -17,6 +17,7 @@ public sealed record SportsEvent(
     public Betting Betting { get; init; }
 
     // ESPN's team abbreviations (e.g. "BAL"), so the odds can name the spread favorite; null outside ESPN team boards.
+    // Soccer uses ESPN's short names instead ("Man Utd", not "MAN"), since its codes mean little to US viewers.
     public string AwayAbbr { get; init; }
     public string HomeAbbr { get; init; }
 
@@ -26,4 +27,8 @@ public sealed record SportsEvent(
     public bool NeutralSite { get; init; }
 
     public string Matchup => EventName ?? $"{AwayTeam} {(NeutralSite ? "vs" : "@")} {HomeTeam}";
+
+    // This event with a fresher feed's odds and abbreviations for it.
+    public SportsEvent WithOddsFrom(SportsEvent fresh) =>
+        this with { Betting = fresh.Betting, AwayAbbr = fresh.AwayAbbr, HomeAbbr = fresh.HomeAbbr };
 }

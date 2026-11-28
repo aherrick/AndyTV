@@ -75,29 +75,21 @@ public sealed class WatchlistResearchService(
         return (watchlist, cost);
     }
 
-    // Odds and team abbreviations come from each pick's ESPN event, not the model. The prompt has the model copy
-    // matchups exactly, so a pick finds its event by matchup; a doubleheader's games share one, so the nearest
-    // start time decides. A pick that matches no event keeps no odds.
+    // Odds and team abbreviations come from each pick's ESPN event, not the model. A pick that matches no event
+    // keeps no odds.
     private void AttachFeedData(DailyWatchlist watchlist, List<SportsEvent> events)
     {
         for (var i = 0; i < watchlist.BestWatches.Count; i++)
         {
             var game = watchlist.BestWatches[i];
-            var match = events
-                .Where(e => e.Matchup == game.Matchup)
-                .MinBy(e => ((e.StartTimeIso ?? game.StartTimeIso) - game.StartTimeIso).Duration());
+            var match = events.FindGame(game.Matchup, game.StartTimeIso);
             if (match is null)
             {
                 logger.LogWarning("Pick #{rank} {matchup} matches no feed event, so it has no odds.", game.Rank, game.Matchup);
                 continue;
             }
 
-            watchlist.BestWatches[i] = game with
-            {
-                Betting = match.Betting,
-                AwayTeamAbbr = match.AwayAbbr,
-                HomeTeamAbbr = match.HomeAbbr,
-            };
+            watchlist.BestWatches[i] = game.WithOddsFrom(match);
         }
     }
 

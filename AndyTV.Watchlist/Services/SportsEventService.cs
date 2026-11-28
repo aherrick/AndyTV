@@ -242,7 +242,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
                 {
                     team = $"#{position} {team}";
                 }
-                var abbr = At(competitor, "team", "abbreviation")?.GetString();
+                // Soccer's codes ("M05", "MAN") mean little to US viewers, so it names the team ("Mainz", "Man Utd").
+                var abbr = At(competitor, "team", board.Sport == "Soccer" ? "shortDisplayName" : "abbreviation")?.GetString();
                 if (competitor.GetProperty("homeAway").GetString() == "home")
                 {
                     (home, homeAbbr) = (team, abbr);
@@ -298,7 +299,8 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         return parts.Count > 0 ? string.Join(" · ", parts) : null;
     }
 
-    // ESPN's sportsbook lines for the game; null when none are posted.
+    // ESPN's sportsbook lines for the game; null when none are posted. DraftKings lines come as American odds per
+    // market; bet365 (some soccer) sends only decimal win/draw/win prices, so those fill in the moneylines.
     private static Betting Odds(JsonElement competition)
     {
         // Smaller boards (e.g. women's friendlies) send "odds": [null] when no lines are posted.
@@ -316,11 +318,12 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
         var betting = new Betting(
             Line(odds, "pointSpread", "away", "line"),
             Line(odds, "pointSpread", "home", "line"),
-            Line(odds, "moneyline", "away", "odds"),
-            Line(odds, "moneyline", "home", "odds"),
-            odds.TryGetProperty("overUnder", out var total) && total.ValueKind == JsonValueKind.Number ? total.GetDecimal() : null
+            Line(odds, "moneyline", "away", "odds") ?? LineFromDecimal(odds, "awayTeamOdds"),
+            Line(odds, "moneyline", "home", "odds") ?? LineFromDecimal(odds, "homeTeamOdds"),
+            odds.TryGetProperty("overUnder", out var total) && total.ValueKind == JsonValueKind.Number ? total.GetDecimal() : null,
+            Line(odds, "moneyline", "draw", "odds") ?? LineFromDecimal(odds, "drawOdds")
         );
-        return betting is { AwaySpread: null, HomeSpread: null, AwayMoneyline: null, HomeMoneyline: null, Total: null }
+        return betting is { AwaySpread: null, HomeSpread: null, AwayMoneyline: null, HomeMoneyline: null, Total: null, DrawMoneyline: null }
             ? null
             : betting;
     }
@@ -339,6 +342,18 @@ public sealed class SportsEventService(HttpClient httpClient, ILogger<SportsEven
             return 100;
         }
         return decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null;
+    }
+
+    // A bet365 decimal price (e.g. "value": 8.0) as an American line (+700); null when missing. 2.0 is even money:
+    // longer prices win (price - 1) x 100 per 100 staked, shorter ones need 100 / (price - 1) to win 100.
+    private static decimal? LineFromDecimal(JsonElement odds, string side)
+    {
+        var price = At(odds, side, "value") is { ValueKind: JsonValueKind.Number } value ? value.GetDecimal() : 0;
+        if (price <= 1)
+        {
+            return null;
+        }
+        return Math.Round(price >= 2 ? (price - 1) * 100 : -100 / (price - 1), MidpointRounding.AwayFromZero);
     }
 
     // TheSportsDB buckets games by UTC day, so late western kickoffs land on the next day's list.

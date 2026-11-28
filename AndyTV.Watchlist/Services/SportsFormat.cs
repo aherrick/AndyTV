@@ -85,7 +85,8 @@ public static partial class SportsFormat
     public static string Dates(WatchlistKind kind, DateOnly runDate, string format = "dddd, MMMM d") =>
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
-    // e.g. "DAL -3.5 · ML +150 / -180 · O/U 47.5"; empty when there are no lines.
+    // e.g. "DAL -3.5 · ML +150 / -180 · O/U 47.5" or, for soccer, "Mainz -1.5 · ML +475 / -220 · Draw +350 · O/U 3.5";
+    // empty when there are no lines.
     public static string Odds(WatchlistGame game) => string.Join(" · ", OddsParts(game));
 
     public static List<string> OddsParts(WatchlistGame game) => OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
@@ -119,6 +120,11 @@ public static partial class SportsFormat
         if (betting is { AwayMoneyline: { } awayMoneyline, HomeMoneyline: { } homeMoneyline })
         {
             parts.Add($"ML {Line(awayMoneyline, "+0;-0")} / {Line(homeMoneyline, "+0;-0")}");
+        }
+        // Soccer's third result; without it two plus-money sides ("ML +155 / +155") look like a mistake.
+        if (betting.DrawMoneyline is { } draw)
+        {
+            parts.Add($"Draw {Line(draw, "+0;-0")}");
         }
         if (betting.Total is { } total)
         {
