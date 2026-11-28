@@ -52,7 +52,7 @@ public static partial class SportsFormat
 
     public static string Period(WatchlistKind kind) => kind == WatchlistKind.Weekend ? "This Weekend" : "Today";
 
-    // Feed event as one diagnostic line, e.g. "Thu 2026-10-08 7:30 PM ET | Football | NCAA | South Florida @ UTSA | ESPN | ML +210 / -260".
+    // Feed event as one diagnostic line, e.g. "Thu 2026-10-08 7:30 PM ET | Football | NCAA | South Florida @ UTSA | ESPN | ML USF +210 / UTSA -260".
     public static string EventLine(SportsEvent e)
     {
         List<string> parts =
@@ -85,13 +85,13 @@ public static partial class SportsFormat
     public static string Dates(WatchlistKind kind, DateOnly runDate, string format = "dddd, MMMM d") =>
         string.Join(" – ", kind.Days(runDate).Select(day => day.ToString(format, CultureInfo.InvariantCulture)));
 
-    // e.g. "DAL -3.5 · ML +150 / -180 · O/U 47.5" or, for soccer, "Mainz -1.5 · ML +475 / -220 · Draw +350 · O/U 3.5";
+    // e.g. "DAL -3.5 · ML NYG +150 / DAL -180 · O/U 47.5" or, for soccer, "Mainz -1.5 · ML Augsburg +475 / Mainz -220 · Draw +350 · O/U 3.5";
     // empty when there are no lines.
     public static string Odds(WatchlistGame game) => string.Join(" · ", OddsParts(game));
 
     public static List<string> OddsParts(WatchlistGame game) => OddsParts(game.Betting, game.AwayTeamAbbr, game.HomeTeamAbbr);
 
-    // With both abbreviations: ["BAL -3.5", "ML -180 / +150", "O/U 52.5"].
+    // With both abbreviations: ["BAL -3.5", "ML BAL -180 / CIN +150", "O/U 52.5"].
     public static List<string> OddsParts(Betting betting, string awayAbbr = null, string homeAbbr = null)
     {
         List<string> parts = [];
@@ -116,10 +116,12 @@ public static partial class SportsFormat
                 parts.Add($"Spread {Line(-homeSpread, spreadFormat)} / {Line(homeSpread, spreadFormat)}");
             }
         }
-        // A moneyline can't be inferred from the other side, so show it only when both are present.
+        // A moneyline can't be inferred from the other side, so show it only when both are present, each side
+        // named when the abbreviations are known ("ML OTT +215 / CAR -265"), else away / home ("ML +215 / -265").
         if (betting is { AwayMoneyline: { } awayMoneyline, HomeMoneyline: { } homeMoneyline })
         {
-            parts.Add($"ML {Line(awayMoneyline, "+0;-0")} / {Line(homeMoneyline, "+0;-0")}");
+            var (away, home) = awayAbbr is { Length: > 0 } && homeAbbr is { Length: > 0 } ? ($"{awayAbbr} ", $"{homeAbbr} ") : ("", "");
+            parts.Add($"ML {away}{Line(awayMoneyline, "+0;-0")} / {home}{Line(homeMoneyline, "+0;-0")}");
         }
         // Soccer's third result; without it two plus-money sides ("ML +155 / +155") look like a mistake.
         if (betting.DrawMoneyline is { } draw)

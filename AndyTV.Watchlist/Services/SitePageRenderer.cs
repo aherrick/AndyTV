@@ -268,7 +268,7 @@ public static class SitePageRenderer
     {
         string[] views = tab == "weekend" ? ["top", "timeline", "all"] : ["top", "all"];
         var buttons = views.Select(view =>
-            $"""<button type="button"{(view == active ? " class=\"active\"" : "")} data-go="{tab}:{view}">{char.ToUpperInvariant(view[0])}{view[1..]}</button>""");
+            $"""<button type="button"{(view == active ? " class=\"active\" aria-current=\"true\"" : "")} data-go="{tab}:{view}">{char.ToUpperInvariant(view[0])}{view[1..]}</button>""");
         var pill = $"""<div class="subtabs">{string.Concat(buttons)}</div>""";
         return reset ? $"""<div class="subtab-line"><span></span>{pill}<button type="button" class="reset" hidden>{Undo}Reset</button></div>""" : pill;
     }

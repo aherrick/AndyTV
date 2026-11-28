@@ -22,7 +22,10 @@ function show(target, push) {
   const panel = tab in views ? `${tab}:${views[tab]}` : tab;
 
   document.body.dataset.tab = tab;
-  for (const button of $$(".tabs [data-go]")) button.classList.toggle("active", button.dataset.go === tab);
+  for (const button of $$(".tabs [data-go]")) {
+    button.classList.toggle("active", button.dataset.go === tab);
+    button.ariaCurrent = button.dataset.go === tab ? "page" : null;
+  }
   for (const section of $$(".panel")) {
     section.hidden = section.dataset.panel !== panel;
     const s = picks.get(section);
@@ -52,6 +55,7 @@ function update(panel) {
   const set = (chip, count, active) => {
     chip.querySelector(".count").textContent = count;
     chip.classList.toggle("active", active);
+    chip.ariaPressed = active;
     chip.classList.toggle("zero", count === 0);
   };
 
@@ -60,6 +64,9 @@ function update(panel) {
     item.el.hidden = !(onNet(item) && inSport(item));
     if (!item.el.hidden) shown++;
   }
+  // Top Picks covers every sport, so it steps aside while one is picked.
+  const topPicks = panel.querySelector(".top-picks");
+  if (topPicks) topPicks.hidden = s.sport !== "";
 
   const onNetItems = items.filter(onNet);
   for (const chip of $$("[data-filter]", panel)) {
@@ -231,10 +238,19 @@ for (const bar of $$(".sport-filter")) {
   resized.observe(bar);
 }
 
+// The theme-color tags follow the device's setting; point them at the page's own theme instead, so the browser
+// bar (and an installed app's status bar) matches what's picked here.
+function paintThemeColor() {
+  const background = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  for (const meta of $$('meta[name="theme-color"]')) meta.content = background;
+}
+paintThemeColor();
+
 document.getElementById("theme-toggle").addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
   document.documentElement.dataset.theme = next;
   localStorage.setItem("andytv-theme", next);
+  paintThemeColor();
 });
 
 const shareButton = document.getElementById("share-btn");
