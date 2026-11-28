@@ -60,7 +60,8 @@ internal sealed class PlayerForm : Form
     private const int RightHoldSeconds = 5;
     private const int ChannelMenuPageSize = 250;
 
-    private readonly PeriodicTimer _refreshTimer = new(TimeSpan.FromHours(1));
+    // Playlists change through the day, so the channel menu reloads every half hour.
+    private readonly PeriodicTimer _refreshTimer = new(TimeSpan.FromMinutes(30));
     private readonly StreamHealthMonitor _healthMonitor = new();
     private volatile bool _videoLate;
     private readonly System.Windows.Forms.Timer _healthTimer = new() { Interval = 1000 };
@@ -245,7 +246,7 @@ internal sealed class PlayerForm : Form
         _playlists = _playlistService.LoadPlaylists();
         await RefreshChannels();
 
-        _ = RunHourlyRefresh();
+        _ = RunTimedRefresh();
     }
 
     private void SetBusy(bool busy)
@@ -264,19 +265,19 @@ internal sealed class PlayerForm : Form
             : this.IsFullscreen() ? HiddenCursor
             : Cursors.Default;
 
-    private async Task RunHourlyRefresh()
+    private async Task RunTimedRefresh()
     {
         // Disposed on shutdown, which ends the loop instead of throwing.
         while (await _refreshTimer.WaitForNextTickAsync())
         {
             try
             {
-                await RefreshChannels();
-                Logger.Info("[REFRESH] Hourly channel refresh complete");
+                await LoadChannels();
+                Logger.Info("[REFRESH] Timed channel refresh complete");
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Hourly refresh failed");
+                Logger.Error(ex, "Timed refresh failed");
             }
         }
     }
@@ -537,26 +538,34 @@ internal sealed class PlayerForm : Form
         }
     }
 
-    // Prepare the channel data off the UI thread. Only visible menu levels need controls.
+    // With the spinner: startup, the Refresh item and playlist edits, where you're waiting on the menu.
     private async Task RefreshChannels()
     {
         SetBusy(true);
         try
         {
-            var timer = Stopwatch.StartNew();
-            var (roots, loadMs) = await Task.Run(async () =>
-            {
-                await _playlistService.RefreshChannelsAsync();
-                var elapsed = timer.ElapsedMilliseconds;
-                return (BuildChannelRoots(), elapsed);
-            });
-            SwapChannelItems(roots);
-            Logger.Info($"[REFRESH] Channel load {loadMs} ms, menu preparation {timer.ElapsedMilliseconds - loadMs} ms");
+            await LoadChannels();
         }
         finally
         {
             SetBusy(false);
         }
+    }
+
+    // Prepare the channel data off the UI thread. Only visible menu levels need controls.
+    // The timed refresh calls this directly, without the spinner: the current menu keeps working until the
+    // new one swaps in, so nothing waits on it, and in fullscreen the spinner would show over the video.
+    private async Task LoadChannels()
+    {
+        var timer = Stopwatch.StartNew();
+        var (roots, loadMs) = await Task.Run(async () =>
+        {
+            await _playlistService.RefreshChannelsAsync();
+            var elapsed = timer.ElapsedMilliseconds;
+            return (BuildChannelRoots(), elapsed);
+        });
+        SwapChannelItems(roots);
+        Logger.Info($"[REFRESH] Channel load {loadMs} ms, menu preparation {timer.ElapsedMilliseconds - loadMs} ms");
     }
 
     private void SwapChannelItems(List<MenuNode> roots)
