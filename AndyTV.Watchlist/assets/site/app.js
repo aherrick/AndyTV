@@ -89,17 +89,23 @@ function update(panel) {
       // Networks with no games for this sport and league drop out, so no pick there can come up empty.
       chip.hidden = count === 0 && net !== "" && net !== s.net;
     }
-    // After All networks and On TV: the picked network, so it never scrolls out of view, then the most games.
-    const order = (chip) => (chip.dataset.net === s.net ? Infinity : perNet.get(chip.dataset.net) ?? 0);
+    // After All networks and On TV: the most games first. Picking a network doesn't move its chip, so it stays
+    // under the pointer or finger.
+    const games = (chip) => perNet.get(chip.dataset.net) ?? 0;
     const named = chips.filter((chip) => chip.dataset.net !== "" && chip.dataset.net !== "*");
-    networkRow.append(...named.sort((a, b) => order(b) - order(a) || a.dataset.net.localeCompare(b.dataset.net)));
-    // A new sport or league starts the network row back at its start.
-    const rowKey = `${s.sport}|${s.league}`;
+    networkRow.append(...named.sort((a, b) => games(b) - games(a) || a.dataset.net.localeCompare(b.dataset.net)));
+    networkRow.hidden = !s.open;
+    // Opening the row or picking a new sport or league starts the row back at its start, scrolled just far
+    // enough to keep the picked network in view. Wrapped rows don't scroll, so this only moves a swiped row.
+    const rowKey = s.open ? `${s.sport}|${s.league}` : "";
     if (rowKey !== s.rowKey) {
       networkRow.scrollLeft = 0;
+      const picked = named.find((chip) => chip.dataset.net === s.net);
+      if (picked && s.open) {
+        networkRow.scrollLeft = picked.getBoundingClientRect().right - networkRow.getBoundingClientRect().right + 24;
+      }
       s.rowKey = rowKey;
     }
-    networkRow.hidden = !s.open;
 
     const toggle = panel.querySelector(".net-toggle");
     toggle.setAttribute("aria-expanded", s.open);
